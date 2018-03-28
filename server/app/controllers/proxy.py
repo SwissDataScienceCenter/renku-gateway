@@ -25,9 +25,12 @@ from flask import request, session, Response
 from .. import app
 #from ..keycloak import require_tokens
 from ..settings import settings
+from flask_cors import CORS, cross_origin
+
+
 
 logger = logging.getLogger(__name__)
-
+CORS(app)
 CHUNK_SIZE = 1024
 
 
@@ -36,14 +39,8 @@ def with_tokens(f):
      """Function decorator to ensure we have OIDC tokens"""
      return 0
 
-@app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
+@app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 #@require_tokens
-def routing(path):
-    if request.method == 'OPTIONS':
-        return preflight(path)
-    else:
-        return pass_through(path)
-
 
 def pass_through(path):
     logger.debug(path)
@@ -94,43 +91,6 @@ def pass_through(path):
     return Response(generate(), response.status_code)
 
 
-#@app.route('/api/<path:path>', methods=['OPTIONS'])
-def preflight(path):
-#     """Simplest possible webproxy to avoid CORS problems when loading external datasets in the UI."""
-    logger.debug(request)
-    logger.debug("Preflight request")
-
-    logger.debug(request)
-   # url = request.headers.get('fileUrl')
-    url = "http://gitlab.renga.local" + "/api/v4/" + path
-    logger.debug('resolving URL: {}'.format(url))
-    response = requests.request('GET', url, stream=True, timeout=3000)
-
-    def generate():
-        for c in response.iter_content(1024):
-            yield c
-
-    headers = dict(response.headers)
-    headers['Access-Control-Allow-Origin:'] = '*'
-    headers['Access-Control-Allow-Methods'] = ('POST', 'GET', 'OPTIONS', 'DELETE', 'PUT')
-    headers['Access-Control-Max-Age'] = 86400
-#
-#     # TODO: We go unencoded for the moment (otherwise zip-files etc. are broken)
-#      try:
-#          del headers["Transfer-Encoding"]
-#      except KeyError:
-#          pass
-#      try:
-#          del headers["Content-Encoding"]
-#      except KeyError:
-#          pass
-#
-#
-#
-
-    logger.debug(headers)
-
-    return Response(generate(), response.status_code,  headers=headers)
 
 # @app.route('/webproxy', methods=['GET'])
 # #@require_tokens
