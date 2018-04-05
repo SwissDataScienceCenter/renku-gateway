@@ -18,50 +18,10 @@
 """Flask initialization."""
 
 import logging
-import os
-
-import pkg_resources
 from flask import Flask
-from flask_webpack import Webpack
-from werkzeug.contrib.fixers import ProxyFix
-from .utils import ReverseProxied
-
-try:
-    pkg_resources.get_distribution('raven')
-    from raven.contrib.flask import Sentry
-except pkg_resources.DistributionNotFound:  # pragma: no cover
-    Sentry = None
 
 logging.basicConfig(level=logging.DEBUG)
 
-#webpack = Webpack()
+app = Flask(__name__)
 
-app = Flask(__name__, static_folder='../../dist', static_url_path='/static')
-# app.config['WEBPACK_MANIFEST_PATH'] = os.getenv('WEBPACK_MANIFEST_PATH', '../../dist/manifest.json')
-# app.secret_key = os.getenv('APPLICATION_SECRET_KEY', b',\x99@uyF\x94p\xc8\xa9\x0e\xa7,rT\xbe\xe8\xa0C0\xd54\x89-')
-# app.config['APPLICATION_ROOT'] = os.getenv('APPLICATION_ROOT', None)
-# app.wsgi_app = ProxyFix(ReverseProxied(app.wsgi_app))
-
-
-#webpack.init_app(app)
-
-# Setup Sentry service:
-# if Sentry and os.environ.get('SENTRY_UI_SERVER_DSN'):  # pragma: no cover
-#     Sentry(app, dsn=os.environ['SENTRY_UI_SERVER_DSN'])
-
-
-# @app.after_request
-# def add_header(r):
-#     """
-#     Add headers to both force latest IE rendering engine or Chrome Frame,
-#     and also to cache the rendered page for 10 minutes.
-#     """
-#     r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-#     r.headers["Pragma"] = "no-cache"
-#     r.headers["Expires"] = "0"
-#     r.headers['Cache-Control'] = 'public, max-age=0'
-#     return r
-# #
-
-# Removing below line causes issues with CORS
 from .controllers import proxy
