@@ -30,8 +30,7 @@ def settings():
 
 def setup_globals():
     global g
-    # g['API_ROOT_URL'] = os.environ.get(
-    #     'API_ROOT_URL', 'http://localhost/api/')
+
     g['KEYCLOAK_URL'] = os.environ.get(
         'KEYCLOAK_URL', 'http://keycloak.renga.local:8080/auth/realms/Renga')
     g['KEYCLOAK_REDIRECT_URL'] = os.environ.get(
@@ -40,9 +39,3 @@ def setup_globals():
         'CLIENT_ID', 'demo-client')
     g['CLIENT_SECRET'] = os.environ.get(
         'CLIENT_SECRET', '5294a18e-e784-4e39-a927-ce816c91c83e')
-    # g['STORAGE_DEFAULT_BACKEND'] = os.environ.get(
-    #     'STORAGE_DEFAULT_BACKEND', 'local')
-    # g['DEPLOY_DEFAULT_BACKEND'] = os.environ.get(
-    #     'DEPLOY_DEFAULT_BACKEND', 'docker')
-    # g['SENTRY_UI_DSN'] = os.environ.get(
-    #     'SENTRY_UI_DSN', '')
