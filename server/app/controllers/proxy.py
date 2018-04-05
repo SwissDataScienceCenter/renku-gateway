@@ -23,10 +23,9 @@ import requests
 from flask import request, session, Response
 
 from .. import app
-#from ..keycloak import require_tokens
 from ..settings import settings
 from flask_cors import CORS, cross_origin
-
+import jwt
 
 
 logger = logging.getLogger(__name__)
@@ -40,123 +39,52 @@ def with_tokens(f):
      return 0
 
 @app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
-#@require_tokens
+
 
 def pass_through(path):
     logger.debug(path)
-    logger.debug(request)
-
-    g = settings()
-
-    logger.debug( session)
-   # access_token = 'Bearer {}'.format(session['tokens']['access_token'])
-   # logger.debug(access_token)
-    # logger.debug(access_token)
- #   url = '{base}{path}'.format(base=g['API_ROOT_URL'], path=path)
-  #  if request.query_string:
-       # url += '?{}'.format(request.query_string.decode())
-    url = "http://gitlab.renga.local" + "/api/v4/"+ path
-
-    headers = dict(request.headers)
-
-    del headers['Host']
-   # del headers['Cookie']
-
-
-# Verify keycloak token
-
-   # sudotoken = "yxsp5Ut32KR66E-HY7oc"
-    #   if 'Authorization' not in headers:
-   #     headers['Authorization'] = access_token
-    #headers['Private-Token'] = sudotoken
-
- #   headers['Sudo'] = "demo"
-
-
-
-    logger.debug('Method: {}'.format(request.method))
-    logger.debug('URL: {}'.format(url))
-    logger.debug('Headers: {}'.format(headers))
-    logger.debug('Data (maybe truncated): {}'.format(request.data[0:1000]))
-
-    response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
-
-    logger.debug('Response: {}'.format(response.status_code))
 
     def generate():
         for c in response.iter_lines():
             logger.debug(c)
             yield c + "\r".encode()
 
-    return Response(generate(), response.status_code)
+    g = settings()
+
+    headers = dict(request.headers)
+
+    url = "http://gitlab.renga.local" + "/api/v4/"+ path
+
+    del headers['Host']
+    sudotoken = "yxsp5Ut32KR66E-HY7oc"
+    if 'Authorization' in headers:
+
+        access_token = headers.get('Authorization')[7:]
+        del headers['Authorization']
+        headers['Private-Token'] = sudotoken
+
+        # Get keycloak public key
+        key_cloak_url = '{base}'.format(base=g['KEYCLOAK_URL'])
+        token_request = json.loads(requests.get(key_cloak_url).text)
+
+        keycloak_public_key = '-----BEGIN PUBLIC KEY-----\n' + token_request.get('public_key') + '\n-----END PUBLIC KEY-----'
 
 
+        dec = jwt.decode(access_token, keycloak_public_key, algorithms='RS256', audience='renga-ui')
 
-# @app.route('/webproxy', methods=['GET'])
-# #@require_tokens
-# def webproxy():
-#     """Simplest possible webproxy to avoid CORS problems when loading external datasets in the UI."""
-#     logger.debug(request)
-#
-#     url = request.headers.get('fileUrl')
-#     logger.debug('resolving URL: {}'.format(url))
-#     response = requests.request('GET', url, stream=True, timeout=3000)
-#
-#     def generate():
-#         for c in response.iter_content(1024):
-#             yield c
-#
-#     headers = dict(response.headers)
-#
-#     # TODO: We go unencoded for the moment (otherwise zip-files etc. are broken)
-#     try:
-#         del headers["Transfer-Encoding"]
-#     except KeyError:
-#         pass
-#     try:
-#         del headers["Content-Encoding"]
-#     except KeyError:
-#         pass
-#
-#     return Response(generate(), response.status_code,  headers=headers)
 
-# @app.route('/download', methods=['GET'])
-# #@require_tokens
-# def download():
-#     logger.debug(request)
-#
-#     g = settings()
-#
-#     access_token = 'Bearer {}'.format(session['tokens']['access_token'])
-#
-#     url = '{base}{path}'.format(base=g['API_ROOT_URL'], path='storage/authorize/read')
-#     headers = dict(request.headers)
-#     del headers['Host']
-#     del headers['Cookie']
-#     headers['Authorization'] = access_token
-#     headers['Content-Type'] = 'text/json'
-#
-#     logger.debug('URL: {}'.format(url))
-#     logger.debug('Headers: {}'.format(headers))
-#     logger.debug('Data: {}'.format(json.dumps({"resource_id": int(request.args.get('id')), "request_type": "read_file"})))
-#
-#     response = requests.request('POST', url, headers=headers, data=json.dumps({"resource_id": int(request.args.get('id')), "request_type": "read_file"}), timeout=300)
-#
-#     if response.status_code == 200:
-#         logger.debug('Response: {}'.format(response.status_code))
-#         logger.debug('Response: {}'.format(response.json()))
-#
-#         url = '{base}{path}'.format(base=g['API_ROOT_URL'], path='storage/io/read')
-#         token = "Bearer {}".format(response.json().get('access_token'))
-#         headers['Authorization'] = token
-#
-#         response = requests.request('GET', url, headers=headers, stream=True, timeout=300)
-#
-#     def generate():
-#         for c in response.iter_content(CHUNK_SIZE):
-#             yield c
-#
-#     resp = Response(generate(), response.status_code)
-#     resp.headers['Content-Disposition'] = 'attachment; filename={}'.format(request.args.get('name', 'untitled'))
-#
-#     return resp
+        id = (dec['preferred_username'])
+        headers['Sudo'] = id
+        logger.debug(headers)
+
+
+        response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
+
+
+        logger.debug('Response: {}'.format(response.status_code))
+
+        return Response(generate(), response.status_code)
+
+    else :
+        response = json.dumps("No authorization header found")
+        return Response(response, status=401)
