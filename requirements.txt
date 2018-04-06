@@ -16,9 +16,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-openid-connect==0.3.1
-requests==2.18.1
 flask==0.12.2
-Flask-Webpack==0.1.0
-raven[flask]==6.3.0
 flask-cors==3.0.3
+jwt==0.5.3
+PyJWT==1.6.1
+requests==2.18.1

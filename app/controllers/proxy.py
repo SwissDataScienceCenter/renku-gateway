@@ -20,11 +20,11 @@
 import logging
 import json
 import requests
-from flask import request, session, Response
+from flask import request, Response
 
 from .. import app
 from ..settings import settings
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 import jwt
 
 
@@ -85,6 +85,6 @@ def pass_through(path):
 
         return Response(generate(), response.status_code)
 
-    else :
+    else:
         response = json.dumps("No authorization header found")
         return Response(response, status=401)
