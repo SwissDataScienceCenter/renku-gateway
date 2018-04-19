@@ -30,17 +30,15 @@ import jwt
 
 logger = logging.getLogger(__name__)
 CORS(app)
-CHUNK_SIZE = 1024
+#CHUNK_SIZE = 1024
 
 
 # TODO use token
-def with_tokens(f):
-     """Function decorator to ensure we have OIDC tokens"""
-     return 0
+# def with_tokens(f):
+#      """Function decorator to ensure we have OIDC tokens"""
+#      return 0
 
 @app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
-
-
 def pass_through(path):
     logger.debug(path)
 
@@ -53,34 +51,28 @@ def pass_through(path):
 
     headers = dict(request.headers)
 
-    url = "http://gitlab.renga.local" + "/api/v4/"+ path
-
     del headers['Host']
-    sudotoken = "yxsp5Ut32KR66E-HY7oc"
+
     if 'Authorization' in headers:
 
         access_token = headers.get('Authorization')[7:]
         del headers['Authorization']
-        headers['Private-Token'] = sudotoken
+        headers['Private-Token'] = g['sudotoken']
 
         # Get keycloak public key
         key_cloak_url = '{base}'.format(base=g['KEYCLOAK_URL'])
         token_request = json.loads(requests.get(key_cloak_url).text)
-
         keycloak_public_key = '-----BEGIN PUBLIC KEY-----\n' + token_request.get('public_key') + '\n-----END PUBLIC KEY-----'
 
-
-        dec = jwt.decode(access_token, keycloak_public_key, algorithms='RS256', audience='renga-ui')
-
-
-        id = (dec['preferred_username'])
+        # Decode token to get user id
+        decodentoken = jwt.decode(access_token, keycloak_public_key, algorithms='RS256', audience='renga-ui')
+        id = (decodentoken['preferred_username'])
         headers['Sudo'] = id
         logger.debug(headers)
 
-
+        # Respond to requester
+        url = g['GITLAB_URL'] + "/api/v4/" + path
         response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
-
-
         logger.debug('Response: {}'.format(response.status_code))
 
         return Response(generate(), response.status_code)
