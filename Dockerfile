@@ -1,23 +1,19 @@
 FROM python:3.6-slim
 
-RUN apt-get update
-RUN apt-get install -y gcc libffi-dev libssl-dev
-RUN pip install --upgrade pip
+RUN set -e \
+  ; apt-get update \
+  ; apt-get install -y gcc libffi-dev libssl-dev \
+  ; pip install --upgrade pip \
+  ; rm -r /root/.cache \
+  ;
+
+COPY requirements.txt /app/requirements.txt
+RUN pip install -r /app/requirements.txt
 
 
 COPY run.py .
 COPY app /app
 
-COPY requirements.txt /app/requirements.txt
-WORKDIR /app
-RUN pip install -r /app/requirements.txt
-
-RUN file="$(ls -1)" && echo $file
-
-
-
-WORKDIR /
-ENTRYPOINT ["python3"]
-CMD ["run.py"]
+CMD ["python3", "run.py"]
 
 EXPOSE 5000
