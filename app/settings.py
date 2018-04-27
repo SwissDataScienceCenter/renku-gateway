@@ -31,8 +31,8 @@ def settings():
 def setup_globals():
     global g
     g['GITLAB_URL'] = os.environ.get(
-        'GITLAB_URL', 'http://gitlab.renga.local')
+        'GITLAB_URL', 'http://gitlab.renga.build')
     # Get from storage
-    g['sudotoken'] = os.environ.get('sudotoken', 'yxsp5Ut32KR66E-HY7oc')
+    g['GITLAB_PASS'] = os.environ.get('GITLAB_PASS', 'dummy-secret')
     g['KEYCLOAK_URL'] = os.environ.get(
-        'KEYCLOAK_URL', 'http://keycloak.renga.local:8080/auth/realms/Renga')
+        'KEYCLOAK_URL', 'http://keycloak.renga.build:8080/auth/realms/Renga')
