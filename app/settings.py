@@ -35,4 +35,4 @@ def setup_globals():
     # Get from storage
     g['GITLAB_PASS'] = os.environ.get('GITLAB_PASS', 'dummy-secret')
     g['KEYCLOAK_URL'] = os.environ.get(
-        'KEYCLOAK_URL', 'http://keycloak.renga.build:8080/auth/realms/Renga')
+        'KEYCLOAK_URL', 'http://keycloak.renga.build:8080')
