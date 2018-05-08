@@ -1,11 +1,12 @@
 DOCKER_REPOSITORY?=rengahub
+PLATFORM_VERSION?=development
 
 IMAGE=incubator-proxy
 
 all:
 	@echo "All"
-	@docker build -t ${IMAGE} .
-	@docker tag ${IMAGE} ${DOCKER_REPOSITORY}/${IMAGE}
+	@echo "Platform version: " ${PLATFORM_VERSION}
+	@docker build -t ${DOCKER_REPOSITORY}/${IMAGE}:${PLATFORM_VERSION} .
 
 
 build:
@@ -20,9 +21,7 @@ start:
 	@docker pull ${DOCKER_REPOSITORY}/${IMAGE}
     @docker run -p 5000:5000 ${DOCKER_REPOSITORY}/${IMAGE}
 
-build-dev:
-	@echo "Build-dev"
-	@docker build -t ${IMAGE} .
-	@docker tag ${IMAGE} ${DOCKER_REPOSITORY}/${IMAGE}:development
-	@docker push ${DOCKER_REPOSITORY}/${IMAGE}:development
+run-dev:
+	@echo "Run-dev"
+	FLASK_DEBUG=1 python run.py
 

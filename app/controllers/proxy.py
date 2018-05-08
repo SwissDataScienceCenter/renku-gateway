@@ -41,7 +41,6 @@ CORS(app)
 @app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def pass_through(path):
     logger.debug(path)
-
     def generate():
         for c in response.iter_lines():
             logger.debug(c)
@@ -61,7 +60,8 @@ def pass_through(path):
 
         # Get keycloak public key
         key_cloak_url = '{base}'.format(base=g['KEYCLOAK_URL'])
-        token_request = json.loads(requests.get(key_cloak_url).text)
+        token_request = json.loads(requests.get(key_cloak_url+"/auth/realms/Renga").text)
+
         keycloak_public_key = '-----BEGIN PUBLIC KEY-----\n' + token_request.get('public_key') + '\n-----END PUBLIC KEY-----'
 
         # Decode token to get user id
