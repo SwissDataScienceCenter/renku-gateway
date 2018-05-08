@@ -57,7 +57,7 @@ def pass_through(path):
 
         access_token = headers.get('Authorization')[7:]
         del headers['Authorization']
-        headers['Private-Token'] = g['sudotoken']
+        headers['Private-Token'] = g['GITLAB_PASS']
 
         # Get keycloak public key
         key_cloak_url = '{base}'.format(base=g['KEYCLOAK_URL'])
