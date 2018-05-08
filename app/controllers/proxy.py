@@ -37,6 +37,8 @@ CORS(app)
 # def with_tokens(f):
 #      """Function decorator to ensure we have OIDC tokens"""
 #      return 0
+#@app.route('/api/projects', methods=['GET'])
+
 
 @app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def pass_through(path):
