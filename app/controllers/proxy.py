@@ -37,7 +37,16 @@ CORS(app)
 # def with_tokens(f):
 #      """Function decorator to ensure we have OIDC tokens"""
 #      return 0
-#@app.route('/api/projects', methods=['GET'])
+@app.route('/api/projects', methods=['GET'])
+def map_project() :
+    logger.debug('projects controller')
+
+    #proxy should call: get /projects ,get/issues[scope=all], get /projects/id/issues/:issueid/notes
+
+    project_url = g['GITLAB_URL'] + "/api/v4/" + "project"
+    logger.debug(project_url)
+ #   response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
+    return(pass_through('projects'))
 
 
 @app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
@@ -54,6 +63,23 @@ def pass_through(path):
 
     del headers['Host']
 
+    auth_headers = authorize(headers, g)
+
+    if auth_headers!=[] :
+
+     # Respond to requester
+     url = g['GITLAB_URL'] + "/api/v4/" + path
+     response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
+     logger.debug('Response: {}'.format(response.status_code))
+
+     return Response(generate(), response.status_code)
+
+    else:
+        response = json.dumps("No authorization header found")
+        return Response(response, status=401)
+
+
+def authorize(headers, g):
     if 'Authorization' in headers:
 
         access_token = headers.get('Authorization')[7:]
@@ -72,13 +98,8 @@ def pass_through(path):
         headers['Sudo'] = id
         logger.debug(headers)
 
-        # Respond to requester
-        url = g['GITLAB_URL'] + "/api/v4/" + path
-        response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
-        logger.debug('Response: {}'.format(response.status_code))
-
-        return Response(generate(), response.status_code)
+        return headers
 
     else:
-        response = json.dumps("No authorization header found")
-        return Response(response, status=401)
+        return []
+
