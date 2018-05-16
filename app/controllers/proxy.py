@@ -30,32 +30,57 @@ import jwt
 
 logger = logging.getLogger(__name__)
 CORS(app)
-#CHUNK_SIZE = 1024
+#CHUNK_SIZE = 1024 # is this needed
 
 
 # TODO use token
 # def with_tokens(f):
 #      """Function decorator to ensure we have OIDC tokens"""
 #      return 0
+
+
+project_keys = ['description', 'name']
+
+
 @app.route('/api/projects', methods=['GET'])
 def map_project() :
     logger.debug('projects controller')
+    g = settings()
+    headers = dict(request.headers)
 
+    del headers['Host']
     #proxy should call: get /projects ,get/issues[scope=all], get /projects/id/issues/:issueid/notes
 
-    project_url = g['GITLAB_URL'] + "/api/v4/" + "project"
-    logger.debug(project_url)
- #   response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
-    return(pass_through('projects'))
+   # project_url = g['GITLAB_URL'] + "/api/v4/" + "project"
+
+    auth_headers = authorize(headers, g)
+
+    if auth_headers!=[] :
+
+        project_url = g['GITLAB_URL'] + "/api/v4/projects"
+        project_response = requests.request(request.method, project_url, headers=headers, data=request.data, stream=True, timeout=300)
+        projects_list = project_response.json()
+
+
+        for project in projects_list:
+            projectid = project.get('id')
+
+            readme_url =  g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/repository/files/README.md"
+            readme_response = requests.request(request.method, readme_url, headers=headers, data=request.data, stream=True, timeout=300)
+            logger.debug(readme_response)
+
+
+        return Response(generate(project_response), project_response.status_code)
+
+    else:
+        response = json.dumps("No authorization header found")
+        return Response(response, status=401)
+
 
 
 @app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def pass_through(path):
     logger.debug(path)
-    def generate():
-        for c in response.iter_lines():
-            logger.debug(c)
-            yield c + "\r".encode()
 
     g = settings()
 
@@ -72,7 +97,7 @@ def pass_through(path):
      response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
      logger.debug('Response: {}'.format(response.status_code))
 
-     return Response(generate(), response.status_code)
+     return Response(generate(response), response.status_code)
 
     else:
         response = json.dumps("No authorization header found")
@@ -103,3 +128,8 @@ def authorize(headers, g):
     else:
         return []
 
+def generate(response):
+    for c in response.iter_lines():
+        logger.debug(c)
+        yield c + "\r".encode()
+    return(response)
