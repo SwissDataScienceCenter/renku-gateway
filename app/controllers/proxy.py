@@ -30,6 +30,8 @@ import jwt
 
 logger = logging.getLogger(__name__)
 CORS(app)
+g = settings()
+
 #CHUNK_SIZE = 1024 # is this needed
 
 
@@ -42,16 +44,14 @@ CORS(app)
 project_keys = ['description', 'name']
 
 
+
 @app.route('/api/projects', methods=['GET'])
 def map_project() :
     logger.debug('projects controller')
-    g = settings()
+
     headers = dict(request.headers)
 
     del headers['Host']
-    #proxy should call: get /projects ,get/issues[scope=all], get /projects/id/issues/:issueid/notes
-
-   # project_url = g['GITLAB_URL'] + "/api/v4/" + "project"
 
     auth_headers = authorize(headers, g)
 
@@ -65,9 +65,15 @@ def map_project() :
         for project in projects_list:
             projectid = project.get('id')
 
-            readme_url =  g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/repository/files/README.md"
-            readme_response = requests.request(request.method, readme_url, headers=headers, data=request.data, stream=True, timeout=300)
-            logger.debug(readme_response)
+            readme = getReadme(headers, projectid)
+            issues = getIssues(headers, projectid)
+            for issue in issues.json():
+                issueid = issue.get('id')
+                notes = getNotes(headers, projectid, issueid)
+
+
+            # Process readme, project and issues into the desired structure
+            # get also http://gitlab.renga.build/api/v4/user ?
 
 
         return Response(generate(project_response), project_response.status_code)
@@ -82,7 +88,6 @@ def map_project() :
 def pass_through(path):
     logger.debug(path)
 
-    g = settings()
 
     headers = dict(request.headers)
 
@@ -133,3 +138,27 @@ def generate(response):
         logger.debug(c)
         yield c + "\r".encode()
     return(response)
+
+
+def getReadme(headers, projectid):
+
+    readme_url = g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/repository/files/README.md"
+    logger.debug("Getting readme for project with id", projectid)
+
+    return requests.request(request.method, readme_url, headers=headers, data=request.data, stream=True, timeout=300)
+
+def getIssues(headers, projectid):
+    issue_url = g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/issues?scope=all"
+
+    logger.debug("Getting issues for project with id", projectid)
+
+    return requests.request(request.method, issue_url, headers=headers, data=request.data, stream=True, timeout=300)
+
+
+def getNotes(headers, projectid, issueid):
+
+    notes_url = g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/issues/" + str(issueid) + "/notes"
+
+    logger.debug("Getting noes for issue with ", issueid, " in project with ", projectid)
+
+    return requests.request(request.method, notes_url, headers=headers, data=request.data, stream=True, timeout=300)
