@@ -73,7 +73,7 @@ def map_project() :
 
 
             # Process readme, project and issues into the desired structure
-            # get also http://gitlab.renga.build/api/v4/user ?
+            # get also http://gitlab.renku.build/api/v4/user ?
 
 
         return Response(generate(project_response), project_response.status_code)
@@ -118,12 +118,12 @@ def authorize(headers, g):
 
         # Get keycloak public key
         key_cloak_url = '{base}'.format(base=g['KEYCLOAK_URL'])
-        token_request = json.loads(requests.get(key_cloak_url+"/auth/realms/Renga").text)
+        token_request = json.loads(requests.get(key_cloak_url+"/auth/realms/Renku").text)
 
         keycloak_public_key = '-----BEGIN PUBLIC KEY-----\n' + token_request.get('public_key') + '\n-----END PUBLIC KEY-----'
 
         # Decode token to get user id
-        decodentoken = jwt.decode(access_token, keycloak_public_key, algorithms='RS256', audience='renga-ui')
+        decodentoken = jwt.decode(access_token, keycloak_public_key, algorithms='RS256', audience='renku-ui')
         id = (decodentoken['preferred_username'])
         headers['Sudo'] = id
         logger.debug(headers)

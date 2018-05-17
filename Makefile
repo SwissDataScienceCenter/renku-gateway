@@ -1,4 +1,4 @@
-DOCKER_REPOSITORY?=rengahub
+DOCKER_REPOSITORY?=renkuhub
 PLATFORM_VERSION?=development
 
 IMAGE=incubator-proxy
