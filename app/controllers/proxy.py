@@ -143,14 +143,14 @@ def generate(response):
 def getReadme(headers, projectid):
 
     readme_url = g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/repository/files/README.md"
-    logger.debug("Getting readme for project with id", projectid)
+    logger.debug("Getting readme for project with  {0}". format(projectid) )
 
     return requests.request(request.method, readme_url, headers=headers, data=request.data, stream=True, timeout=300)
 
 def getIssues(headers, projectid):
     issue_url = g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/issues?scope=all"
 
-    logger.debug("Getting issues for project with id", projectid)
+    logger.debug("Getting issues for project with id {0}". format(projectid) )
 
     return requests.request(request.method, issue_url, headers=headers, data=request.data, stream=True, timeout=300)
 
@@ -159,6 +159,6 @@ def getNotes(headers, projectid, issueid):
 
     notes_url = g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/issues/" + str(issueid) + "/notes"
 
-    logger.debug("Getting noes for issue with ", issueid, " in project with ", projectid)
+    logger.debug("Getting notes for issue with id {0} in project with id {1}".format(issueid, projectid))
 
     return requests.request(request.method, notes_url, headers=headers, data=request.data, stream=True, timeout=300)
