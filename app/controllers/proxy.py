@@ -56,7 +56,6 @@ def map_project() :
         project_url = g['GITLAB_URL'] + "/api/v4/projects"
         project_response = requests.request(request.method, project_url, headers=headers, data=request.data, stream=True, timeout=300)
         projects_list = project_response.json()
-
         return_project = json.dumps([parse_project(headers, x) for x in projects_list])
 
 
@@ -77,12 +76,12 @@ def pass_through(path):
 
     del headers['Host']
 
-    auth_headers = authorize(headers, g)
+    #auth_headers = authorize(headers, g)
 
     #if auth_headers!=[] :
     if True:
      # Respond to requester
-         url = g['GITLAB_URL'] + "/api/v4/" + path
+         url = g['GITLAB_URL'] + "/api/" + path
          response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
          logger.debug('Response: {}'.format(response.status_code))
 
@@ -97,19 +96,20 @@ def authorize(headers, g):
     if 'Authorization' in headers:
 
         access_token = headers.get('Authorization')[7:]
-        del headers['Authorization']
-        headers['Private-Token'] = g['GITLAB_PASS']
+        #del headers['Authorization']
+        #headers['Private-Token'] = g['GITLAB_PASS']
 
         # Get keycloak public key
-        key_cloak_url = '{base}'.format(base=g['KEYCLOAK_URL'])
-        token_request = json.loads(requests.get(key_cloak_url+"/auth/realms/Renku").text)
+       # key_cloak_url = '{base}'.format(base=g['KEYCLOAK_URL'])
+       # token_request = json.loads(requests.get(key_cloak_url+"/auth/realms/Renga").text)
 
-        keycloak_public_key = '-----BEGIN PUBLIC KEY-----\n' + token_request.get('public_key') + '\n-----END PUBLIC KEY-----'
+      #  keycloak_public_key = '-----BEGIN PUBLIC KEY-----\n' + token_request.get('public_key') + '\n-----END PUBLIC KEY-----'
 
         # Decode token to get user id
-        decodentoken = jwt.decode(access_token, keycloak_public_key, algorithms='RS256', audience='renku-ui')
-        id = (decodentoken['preferred_username'])
-        headers['Sudo'] = id
+     #   decodentoken = jwt.decode(access_token, keycloak_public_key, algorithms='RS256', audience='renga-ui')
+     #   id = (decodentoken['preferred_username'])
+     #   headers['Sudo'] = id
+        headers['Private-Token'] = 'dummy-secret'
         logger.debug(headers)
 
         return headers
@@ -125,44 +125,62 @@ def generate(response):
 
 
 def get_readme(headers, projectid):
-
     readme_url = g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/repository/files/README.md/raw?ref=master"
     logger.debug("Getting readme for project with  {0}". format(projectid) )
 
     return requests.request(request.method, readme_url, headers=headers, data=request.data, stream=True, timeout=300)
 
 def get_kus(headers, projectid):
-    issue_url = g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/issues?scope=all"
+    ku_url = g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/issues?scope=all"
     logger.debug("Getting issues for project with id {0}". format(projectid) )
 
-    return requests.request(request.method, issue_url, headers=headers, data=request.data, stream=True, timeout=300)
+    return requests.request(request.method, ku_url, headers=headers, data=request.data, stream=True, timeout=300)
 
-def parse_kus(json_kus):
+def parse_kus(headers, json_kus):
+    return [parse_ku(headers, ku) for ku in json_kus]
 
-
-    return [parse_ku(ku) for ku in json_kus]
-
-def parse_ku(ku):
+def parse_ku(headers, ku):
     kuid = ku['id']
+    kuiid = ku['iid']
+    projectid = ku['project_id']
+
+    reactions_url = g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/issues/" + str(kuid) +  "/award_emoji"
+    reactions_response = (requests.request(request.method, reactions_url, headers=headers, data=request.data, stream=True, timeout=300))
+
+    if reactions_response.status_code == 200:
+        reactions = reactions_response.json()
+    else:
+        reactions = []
+
+    contribution_url =  g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/issues/" + str(kuid) + "/notes"
+    contribution_response = (requests.request(request.method, contribution_url, headers=headers, data=request.data, stream=True, timeout=300))
+
+    if contribution_response.status_code == 200:
+        contributions = [parse_contribution(headers, x) for x in contribution_response.json()]
+    else:
+        contributions = []
+
 
     return {
-        'project_id': ku['project_id'],
+        'project_id': projectid,
         'display': {
             'title': ku['title'],
-            'slug': ku['iid'],
-            'display_id': ku['iid'],
+            'slug': kuiid,
+            'display_id': kuiid,
             'short_description': ku['title']
         },
         'metadata':{
-            'author': ku['author'],
+            'author': ku['author'], #must be a user object
             'created_at': ku['created_at'],
-            'updated_at': ku['updated_at']
+            'updated_at': ku['updated_at'],
+            'id': kuid,
+            'iid': kuiid
         },
-        'description':['description'],
+        'description': ku['description'],
         'labels': ku['labels'],
-        'notes': [],
+        'contributions': contributions,
         'assignees': ku['assignees'],
-        'reactions': []
+        'reactions': reactions
     }
 
 
@@ -170,7 +188,11 @@ def parse_project(headers, project):
     projectid = project['id']
     readme = get_readme(headers, projectid)
 
-    kus = get_kus(headers, projectid)
+    if get_kus(headers, projectid)!= []:
+        kus = parse_kus(headers, get_kus(headers, projectid).json()),
+    else:
+        kus = []
+
     return {
         'display': {
             'title': project['name'],
@@ -179,7 +201,7 @@ def parse_project(headers, project):
             'short_description': project['description']
         },
         'metadata': {
-            'author': project['owner'],
+            'author': project['owner'], # parse into user object
             'created_at': project['created_at'],
             'last_activity_at': project['last_activity_at'],
             'permissions': [],
@@ -191,13 +213,35 @@ def parse_project(headers, project):
         'forks_count': project['forks_count'],
         'star_count': project['star_count'],
         'tags': project['tag_list'],
-        'kus': parse_kus(kus.json()),
+        'kus': kus,
         'repository_content': []
     }
 
-def get_notes(headers, projectid, issueid):
+def parse_contribution(headers, contribution):
+    return {
+        'ku_id': contribution['noteable_id'],
+        'ku_iid': contribution['noteable_iid'],
+        'metadata': {
+             'author': contribution['author'], #parse_user(headers, contribution['author']['id']),
+             'created_at': contribution['created_at'],
+             'updated_at' : contribution['updated_at'],
+             'id': contribution['id']
+        },
+        'body': contribution['body']
+    }
 
-    notes_url = g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/issues/" + str(issueid) + "/notes"
-    logger.debug("Getting notes for issue with id {0} in project with id {1}".format(issueid, projectid))
+def parse_user(headers, user_id):
 
-    return requests.request(request.method, notes_url, headers=headers, data=request.data, stream=True, timeout=300)
+    user_url =  g['GITLAB_URL'] + "api/v4/users" + str(user_id)
+    user = (requests.request(request.method, user_url, headers=headers, data=request.data, stream=True, timeout=300)).json()
+
+    return {
+        'metadata': {
+            'created_at': user['created_at'],
+            'last_activity_at': user['last_activity_at'],
+            'id': user['id']
+         },
+        'username': user['username'],
+        'name': user['name'],
+        'avatar_url': user['avatar_url']
+    }
