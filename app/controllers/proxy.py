@@ -41,10 +41,6 @@ g = settings()
 #      return 0
 
 
-project_keys = ['description', 'name']
-
-
-
 @app.route('/api/projects', methods=['GET'])
 def map_project() :
     logger.debug('projects controller')
@@ -54,29 +50,17 @@ def map_project() :
     del headers['Host']
 
     auth_headers = authorize(headers, g)
-
-    if auth_headers!=[] :
+    if True:
+   # if auth_headers!=[] :
 
         project_url = g['GITLAB_URL'] + "/api/v4/projects"
         project_response = requests.request(request.method, project_url, headers=headers, data=request.data, stream=True, timeout=300)
         projects_list = project_response.json()
 
-
-        for project in projects_list:
-            projectid = project.get('id')
-
-            readme = getReadme(headers, projectid)
-            issues = getIssues(headers, projectid)
-            for issue in issues.json():
-                issueid = issue.get('id')
-                notes = getNotes(headers, projectid, issueid)
+        return_project = json.dumps([parse_project(headers, x) for x in projects_list])
 
 
-            # Process readme, project and issues into the desired structure
-            # get also http://gitlab.renku.build/api/v4/user ?
-
-
-        return Response(generate(project_response), project_response.status_code)
+        return Response(return_project, project_response.status_code)
 
     else:
         response = json.dumps("No authorization header found")
@@ -95,14 +79,14 @@ def pass_through(path):
 
     auth_headers = authorize(headers, g)
 
-    if auth_headers!=[] :
-
+    #if auth_headers!=[] :
+    if True:
      # Respond to requester
-     url = g['GITLAB_URL'] + "/api/v4/" + path
-     response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
-     logger.debug('Response: {}'.format(response.status_code))
+         url = g['GITLAB_URL'] + "/api/v4/" + path
+         response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
+         logger.debug('Response: {}'.format(response.status_code))
 
-     return Response(generate(response), response.status_code)
+         return Response(generate(response), response.status_code)
 
     else:
         response = json.dumps("No authorization header found")
@@ -140,25 +124,80 @@ def generate(response):
     return(response)
 
 
-def getReadme(headers, projectid):
+def get_readme(headers, projectid):
 
-    readme_url = g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/repository/files/README.md"
-    logger.debug("Getting readme for project with id", projectid)
+    readme_url = g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/repository/files/README.md/raw?ref=master"
+    logger.debug("Getting readme for project with  {0}". format(projectid) )
 
     return requests.request(request.method, readme_url, headers=headers, data=request.data, stream=True, timeout=300)
 
-def getIssues(headers, projectid):
+def get_kus(headers, projectid):
     issue_url = g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/issues?scope=all"
-
-    logger.debug("Getting issues for project with id", projectid)
+    logger.debug("Getting issues for project with id {0}". format(projectid) )
 
     return requests.request(request.method, issue_url, headers=headers, data=request.data, stream=True, timeout=300)
 
+def parse_kus(json_kus):
 
-def getNotes(headers, projectid, issueid):
+
+    return [parse_ku(ku) for ku in json_kus]
+
+def parse_ku(ku):
+    kuid = ku['id']
+
+    return {
+        'project_id': ku['project_id'],
+        'display': {
+            'title': ku['title'],
+            'slug': ku['iid'],
+            'display_id': ku['iid'],
+            'short_description': ku['title']
+        },
+        'metadata':{
+            'author': ku['author'],
+            'created_at': ku['created_at'],
+            'updated_at': ku['updated_at']
+        },
+        'description':['description'],
+        'labels': ku['labels'],
+        'notes': [],
+        'assignees': ku['assignees'],
+        'reactions': []
+    }
+
+
+def parse_project(headers, project):
+    projectid = project['id']
+    readme = get_readme(headers, projectid)
+
+    kus = get_kus(headers, projectid)
+    return {
+        'display': {
+            'title': project['name'],
+            'slug': project['path'],
+            'display_id': project['path_with_namespace'],
+            'short_description': project['description']
+        },
+        'metadata': {
+            'author': project['owner'],
+            'created_at': project['created_at'],
+            'last_activity_at': project['last_activity_at'],
+            'permissions': [],
+            'id': projectid
+        },
+        'description': project['description'],
+        'long_description': readme.text,
+        'name': project['name'],
+        'forks_count': project['forks_count'],
+        'star_count': project['star_count'],
+        'tags': project['tag_list'],
+        'kus': parse_kus(kus.json()),
+        'repository_content': []
+    }
+
+def get_notes(headers, projectid, issueid):
 
     notes_url = g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/issues/" + str(issueid) + "/notes"
-
-    logger.debug("Getting noes for issue with ", issueid, " in project with ", projectid)
+    logger.debug("Getting notes for issue with id {0} in project with id {1}".format(issueid, projectid))
 
     return requests.request(request.method, notes_url, headers=headers, data=request.data, stream=True, timeout=300)
