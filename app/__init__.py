@@ -25,3 +25,4 @@ logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 
 from .controllers import proxy
+from .auth import web

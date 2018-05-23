@@ -76,10 +76,9 @@ def pass_through(path):
 
     del headers['Host']
 
-    #auth_headers = authorize(headers, g)
+    auth_headers = authorize(headers, g)
 
-    #if auth_headers!=[] :
-    if True:
+    if auth_headers!=[] :
      # Respond to requester
          url = g['GITLAB_URL'] + "/api/" + path
          response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
@@ -96,19 +95,19 @@ def authorize(headers, g):
     if 'Authorization' in headers:
 
         access_token = headers.get('Authorization')[7:]
-        #del headers['Authorization']
-        #headers['Private-Token'] = g['GITLAB_PASS']
+        del headers['Authorization']
+        headers['Private-Token'] = g['GITLAB_PASS']
 
         # Get keycloak public key
-       # key_cloak_url = '{base}'.format(base=g['KEYCLOAK_URL'])
-       # token_request = json.loads(requests.get(key_cloak_url+"/auth/realms/Renga").text)
+        key_cloak_url = '{base}'.format(base=g['OIDC_ISSUER'])
+        token_request = json.loads(requests.get(key_cloak_url).text)
 
-      #  keycloak_public_key = '-----BEGIN PUBLIC KEY-----\n' + token_request.get('public_key') + '\n-----END PUBLIC KEY-----'
+        keycloak_public_key = '-----BEGIN PUBLIC KEY-----\n' + token_request.get('public_key') + '\n-----END PUBLIC KEY-----'
 
         # Decode token to get user id
-     #   decodentoken = jwt.decode(access_token, keycloak_public_key, algorithms='RS256', audience='renga-ui')
-     #   id = (decodentoken['preferred_username'])
-     #   headers['Sudo'] = id
+        decodentoken = jwt.decode(access_token, keycloak_public_key, algorithms='RS256', audience=g['OIDC_CLIENT_ID'])
+        id = (decodentoken['preferred_username'])
+        headers['Sudo'] = id
         headers['Private-Token'] = 'dummy-secret'
         logger.debug(headers)
 
