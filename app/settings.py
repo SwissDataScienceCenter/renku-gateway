@@ -30,9 +30,11 @@ def settings():
 
 def setup_globals():
     global g
-    g['GITLAB_URL'] = os.environ.get(
-        'GITLAB_URL', 'http://gitlab.renku.build')
-    # Get from storage
+    g['HOST_NAME'] = os.environ.get('HOST_NAME', 'http://gateway.renku.build')
+
+    g['GITLAB_URL'] = os.environ.get('GITLAB_URL', 'http://gitlab.renku.build')
     g['GITLAB_PASS'] = os.environ.get('GITLAB_PASS', 'dummy-secret')
-    g['KEYCLOAK_URL'] = os.environ.get(
-        'KEYCLOAK_URL', 'http://keycloak.renku.build:8080')
+
+    g['OIDC_ISSUER'] = os.environ.get('KEYCLOAK_URL', 'http://keycloak.renku.build:8080') + '/auth/realms/Renku'
+    g['OIDC_CLIENT_ID'] = os.environ.get('OIDC_CLIENT_ID', 'gateway')
+    g['OIDC_CLIENT_SECRET'] = os.environ.get('OIDC_CLIENT_SECRET', 'dummy-secret')

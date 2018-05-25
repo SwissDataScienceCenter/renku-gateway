@@ -15,9 +15,4 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-flask==0.12.2
-flask-cors==3.0.3
-oic==0.14.0
-PyJWT==1.6.1
-requests==2.18.1
+"""auth module."""

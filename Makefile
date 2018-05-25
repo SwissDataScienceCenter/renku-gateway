@@ -1,5 +1,5 @@
-DOCKER_REPOSITORY?=renkuhub
-PLATFORM_VERSION?=development
+DOCKER_REPOSITORY?=renku
+PLATFORM_VERSION?=master
 
 IMAGE=incubator-proxy
 
@@ -21,7 +21,7 @@ start:
 	@docker pull ${DOCKER_REPOSITORY}/${IMAGE}
     @docker run -p 5000:5000 ${DOCKER_REPOSITORY}/${IMAGE}
 
-run-dev:
+dev:
 	@echo "Run-dev"
-	FLASK_DEBUG=1 python run.py
+	FLASK_DEBUG=1 HOST_NAME=http://localhost:5000 python run.py
 
