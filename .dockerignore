@@ -1,0 +1,9 @@
+.gitignore
+.dockerignore
+.travis.yml
+.venv
+.idea
+docker-compose.yml
+Dockerfile
+Makefile
+README.md
