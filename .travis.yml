@@ -1,0 +1,48 @@
+notifications:
+  email: false
+
+sudo: required
+
+services:
+  - docker
+
+language: python
+
+python:
+  - 3.6
+
+env:
+  global:
+    - DOCKER_LABEL=$TRAVIS_BRANCH
+    - DOCKER_PUSH_LATEST=true
+    - DOCKER_REPOSITORY=renku/
+    - HELM_URL=https://storage.googleapis.com/kubernetes-helm
+    - HELM_TGZ=helm-v2.8.2-linux-amd64.tar.gz
+
+git:
+  depth: false
+
+cache:
+  directories:
+  - node_modules
+
+install:
+  - travis_retry pip install -U pip
+  - travis_retry pip install chartpress
+  # Installing Helm
+  - wget -q ${HELM_URL}/${HELM_TGZ}
+  - tar xzfv ${HELM_TGZ}
+  - PATH=`pwd`/linux-amd64/:$PATH
+  - helm init --client-only
+
+script:
+  - make tag/renku-gateway
+  - make test/renku-gateway
+  - helm lint helm-chart/renku-gateway -f helm-chart/minikube-values.yaml
+
+deploy:
+  - provider: script
+    skip_cleanup: true
+    script: bash travis-deploy.sh
+    on:
+      branch: master
