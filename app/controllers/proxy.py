@@ -97,6 +97,11 @@ def pass_through(path):
         return Response(response, status=401)
 
 
+@app.route('/api/dummy', methods=['GET'])
+def dummy():
+    return 'Dummy works'
+
+
 def authorize(headers, g):
     if 'Authorization' in headers:
 

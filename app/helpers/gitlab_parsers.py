@@ -6,6 +6,11 @@ from ..settings import settings
 
 from app.helpers.gitlab_client import get_readme, get_kus
 
+
+# Methods to parse the gitlab responses into Renku data model
+# need to be implemented simultaneously with the Renku UI
+
+
 g = settings()
 logger = logging.getLogger(__name__)
 
