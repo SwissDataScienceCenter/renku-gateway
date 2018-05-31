@@ -36,11 +36,9 @@ g = settings()
 CHUNK_SIZE = 1024 # is this needed
 
 # Get keycloak public key
-
 key_cloak_url = '{base}'.format(base=g['OIDC_ISSUER'])
 publickey_request = json.loads(requests.get(key_cloak_url).text)
 keycloak_public_key = '-----BEGIN PUBLIC KEY-----\n' + publickey_request.get('public_key') + '\n-----END PUBLIC KEY-----'
-
 
 # TODO use token
 # def with_tokens(f):
@@ -85,11 +83,10 @@ def pass_through(path):
     auth_headers = authorize(headers, g)
 
     if auth_headers!=[] :
-     # Respond to requester
+         # Respond to requester
          url = g['GITLAB_URL'] + "/api/" + path
          response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
          logger.debug('Response: {}'.format(response.status_code))
-
          return Response(generate(response), response.status_code)
 
     else:
