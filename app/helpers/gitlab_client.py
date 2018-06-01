@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 def get_readme(headers, projectid):
     readme_url = g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/repository/files/README.md/raw?ref=master"
-    logger.debug("Getting readme for project with  {0}". format(projectid) )
+    logger.debug("Getting readme for project with {0}". format(projectid) )
 
     return requests.request(request.method, readme_url, headers=headers, data=request.data, stream=True, timeout=300)
 

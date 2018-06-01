@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 CORS(app)
 g = settings()
 
-CHUNK_SIZE = 1024 # is this needed
+CHUNK_SIZE = 1024
 
 # Get keycloak public key
 key_cloak_url = '{base}'.format(base=g['OIDC_ISSUER'])
@@ -62,7 +62,6 @@ def map_project() :
         projects_list = project_response.json()
         return_project = json.dumps([parse_project(headers, x) for x in projects_list])
 
-
         return Response(return_project, project_response.status_code)
 
     else:
@@ -74,7 +73,6 @@ def map_project() :
 @app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def pass_through(path):
     logger.debug(path)
-
 
     headers = dict(request.headers)
 
