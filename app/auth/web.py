@@ -19,17 +19,24 @@
 
 import jwt
 import json
+import time
+import re
 
-from flask import request, redirect, url_for
+from flask import request, redirect, url_for, current_app
 
 from oic.oic import Client
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic import rndstr
 from oic.oic.message import AuthorizationResponse, RegistrationResponse
-
+from oic.oauth2.grant import Token
+from blinker import Namespace
+from functools import wraps
 
 from .. import app
 from app.settings import settings
+
+login_signals = Namespace()
+login_done = login_signals.signal('login_done')
 
 # Note that this part of the service should be seen as the server-side part of the UI or
 
@@ -65,6 +72,23 @@ client_reg = RegistrationResponse(
 client.store_registration_info(client_reg)
 
 
+def swapped_token():
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            headers = dict(request.headers)
+            m = re.search(r'bearer (?P<token>.+)', headers.get('Authorization',''), re.IGNORECASE)
+            if m and jwt.decode(m.group('token'), verify=False).get('typ') == 'Offline':
+
+                to = Token(resp={'refresh_token': m.group('token')})
+                res = client.do_access_token_refresh(token=to)
+                headers['Authorization'] = "Bearer {}".format(res.get('access_token'))
+
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
 @app.route('/auth/login')
 def login():
 
@@ -76,12 +100,13 @@ def login():
 
     login_sessions[session_id] = {
         'state': state,
-        'ui_redirect_url': request.args.get('redirect_url')
+        'ui_redirect_url': request.args.get('redirect_url'),
+        'cli_token': request.args.get('cli_token'),
     }
     args = {
         'client_id': g['OIDC_CLIENT_ID'],
         'response_type': 'code',
-        'scope': SCOPE,
+        'scope': request.args.get('scope', SCOPE),
         'redirect_uri': g['HOST_NAME'] + url_for('get_tokens'),
         'state': state
     }
@@ -117,12 +142,48 @@ def get_tokens():
         }
     )
 
-    response = app.make_response(redirect(server_session['ui_redirect_url']))
+    response = app.make_response(redirect(
+        '/auth/info' if server_session.get('cli_token') else server_session['ui_redirect_url']
+    ))
     response.set_cookie('access_token', value=token_response['access_token'], domain=COOKIE_DOMAIN)
     response.set_cookie('refresh_token', value=token_response['refresh_token'], domain=COOKIE_DOMAIN)
     response.set_cookie('id_token', value=json.dumps(token_response['id_token'].to_dict()), domain=COOKIE_DOMAIN)
     response.delete_cookie('session')
+
+    if server_session.get('cli_token'):
+        login_done.send(
+            current_app._get_current_object(),
+            cli_token=server_session.get('cli_token'),
+            access_token=token_response['access_token'],
+            refresh_token=token_response['refresh_token'],
+        )
+
     return response
+
+
+@app.route('/auth/info')
+def info():
+
+    t = request.args.get('cli_token')
+    if t:
+        signal = []
+
+        def receive(sender, cli_token, access_token, refresh_token):
+            if cli_token == t:
+                signal.append((cli_token, access_token, refresh_token))
+        login_done.connect(receive, current_app._get_current_object())
+        timeout = 120
+        while not signal and timeout > 0:
+            time.sleep(1)
+            timeout -= 1
+        login_done.disconnect(receive, current_app._get_current_object())
+        if signal:
+            return json.dumps({'access_token': signal[0][1], 'refresh_token': signal[0][2]})
+        else:
+            return '{"error": "timeout"}'
+    else:
+        return "You can copy/paste the following tokens if needed and close this page: <br> Access Token: {}<br>Refresh Token: {}".format(
+            request.cookies.get('access_token'), request.cookies.get('refresh_token'))
 
 
 @app.route('/auth/logout')

@@ -25,6 +25,7 @@ from flask import request, Response
 from app.helpers.gitlab_parsers import parse_project
 from .. import app
 from ..settings import settings
+from ..auth.web import swapped_token
 from flask_cors import CORS
 import jwt
 
@@ -71,6 +72,7 @@ def map_project() :
 
 
 @app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@swapped_token()
 def pass_through(path):
     logger.debug(path)
 
