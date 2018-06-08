@@ -77,7 +77,6 @@ def pass_through(path):
     headers = dict(request.headers)
 
     del headers['Host']
-
     auth_headers = authorize(headers, g)
 
     if auth_headers!=[] :
