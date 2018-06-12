@@ -35,6 +35,10 @@ from functools import wraps
 from .. import app
 from app.settings import settings
 
+# TODO: Currently, storing the short-lived login sessions inside a simple dictionary
+# TODO: and using in-process signaling limits this service to be run by only one worker
+# TODO: process and only one instance of it.
+
 login_signals = Namespace()
 login_done = login_signals.signal('login_done')
 
@@ -52,10 +56,9 @@ if 'localhost' in g['HOST_NAME']:
 else:
     COOKIE_DOMAIN = '.'.join([''] + g['HOST_NAME'].split('.')[1:])
 
-# We use a short-lived dictionary to store
-# ongoing login sessions - should not grow in size and can easily be
-# trashed. However, when running multiple instances of this the dictionary
-# should be stored in a dedicated service.
+# We use a short-lived dictionary to store ongoing login sessions.
+# This should not grow in size and can easily be trashed when the service needs
+# to be restarted. 
 login_sessions = {}
 
 
