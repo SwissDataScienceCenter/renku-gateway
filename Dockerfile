@@ -14,6 +14,6 @@ RUN pip install -r /app/requirements.txt
 COPY run.py .
 COPY app /app
 
-CMD ["python3", "run.py"]
+CMD ["gunicorn", "-b 0.0.0.0:5000", "run:app.app",  "-k gevent"]
 
 EXPOSE 5000
