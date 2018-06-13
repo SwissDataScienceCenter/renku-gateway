@@ -32,6 +32,8 @@ def setup_globals():
     global g
     g['HOST_NAME'] = os.environ.get('HOST_NAME', 'http://gateway.renku.build')
 
+    g['RENKU_ENDPOINT'] = os.environ.get('RENKU_ENDPOINT', 'http://renku.build')
+
     g['GITLAB_URL'] = os.environ.get('GITLAB_URL', 'http://gitlab.renku.build')
     g['GITLAB_PASS'] = os.environ.get('GITLAB_PASS', 'dummy-secret')
 

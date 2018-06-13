@@ -52,7 +52,7 @@ except:
 
 
 @app.route('/api/projects', methods=['GET'])
-def map_project() :
+def map_project():
     logger.debug('projects controller')
 
     headers = dict(request.headers)
@@ -60,7 +60,7 @@ def map_project() :
     del headers['Host']
 
     auth_headers = authorize(headers, g)
-    if auth_headers!=[] :
+    if auth_headers != []:
 
         project_url = g['GITLAB_URL'] + "/api/v4/projects"
         project_response = requests.request(request.method, project_url, headers=headers, data=request.data, stream=True, timeout=300)
@@ -74,32 +74,38 @@ def map_project() :
         return Response(response, status=401)
 
 
-
 @app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @swapped_token()
 def pass_through(path, public_key=keycloak_public_key):
     # Keycloak public key is not defined so error
     if public_key is None:
         response = json.dumps("Keycloak public key not defined")
-        return  Response(response, status=500)
+        return Response(response, status=500)
 
     logger.debug(path)
 
     headers = dict(request.headers)
 
     del headers['Host']
-    auth_headers = authorize(headers, g)
 
-    if auth_headers!=[] :
-         # Respond to requester
-         url = g['GITLAB_URL'] + "/api/" + path
-         response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
-         logger.debug('Response: {}'.format(response.status_code))
-         return Response(generate(response), response.status_code)
+    if path.startswith('gitlab'):
+        # do the gitlab token swapping
+        auth_headers = authorize(headers, g)
+        url = g['GITLAB_URL'] + "/api/" + path
+
+        if not auth_headers:
+            response = json.dumps("No authorization header found")
+            return Response(response, status=401)
+
+    elif path.startswith('storage'):
+        url = g['RENKU_ENDPOINT'] + "/api/" + path
 
     else:
-        response = json.dumps("No authorization header found")
-        return Response(response, status=401)
+        return Response("Not Found", status=404)
+
+    response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
+    logger.debug('Response: {}'.format(response.status_code))
+    return Response(generate(response), response.status_code)
 
 
 @app.route('/api/dummy', methods=['GET'])
@@ -126,10 +132,9 @@ def authorize(headers, g):
     else:
         return []
 
+
 def generate(response):
     for c in response.iter_lines():
         logger.debug(c)
         yield c + "\r".encode()
     return(response)
-
-
