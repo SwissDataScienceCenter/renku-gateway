@@ -64,9 +64,15 @@ login_sessions = {}
 
 # We prepare the OIC client instance with the necessary configurations.
 client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
-client.provider_config(
-    issuer=g['OIDC_ISSUER']
-)
+
+try:
+    client.provider_config(
+        issuer=g['OIDC_ISSUER']
+    )
+except:
+    pass
+
+
 # This fakes the response we would get from registering the client through the API
 client_reg = RegistrationResponse(
     client_id=g['OIDC_CLIENT_ID'],

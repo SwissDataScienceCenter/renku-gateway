@@ -37,9 +37,13 @@ g = settings()
 CHUNK_SIZE = 1024
 
 # Get keycloak public key
-key_cloak_url = '{base}'.format(base=g['OIDC_ISSUER'])
-publickey_request = json.loads(requests.get(key_cloak_url).text)
-keycloak_public_key = '-----BEGIN PUBLIC KEY-----\n' + publickey_request.get('public_key') + '\n-----END PUBLIC KEY-----'
+try:
+    key_cloak_url = '{base}'.format(base=g['OIDC_ISSUER'])
+    publickey_request = json.loads(requests.get(key_cloak_url).text)
+    keycloak_public_key = '-----BEGIN PUBLIC KEY-----\n' + publickey_request.get('public_key') + '\n-----END PUBLIC KEY-----'
+
+except:
+    keycloak_public_key = None
 
 # TODO use token
 # def with_tokens(f):
@@ -73,7 +77,12 @@ def map_project() :
 
 @app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @swapped_token()
-def pass_through(path):
+def pass_through(path, public_key=keycloak_public_key):
+    # Keycloak public key is not defined so error
+    if public_key is None:
+        response = json.dumps("Keycloak public key not defined")
+        return  Response(response, status=500)
+
     logger.debug(path)
 
     headers = dict(request.headers)
@@ -109,7 +118,7 @@ def authorize(headers, g):
         decodentoken = jwt.decode(access_token, keycloak_public_key, algorithms='RS256', audience=g['OIDC_CLIENT_ID'])
         id = (decodentoken['preferred_username'])
         headers['Sudo'] = id
-        headers['Private-Token'] = 'dummy-secret'
+        headers['Private-Token'] = g['GITLAB_PASS']
         logger.debug(headers)
 
         return headers
