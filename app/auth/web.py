@@ -21,7 +21,7 @@ import jwt
 import json
 import time
 import re
-
+import logging
 from flask import request, redirect, url_for, current_app
 
 from oic.oic import Client
@@ -42,6 +42,7 @@ from app.settings import settings
 login_signals = Namespace()
 login_done = login_signals.signal('login_done')
 
+logger = logging.getLogger(__name__)
 # Note that this part of the service should be seen as the server-side part of the UI or
 
 g = settings()
@@ -87,8 +88,9 @@ def swapped_token():
         def decorated_function(*args, **kwargs):
             headers = dict(request.headers)
             m = re.search(r'bearer (?P<token>.+)', headers.get('Authorization',''), re.IGNORECASE)
-            if m and jwt.decode(m.group('token'), verify=False).get('typ') == 'Offline':
 
+            if m and jwt.decode(m.group('token'), verify=False).get('typ') in ['Offline','Refresh']:
+                logger.debug("Swapping the token")
                 to = Token(resp={'refresh_token': m.group('token')})
                 res = client.do_access_token_refresh(token=to)
                 headers['Authorization'] = "Bearer {}".format(res.get('access_token'))
