@@ -59,7 +59,7 @@ else:
 
 # We use a short-lived dictionary to store ongoing login sessions.
 # This should not grow in size and can easily be trashed when the service needs
-# to be restarted. 
+# to be restarted.
 login_sessions = {}
 
 
@@ -162,6 +162,7 @@ def get_tokens():
     response.delete_cookie('session')
 
     if server_session.get('cli_token'):
+        logger.debug("Notification for request {}".format(server_session.get('cli_token')))
         login_done.send(
             current_app._get_current_object(),
             cli_token=server_session.get('cli_token'),
@@ -184,6 +185,7 @@ def info():
                 signal.append((cli_token, access_token, refresh_token))
         login_done.connect(receive, current_app._get_current_object())
         timeout = 120
+        logger.debug("Waiting for Keycloak callback for request {}".format(t))
         while not signal and timeout > 0:
             time.sleep(1)
             timeout -= 1
@@ -191,6 +193,7 @@ def info():
         if signal:
             return json.dumps({'access_token': signal[0][1], 'refresh_token': signal[0][2]})
         else:
+            logger.debug("Timeout while waiting for request {}".format(t))
             return '{"error": "timeout"}'
     else:
         return "You can copy/paste the following tokens if needed and close this page: <br> Access Token: {}<br>Refresh Token: {}".format(
