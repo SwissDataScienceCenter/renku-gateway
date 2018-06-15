@@ -23,7 +23,7 @@ import requests
 
 config = dict()
 config['HOST_NAME'] = os.environ.get('HOST_NAME', 'http://gateway.renku.build')
-
+config['RENKU_ENDPOINT'] = os.environ.get('RENKU_ENDPOINT', 'http://renku.build')
 config['GITLAB_URL'] = os.environ.get('GITLAB_URL', 'http://gitlab.renku.build')
 config['GITLAB_PASS'] = os.environ.get('GITLAB_PASS', 'dummy-secret')
 

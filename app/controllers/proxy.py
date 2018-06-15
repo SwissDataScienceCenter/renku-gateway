@@ -70,7 +70,6 @@ def pass_through(path):
 
     if app.config['OIDC_PUBLIC_KEY'] is None:
         response = json.dumps("Ooops, something went wrong internally.")
-
         return Response(response, status=500)
 
     logger.debug(path)
@@ -82,20 +81,19 @@ def pass_through(path):
     if path.startswith('gitlab'):
         # do the gitlab token swapping
         auth_headers = authorize(headers, g)
-        url = g['GITLAB_URL'] + "/api/" + path
+        url = app.config['GITLAB_URL'] + "/api/" + path
 
         if not auth_headers:
             response = json.dumps("No authorization header found")
             return Response(response, status=401)
 
     elif path.startswith('storage'):
-        url = g['RENKU_ENDPOINT'] + "/api/" + path
+        url = app.config['RENKU_ENDPOINT'] + "/api/" + path
 
     auth_headers = authorize(headers)
 
     if auth_headers!=[] :
          # Respond to requester
-       #  url = app.config['GITLAB_URL'] + "/api/" + path
          response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
          logger.debug('Response: {}'.format(response.status_code))
          return Response(generate(response), response.status_code)
