@@ -66,6 +66,7 @@ def map_project():
 @app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @swapped_token()
 def pass_through(path):
+
     # Keycloak public key is not defined so error
 
     if app.config['OIDC_PUBLIC_KEY'] is None:
@@ -80,17 +81,23 @@ def pass_through(path):
 
     if path.startswith('gitlab'):
         # do the gitlab token swapping
-        auth_headers = authorize(headers, g)
+        auth_headers = authorize(headers)
         url = app.config['GITLAB_URL'] + "/api/" + path
-
+        #TODO Is this still needed? Do we need to move this to where it also touches the storage endpoint?
         if not auth_headers:
+            logger.debug("Not authorization header found, responding with 401")
             response = json.dumps("No authorization header found")
             return Response(response, status=401)
 
     elif path.startswith('storage'):
         url = app.config['RENKU_ENDPOINT'] + "/api/" + path
 
+    else:
+        return Response(json.dumps("Not a valid URL"), status=500)
+
     auth_headers = authorize(headers)
+    #TODO between these 2 steps the headers are empty
+    logger.debug(len(auth_headers))
 
     if auth_headers!=[] :
          # Respond to requester
@@ -99,11 +106,7 @@ def pass_through(path):
          return Response(generate(response), response.status_code)
 
     else:
-        return Response("Not Found", status=404)
-
-
-
-
+        return Response(json.dumps("Not Found"), status=404)
 
 
 @app.route('/api/dummy', methods=['GET'])

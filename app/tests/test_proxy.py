@@ -38,33 +38,32 @@ def test_empty_db(client):
 @responses.activate
 def test_passthrough_nopubkeyflow(client):
     # If no keycloak token exists, the pass through should fail with 500
-
-    path = '/api/v4/projects/'
+    app.config['OIDC_PUBLIC_KEY'] = None
+    path = '/api/gitlab/v4/projects/'
     rv = client.get(path)
     assert rv.status_code == 500
-    assert b'Keycloak public key not defined' in rv.data
+    assert b'"Ooops, something went wrong internally' in rv.data
+
 
 @responses.activate
 def test_passthrough_notokenflow(client):
     # If a request does not have the required header it should not be let through
-    path = '/api/v4/projects/'
+    path = '/api/gitlab/v4/projects/'
     rv = client.get(path)
     assert rv.status_code == 401
     assert b'No authorization header found' in rv.data
 
 @responses.activate
-# Test won't work
-# Need a way to get a fake keycloak public key
 def test_passthrough_happyflow(client):
     # If a request does has the required headers, it should be able to pass through
     access_token = jwt.encode(payload=TOKEN_PAYLOAD, key=PRIVATE_KEY, algorithm='RS256').decode('utf-8')
     headers = {'Authorization': 'Bearer {}'.format(access_token)}
-    path = '/api/v4/projects/'
+    path = '/api/gitlab/v4/projects/'
 
     gitlab_endpoint_url = app.config['GITLAB_URL'] + path
     responses.add(responses.GET, gitlab_endpoint_url, status=200)
 
-    rv = client.get('api/v4/projects/' , headers=headers)
+    rv = client.get('api/gitlab/v4/projects/' , headers=headers)
 
     assert rv.status_code == 200
-#  assert b'No authorization header found' not in rv.data
+    assert b'No authorization header found' not in rv.data
