@@ -74,9 +74,8 @@ def pass_through(path):
         return Response(response, status=500)
 
     logger.debug(path)
-
     headers = dict(request.headers)
-
+    logger.debug(headers)
     del headers['Host']
 
     if path.startswith('gitlab'):
@@ -96,10 +95,11 @@ def pass_through(path):
         return Response(json.dumps("Not a valid URL"), status=500)
 
     auth_headers = authorize(headers)
+    logger.debug(headers)
     #TODO between these 2 steps the headers are empty
-    logger.debug(len(auth_headers))
+    logger.debug(auth_headers)
 
-    if auth_headers!=[] :
+    if auth_headers != [] :
          # Respond to requester
          response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
          logger.debug('Response: {}'.format(response.status_code))
@@ -115,6 +115,7 @@ def dummy():
 
 
 def authorize(headers):
+
     if 'Authorization' in headers:
 
         access_token = headers.get('Authorization')[7:]
@@ -126,7 +127,6 @@ def authorize(headers):
         id = (decodentoken['preferred_username'])
         headers['Sudo'] = id
         headers['Private-Token'] = app.config['GITLAB_PASS']
-        logger.debug(headers)
 
         return headers
 
