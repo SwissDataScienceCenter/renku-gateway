@@ -20,9 +20,13 @@
 import logging
 from flask import Flask
 
+from .config import config
+
 logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
+for key in config.keys():
+    app.config[key] = config[key]
 
 from .controllers import proxy
 from .auth import web

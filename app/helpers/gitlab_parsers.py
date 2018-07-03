@@ -1,8 +1,7 @@
 import requests
 from flask import request
 import logging
-from ..settings import settings
-
+from .. import app
 
 from app.helpers.gitlab_client import get_readme, get_kus
 
@@ -11,7 +10,7 @@ from app.helpers.gitlab_client import get_readme, get_kus
 # need to be implemented simultaneously with the Renku UI
 
 
-g = settings()
+
 logger = logging.getLogger(__name__)
 
 def parse_kus(headers, json_kus):
@@ -23,7 +22,7 @@ def parse_ku(headers, ku):
     kuiid = ku['iid']
     projectid = ku['project_id']
 
-    reactions_url = g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/issues/" + str(kuid) +  "/award_emoji"
+    reactions_url = app.config['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/issues/" + str(kuid) +  "/award_emoji"
     reactions_response = (requests.request(request.method, reactions_url, headers=headers, data=request.data, stream=True, timeout=300))
 
     if reactions_response.status_code == 200:
@@ -31,7 +30,7 @@ def parse_ku(headers, ku):
     else:
         reactions = []
 
-    contribution_url =  g['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/issues/" + str(kuid) + "/notes"
+    contribution_url =  app.config['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/issues/" + str(kuid) + "/notes"
     contribution_response = (requests.request(request.method, contribution_url, headers=headers, data=request.data, stream=True, timeout=300))
 
     if contribution_response.status_code == 200:
@@ -113,7 +112,7 @@ def parse_contribution(headers, contribution):
 
 def parse_user(headers, user_id):
 
-    user_url =  g['GITLAB_URL'] + "api/v4/users" + str(user_id)
+    user_url =  app.config['GITLAB_URL'] + "api/v4/users" + str(user_id)
     user = (requests.request(request.method, user_url, headers=headers, data=request.data, stream=True, timeout=300)).json()
 
     return {

@@ -24,7 +24,6 @@ from flask import request, Response
 
 from app.helpers.gitlab_parsers import parse_project
 from .. import app
-from ..settings import settings
 from ..auth.web import swapped_token
 from flask_cors import CORS
 import jwt
@@ -32,18 +31,8 @@ import jwt
 
 logger = logging.getLogger(__name__)
 CORS(app)
-g = settings()
 
 CHUNK_SIZE = 1024
-
-# Get keycloak public key
-try:
-    key_cloak_url = '{base}'.format(base=g['OIDC_ISSUER'])
-    publickey_request = json.loads(requests.get(key_cloak_url).text)
-    keycloak_public_key = '-----BEGIN PUBLIC KEY-----\n' + publickey_request.get('public_key') + '\n-----END PUBLIC KEY-----'
-
-except:
-    keycloak_public_key = None
 
 # TODO use token
 # def with_tokens(f):
@@ -59,10 +48,10 @@ def map_project():
 
     del headers['Host']
 
-    auth_headers = authorize(headers, g)
-    if auth_headers != []:
+    auth_headers = authorize(headers)
+    if auth_headers!=[] :
 
-        project_url = g['GITLAB_URL'] + "/api/v4/projects"
+        project_url = app.config['GITLAB_URL'] + "/api/v4/projects"
         project_response = requests.request(request.method, project_url, headers=headers, data=request.data, stream=True, timeout=300)
         projects_list = project_response.json()
         return_project = json.dumps([parse_project(headers, x) for x in projects_list])
@@ -76,36 +65,48 @@ def map_project():
 
 @app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @swapped_token()
-def pass_through(path, public_key=keycloak_public_key):
+def pass_through(path):
+
     # Keycloak public key is not defined so error
-    if public_key is None:
-        response = json.dumps("Keycloak public key not defined")
+
+    if app.config['OIDC_PUBLIC_KEY'] is None:
+        response = json.dumps("Ooops, something went wrong internally.")
         return Response(response, status=500)
 
     logger.debug(path)
-
     headers = dict(request.headers)
-
+    logger.debug(headers)
     del headers['Host']
 
     if path.startswith('gitlab'):
         # do the gitlab token swapping
-        auth_headers = authorize(headers, g)
-        url = g['GITLAB_URL'] + "/api/" + path
-
+        auth_headers = authorize(headers)
+        url = app.config['GITLAB_URL'] + "/api/" + path
+        #TODO Is this still needed? Do we need to move this to where it also touches the storage endpoint?
         if not auth_headers:
+            logger.debug("Not authorization header found, responding with 401")
             response = json.dumps("No authorization header found")
             return Response(response, status=401)
 
     elif path.startswith('storage'):
-        url = g['RENKU_ENDPOINT'] + "/api/" + path
+        url = app.config['RENKU_ENDPOINT'] + "/api/" + path
 
     else:
-        return Response("Not Found", status=404)
+        return Response(json.dumps("Not a valid URL"), status=500)
 
-    response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
-    logger.debug('Response: {}'.format(response.status_code))
-    return Response(generate(response), response.status_code)
+    auth_headers = authorize(headers)
+    logger.debug(headers)
+    #TODO between these 2 steps the headers are empty
+    logger.debug(auth_headers)
+
+    if auth_headers != [] :
+         # Respond to requester
+         response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
+         logger.debug('Response: {}'.format(response.status_code))
+         return Response(generate(response), response.status_code)
+
+    else:
+        return Response(json.dumps("Not Found"), status=404)
 
 
 @app.route('/api/dummy', methods=['GET'])
@@ -113,19 +114,19 @@ def dummy():
     return 'Dummy works'
 
 
-def authorize(headers, g):
+def authorize(headers):
+
     if 'Authorization' in headers:
 
         access_token = headers.get('Authorization')[7:]
         del headers['Authorization']
-        headers['Private-Token'] = g['GITLAB_PASS']
+        headers['Private-Token'] = app.config['GITLAB_PASS']
 
         # Decode token to get user id
-        decodentoken = jwt.decode(access_token, keycloak_public_key, algorithms='RS256', audience=g['OIDC_CLIENT_ID'])
+        decodentoken = jwt.decode(access_token, app.config['OIDC_PUBLIC_KEY'], algorithms='RS256', audience=app.config['OIDC_CLIENT_ID'])
         id = (decodentoken['preferred_username'])
         headers['Sudo'] = id
-        headers['Private-Token'] = g['GITLAB_PASS']
-        logger.debug(headers)
+        headers['Private-Token'] = app.config['GITLAB_PASS']
 
         return headers
 

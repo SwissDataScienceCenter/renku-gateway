@@ -33,7 +33,6 @@ from blinker import Namespace
 from functools import wraps
 
 from .. import app
-from app.settings import settings
 
 # TODO: Currently, storing the short-lived login sessions inside a simple dictionary
 # TODO: and using in-process signaling limits this service to be run by only one worker
@@ -45,17 +44,16 @@ login_done = login_signals.signal('login_done')
 logger = logging.getLogger(__name__)
 # Note that this part of the service should be seen as the server-side part of the UI or
 
-g = settings()
 
 JWT_SECRET = rndstr(size=32)
 JWT_ALGORITHM = 'HS256'
 SCOPE = ['openid']
 
 # We need to specify that the cookie is valid for all .renga.build subdomains
-if 'localhost' in g['HOST_NAME']:
+if 'localhost' in app.config['HOST_NAME']:
     COOKIE_DOMAIN = None
 else:
-    COOKIE_DOMAIN = '.'.join([''] + g['HOST_NAME'].split('.')[1:])
+    COOKIE_DOMAIN = '.'.join([''] + app.config['HOST_NAME'].split('.')[1:])
 
 # We use a short-lived dictionary to store ongoing login sessions.
 # This should not grow in size and can easily be trashed when the service needs
@@ -68,7 +66,7 @@ client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
 
 try:
     client.provider_config(
-        issuer=g['OIDC_ISSUER']
+        issuer=app.config['OIDC_ISSUER']
     )
 except:
     pass
@@ -76,8 +74,8 @@ except:
 
 # This fakes the response we would get from registering the client through the API
 client_reg = RegistrationResponse(
-    client_id=g['OIDC_CLIENT_ID'],
-    client_secret=g['OIDC_CLIENT_SECRET']
+    client_id=app.config['OIDC_CLIENT_ID'],
+    client_secret=app.config['OIDC_CLIENT_SECRET']
 )
 client.store_registration_info(client_reg)
 
@@ -115,10 +113,10 @@ def login():
         'cli_token': request.args.get('cli_token'),
     }
     args = {
-        'client_id': g['OIDC_CLIENT_ID'],
+        'client_id': app.config['OIDC_CLIENT_ID'],
         'response_type': 'code',
         'scope': request.args.get('scope', SCOPE),
-        'redirect_uri': g['HOST_NAME'] + url_for('get_tokens'),
+        'redirect_uri': app.config['HOST_NAME'] + url_for('get_tokens'),
         'state': state
     }
     auth_req = client.construct_AuthorizationRequest(request_args=args)
@@ -202,7 +200,7 @@ def info():
 
 @app.route('/auth/logout')
 def logout():
-    logout_url = g['OIDC_ISSUER'] + '/protocol/openid-connect/logout?redirect_uri=' + \
+    logout_url = app.config['OIDC_ISSUER'] + '/protocol/openid-connect/logout?redirect_uri=' + \
                  request.args.get('redirect_url')
     response = app.make_response(redirect(logout_url))
     response.delete_cookie('access_token', domain=COOKIE_DOMAIN)
