@@ -81,7 +81,7 @@ def pass_through(path):
     if path.startswith('gitlab'):
         # do the gitlab token swapping
         auth_headers = authorize(headers)
-        url = app.config['GITLAB_URL'] + "/api/" + path
+        url = app.config['GITLAB_URL'] + "/api" + path
         #TODO Is this still needed? Do we need to move this to where it also touches the storage endpoint?
         if not auth_headers:
             logger.debug("Not authorization header found, responding with 401")
@@ -89,7 +89,7 @@ def pass_through(path):
             return Response(response, status=401)
 
     elif path.startswith('storage'):
-        url = app.config['RENKU_ENDPOINT'] + "/api/" + path
+        url = app.config['RENKU_ENDPOINT'] + "/api" + path
 
     else:
         return Response(json.dumps("Not a valid URL"), status=500)

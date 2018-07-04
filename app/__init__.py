@@ -28,5 +28,5 @@ app = Flask(__name__)
 for key in config.keys():
     app.config[key] = config[key]
 
-from .controllers import proxy
+from .gateway import proxy
 from .auth import web
