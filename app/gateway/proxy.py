@@ -15,7 +15,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Proxy controller."""
+"""Gateway logic."""
 
 import logging
 import json
@@ -68,38 +68,34 @@ def map_project():
 def pass_through(path):
 
     # Keycloak public key is not defined so error
-
     if app.config['OIDC_PUBLIC_KEY'] is None:
         response = json.dumps("Ooops, something went wrong internally.")
         return Response(response, status=500)
 
-    logger.debug(path)
     headers = dict(request.headers)
-    logger.debug(headers)
     del headers['Host']
 
-    if path.startswith('gitlab'):
-        # do the gitlab token swapping
-        auth_headers = authorize(headers)
-        url = app.config['GITLAB_URL'] + "/api" + path
-        #TODO Is this still needed? Do we need to move this to where it also touches the storage endpoint?
-        if not auth_headers:
-            logger.debug("Not authorization header found, responding with 401")
-            response = json.dumps("No authorization header found")
-            return Response(response, status=401)
-
-    elif path.startswith('storage'):
-        url = app.config['RENKU_ENDPOINT'] + "/api" + path
-
+    # TODO: The actual backend service responsible for a given request should not be specified as part of the URL,
+    # TODO: i.e. the client should not care if it is storage, gitlab, etc which is going to serve its request.
+    # TODO: This switch should be resource dependent.
+    if path.startswith('storage'):
+        url = app.config['RENKU_ENDPOINT'] + "/api/" + path
     else:
-        return Response(json.dumps("Not a valid URL"), status=500)
+        url = app.config['GITLAB_URL'] + "/api/" + path
 
+
+    # Do the token swapping
     auth_headers = authorize(headers)
-    logger.debug(headers)
-    #TODO between these 2 steps the headers are empty
-    logger.debug(auth_headers)
+    if not auth_headers:
+        logger.debug("Not authorization header found, responding with 401")
+        response = json.dumps("No authorization header found")
+        return Response(response, status=401)
 
-    if auth_headers != [] :
+    #logger.debug('Request path: {}'.format(path))
+    #logger.debug('incoming headers: {}'.format(json.dumps(headers)))
+    #logger.debug('outgoing headers: {}'.format(json.dumps(auth_headers)))
+
+    if auth_headers != []:
          # Respond to requester
          response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
          logger.debug('Response: {}'.format(response.status_code))
@@ -126,8 +122,6 @@ def authorize(headers):
         decodentoken = jwt.decode(access_token, app.config['OIDC_PUBLIC_KEY'], algorithms='RS256', audience=app.config['OIDC_CLIENT_ID'])
         id = (decodentoken['preferred_username'])
         headers['Sudo'] = id
-        headers['Private-Token'] = app.config['GITLAB_PASS']
-
         return headers
 
     else:
