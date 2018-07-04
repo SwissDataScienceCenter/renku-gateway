@@ -83,7 +83,6 @@ def pass_through(path):
     else:
         url = app.config['GITLAB_URL'] + "/api/" + path
 
-
     # Do the token swapping
     auth_headers = authorize(headers)
     if not auth_headers:
@@ -91,16 +90,23 @@ def pass_through(path):
         response = json.dumps("No authorization header found")
         return Response(response, status=401)
 
-    #logger.debug('Request path: {}'.format(path))
-    #logger.debug('incoming headers: {}'.format(json.dumps(headers)))
-    #logger.debug('outgoing headers: {}'.format(json.dumps(auth_headers)))
+    # logger.debug('Request path: {}'.format(path))
+    # logger.debug('incoming headers: {}'.format(json.dumps(headers)))
+    # logger.debug('outgoing headers: {}'.format(json.dumps(auth_headers)))
 
     if auth_headers != []:
-         # Respond to requester
-         response = requests.request(request.method, url, headers=headers, data=request.data, stream=True, timeout=300)
-         logger.debug('Response: {}'.format(response.status_code))
-         return Response(generate(response), response.status_code)
-
+        # Respond to requester
+        response = requests.request(
+            request.method,
+            url,
+            headers=headers,
+            params=request.args,
+            data=request.data,
+            stream=True,
+            timeout=300
+        )
+        logger.debug('Response: {}'.format(response.status_code))
+        return Response(generate(response), response.status_code)
     else:
         return Response(json.dumps("Not Found"), status=404)
 
