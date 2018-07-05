@@ -17,7 +17,7 @@ env:
     - DOCKER_PUSH_LATEST=true
     - DOCKER_REPOSITORY=renku/
     - HELM_URL=https://storage.googleapis.com/kubernetes-helm
-    - HELM_TGZ=helm-v2.8.2-linux-amd64.tar.gz
+    - HELM_TGZ=helm-v2.9.1-linux-amd64.tar.gz
 
 git:
   depth: false
