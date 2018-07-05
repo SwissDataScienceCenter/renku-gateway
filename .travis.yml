@@ -29,6 +29,7 @@ cache:
 install:
   - travis_retry pip install -U pip
   - travis_retry pip install chartpress
+  - travis_retry pip install -r requirements.txt
   # Installing Helm
   - wget -q ${HELM_URL}/${HELM_TGZ}
   - tar xzfv ${HELM_TGZ}
@@ -36,8 +37,8 @@ install:
   - helm init --client-only
 
 script:
-  - make tag/renku-gateway
-  - make test/renku-gateway
+  - make
+  - pytest
   - helm lint helm-chart/renku-gateway -f helm-chart/minikube-values.yaml
 
 deploy:

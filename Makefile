@@ -19,7 +19,7 @@
 DOCKER_REPOSITORY?=renku
 PLATFORM_VERSION?=master
 
-IMAGE=incubator-proxy
+IMAGE=renku-gateway
 
 all:
 	@echo "All"
@@ -42,4 +42,3 @@ start:
 dev:
 	@echo "Run-dev"
 	FLASK_DEBUG=1 HOST_NAME=http://localhost:5000 python run.py
-
