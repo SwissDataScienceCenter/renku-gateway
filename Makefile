@@ -47,3 +47,6 @@ start:
 dev:
 	@echo "Running development server"
 	FLASK_DEBUG=1 HOST_NAME=http://localhost:5000 python run.py
+
+login:
+	@echo "${DOCKER_PASSWORD}" | docker login -u="${DOCKER_USERNAME}" --password-stdin ${DOCKER_REGISTRY}
