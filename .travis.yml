@@ -39,7 +39,7 @@ install:
 script:
   - make
   - pytest
-  - helm lint helm-chart/renku-gateway -f helm-chart/minikube-values.yaml
+#  - helm lint helm-chart/renku-gateway -f helm-chart/minikube-values.yaml
 
 deploy:
   - provider: script
