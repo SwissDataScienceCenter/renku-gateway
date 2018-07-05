@@ -16,29 +16,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-DOCKER_REPOSITORY?=renku
-PLATFORM_VERSION?=master
+DOCKER_REPOSITORY?=renku/
+IMAGE?=renku-gateway
 
-IMAGE=renku-gateway
+DOCKER_LABEL?=$(shell git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/^* //')
+ifeq ($(DOCKER_LABEL), master)
+	DOCKER_LABEL=latest
+endif
 
-all:
-	@echo "All"
-	@echo "Platform version: " ${PLATFORM_VERSION}
-	@docker build -t ${DOCKER_REPOSITORY}/${IMAGE}:${PLATFORM_VERSION} .
+GIT_MASTER_HEAD_SHA:=$(shell git rev-parse --short=7 --verify HEAD)
 
+# Note that this is the default target executed when typing 'make'
+tag: build
+	@echo "Tagging image: docker tag ${DOCKER_REPOSITORY}${IMAGE}:${GIT_MASTER_HEAD_SHA} ${DOCKER_REPOSITORY}${IMAGE}:${DOCKER_LABEL}"
+	@docker tag ${DOCKER_REPOSITORY}${IMAGE}:${GIT_MASTER_HEAD_SHA} ${DOCKER_REPOSITORY}${IMAGE}:${DOCKER_LABEL}
 
 build:
-	@echo "Build"
-	@docker build -t ${IMAGE} .
-	@docker tag ${IMAGE} ${DOCKER_REPOSITORY}/${IMAGE}
-	@docker push ${DOCKER_REPOSITORY}/${IMAGE}
+	@echo "Building image: docker build -t ${DOCKER_REPOSITORY}${IMAGE}:${GIT_MASTER_HEAD_SHA} ."
+	@docker build -t ${DOCKER_REPOSITORY}${IMAGE}:${GIT_MASTER_HEAD_SHA} .
 
+push: tag
+	@echo "Pushing image image: docker push ${DOCKER_REPOSITORY}${IMAGE}:${DOCKER_LABEL}"
+	@docker push ${DOCKER_REPOSITORY}${IMAGE}:${DOCKER_LABEL}
 
 start:
 	@echo "Start"
-	@docker pull ${DOCKER_REPOSITORY}/${IMAGE}
-    @docker run -p 5000:5000 ${DOCKER_REPOSITORY}/${IMAGE}
+	@docker pull ${DOCKER_REPOSITORY}${IMAGE}
+    @docker run -p 5000:5000 ${DOCKER_REPOSITORY}${IMAGE}
 
 dev:
-	@echo "Run-dev"
+	@echo "Running development server"
 	FLASK_DEBUG=1 HOST_NAME=http://localhost:5000 python run.py
