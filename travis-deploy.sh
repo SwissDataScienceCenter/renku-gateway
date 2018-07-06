@@ -26,7 +26,7 @@ chmod 600 github_deploy_key
 eval $(ssh-agent -s)
 ssh-add github_deploy_key
 make login
-docker push renku/renku-gateway:latest
+make push
 
 # build charts/images and push
 #cd helm-chart
