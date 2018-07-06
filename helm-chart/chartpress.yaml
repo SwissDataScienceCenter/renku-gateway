@@ -1,0 +1,15 @@
+charts:
+  - name: renku-gateway
+    imagePrefix: renku/
+    repo:
+      git: SwissDataScienceCenter/helm-charts
+      published: https://swissdatasciencecenter.github.io/helm-charts
+    paths:
+      - ..
+    images:
+      renku-gateway:
+        # Context to send to docker build for use by the Dockerfile
+        contextPath: ..
+        # Dockerfile path relative to chartpress.yaml
+        dockerfilePath: ../Dockerfile
+        valuesPath: image

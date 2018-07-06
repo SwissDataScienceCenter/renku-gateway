@@ -27,7 +27,7 @@ eval $(ssh-agent -s)
 ssh-add github_deploy_key
 make login
 
- build charts/images and push
+# build charts/images and push
 cd helm-chart
 chartpress --push --publish-chart
 chartpress --tag latest --push
