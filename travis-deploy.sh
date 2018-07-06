@@ -26,12 +26,11 @@ chmod 600 github_deploy_key
 eval $(ssh-agent -s)
 ssh-add github_deploy_key
 make login
-make push
 
-# build charts/images and push
-#cd helm-chart
-#chartpress --push --publish-chart
-#chartpress --tag latest --push
-#git diff
-#cd ..
+ build charts/images and push
+cd helm-chart
+chartpress --push --publish-chart
+chartpress --tag latest --push
+git diff
+cd ..
 
