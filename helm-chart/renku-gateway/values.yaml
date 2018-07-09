@@ -43,7 +43,7 @@ replicaCount: 1
 image:
   name: renku/renku-gateway
   repository: renku/renku-gateway
-  tag: a4fb826
+  tag: latest
   pullPolicy: IfNotPresent
 
 service:
