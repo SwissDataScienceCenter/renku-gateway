@@ -27,6 +27,7 @@ from .. import app
 from ..auth.web import swapped_token
 from flask_cors import CORS
 import jwt
+from functools import wraps
 
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,30 @@ CHUNK_SIZE = 1024
 # def with_tokens(f):
 #      """Function decorator to ensure we have OIDC tokens"""
 #      return 0
+def authorize():
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(path):
+            headers = dict(request.headers)
+            if 'Authorization' in headers:
+                logger.debug("Authorization header present, sudo token exchange")
+                access_token = headers.get('Authorization')[7:]
+                del headers['Authorization']
+                headers['Private-Token'] = app.config['GITLAB_PASS']
 
+                # Decode token to get user id
+                decodentoken = jwt.decode(access_token, app.config['OIDC_PUBLIC_KEY'], algorithms='RS256',
+                                             audience=app.config['OIDC_CLIENT_ID'])
+                id = (decodentoken['preferred_username'])
+                headers['Sudo'] = id
+
+            else:
+                logger.debug("No authorization header, returning empty auth headers")
+                headers.pop('Sudo', None)
+
+            return f(path, headers=headers)
+        return decorated_function
+    return decorator
 
 @app.route('/api/projects', methods=['GET'])
 def map_project():
@@ -65,14 +89,13 @@ def map_project():
 
 @app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @swapped_token()
-def pass_through(path):
-
+@authorize()
+def pass_through(path, headers=None):
     # Keycloak public key is not defined so error
     if app.config['OIDC_PUBLIC_KEY'] is None:
         response = json.dumps("Ooops, something went wrong internally.")
         return Response(response, status=500)
-
-    headers = dict(request.headers)
+    logger.debug(headers)
     del headers['Host']
 
     # TODO: The actual backend service responsible for a given request should not be specified as part of the URL,
@@ -84,9 +107,8 @@ def pass_through(path):
         url = app.config['GITLAB_URL'] + "/api/" + path
 
     # Do the token swapping
-    auth_headers = authorize(headers)
-    if not auth_headers:
-        logger.debug("Not authorization header found, responding with 401")
+    if 'Sudo' not in headers:
+        logger.debug("No authorization header found, responding with 401")
         response = json.dumps("No authorization header found")
         return Response(response, status=401)
 
@@ -94,7 +116,7 @@ def pass_through(path):
     # logger.debug('incoming headers: {}'.format(json.dumps(headers)))
     # logger.debug('outgoing headers: {}'.format(json.dumps(auth_headers)))
 
-    if auth_headers != []:
+    if 'Sudo' in headers:
         # Respond to requester
         response = requests.request(
             request.method,
@@ -114,24 +136,6 @@ def pass_through(path):
 @app.route('/api/dummy', methods=['GET'])
 def dummy():
     return 'Dummy works'
-
-
-def authorize(headers):
-
-    if 'Authorization' in headers:
-
-        access_token = headers.get('Authorization')[7:]
-        del headers['Authorization']
-        headers['Private-Token'] = app.config['GITLAB_PASS']
-
-        # Decode token to get user id
-        decodentoken = jwt.decode(access_token, app.config['OIDC_PUBLIC_KEY'], algorithms='RS256', audience=app.config['OIDC_CLIENT_ID'])
-        id = (decodentoken['preferred_username'])
-        headers['Sudo'] = id
-        return headers
-
-    else:
-        return []
 
 
 def generate(response):
