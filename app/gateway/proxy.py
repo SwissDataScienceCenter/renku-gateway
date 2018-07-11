@@ -64,6 +64,10 @@ def authorize():
         return decorated_function
     return decorator
 
+@app.route('/health', methods=['GET'])
+def healthcheck():
+    return Response(json.dumps("Up and running"), status=200)
+
 @app.route('/api/projects', methods=['GET'])
 def map_project():
     logger.debug('projects controller')
