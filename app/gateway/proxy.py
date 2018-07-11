@@ -21,6 +21,7 @@ import logging
 import json
 import requests
 from flask import request, Response
+from werkzeug.datastructures import Headers
 
 from app.helpers.gitlab_parsers import parse_project
 from .. import app
@@ -80,35 +81,39 @@ def pass_through(path):
     # TODO: This switch should be resource dependent.
     if path.startswith('storage'):
         url = app.config['RENKU_ENDPOINT'] + "/api/" + path
+        auth_headers = headers
     else:
         url = app.config['GITLAB_URL'] + "/api/" + path
 
-    # Do the token swapping
-    auth_headers = authorize(headers)
-    if not auth_headers:
-        logger.debug("Not authorization header found, responding with 401")
-        response = json.dumps("No authorization header found")
-        return Response(response, status=401)
+        # Do the token swapping
+        auth_headers = authorize(headers)
+        if not auth_headers:
+            logger.debug("Not authorization header found, responding with 401")
+            response = json.dumps("No authorization header found")
+            return Response(response, status=401)
 
     # logger.debug('Request path: {}'.format(path))
     # logger.debug('incoming headers: {}'.format(json.dumps(headers)))
     # logger.debug('outgoing headers: {}'.format(json.dumps(auth_headers)))
 
-    if auth_headers != []:
-        # Respond to requester
-        response = requests.request(
-            request.method,
-            url,
-            headers=headers,
-            params=request.args,
-            data=request.data,
-            stream=True,
-            timeout=300
-        )
-        logger.debug('Response: {}'.format(response.status_code))
-        return Response(generate(response), response.status_code)
-    else:
-        return Response(json.dumps("Not Found"), status=404)
+    # Respond to requester
+    response = requests.request(
+        request.method,
+        url,
+        headers=headers,
+        params=request.args,
+        data=request.data,
+        stream=True,
+        timeout=300
+    )
+
+    rsp = Response(generate(response), response.status_code)
+    rsp.headers = Headers(response.headers.lower_items())
+
+    # logger.debug('Response: {}'.format(response.status_code))
+    # logger.debug('Response headers: {}'.format(rsp.headers))
+
+    return rsp
 
 
 @app.route('/api/dummy', methods=['GET'])
