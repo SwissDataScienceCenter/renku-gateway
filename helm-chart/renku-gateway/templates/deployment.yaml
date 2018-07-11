@@ -36,18 +36,20 @@ spec:
               value: {{ .Values.gitlabClientId | default "renku-gateway" | quote }}
             - name: JUPYTERHUB_URL
               value: {{ .Values.jupyterhubUrl | default (printf "%s://jupyterhub.%s" (include "renku-gateway.protocol" .) .Values.global.renku.domain) | quote }}
+            - name: KEYCLOAK_URL
+              value: {{ .Values.keycloakUrl | default (printf "%s://keykloak.%s:8080" (include "renku-gateway.protocol" .) .Values.global.renku.domain) | quote }}
           livenessProbe:
             httpGet:
-              path: /
+              path: /health
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: /
+              path: /health
               port: http
-            initialDelaySeconds: 30
-            periodSeconds: 30
+            initialDelaySeconds: 10
+            periodSeconds: 10
           resources:
 {{ toYaml .Values.resources | indent 12 }}
     {{- with .Values.nodeSelector }}
