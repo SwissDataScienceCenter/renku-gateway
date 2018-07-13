@@ -30,7 +30,7 @@ make login
 # build charts/images and push
 cd helm-chart
 chartpress --push --publish-chart
-chartpress --tag latest --push --publish-chart
+chartpress --tag lates --push
 git diff
 cd ..
 
