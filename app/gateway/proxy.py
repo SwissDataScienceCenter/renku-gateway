@@ -21,6 +21,7 @@ import logging
 import json
 import requests
 from flask import request, Response
+from urllib.parse import urljoin
 
 from app.helpers.gitlab_parsers import parse_project
 from .. import app
@@ -68,7 +69,8 @@ def authorize():
 def healthcheck():
     return Response(json.dumps("Up and running"), status=200)
 
-@app.route('/api/projects', methods=['GET'])
+
+@app.route(urljoin(app.config['SERVICE_PREFIX'], 'projects'), methods=['GET'])
 def map_project():
     logger.debug('projects controller')
 
@@ -91,7 +93,7 @@ def map_project():
         return Response(response, status=401)
 
 
-@app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@app.route(urljoin(app.config['SERVICE_PREFIX'], '<path:path>'), methods=['GET', 'POST', 'PUT', 'DELETE'])
 @swapped_token()
 @authorize()
 def pass_through(path, headers=None):
@@ -137,7 +139,7 @@ def pass_through(path, headers=None):
         return Response(json.dumps("Not Found"), status=404)
 
 
-@app.route('/api/dummy', methods=['GET'])
+@app.route(urljoin(app.config['SERVICE_PREFIX'], 'dummy'), methods=['GET'])
 def dummy():
     return 'Dummy works'
 
