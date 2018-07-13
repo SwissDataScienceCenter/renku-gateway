@@ -35,7 +35,7 @@ def client():
 @responses.activate
 def test_simple(client):
 
-    test_url = app.config['GITLAB_URL'] + '/api/dummy'
+    test_url = app.config['GITLAB_URL'] + '/dummy'
     responses.add(responses.GET, test_url,
                   json={'error': 'not found'}, status=404)
 
@@ -52,7 +52,7 @@ def test_simple(client):
 def test_empty_db(client):
     """Start with a blank database."""
 
-    rv = client.get('/api/dummy')
+    rv = client.get('/dummy')
     assert b'Dummy works' in rv.data
 
 @responses.activate
@@ -78,12 +78,12 @@ def test_passthrough_happyflow(client):
     # If a request does has the required headers, it should be able to pass through
     access_token = jwt.encode(payload=TOKEN_PAYLOAD, key=PRIVATE_KEY, algorithm='RS256').decode('utf-8')
     headers = {'Authorization': 'Bearer {}'.format(access_token)}
-    path = '/api/gitlab/v4/projects/'
+    path = '/api/v4/projects/'
 
     gitlab_endpoint_url = app.config['GITLAB_URL'] + path
     responses.add(responses.GET, gitlab_endpoint_url, status=200)
 
-    rv = client.get('api/gitlab/v4/projects/', headers=headers)
+    rv = client.get('/v4/projects/', headers=headers)
 
     assert rv.status_code == 200
     assert b'No authorization header found' not in rv.data
