@@ -28,8 +28,8 @@ spec:
               containerPort: {{ .Values.service.port }}
               protocol: TCP
           env:
-            - name: BASE_URL
-              value: {{ .Values.baseUrl | default (printf "%s://%s" (include "renku-gateway.protocol" .) .Values.global.renku.domain) | quote }}
+            - name: HOST_NAME
+              value: {{ .Values.hostName | default (printf "%s://%s" (include "renku-gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: GITLAB_URL
               value: {{ .Values.gitlabUrl | default (printf "%s://gitlab.%s" (include "renku-gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: GITLAB_CLIENT_ID
@@ -38,6 +38,8 @@ spec:
               value: {{ .Values.jupyterhubUrl | default (printf "%s://jupyterhub.%s" (include "renku-gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: KEYCLOAK_URL
               value: {{ .Values.keycloakUrl | default (printf "%s://keykloak.%s:8080" (include "renku-gateway.protocol" .) .Values.global.renku.domain) | quote }}
+            - name: GATEWAY_SERVICE_PREFIX
+              value: {{ .Values.gatewayServicePrefix | default "/api/" | quote }}
           livenessProbe:
             httpGet:
               path: /health

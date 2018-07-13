@@ -31,6 +31,7 @@ config['OIDC_ISSUER'] = os.environ.get('KEYCLOAK_URL', 'http://keycloak.renku.bu
                         + '/auth/realms/Renku'
 config['OIDC_CLIENT_ID'] = os.environ.get('OIDC_CLIENT_ID', 'gateway')
 config['OIDC_CLIENT_SECRET'] = os.environ.get('OIDC_CLIENT_SECRET', 'dummy-secret')
+config['SERVICE_PREFIX'] = os.environ.get('GATEWAY_SERVICE_PREFIX', '/')
 
 # Get the public key of the OIDC provider to verify access- and refresh_tokens
 # TODO: The public key of the OIDC provider should go to the app context and be refreshed
