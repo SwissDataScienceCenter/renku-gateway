@@ -37,9 +37,6 @@ config['SERVICE_PREFIX'] = os.environ.get('GATEWAY_SERVICE_PREFIX', '/')
 # TODO: The public key of the OIDC provider should go to the app context and be refreshed
 # TODO: regularly or whenever the validation of a token fails and the public key has not been
 # TODO: updated in a while.
-try:
-    raw_key = requests.get(config['OIDC_ISSUER']).json()['public_key']
-    config['OIDC_PUBLIC_KEY'] = '-----BEGIN PUBLIC KEY-----\n{}\n-----END PUBLIC KEY-----'.format(raw_key)
-except:
-    config['OIDC_PUBLIC_KEY'] = None
+raw_key = requests.get(config['OIDC_ISSUER']).json()['public_key']
+config['OIDC_PUBLIC_KEY'] = '-----BEGIN PUBLIC KEY-----\n{}\n-----END PUBLIC KEY-----'.format(raw_key)
 
