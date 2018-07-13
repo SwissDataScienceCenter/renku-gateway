@@ -19,7 +19,11 @@
 
 import os
 import requests
+import sys
+from time import sleep
+from logging import getLogger
 
+logger = getLogger(__name__)
 
 config = dict()
 config['HOST_NAME'] = os.environ.get('HOST_NAME', 'http://gateway.renku.build')
@@ -37,6 +41,25 @@ config['SERVICE_PREFIX'] = os.environ.get('GATEWAY_SERVICE_PREFIX', '/')
 # TODO: The public key of the OIDC provider should go to the app context and be refreshed
 # TODO: regularly or whenever the validation of a token fails and the public key has not been
 # TODO: updated in a while.
-raw_key = requests.get(config['OIDC_ISSUER']).json()['public_key']
-config['OIDC_PUBLIC_KEY'] = '-----BEGIN PUBLIC KEY-----\n{}\n-----END PUBLIC KEY-----'.format(raw_key)
 
+if "pytest" in sys.modules:
+    okKey = True
+else:
+    okKey = False
+attempts = 0
+
+while attempts < 20 and not okKey:
+    attempts += 1
+    try:
+        raw_key = requests.get(config['OIDC_ISSUER']).json()['public_key']
+        config['OIDC_PUBLIC_KEY'] = '-----BEGIN PUBLIC KEY-----\n{}\n-----END PUBLIC KEY-----'.format(raw_key)
+        okKey = True
+        logger.info('Obtained public key from Keycloak.')
+    except:
+        logger.info('Could not get public key from Keycloak, trying again...')
+        sleep(10)
+
+
+if not okKey:
+    logger.info('Could not get public key from Keycloak, giving up.')
+    exit(1)
