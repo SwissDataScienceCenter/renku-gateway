@@ -92,6 +92,7 @@ def swapped_token():
                 to = Token(resp={'refresh_token': m.group('token')})
                 res = client.do_access_token_refresh(token=to)
                 headers['Authorization'] = "Bearer {}".format(res.get('access_token'))
+                request.headers = headers
 
             return f(*args, **kwargs)
         return decorated_function
