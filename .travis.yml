@@ -46,4 +46,4 @@ deploy:
     skip_cleanup: true
     script: bash travis-deploy.sh
     on:
-      branch: travis-build
+      branch: master
