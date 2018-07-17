@@ -39,7 +39,7 @@ def test_simple(client):
     responses.add(responses.GET, test_url,
                   json={'error': 'not found'}, status=404)
 
-    rv = client.get('/api/dummy')
+    rv = client.get('/dummy')
     resp = requests.get(test_url)
 
     assert resp.json() == {"error": "not found"}
@@ -63,15 +63,6 @@ def test_passthrough_nopubkeyflow(client):
     rv = client.get(path)
     assert rv.status_code == 500
     assert b'"Ooops, something went wrong internally' in rv.data
-
-
-@responses.activate
-def test_passthrough_notokenflow(client):
-    # If a request does not have the required header it should not be let through
-    path = '/api/gitlab/v4/projects/'
-    rv = client.get(path)
-    assert rv.status_code == 401
-    assert b'No authorization header found' in rv.data
 
 @responses.activate
 def test_passthrough_happyflow(client):
