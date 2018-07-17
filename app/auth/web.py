@@ -22,7 +22,7 @@ import json
 import time
 import re
 import logging
-from flask import request, redirect, url_for, current_app
+from flask import request, redirect, url_for, current_app, Response
 from urllib.parse import urljoin
 
 from oic.oic import Client
@@ -81,19 +81,25 @@ client_reg = RegistrationResponse(
 client.store_registration_info(client_reg)
 
 
+def get_refreshed_tokens(headers):
+    m = re.search(r'bearer (?P<token>.+)', headers.get('Authorization', ''), re.IGNORECASE)
+
+    if m and jwt.decode(m.group('token'), verify=False).get('typ') in ['Offline', 'Refresh']:
+        logger.debug("Swapping the token")
+        to = Token(resp={'refresh_token': m.group('token')})
+        return client.do_access_token_refresh(token=to)
+    else:
+        return None
+
+
 def swapped_token():
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             headers = dict(request.headers)
-            m = re.search(r'bearer (?P<token>.+)', headers.get('Authorization',''), re.IGNORECASE)
-
-            if m and jwt.decode(m.group('token'), verify=False).get('typ') in ['Offline','Refresh']:
-                logger.debug("Swapping the token")
-                to = Token(resp={'refresh_token': m.group('token')})
-                res = client.do_access_token_refresh(token=to)
-                headers['Authorization'] = "Bearer {}".format(res.get('access_token'))
-
+            new_tokens = get_refreshed_tokens(headers)
+            if new_tokens:
+                headers['Authorization'] = "Bearer {}".format(new_tokens.get('access_token'))
             return f(*args, **kwargs)
         return decorated_function
     return decorator
@@ -170,6 +176,17 @@ def get_tokens():
         )
 
     return response
+
+
+@app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/token/refresh'))
+def refresh_tokens():
+    headers = dict(request.headers)
+    new_tokens = get_refreshed_tokens(headers)
+    response = json.dumps({
+        'access_token': new_tokens['access_token'],
+        'refresh_token': new_tokens['refresh_token']
+    })
+    return Response(response)
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/info'))

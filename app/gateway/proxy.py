@@ -28,6 +28,7 @@ from .. import app
 from ..auth.web import swapped_token
 from flask_cors import CORS
 import jwt
+from jwt.exceptions import ExpiredSignatureError
 from functools import wraps
 
 
@@ -49,14 +50,19 @@ def authorize():
                 # logger.debug('Authorization header present, sudo token exchange')
                 # logger.debug('outgoing headers: {}'.format(json.dumps(headers))
 
+                # TODO: Use regular expressions to extract the token from the header
                 access_token = headers.get('Authorization')[7:]
                 del headers['Authorization']
                 headers['Private-Token'] = app.config['GITLAB_PASS']
 
                 # Decode token to get user id
-                # TODO: What exactly happens when decoding of the token fails?
-                decodentoken = jwt.decode(access_token, app.config['OIDC_PUBLIC_KEY'], algorithms='RS256',
-                                             audience=app.config['OIDC_CLIENT_ID'])
+                # TODO: What happens if the validation of the token fails for other reasons?
+                try:
+                    decodentoken = jwt.decode(access_token, app.config['OIDC_PUBLIC_KEY'], algorithms='RS256',
+                                                audience=app.config['OIDC_CLIENT_ID'])
+                except ExpiredSignatureError:
+                    return Response('Access token expired', 401)
+
                 id = (decodentoken['preferred_username'])
                 headers['Sudo'] = id
 
