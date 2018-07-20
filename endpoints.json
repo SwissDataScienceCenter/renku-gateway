@@ -1,0 +1,18 @@
+{
+    "repositories": {
+        "endpoint": "{RENKU_ENDPOINT}/service/storage/repo",
+        "processor": "app.processors.ServiceGeneric"
+    },
+    "objects": {
+        "endpoint": "{RENKU_ENDPOINT}/service/storage/object",
+        "processor": "app.processors.ServiceGeneric"
+    },
+    "projects": {
+        "endpoint": "{GITLAB_URL}/api/v4/projects",
+        "processor": "app.processors.GitlabProjects"
+    },
+    "": {
+        "endpoint": "{GITLAB_URL}/api",
+        "processor": "app.processors.itlabGeneric"
+    }
+}

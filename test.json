@@ -1,0 +1,1 @@
+{"obj(ect)?/[\\d-]+/": {"endpoint": "http://localhost/api", "processor": "app.tests.test_config.DummyProcessor"}}

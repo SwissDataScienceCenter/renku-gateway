@@ -15,9 +15,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Server entrypoint."""
+"""Processors module."""
 
-import app
-
-if __name__ == "__main__":
-    app.app.run(host='0.0.0.0', threaded=True, extra_files=app.config['GATEWAY_ENDPOINT_CONFIG_FILE'])
+from .gitlab_processor import GitlabGeneric, GitlabProjects
+from.service_processor import ServiceGeneric

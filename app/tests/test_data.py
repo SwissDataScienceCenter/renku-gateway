@@ -104,3 +104,181 @@ PUBLIC_KEY = \
     'rmLQw3c+CD5jbviv9xMHw/XA77JEJd1XckKI8vwOI+ZQ2vcqYo2X6CUx5yHjirm2' \
     'bkr/hHS8VK7rmF9rCD2gQM0CAwEAAQ==\n' \
     '-----END PUBLIC KEY-----'
+
+GITLAB_PROJECTS = [
+    {
+        "id": 1,
+        "description": "",
+        "name": "demo",
+        "name_with_namespace": "John Doe / demo",
+        "path": "demo",
+        "path_with_namespace": "demo/demo",
+        "created_at": "2018-07-20T08:10:28.150Z",
+        "default_branch": None,
+        "tag_list": [],
+        "ssh_url_to_repo": "ssh: //git@gitlab.renku.build: 5022/demo/demo.git",
+        "http_url_to_repo": "http: //gitlab.renku.build/demo/demo.git",
+        "web_url": "http: //gitlab.renku.build/demo/demo",
+        "avatar_url": None,
+        "star_count": 0,
+        "forks_count": 0,
+        "last_activity_at": "2018-07-20T08:10:28.150Z",
+        "_links": {
+            "self": "http://gitlab.renku.build/api/v4/projects/1",
+            "issues": "http://gitlab.renku.build/api/v4/projects/1/issues",
+            "merge_requests": "http://gitlab.renku.build/api/v4/projects/1/merge_requests",
+            "repo_branches": "http://gitlab.renku.build/api/v4/projects/1/repository/branches",
+            "labels": "http://gitlab.renku.build/api/v4/projects/1/labels",
+            "events": "http://gitlab.renku.build/api/v4/projects/1/events",
+            "members": "http://gitlab.renku.build/api/v4/projects/1/members"
+        },
+        "archived": False,
+        "visibility": "public",
+        "owner": {
+            "id": 2,
+            "name": "John Doe",
+            "username": "demo",
+            "state": "active",
+            "avatar_url": "https://www.gravatar.com/avatar/3279e2b7c1a20fc486a409c7b6280485?s=80\u0026d=identicon",
+            "web_url": "http://gitlab.renku.build/demo"
+        },
+        "resolve_outdated_diff_discussions": False,
+        "container_registry_enabled": True,
+        "issues_enabled": True,
+        "merge_requests_enabled": True,
+        "wiki_enabled": True,
+        "jobs_enabled": True,
+        "snippets_enabled": True,
+        "shared_runners_enabled": True,
+        "lfs_enabled": True,
+        "creator_id": 2,
+        "namespace": {
+            "id": 2,
+            "name": "demo",
+            "path": "demo",
+            "kind": "user",
+            "full_path": "demo",
+            "parent_id": None
+        },
+        "import_status": "none",
+        "open_issues_count": 1,
+        "public_jobs": True,
+        "ci_config_path": None,
+        "shared_with_groups": [],
+        "only_allow_merge_if_pipeline_succeeds": False,
+        "request_access_enabled": False,
+        "only_allow_merge_if_all_discussions_are_resolved": False,
+        "printing_merge_request_link_enabled": True,
+        "permissions": {
+            "project_access": {
+                "access_level": 40,
+                "notification_level": 3
+            },
+            "group_access": None
+        }
+    }
+]
+
+GITLAB_ISSUES = [
+    {
+        "id": 1,
+        "iid": 1,
+        "project_id": 1,
+        "title": "Ohoh",
+        "description": "this is not working",
+        "state": "opened",
+        "created_at": "2018-07-20T08:20:10.052Z",
+        "updated_at": "2018-07-20T08:20:10.052Z",
+        "closed_at": None,
+        "labels": [],
+        "milestone": None,
+        "assignees": [],
+        "author": {
+            "id": 2,
+            "name": "John Doe",
+            "username": "demo",
+            "state": "active",
+            "avatar_url": "https://www.gravatar.com/avatar/3279e2b7c1a20fc486a409c7b6280485?s=80\u0026d=identicon",
+            "web_url": "http://gitlab.renku.build/demo"
+        },
+        "assignee": None,
+        "user_notes_count": 0,
+        "upvotes": 0,
+        "downvotes": 0,
+        "due_date": None,
+        "confidential": False,
+        "discussion_locked": None,
+        "web_url": "http://gitlab.renku.build/demo/demo/issues/1",
+        "time_stats": {
+            "time_estimate": 0,
+            "total_time_spent": 0,
+            "human_time_estimate": None,
+            "human_total_time_spent": None
+        }
+    }
+]
+
+
+GATEWAY_PROJECT = [
+    {
+        "display": {
+            "title": "demo",
+            "slug": "demo",
+            "display_id": "demo/demo",
+            "short_description": ""
+        },
+        "metadata": {
+            "author": {
+                "id": 2,
+                "name": "John Doe",
+                "username": "demo",
+                "state": "active",
+                "avatar_url": "https://www.gravatar.com/avatar/3279e2b7c1a20fc486a409c7b6280485?s=80&d=identicon",
+                "web_url": "http://gitlab.renku.build/demo"
+            },
+            "created_at": "2018-07-20T08:10:28.150Z",
+            "last_activity_at": "2018-07-20T08:10:28.150Z",
+            "permissions": [],
+            "id": 1
+        },
+        "description": "",
+        "long_description": "test",
+        "name": "demo",
+        "forks_count": 0,
+        "star_count": 0,
+        "tags": [],
+        "kus": [
+            [
+                {
+                    "project_id": 1,
+                    "display": {
+                        "title": "Ohoh",
+                        "slug": 1,
+                        "display_id": 1,
+                        "short_description": "Ohoh"
+                    },
+                    "metadata": {
+                        "author": {
+                            "id": 2,
+                            "name": "John Doe",
+                            "username": "demo",
+                            "state": "active",
+                            "avatar_url": "https://www.gravatar.com/avatar/3279e2b7c1a20fc486a409c7b6280485?s=80&d=identicon",
+                            "web_url": "http://gitlab.renku.build/demo"
+                        },
+                        "created_at": "2018-07-20T08:20:10.052Z",
+                        "updated_at": "2018-07-20T08:20:10.052Z",
+                        "id": 1,
+                        "iid": 1
+                    },
+                    "description": "this is not working",
+                    "labels": [],
+                    "contributions": [],
+                    "assignees": [],
+                    "reactions": []
+                }
+            ]
+        ],
+        "repository_content": []
+    }
+]

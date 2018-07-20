@@ -18,17 +18,13 @@
 """Gateway logic."""
 
 import logging
+import importlib
 import json
-import requests
 from flask import request, Response
-from werkzeug.datastructures import Headers
 
-from app.helpers.gitlab_parsers import parse_project
 from .. import app
 from ..auth.web import swapped_token
 from flask_cors import CORS
-import jwt
-from functools import wraps
 
 
 logger = logging.getLogger(__name__)
@@ -36,62 +32,11 @@ CORS(app)
 
 CHUNK_SIZE = 1024
 
-# TODO use token
-# def with_tokens(f):
-#      """Function decorator to ensure we have OIDC tokens"""
-#      return 0
-def authorize():
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(path):
-            headers = dict(request.headers)
-            if 'Authorization' in headers:
-                logger.debug("Authorization header present, sudo token exchange")
-                access_token = headers.get('Authorization')[7:]
-                del headers['Authorization']
-                headers['Private-Token'] = app.config['GITLAB_PASS']
-
-                # Decode token to get user id
-                decodentoken = jwt.decode(access_token, app.config['OIDC_PUBLIC_KEY'], algorithms='RS256',
-                                             audience=app.config['OIDC_CLIENT_ID'])
-                id = (decodentoken['preferred_username'])
-                headers['Sudo'] = id
-
-            else:
-                logger.debug("No authorization header, returning empty auth headers")
-                headers.pop('Sudo', None)
-
-            return f(path, headers=headers)
-        return decorated_function
-    return decorator
-
-@app.route('/api/projects', methods=['GET'])
-def map_project():
-    logger.debug('projects controller')
-
-    headers = dict(request.headers)
-
-    del headers['Host']
-
-    auth_headers = authorize(headers)
-    if auth_headers!=[] :
-
-        project_url = app.config['GITLAB_URL'] + "/api/v4/projects"
-        project_response = requests.request(request.method, project_url, headers=headers, data=request.data, stream=True, timeout=300)
-        projects_list = project_response.json()
-        return_project = json.dumps([parse_project(headers, x) for x in projects_list])
-
-        return Response(return_project, project_response.status_code)
-
-    else:
-        response = json.dumps("No authorization header found")
-        return Response(response, status=401)
-
 
 @app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @swapped_token()
-@authorize()
-def pass_through(path, headers=None):
+def pass_through(path):
+    headers = dict(request.headers)
     # Keycloak public key is not defined so error
     if app.config['OIDC_PUBLIC_KEY'] is None:
         response = json.dumps("Ooops, something went wrong internally.")
@@ -99,50 +44,32 @@ def pass_through(path, headers=None):
     logger.debug(headers)
     del headers['Host']
 
-    # TODO: The actual backend service responsible for a given request should not be specified as part of the URL,
-    # TODO: i.e. the client should not care if it is storage, gitlab, etc which is going to serve its request.
-    # TODO: This switch should be resource dependent.
-    if path.startswith('storage'):
-        url = app.config['RENKU_ENDPOINT'] + "/api/" + path
+    processor = None
+
+    logger.warning(app.config['GATEWAY_ENDPOINT_CONFIG'])
+
+    for key, val in app.config['GATEWAY_ENDPOINT_CONFIG'].items():
+        p = key.match(path)
+        logger.debug(key)
+        logger.debug(path)
+        logger.debug(p)
+        if p:
+            try:
+                m, _, c = val.get('processor').rpartition('.')
+                module = importlib.import_module(m)
+                processor = getattr(module, c)(p.group('remaining'), val.get('endpoint'))
+                break
+            except:
+                logger.warning("Error loading processor", exc_info=True)
+
+    if processor:
+        return processor.process(request, headers)
+
     else:
-        url = app.config['GITLAB_URL'] + "/api/" + path
-
-        if 'Sudo' not in headers:
-            logger.debug("No authorization header found, responding with 401")
-            response = json.dumps("No authorization header found")
-            return Response(response, status=401)
-
-    # logger.debug('Request path: {}'.format(path))
-    # logger.debug('incoming headers: {}'.format(json.dumps(headers)))
-
-    # Respond to requester
-    response = requests.request(
-        request.method,
-        url,
-        headers=headers,
-        params=request.args,
-        data=request.data,
-        stream=True,
-        timeout=300
-    )
-
-    rsp = Response(generate(response), response.status_code)
-    rsp.headers = Headers(response.headers.lower_items())
-
-    # logger.debug('Response: {}'.format(response.status_code))
-    # logger.debug('Response headers: {}'.format(rsp.headers))
-
-    return rsp
-
+        response = json.dumps({'error': "No processor found for this path"})
+        return Response(response, status=404)
 
 
 @app.route('/api/dummy', methods=['GET'])
 def dummy():
     return 'Dummy works'
-
-
-def generate(response):
-    for c in response.iter_lines():
-        logger.debug(c)
-        yield c + "\r".encode()
-    return(response)

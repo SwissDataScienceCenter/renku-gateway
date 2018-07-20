@@ -17,8 +17,15 @@
 # limitations under the License.
 """Global settings."""
 
+import json
+import logging
 import os
+import re
 import requests
+
+from collections import OrderedDict
+
+logger = logging.getLogger(__name__)
 
 
 config = dict()
@@ -42,3 +49,16 @@ try:
 except:
     config['OIDC_PUBLIC_KEY'] = None
 
+config['GATEWAY_ENDPOINT_CONFIG_FILE'] = os.environ.get('GATEWAY_ENDPOINT_CONFIG_FILE', 'endpoints.json')
+
+
+def load_config():
+    from . import app
+    app.config['GATEWAY_ENDPOINT_CONFIG'] = {}
+    try:
+        with open(app.config['GATEWAY_ENDPOINT_CONFIG_FILE']) as f:
+            c = json.load(f, object_pairs_hook=OrderedDict)
+        for k, v in c.items():
+            app.config['GATEWAY_ENDPOINT_CONFIG'][re.compile(r"{}(?P<remaining>.*)".format(k))] = v
+    except:
+        logger.error("Error reading endpoints config file", exc_info=True)
