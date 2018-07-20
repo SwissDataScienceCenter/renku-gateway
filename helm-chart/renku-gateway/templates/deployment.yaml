@@ -29,7 +29,7 @@ spec:
               protocol: TCP
           env:
             - name: HOST_NAME
-              value: {{ .Values.hostName | default (printf "%s://%s/api" (include "renku-gateway.protocol" .) .Values.global.renku.domain) | quote }}
+              value: {{ .Values.hostName | default (printf "%s://%s" (include "renku-gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: RENKU_ENDPOINT
               value: {{ .Values.renkuEndpoint | default (printf "%s://%s" (include "renku-gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: GITLAB_URL
