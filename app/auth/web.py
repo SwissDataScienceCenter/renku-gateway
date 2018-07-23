@@ -20,7 +20,6 @@
 import jwt
 import json
 import time
-import re
 import logging
 from flask import request, redirect, url_for, current_app
 
@@ -28,9 +27,8 @@ from oic.oic import Client
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic import rndstr
 from oic.oic.message import AuthorizationResponse, RegistrationResponse
-from oic.oauth2.grant import Token
+
 from blinker import Namespace
-from functools import wraps
 
 from .. import app
 
@@ -78,25 +76,6 @@ client_reg = RegistrationResponse(
     client_secret=app.config['OIDC_CLIENT_SECRET']
 )
 client.store_registration_info(client_reg)
-
-
-def swapped_token():
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            headers = dict(request.headers)
-            m = re.search(r'bearer (?P<token>.+)', headers.get('Authorization',''), re.IGNORECASE)
-
-            if m and jwt.decode(m.group('token'), verify=False).get('typ') in ['Offline','Refresh']:
-                logger.debug("Swapping the token")
-                to = Token(resp={'refresh_token': m.group('token')})
-                res = client.do_access_token_refresh(token=to)
-                headers['Authorization'] = "Bearer {}".format(res.get('access_token'))
-                request.headers = headers
-
-            return f(*args, **kwargs)
-        return decorated_function
-    return decorator
 
 
 @app.route('/auth/login')

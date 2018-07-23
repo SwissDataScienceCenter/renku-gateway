@@ -62,3 +62,5 @@ def load_config():
             app.config['GATEWAY_ENDPOINT_CONFIG'][re.compile(r"{}(?P<remaining>.*)".format(k))] = v
     except:
         logger.error("Error reading endpoints config file", exc_info=True)
+
+    logger.debug(app.config['GATEWAY_ENDPOINT_CONFIG'])

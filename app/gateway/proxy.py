@@ -23,7 +23,6 @@ import json
 from flask import request, Response
 
 from .. import app
-from ..auth.web import swapped_token
 from flask_cors import CORS
 
 
@@ -34,7 +33,6 @@ CHUNK_SIZE = 1024
 
 
 @app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
-@swapped_token()
 def pass_through(path):
     headers = dict(request.headers)
     # Keycloak public key is not defined so error
@@ -45,22 +43,25 @@ def pass_through(path):
     del headers['Host']
 
     processor = None
-
-    logger.warning(app.config['GATEWAY_ENDPOINT_CONFIG'])
+    auth = None
 
     for key, val in app.config['GATEWAY_ENDPOINT_CONFIG'].items():
         p = key.match(path)
-        logger.debug(key)
-        logger.debug(path)
-        logger.debug(p)
         if p:
             try:
                 m, _, c = val.get('processor').rpartition('.')
                 module = importlib.import_module(m)
                 processor = getattr(module, c)(p.group('remaining'), val.get('endpoint'))
+                if 'auth' in val:
+                    m, _, c = val.get('auth').rpartition('.')
+                    module = importlib.import_module(m)
+                    auth = getattr(module, c)()
                 break
             except:
                 logger.warning("Error loading processor", exc_info=True)
+
+    if auth:
+        headers = auth.process(request, headers)
 
     if processor:
         return processor.process(request, headers)

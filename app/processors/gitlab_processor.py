@@ -8,47 +8,12 @@ import requests
 
 from flask import Response
 
-import jwt
-from functools import wraps
 
 logger = logging.getLogger(__name__)
 
 
-# TODO use token
-# def with_tokens(f):
-#      """Function decorator to ensure we have OIDC tokens"""
-#      return 0
-def authorize():
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(self, request, headers):
-            if 'Authorization' in headers:
-                logger.debug("Authorization header present, sudo token exchange")
-                access_token = headers.get('Authorization')[7:]
-                del headers['Authorization']
-                headers['Private-Token'] = app.config['GITLAB_PASS']
-
-                # Decode token to get user id
-                decodentoken = jwt.decode(
-                    access_token, app.config['OIDC_PUBLIC_KEY'],
-                    algorithms='RS256',
-                    audience=app.config['OIDC_CLIENT_ID']
-                )
-                id = (decodentoken['preferred_username'])
-                headers['Sudo'] = id
-
-            else:
-                logger.debug("No authorization header, returning empty auth headers")
-                headers.pop('Sudo', None)
-
-            return f(self, request, headers)
-        return decorated_function
-    return decorator
-
-
 class GitlabGeneric(BaseProcessor):
 
-    @authorize()
     def process(self, request, headers):
         self.endpoint = self.endpoint.format(**app.config) + self.path
         return super().process(request, headers)
@@ -56,7 +21,6 @@ class GitlabGeneric(BaseProcessor):
 
 class GitlabProjects(BaseProcessor):
 
-    @authorize()
     def process(self, request, headers):
         endpoint = self.endpoint.format(**app.config)
         if 'Sudo' in headers:
