@@ -1,22 +1,22 @@
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
-  name: {{ template "renku-gateway.fullname" . }}
+  name: {{ template "gateway.fullname" . }}
   labels:
-    app: {{ template "renku-gateway.name" . }}
-    chart: {{ template "renku-gateway.chart" . }}
+    app: {{ template "gateway.name" . }}
+    chart: {{ template "gateway.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ template "renku-gateway.name" . }}
+      app: {{ template "gateway.name" . }}
       release: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app: {{ template "renku-gateway.name" . }}
+        app: {{ template "gateway.name" . }}
         release: {{ .Release.Name }}
     spec:
       containers:
@@ -29,17 +29,17 @@ spec:
               protocol: TCP
           env:
             - name: HOST_NAME
-              value: {{ .Values.hostName | default (printf "%s://%s" (include "renku-gateway.protocol" .) .Values.global.renku.domain) | quote }}
+              value: {{ .Values.hostName | default (printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: RENKU_ENDPOINT
-              value: {{ .Values.renkuEndpoint | default (printf "%s://%s" (include "renku-gateway.protocol" .) .Values.global.renku.domain) | quote }}
+              value: {{ .Values.renkuEndpoint | default (printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: GITLAB_URL
-              value: {{ .Values.gitlabUrl | default (printf "%s://%s/gitlab" (include "renku-gateway.protocol" .) .Values.global.renku.domain) | quote }}
+              value: {{ .Values.gitlabUrl | default (printf "%s://%s/gitlab" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: GITLAB_PASS
               value: {{ .Values.gitlabSudoToken | default .Values.global.gitlab.sudoToken | quote }}
             - name: JUPYTERHUB_URL
-              value: {{ .Values.jupyterhubUrl | default (printf "%s://%s/jupyterhub" (include "renku-gateway.protocol" .) .Values.global.renku.domain) | quote }}
+              value: {{ .Values.jupyterhubUrl | default (printf "%s://%s/jupyterhub" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: KEYCLOAK_URL
-              value: {{ .Values.keycloakUrl | default (printf "%s://%s" (include "renku-gateway.protocol" .) .Values.global.renku.domain) | quote }}
+              value: {{ .Values.keycloakUrl | default (printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: GATEWAY_SERVICE_PREFIX
               value: {{ .Values.gatewayServicePrefix | default "/api/" | quote }}
             - name: OIDC_CLIENT_SECRET
