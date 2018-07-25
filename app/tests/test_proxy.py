@@ -24,6 +24,7 @@ import responses
 import requests
 import jwt
 import json
+from urllib.parse import urljoin
 from .test_data import PUBLIC_KEY, PRIVATE_KEY, TOKEN_PAYLOAD, GITLAB_PROJECTS, GITLAB_ISSUES, GATEWAY_PROJECT
 from app. config import load_config
 
@@ -41,11 +42,11 @@ def client():
 @responses.activate
 def test_simple(client):
 
-    test_url = app.config['GITLAB_URL'] + '/api/dummy'
+    test_url = app.config['GITLAB_URL'] + '/dummy'
     responses.add(responses.GET, test_url,
                   json={'error': 'not found'}, status=404)
 
-    rv = client.get('/api/dummy')
+    rv = client.get('/dummy')
     resp = requests.get(test_url)
 
     assert resp.json() == {"error": "not found"}
@@ -58,7 +59,7 @@ def test_simple(client):
 def test_empty_db(client):
     """Start with a blank database."""
 
-    rv = client.get('/api/dummy')
+    rv = client.get('/dummy')
     assert b'Dummy works' in rv.data
 
 
@@ -66,7 +67,7 @@ def test_empty_db(client):
 def test_passthrough_nopubkeyflow(client):
     # If no keycloak token exists, the pass through should fail with 500
     app.config['OIDC_PUBLIC_KEY'] = None
-    path = '/api/v4/projects/'
+    path = urljoin(app.config['SERVICE_PREFIX'], 'projects/')
     rv = client.get(path)
     assert rv.status_code == 500
     assert b'"Ooops, something went wrong internally' in rv.data
@@ -75,7 +76,7 @@ def test_passthrough_nopubkeyflow(client):
 @responses.activate
 def test_passthrough_notokenflow(client):
     # If a request does not have the required header it should not be let through
-    path = '/api/projects/'
+    path = urljoin(app.config['SERVICE_PREFIX'], 'projects/')
     rv = client.get(path)
     assert rv.status_code == 401
     assert b'No authorization header found' in rv.data
@@ -93,7 +94,7 @@ def test_gitlab_happyflow(client):
     responses.add(responses.GET, app.config['GITLAB_URL'] + "/api/v4/projects/1/issues/1/award_emoji", json=[], status=200)
     responses.add(responses.GET, app.config['GITLAB_URL'] + "/api/v4/projects/1/issues/1/notes", json=[], status=200)
 
-    rv = client.get('api/projects/', headers=headers)
+    rv = client.get(urljoin(app.config['SERVICE_PREFIX'], 'projects/'), headers=headers)
 
     assert rv.status_code == 200
     assert json.loads(rv.data) == GATEWAY_PROJECT
@@ -107,7 +108,7 @@ def test_service_happyflow(client):
 
     responses.add(responses.POST, app.config['RENKU_ENDPOINT'] + '/service/storage/object/23/meta', json={'id': 1}, status=201)
 
-    rv = client.post('api/objects/23/meta', headers=headers)
+    rv = client.post(urljoin(app.config['SERVICE_PREFIX'], 'objects/23/meta'), headers=headers)
 
     assert rv.status_code == 201
     assert json.loads(rv.data) == {'id': 1}

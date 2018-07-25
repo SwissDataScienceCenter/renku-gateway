@@ -21,7 +21,10 @@ import jwt
 import json
 import time
 import logging
-from flask import request, redirect, url_for, current_app
+import re
+from oic.oauth2.grant import Token
+from flask import request, redirect, url_for, current_app, Response
+from urllib.parse import urljoin
 
 from oic.oic import Client
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
@@ -47,11 +50,11 @@ JWT_SECRET = rndstr(size=32)
 JWT_ALGORITHM = 'HS256'
 SCOPE = ['openid']
 
-# We need to specify that the cookie is valid for all .renga.build subdomains
-if 'localhost' in app.config['HOST_NAME']:
-    COOKIE_DOMAIN = None
-else:
+# We need to specify that the cookie is valid for all .renku.build subdomains
+if 'gateway.renku.build' in app.config['HOST_NAME']:
     COOKIE_DOMAIN = '.'.join([''] + app.config['HOST_NAME'].split('.')[1:])
+else:
+    COOKIE_DOMAIN = None
 
 # We use a short-lived dictionary to store ongoing login sessions.
 # This should not grow in size and can easily be trashed when the service needs
@@ -78,7 +81,18 @@ client_reg = RegistrationResponse(
 client.store_registration_info(client_reg)
 
 
-@app.route('/auth/login')
+def get_refreshed_tokens(headers):
+    m = re.search(r'bearer (?P<token>.+)', headers.get('Authorization', ''), re.IGNORECASE)
+
+    if m and jwt.decode(m.group('token'), verify=False).get('typ') in ['Offline', 'Refresh']:
+        logger.debug("Swapping the token")
+        to = Token(resp={'refresh_token': m.group('token')})
+        return client.do_access_token_refresh(token=to)
+    else:
+        return None
+
+
+@app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/login'))
 def login():
 
     session_id = rndstr(size=32)
@@ -107,7 +121,7 @@ def login():
 
 
 # TODO: Add token refresh method here
-@app.route('/auth/token')
+@app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/token'))
 def get_tokens():
 
     browser_session = jwt.decode(request.cookies['session'], JWT_SECRET, algorithms=[JWT_ALGORITHM])
@@ -151,7 +165,18 @@ def get_tokens():
     return response
 
 
-@app.route('/auth/info')
+@app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/token/refresh'))
+def refresh_tokens():
+    headers = dict(request.headers)
+    new_tokens = get_refreshed_tokens(headers)
+    response = json.dumps({
+        'access_token': new_tokens['access_token'],
+        'refresh_token': new_tokens['refresh_token']
+    })
+    return Response(response)
+
+
+@app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/info'))
 def info():
 
     t = request.args.get('cli_token')
@@ -178,7 +203,7 @@ def info():
             request.cookies.get('access_token'), request.cookies.get('refresh_token'))
 
 
-@app.route('/auth/logout')
+@app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/logout'))
 def logout():
     logout_url = app.config['OIDC_ISSUER'] + '/protocol/openid-connect/logout?redirect_uri=' + \
                  request.args.get('redirect_url')

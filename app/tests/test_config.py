@@ -21,6 +21,7 @@
 import pytest
 from .. import app
 import json
+from urllib.parse import urljoin
 from .test_data import PUBLIC_KEY
 from app.processors.base_processor import BaseProcessor
 from app.config import load_config
@@ -40,7 +41,7 @@ def client():
 def test_empty_config(client):
 
     app.config['GATEWAY_ENDPOINT_CONFIG'] = {}
-    rv = client.get('/api/something')
+    rv = client.get(urljoin(app.config['SERVICE_PREFIX'], 'something'))
 
     assert rv.status_code == 404
     assert json.loads(rv.data) == {"error": "No processor found for this path"}
@@ -57,7 +58,7 @@ def test_catch_all(client):
         }, f)
     load_config()
 
-    rv = client.get('/api/something/interesting?p=nothing')
+    rv = client.get(urljoin(app.config['SERVICE_PREFIX'], 'something/interesting?p=nothing'))
 
     assert rv.status_code == 200
     assert rv.data == b'something/interesting'
@@ -74,22 +75,22 @@ def test_regex_config(client):
         }, f)
     load_config()
 
-    rv = client.get('/api/obj/23-3/issues?p=nothing')
+    rv = client.get(urljoin(app.config['SERVICE_PREFIX'], 'obj/23-3/issues?p=nothing'))
 
     assert rv.status_code == 200
     assert rv.data == b'issues'
 
-    rv = client.get('/api/object/-/issues/4?p=nothing')
+    rv = client.get(urljoin(app.config['SERVICE_PREFIX'], 'object/-/issues/4?p=nothing'))
 
     assert rv.status_code == 200
     assert rv.data == b'issues/4'
 
-    rv = client.get('/api/objects/-/issues/4?p=nothing')
+    rv = client.get(urljoin(app.config['SERVICE_PREFIX'], 'objects/-/issues/4?p=nothing'))
 
     assert rv.status_code == 404
     assert json.loads(rv.data) == {"error": "No processor found for this path"}
 
-    rv = client.get('/api/obj/2a/issues/4?p=nothing')
+    rv = client.get(urljoin(app.config['SERVICE_PREFIX'], 'obj/2a/issues/4?p=nothing'))
 
     assert rv.status_code == 404
     assert json.loads(rv.data) == {"error": "No processor found for this path"}

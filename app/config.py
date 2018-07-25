@@ -18,14 +18,15 @@
 """Global settings."""
 
 import json
-import logging
 import os
 import re
 import requests
-
+import sys
+from time import sleep
+from logging import getLogger
 from collections import OrderedDict
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 config = dict()
@@ -38,16 +39,13 @@ config['OIDC_ISSUER'] = os.environ.get('KEYCLOAK_URL', 'http://keycloak.renku.bu
                         + '/auth/realms/Renku'
 config['OIDC_CLIENT_ID'] = os.environ.get('OIDC_CLIENT_ID', 'gateway')
 config['OIDC_CLIENT_SECRET'] = os.environ.get('OIDC_CLIENT_SECRET', 'dummy-secret')
+config['SERVICE_PREFIX'] = os.environ.get('GATEWAY_SERVICE_PREFIX', '/')
 
 # Get the public key of the OIDC provider to verify access- and refresh_tokens
 # TODO: The public key of the OIDC provider should go to the app context and be refreshed
 # TODO: regularly or whenever the validation of a token fails and the public key has not been
 # TODO: updated in a while.
-try:
-    raw_key = requests.get(config['OIDC_ISSUER']).json()['public_key']
-    config['OIDC_PUBLIC_KEY'] = '-----BEGIN PUBLIC KEY-----\n{}\n-----END PUBLIC KEY-----'.format(raw_key)
-except:
-    config['OIDC_PUBLIC_KEY'] = None
+
 
 config['GATEWAY_ENDPOINT_CONFIG_FILE'] = os.environ.get('GATEWAY_ENDPOINT_CONFIG_FILE', 'endpoints.json')
 
@@ -64,3 +62,26 @@ def load_config():
         logger.error("Error reading endpoints config file", exc_info=True)
 
     logger.debug(app.config['GATEWAY_ENDPOINT_CONFIG'])
+
+
+if "pytest" in sys.modules:
+    okKey = True
+else:
+    okKey = False
+attempts = 0
+
+while attempts < 20 and not okKey:
+    attempts += 1
+    try:
+        raw_key = requests.get(config['OIDC_ISSUER']).json()['public_key']
+        config['OIDC_PUBLIC_KEY'] = '-----BEGIN PUBLIC KEY-----\n{}\n-----END PUBLIC KEY-----'.format(raw_key)
+        okKey = True
+        logger.info('Obtained public key from Keycloak.')
+    except:
+        logger.info('Could not get public key from Keycloak, trying again...')
+        sleep(10)
+
+
+if not okKey:
+    logger.info('Could not get public key from Keycloak, giving up.')
+    exit(1)

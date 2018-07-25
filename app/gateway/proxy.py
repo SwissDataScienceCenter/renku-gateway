@@ -21,6 +21,7 @@ import logging
 import importlib
 import json
 from flask import request, Response
+from urllib.parse import urljoin
 
 from .. import app
 from flask_cors import CORS
@@ -32,14 +33,20 @@ CORS(app)
 CHUNK_SIZE = 1024
 
 
-@app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@app.route('/health', methods=['GET'])
+def healthcheck():
+    return Response(json.dumps("Up and running"), status=200)
+
+
+@app.route(urljoin(app.config['SERVICE_PREFIX'], '<path:path>'), methods=['GET', 'POST', 'PUT', 'DELETE'])
 def pass_through(path):
     headers = dict(request.headers)
+
     # Keycloak public key is not defined so error
     if app.config['OIDC_PUBLIC_KEY'] is None:
         response = json.dumps("Ooops, something went wrong internally.")
         return Response(response, status=500)
-    logger.debug(headers)
+
     del headers['Host']
 
     processor = None
@@ -71,6 +78,6 @@ def pass_through(path):
         return Response(response, status=404)
 
 
-@app.route('/api/dummy', methods=['GET'])
+@app.route(urljoin(app.config['SERVICE_PREFIX'], 'dummy'), methods=['GET'])
 def dummy():
     return 'Dummy works'

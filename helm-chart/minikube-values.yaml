@@ -1,0 +1,9 @@
+global:
+  renku:
+    domain: renku.build
+
+gitlabUrl: "http://gitlab.renku.build"
+keycloakUrl: "http://keycloak.renku.build:8080"
+
+ingress:
+  enabled: false
