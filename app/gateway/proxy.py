@@ -20,8 +20,9 @@
 import logging
 import json
 import requests
+import re
 from flask import request, Response
-from urllib.parse import urljoin
+from urllib.parse import urljoin, quote_plus
 
 from app.helpers.gitlab_parsers import parse_project
 from .. import app
@@ -79,33 +80,39 @@ def healthcheck():
     return Response(json.dumps("Up and running"), status=200)
 
 
-@app.route(urljoin(app.config['SERVICE_PREFIX'], 'projects'), methods=['GET'])
-def map_project():
-    logger.debug('projects controller')
-
-    headers = dict(request.headers)
-
-    del headers['Host']
-
-    auth_headers = authorize(headers)
-    if auth_headers!=[] :
-
-        project_url = app.config['GITLAB_URL'] + "/api/v4/projects"
-        project_response = requests.request(request.method, project_url, headers=headers, data=request.data, stream=True, timeout=300)
-        projects_list = project_response.json()
-        return_project = json.dumps([parse_project(headers, x) for x in projects_list])
-
-        return Response(return_project, project_response.status_code)
-
-    else:
-        response = json.dumps("No authorization header found")
-        return Response(response, status=401)
+# @app.route(urljoin(app.config['SERVICE_PREFIX'], 'projects'), methods=['GET'])
+# def map_project():
+#     logger.debug('projects controller')
+#
+#     headers = dict(request.headers)
+#
+#     del headers['Host']
+#
+#     auth_headers = authorize(headers)
+#     if auth_headers!=[] :
+#
+#         project_url = app.config['GITLAB_URL'] + "/api/v4/projects"
+#         project_response = requests.request(request.method, project_url, headers=headers, data=request.data, stream=True, timeout=300)
+#         projects_list = project_response.json()
+#         return_project = json.dumps([parse_project(headers, x) for x in projects_list])
+#
+#         return Response(return_project, project_response.status_code)
+#
+#     else:
+#         response = json.dumps("No authorization header found")
+#         return Response(response, status=401)
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], '<path:path>'), methods=['GET', 'POST', 'PUT', 'DELETE'])
 @swapped_token()
 @authorize()
 def pass_through(path, headers=None):
+
+    # Gitlab has routes where the resource identifier can include slashes
+    # which must be url-encoded. We list these routes individually and re-encode
+    # slashes which have been unencoded by uWSGI.
+    path = urlencode_paths(path)
+
     # Keycloak public key is not defined so error
     if app.config['OIDC_PUBLIC_KEY'] is None:
         response = json.dumps("Ooops, something went wrong internally.")
@@ -137,6 +144,34 @@ def pass_through(path, headers=None):
     return Response(generate(response), response.status_code)
 
 
+SPECIAL_ROUTE_RULES = [
+    {
+        'before': 'repository/files/',
+        'after': '/raw'
+    }
+]
+
+SPECIAL_ROUTE_REGEXES = [
+    '(.*)({before})(.*)({after})(.*)'.format(before=rule['before'], after=rule['after']) for rule in SPECIAL_ROUTE_RULES
+]
+
+
+def urlencode_paths(path):
+    """Urlencode some paths before forwarding requests."""
+
+    for rule_regex in SPECIAL_ROUTE_REGEXES:
+        m = re.search(rule_regex, path)
+        if m:
+            return '{leading}{before}{match}{after}{trailing}'.format(
+                leading=m.group(1),
+                before=m.group(2),
+                match=quote_plus(m.group(3)),
+                after=m.group(4),
+                trailing=m.group(5)
+            )
+    return path
+
+
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'dummy'), methods=['GET'])
 def dummy():
     return 'Dummy works'
@@ -144,6 +179,5 @@ def dummy():
 
 def generate(response):
     for c in response.iter_lines():
-        logger.debug(c)
         yield c + "\r".encode()
     return(response)
