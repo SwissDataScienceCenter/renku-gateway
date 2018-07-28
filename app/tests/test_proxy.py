@@ -73,6 +73,7 @@ def test_passthrough_happyflow(client):
 
     gitlab_endpoint_url = app.config['GITLAB_URL'] + path
     responses.add(responses.GET, gitlab_endpoint_url, status=200)
+    responses.add(responses.GET, app.config['GITLAB_URL'] + '/api/v4/users', json=[{'username': 'foo'}])
 
     rv = client.get('/v4/projects/', headers=headers)
 
