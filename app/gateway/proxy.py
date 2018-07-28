@@ -25,6 +25,7 @@ from flask import request, Response
 from urllib.parse import urljoin, quote_plus
 
 from app.helpers.gitlab_parsers import parse_project
+from app.helpers.gitlab_user_utils import get_or_create_gitlab_user
 from .. import app
 from ..auth.web import swapped_token
 from flask_cors import CORS
@@ -64,8 +65,7 @@ def authorize():
                 except ExpiredSignatureError:
                     return Response('Access token expired', 401)
 
-                id = (decodentoken['preferred_username'])
-                headers['Sudo'] = id
+                headers['Sudo'] = get_or_create_gitlab_user(decodentoken)
 
             else:
                 # logger.debug("No authorization header, returning empty auth headers")
