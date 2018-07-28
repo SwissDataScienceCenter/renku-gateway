@@ -38,9 +38,7 @@ def get_or_create_gitlab_user(access_token):
 
     username = GITLAB_USERNAMES.get(access_token['sub'], None)
     if username:
-        logging.info('Cache hit')
         return username
-    logging.info('Cache miss')
 
     sudo_header = {
         'Private-Token': app.config['GITLAB_PASS']
@@ -55,8 +53,6 @@ def get_or_create_gitlab_user(access_token):
         headers=sudo_header,
         params=query_params
     )
-
-    logging.info(user_response.json())
 
     # More than one user found -> should not happen
     if len(user_response.json()) > 1:
