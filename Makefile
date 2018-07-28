@@ -55,7 +55,7 @@ dev-minikube:
 	RENKU_ENDPOINT=http://$(shell minikube ip) \
 	GITLAB_URL=http://$(shell minikube ip)/gitlab \
 	KEYCLOAK_URL=http://$(shell minikube ip) \
-	GATEWAY_SERVICE_PREFIX=/api \
+	GATEWAY_SERVICE_PREFIX=/api/ \
 	python run.py
 
 login:
