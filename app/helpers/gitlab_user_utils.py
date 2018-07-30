@@ -20,13 +20,14 @@
 import logging
 import json
 import requests
+import re
 
 from .. import app
 
 
 logger = logging.getLogger(__name__)
 
-# A dictionary to cash GitLab usernames given the "sub" claim from the keycloak access token
+# A dictionary to cache GitLab usernames given the "sub" claim from the keycloak access token
 # as a key. This dictionary can be trashed without any functional implications, it will just
 # result in a few extra queries to GitLab.
 GITLAB_USERNAMES = {}
@@ -45,7 +46,7 @@ def get_or_create_gitlab_user(access_token):
     }
 
     query_params = {
-        'extern_uid': access_token['preferred_username'],
+        'extern_uid': access_token['sub'],
         'provider': 'oauth2_generic'
     }
     user_response = requests.get(
@@ -57,7 +58,7 @@ def get_or_create_gitlab_user(access_token):
     # More than one user found -> should not happen
     if len(user_response.json()) > 1:
         logging.error('More than one user with ' +
-                      'extern_uid={} for provider oauth2_generic.'.format(access_token['preferred_username']))
+                      'extern_uid={} for provider oauth2_generic.'.format(access_token['sub']))
         return None
 
     # No user found, lets create it.
@@ -68,12 +69,13 @@ def get_or_create_gitlab_user(access_token):
         username_counter = 0
         while True:
             username_appendix = '' if username_counter == 0 else str(username_counter)
+            username_base = re.match(r'[a-zA-Z0-9\.\_\-]*', access_token['preferred_username']).group(0)
 
             body = {
-                'username': access_token['email'].split('@')[0] + username_appendix,
+                'username': username_base + username_appendix,
                 'email': access_token['email'],
                 'name': '{first} {last}'.format(first=access_token['given_name'], last=access_token['family_name']),
-                'extern_uid': access_token['preferred_username'],
+                'extern_uid': access_token['sub'],
                 'provider': 'oauth2_generic',
                 'skip_confirmation': True,
                 'reset_password': True
