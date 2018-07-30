@@ -1,10 +1,12 @@
 from app.processors.base_processor import BaseProcessor
 from .. import app
 from app.helpers.gitlab_parsers import parse_project
+from urllib.parse import quote_plus
 
 import logging
 import json
 import requests
+import re
 
 from flask import Response
 
@@ -12,9 +14,41 @@ from flask import Response
 logger = logging.getLogger(__name__)
 
 
+SPECIAL_ROUTE_RULES = [
+    {
+        'before': 'repository/files/',
+        'after': '/raw'
+    }
+]
+
+SPECIAL_ROUTE_REGEXES = [
+    '(.*)({before})(.*)({after})(.*)'.format(before=rule['before'], after=rule['after']) for rule in SPECIAL_ROUTE_RULES
+]
+
+
+def urlencode_paths(path):
+    """Urlencode some paths before forwarding requests."""
+    for rule_regex in SPECIAL_ROUTE_REGEXES:
+        m = re.search(rule_regex, path)
+        if m:
+            return '{leading}{before}{match}{after}{trailing}'.format(
+                leading=m.group(1),
+                before=m.group(2),
+                match=quote_plus(m.group(3)),
+                after=m.group(4),
+                trailing=m.group(5)
+            )
+    return path
+
+
 class GitlabGeneric(BaseProcessor):
 
     def process(self, request, headers):
+        # Gitlab has routes where the resource identifier can include slashes
+        # which must be url-encoded. We list these routes individually and re-encode
+        # slashes which have been unencoded by uWSGI.
+        self.path = urlencode_paths(self.path)
+
         self.endpoint = self.endpoint.format(**app.config) + self.path
         return super().process(request, headers)
 
