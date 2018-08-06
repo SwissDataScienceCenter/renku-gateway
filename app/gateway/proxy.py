@@ -68,7 +68,10 @@ def pass_through(path):
                 logger.warning("Error loading processor", exc_info=True)
 
     if auth:
-        headers = auth.process(request, headers)
+        try:
+            headers = auth.process(request, headers)
+        except:
+            logger.warning("Error while authenticating request", exc_info=True)
 
     if processor:
         return processor.process(request, headers)

@@ -93,6 +93,7 @@ def test_gitlab_happyflow(client):
     responses.add(responses.GET, app.config['GITLAB_URL'] + "/api/v4/projects/1/issues?scope=all", json=GITLAB_ISSUES, status=200)
     responses.add(responses.GET, app.config['GITLAB_URL'] + "/api/v4/projects/1/issues/1/award_emoji", json=[], status=200)
     responses.add(responses.GET, app.config['GITLAB_URL'] + "/api/v4/projects/1/issues/1/notes", json=[], status=200)
+    responses.add(responses.GET, app.config['GITLAB_URL'] + '/api/v4/users', json=[{'username': 'foo'}])
 
     rv = client.get(urljoin(app.config['SERVICE_PREFIX'], 'projects/'), headers=headers)
 

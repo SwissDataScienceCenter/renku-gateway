@@ -20,6 +20,7 @@ import logging
 
 
 from .. import app
+from app.helpers.gitlab_user_utils import get_or_create_gitlab_user
 
 logger = logging.getLogger(__name__)
 
@@ -32,22 +33,24 @@ class GitlabSudoToken():
         headers = KeycloakAccessToken().process(request, headers)
 
         if 'Authorization' in headers:
-            logger.debug("Authorization header present, sudo token exchange")
+            # logger.debug('Authorization header present, sudo token exchange')
+            # logger.debug('outgoing headers: {}'.format(json.dumps(headers))
+
+            # TODO: Use regular expressions to extract the token from the header
             access_token = headers.get('Authorization')[7:]
             del headers['Authorization']
             headers['Private-Token'] = app.config['GITLAB_PASS']
 
             # Decode token to get user id
+            # TODO: What happens if the validation of the token fails for other reasons?
             decodentoken = jwt.decode(
                 access_token, app.config['OIDC_PUBLIC_KEY'],
                 algorithms='RS256',
                 audience=app.config['OIDC_CLIENT_ID']
             )
-            id = (decodentoken['preferred_username'])
-            headers['Sudo'] = id
-
+            headers['Sudo'] = get_or_create_gitlab_user(decodentoken)
         else:
-            logger.debug("No authorization header, returning empty auth headers")
+            # logger.debug("No authorization header, returning empty auth headers")
             headers.pop('Sudo', None)
 
         return headers
