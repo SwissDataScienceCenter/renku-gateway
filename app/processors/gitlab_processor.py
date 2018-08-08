@@ -1,7 +1,7 @@
 from app.processors.base_processor import BaseProcessor
 from .. import app
 from app.helpers.gitlab_parsers import parse_project
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urljoin
 
 import logging
 import json
@@ -49,7 +49,7 @@ class GitlabGeneric(BaseProcessor):
         # slashes which have been unencoded by uWSGI.
         self.path = urlencode_paths(self.path)
 
-        self.endpoint = self.endpoint.format(**app.config) + self.path
+        self.endpoint = urljoin(self.endpoint.format(**app.config), self.path)
         return super().process(request, headers)
 
 

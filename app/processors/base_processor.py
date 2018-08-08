@@ -13,9 +13,11 @@ class BaseProcessor:
     def __init__(self, path, endpoint):
         self.path = path
         self.endpoint = endpoint
+        logger.debug('Processor with path = "{}" and endpoint = "{}"'.format(path, endpoint))
 
     def process(self, request, headers):
         logger.debug('Request path: {}'.format(self.path))
+        logger.debug('Forward endpoint: {}'.format(self.endpoint))
         logger.debug('incoming headers: {}'.format(json.dumps(headers)))
 
         # Respond to requester
@@ -30,7 +32,7 @@ class BaseProcessor:
         )
 
         rsp = Response(self.generate(response), response.status_code)
-        rsp.headers = Headers(response.headers.lower_items())
+        # rsp.headers = Headers(response.headers.lower_items())  # this seems to break things sometimes
 
         logger.debug('Response: {}'.format(response.status_code))
         logger.debug('Response headers: {}'.format(rsp.headers))
@@ -40,5 +42,5 @@ class BaseProcessor:
     def generate(self, response):
         for c in response.iter_lines():
             # logger.debug(c)
-            yield c + "\r".encode()
-        return(response)
+            yield c + "\r\n".encode()
+        yield "\r\n".encode()

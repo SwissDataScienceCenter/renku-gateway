@@ -1,21 +1,21 @@
 {
-    "repositories": {
-        "endpoint": "{RENKU_ENDPOINT}/service/storage/repo",
+    "repositories(/)?": {
+        "endpoint": "{RENKU_ENDPOINT}/service/storage/repo/",
         "processor": "app.processors.ServiceGeneric",
         "auth": "app.auth.KeycloakAccessToken"
     },
-    "objects": {
-        "endpoint": "{RENKU_ENDPOINT}/service/storage/object",
+    "objects(/)?": {
+        "endpoint": "{RENKU_ENDPOINT}/service/storage/object/",
         "processor": "app.processors.ServiceGeneric",
         "auth": "app.auth.KeycloakAccessToken"
     },
-    "projects": {
+    "(v4//)?projects(/)?": {
         "endpoint": "{GITLAB_URL}/api/v4/projects",
         "processor": "app.processors.GitlabProjects",
         "auth": "app.auth.GitlabSudoToken"
     },
-    "": {
-        "endpoint": "{GITLAB_URL}/api",
+    "(/)?": {
+        "endpoint": "{GITLAB_URL}/api/",
         "processor": "app.processors.GitlabGeneric",
         "auth": "app.auth.GitlabSudoToken"
     }
