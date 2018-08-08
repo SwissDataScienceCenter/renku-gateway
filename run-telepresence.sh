@@ -33,4 +33,4 @@ RENKU_ENDPOINT=http://${MINIKUBE_IP} \
 GITLAB_URL=http://${MINIKUBE_IP}/gitlab \
 KEYCLOAK_URL=http://${MINIKUBE_IP} \
 GATEWAY_SERVICE_PREFIX=/api/ \
-telepresence --swap-deployment renku-gateway --namespace renku --expose 5000 --run pipenv run python run.py
+telepresence --swap-deployment renku-gateway --namespace renku --method inject-tcp --expose 5000 --run pipenv run python run.py
