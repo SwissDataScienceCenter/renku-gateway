@@ -48,15 +48,8 @@ dev-docker:
 	@echo "Running development server to develop against renku running inside docker"
 	FLASK_DEBUG=1 HOST_NAME=http://localhost:5000 python run.py
 
-dev-minikube:
-	@echo "Running development to develop against renku running inside minikube"
-	FLASK_DEBUG=1 \
-	HOST_NAME=http://localhost:5000 \
-	RENKU_ENDPOINT=http://$(shell minikube ip) \
-	GITLAB_URL=http://$(shell minikube ip)/gitlab \
-	KEYCLOAK_URL=http://$(shell minikube ip) \
-	GATEWAY_SERVICE_PREFIX=/api/ \
-	python run.py
+dev:
+	./run-telepresence.sh
 
 login:
 	@echo "${DOCKER_PASSWORD}" | docker login -u="${DOCKER_USERNAME}" --password-stdin ${DOCKER_REGISTRY}
