@@ -9,11 +9,6 @@
         "processor": "app.processors.ServiceGeneric",
         "auth": "app.auth.KeycloakAccessToken"
     },
-    "(v4//)?projects(/)?": {
-        "endpoint": "{GITLAB_URL}/api/v4/projects",
-        "processor": "app.processors.GitlabProjects",
-        "auth": "app.auth.GitlabSudoToken"
-    },
     "(/)?": {
         "endpoint": "{GITLAB_URL}/api/",
         "processor": "app.processors.GitlabGeneric",

@@ -67,7 +67,11 @@ class GitlabProjects(BaseProcessor):
                 timeout=300
             )
             projects_list = project_response.json()
-            return_project = json.dumps([parse_project(headers, x) for x in projects_list])
+            logger.debug("Gitlab response: {}".format(projects_list))
+            if request.method == 'POST':
+                return_project = json.dumps(parse_project(headers, projects_list))
+            else:
+                return_project = json.dumps([parse_project(headers, x) for x in projects_list])
             return Response(return_project, project_response.status_code)
 
         else:
