@@ -1,0 +1,17 @@
+{
+    "repositories(/)?": {
+        "endpoint": "{RENKU_ENDPOINT}/service/storage/repo/",
+        "processor": "app.processors.ServiceGeneric",
+        "auth": "app.auth.KeycloakAccessToken"
+    },
+    "objects(/)?": {
+        "endpoint": "{RENKU_ENDPOINT}/service/storage/object/",
+        "processor": "app.processors.ServiceGeneric",
+        "auth": "app.auth.KeycloakAccessToken"
+    },
+    "(/)?": {
+        "endpoint": "{GITLAB_URL}/api/",
+        "processor": "app.processors.GitlabGeneric",
+        "auth": "app.auth.GitlabSudoToken"
+    }
+}

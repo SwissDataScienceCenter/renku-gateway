@@ -15,9 +15,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Server entrypoint."""
+import logging
+from .web import get_refreshed_tokens
 
-import app
+logger = logging.getLogger(__name__)
 
-if __name__ == "__main__":
-    app.app.run(host='0.0.0.0', threaded=True, extra_files=app.config['GATEWAY_ENDPOINT_CONFIG_FILE'])
+
+class KeycloakAccessToken():
+
+    def process(self, request, headers):
+
+        new_tokens = get_refreshed_tokens(headers)
+        if new_tokens:
+            headers['Authorization'] = "Bearer {}".format(new_tokens.get('access_token'))
+
+        return headers

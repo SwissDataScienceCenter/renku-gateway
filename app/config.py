@@ -17,13 +17,17 @@
 # limitations under the License.
 """Global settings."""
 
+import json
 import os
+import re
 import requests
 import sys
 from time import sleep
 from logging import getLogger
+from collections import OrderedDict
 
 logger = getLogger(__name__)
+
 
 config = dict()
 config['HOST_NAME'] = os.environ.get('HOST_NAME', 'http://gateway.renku.build')
@@ -41,6 +45,24 @@ config['SERVICE_PREFIX'] = os.environ.get('GATEWAY_SERVICE_PREFIX', '/')
 # TODO: The public key of the OIDC provider should go to the app context and be refreshed
 # TODO: regularly or whenever the validation of a token fails and the public key has not been
 # TODO: updated in a while.
+
+
+config['GATEWAY_ENDPOINT_CONFIG_FILE'] = os.environ.get('GATEWAY_ENDPOINT_CONFIG_FILE', 'endpoints.json')
+
+
+def load_config():
+    from . import app
+    app.config['GATEWAY_ENDPOINT_CONFIG'] = {}
+    try:
+        with open(app.config['GATEWAY_ENDPOINT_CONFIG_FILE']) as f:
+            c = json.load(f, object_pairs_hook=OrderedDict)
+        for k, v in c.items():
+            app.config['GATEWAY_ENDPOINT_CONFIG'][re.compile(r"{}(?P<remaining>.*)".format(k))] = v
+    except:
+        logger.error("Error reading endpoints config file", exc_info=True)
+
+    logger.debug(app.config['GATEWAY_ENDPOINT_CONFIG'])
+
 
 if "pytest" in sys.modules:
     okKey = True

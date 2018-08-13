@@ -20,13 +20,15 @@
 import logging
 from flask import Flask
 
-from .config import config
+from .config import config, load_config
 
 logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 for key in config.keys():
     app.config[key] = config[key]
+
+load_config()
 
 from .gateway import proxy
 from .auth import web

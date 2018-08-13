@@ -20,8 +20,9 @@
 import jwt
 import json
 import time
-import re
 import logging
+import re
+from oic.oauth2.grant import Token
 from flask import request, redirect, url_for, current_app, Response
 from urllib.parse import urljoin
 
@@ -29,9 +30,8 @@ from oic.oic import Client
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic import rndstr
 from oic.oic.message import AuthorizationResponse, RegistrationResponse
-from oic.oauth2.grant import Token
+
 from blinker import Namespace
-from functools import wraps
 
 from .. import app
 
@@ -90,19 +90,6 @@ def get_refreshed_tokens(headers):
         return client.do_access_token_refresh(token=to)
     else:
         return None
-
-
-def swapped_token():
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            headers = dict(request.headers)
-            new_tokens = get_refreshed_tokens(headers)
-            if new_tokens:
-                headers['Authorization'] = "Bearer {}".format(new_tokens.get('access_token'))
-            return f(*args, **kwargs)
-        return decorated_function
-    return decorator
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/login'))

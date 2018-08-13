@@ -16,3 +16,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """auth module."""
+from .gitlab_auth import GitlabSudoToken
+from .keycloak_auth import KeycloakAccessToken
