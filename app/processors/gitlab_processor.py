@@ -1,7 +1,7 @@
 from app.processors.base_processor import BaseProcessor
 from .. import app
 from app.helpers.gitlab_parsers import parse_project
-from urllib.parse import quote_plus, urljoin
+from urllib.parse import quote, urljoin
 
 import logging
 import json
@@ -38,7 +38,7 @@ def urlencode_paths(path):
             return '{leading}{before}{match}{after}{trailing}'.format(
                 leading=m.group(1),
                 before=m.group(2),
-                match=quote_plus(m.group(3)),
+                match=quote(m.group(3), safe=[]),
                 after=m.group(4),
                 trailing=m.group(5)
             )
