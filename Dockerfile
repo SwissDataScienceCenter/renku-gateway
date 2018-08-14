@@ -13,6 +13,7 @@ RUN pip install -r /app/requirements.txt
 
 COPY run.py .
 COPY app /app
+COPY endpoints.json .
 
 # NOTE: You might be tempted to change the number of worker processes
 #       here. Don't do it unless the implementation in app/auth/web.py
