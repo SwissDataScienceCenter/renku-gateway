@@ -18,6 +18,10 @@ SPECIAL_ROUTE_RULES = [
     {
         'before': 'repository/files/',
         'after': '/raw'
+    },
+    {
+        'before': 'repository/files/',
+        'after': ''
     }
 ]
 
