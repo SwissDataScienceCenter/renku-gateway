@@ -66,14 +66,14 @@ def pass_through(path):
                 break
             except:
                 logger.warning("Error loading processor", exc_info=True)
-                return Response(son.dumps({'error': "Error loading processor"}), status=500)
+                return Response(json.dumps({'error': "Error loading processor"}), status=500)
 
     if auth:
         try:
             headers = auth.process(request, headers)
         except:
             logger.warning("Error while authenticating request", exc_info=True)
-            return Response(son.dumps({'error': "Error while authenticating"}), status=401)
+            return Response(json.dumps({'error': "Error while authenticating"}), status=401)
 
     if processor:
         return processor.process(request, headers)
