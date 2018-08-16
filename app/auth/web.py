@@ -120,7 +120,6 @@ def login():
     return response
 
 
-# TODO: Add token refresh method here
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/token'))
 def get_tokens():
 
