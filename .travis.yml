@@ -28,7 +28,7 @@ cache:
 
 install:
   - travis_retry pip install -U pip
-  - travis_retry pip install chartpress
+  - travis_retry pip install chartpress ruamel.yaml==0.15.54
   - travis_retry pip install -r requirements.txt
   # Installing Helm
   - wget -q ${HELM_URL}/${HELM_TGZ}
