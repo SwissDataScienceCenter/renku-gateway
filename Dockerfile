@@ -1,19 +1,13 @@
-FROM python:3.6-slim
+FROM python:3.7-slim
 
-RUN set -e \
-  ; apt-get update \
-  ; apt-get install -y gcc libffi-dev libssl-dev \
-  ; pip install --upgrade pip \
-  ; rm -r /root/.cache \
-  ;
+COPY ./ /code
 
-COPY requirements.txt /app/requirements.txt
-RUN pip install -r /app/requirements.txt
+WORKDIR /code
 
-
-COPY run.py .
-COPY app /app
-COPY endpoints.json .
+RUN apt-get update && apt-get install -y gcc && \
+    pip install --upgrade pip && \
+    pip install pipenv && \
+    pipenv install --system
 
 # NOTE: You might be tempted to change the number of worker processes
 #       here. Don't do it unless the implementation in app/auth/web.py

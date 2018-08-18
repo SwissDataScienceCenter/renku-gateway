@@ -7,3 +7,8 @@ docker-compose.yml
 Dockerfile
 Makefile
 README.md
+helm-chart
+telepresence.log
+run-telepresence.sh
+travis-deploy.sh
+github_deploy_key.enc
