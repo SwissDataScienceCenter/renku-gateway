@@ -4,21 +4,21 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-greenlet = "*"
+Werkzeug = "*"
+hypercorn = "*"
 oic = "*"
 requests = "*"
-responses = "*"
 blinker = "*"
-Flask = "*"
-Flask-Cors = "*"
+quart = "*"
+Quart-CORS = "*"
 PyJWT = "*"
-gevent = "*"
-gunicorn = "*"
 
 [dev-packages]
 pytest = "*"
+pytest_asyncio = "*"
 nose = "*"
 chartpress = "*"
+responses = "*"
 
 [requires]
 python_version = "3.7"

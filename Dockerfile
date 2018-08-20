@@ -15,6 +15,6 @@ RUN apt-get update && apt-get install -y gcc && \
 #       Currently, the poor mans approach to session handling and the
 #       signaling through blinker do only work within one process!
 
-CMD ["gunicorn", "-b 0.0.0.0:5000", "run:app.app",  "-k gevent"]
+CMD ["hypercorn", "-b", "0.0.0.0:5000", "run:app.app"]
 
 EXPOSE 5000

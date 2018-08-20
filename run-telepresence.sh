@@ -30,12 +30,13 @@ fi
 
 echo "================================================================================================================="
 echo "Once telepresence has started, copy-paste the following command to start the development server:"
-echo "FLASK_DEBUG=1 \
+echo "QUART_DEBUG=1 \
 HOST_NAME=http://${MINIKUBE_IP} \
 RENKU_ENDPOINT=http://${MINIKUBE_IP} \
 GITLAB_URL=http://${MINIKUBE_IP}/gitlab \
 KEYCLOAK_URL=http://${MINIKUBE_IP} \
 GATEWAY_SERVICE_PREFIX=/api/ \
+PYTHONASYNCIODEBUG=1 \
 pipenv run python run.py"
 echo "================================================================================================================="
 
