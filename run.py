@@ -20,4 +20,4 @@
 import app
 
 if __name__ == "__main__":
-    app.app.run(host='0.0.0.0', threaded=True, extra_files=app.config['GATEWAY_ENDPOINT_CONFIG_FILE'])
+    app.app.run(host='0.0.0.0')

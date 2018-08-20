@@ -18,4 +18,4 @@
 """Processors module."""
 
 from .gitlab_processor import GitlabGeneric, GitlabProjects
-from.service_processor import ServiceGeneric
+from .service_processor import ServiceGeneric

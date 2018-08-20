@@ -2,7 +2,7 @@ import json
 import logging
 import requests
 
-from flask import Response
+from quart import Response
 from werkzeug.datastructures import Headers
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ class BaseProcessor:
         self.endpoint = endpoint
         logger.debug('Processor with path = "{}" and endpoint = "{}"'.format(path, endpoint))
 
-    def process(self, request, headers):
+    async def process(self, request, headers):
         logger.debug('Request path: {}'.format(self.path))
         logger.debug('Forward endpoint: {}'.format(self.endpoint))
         logger.debug('incoming headers: {}'.format(json.dumps(headers)))
@@ -26,7 +26,7 @@ class BaseProcessor:
             self.endpoint,
             headers=headers,
             params=request.args,
-            data=request.data,
+            data=(await request.data),
             stream=True,
             timeout=300
         )
@@ -39,7 +39,7 @@ class BaseProcessor:
 
         return rsp
 
-    def generate(self, response):
+    async def generate(self, response):
         for c in response.iter_lines():
             # logger.debug(c)
             yield c + "\r\n".encode()

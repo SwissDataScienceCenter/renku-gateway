@@ -16,31 +16,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Gateway logic."""
-
 import logging
 import importlib
 import json
 import jwt
-from flask import request, Response
+from quart import request, Response
 from urllib.parse import urljoin
 
 from .. import app
-from flask_cors import CORS
 
 
 logger = logging.getLogger(__name__)
-CORS(app)
 
 CHUNK_SIZE = 1024
 
 
 @app.route('/health', methods=['GET'])
-def healthcheck():
+async def healthcheck():
     return Response(json.dumps("Up and running"), status=200)
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], '<path:path>'), methods=['GET', 'POST', 'PUT', 'DELETE'])
-def pass_through(path):
+async def pass_through(path):
     headers = dict(request.headers)
 
     # Keycloak public key is not defined so error
@@ -48,7 +45,8 @@ def pass_through(path):
         response = json.dumps("Ooops, something went wrong internally.")
         return Response(response, status=500)
 
-    del headers['Host']
+    if 'Host' in headers:
+        del headers['Host']
 
     processor = None
     auth = None
@@ -79,7 +77,7 @@ def pass_through(path):
             return Response(json.dumps({'error': "Error while authenticating"}), status=401)
 
     if processor:
-        return processor.process(request, headers)
+        return await processor.process(request, headers)
 
     else:
         response = json.dumps({'error': "No processor found for this path"})
@@ -87,5 +85,5 @@ def pass_through(path):
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'dummy'), methods=['GET'])
-def dummy():
+async def dummy():
     return 'Dummy works'

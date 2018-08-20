@@ -15,16 +15,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Flask initialization."""
+"""Quart initialization."""
 
 import logging
-from flask import Flask
+from quart import Quart
+from quart_cors import cors
 
 from .config import config, load_config
 
 logging.basicConfig(level=logging.DEBUG)
 
-app = Flask(__name__)
+app = Quart(__name__)
+app = cors(app)
+
 for key in config.keys():
     app.config[key] = config[key]
 

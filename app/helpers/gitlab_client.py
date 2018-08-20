@@ -17,7 +17,7 @@
 # limitations under the License.
 
 import requests
-from flask import request
+from quart import request
 import logging
 from .. import app
 
