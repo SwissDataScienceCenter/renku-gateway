@@ -7,7 +7,7 @@ WORKDIR /code
 RUN apt-get update && apt-get install -y gcc && \
     pip install --upgrade pip && \
     pip install pipenv && \
-    pipenv install --system
+    pipenv install --system --deploy
 
 # NOTE: You might be tempted to change the number of worker processes
 #       here. Don't do it unless the implementation in app/auth/web.py
