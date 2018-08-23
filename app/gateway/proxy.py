@@ -20,6 +20,7 @@
 import logging
 import importlib
 import json
+import jwt
 from flask import request, Response
 from urllib.parse import urljoin
 
@@ -71,6 +72,8 @@ def pass_through(path):
     if auth:
         try:
             headers = auth.process(request, headers)
+        except jwt.ExpiredSignatureError:
+            return Response(json.dumps({'error': 'token_expired'}), status=401)
         except:
             logger.warning("Error while authenticating request", exc_info=True)
             return Response(json.dumps({'error': "Error while authenticating"}), status=401)
