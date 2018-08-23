@@ -167,11 +167,18 @@ def get_tokens():
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/token/refresh'))
 def refresh_tokens():
     headers = dict(request.headers)
-    new_tokens = get_refreshed_tokens(headers)
-    response = json.dumps({
-        'access_token': new_tokens['access_token'],
-        'refresh_token': new_tokens['refresh_token']
-    })
+    refresh_token_response = get_refreshed_tokens(headers)
+    try:
+        response = json.dumps({
+            'access_token': refresh_token_response['access_token'],
+            'refresh_token': refresh_token_response['refresh_token']
+        })
+        return Response(response)
+    except KeyError:
+        response = json.dumps({
+            'error': refresh_token_response['error'],
+            'error_description': refresh_token_response['error_description']
+        })
     return Response(response)
 
 
