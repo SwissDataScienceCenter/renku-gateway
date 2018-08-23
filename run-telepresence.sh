@@ -27,10 +27,16 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]
 then
     exit 1
 fi
-FLASK_DEBUG=1 \
+
+echo "================================================================================================================="
+echo "Once telepresence has started, copy-paste the following command to start the development server:"
+echo "FLASK_DEBUG=1 \
 HOST_NAME=http://${MINIKUBE_IP} \
 RENKU_ENDPOINT=http://${MINIKUBE_IP} \
 GITLAB_URL=http://${MINIKUBE_IP}/gitlab \
 KEYCLOAK_URL=http://${MINIKUBE_IP} \
 GATEWAY_SERVICE_PREFIX=/api/ \
-telepresence --swap-deployment renku-gateway --namespace renku --method inject-tcp --expose 5000 --run pipenv run python run.py
+pipenv run python run.py"
+echo "================================================================================================================="
+
+telepresence --swap-deployment renku-gateway --namespace renku --method inject-tcp --expose 5000 --run-shell
