@@ -173,7 +173,6 @@ def refresh_tokens():
             'access_token': refresh_token_response['access_token'],
             'refresh_token': refresh_token_response['refresh_token']
         })
-        return Response(response)
     except KeyError:
         response = json.dumps({
             'error': refresh_token_response['error'],
