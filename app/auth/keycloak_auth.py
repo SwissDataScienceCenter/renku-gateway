@@ -16,7 +16,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from .web import get_refreshed_tokens
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +23,5 @@ logger = logging.getLogger(__name__)
 class KeycloakAccessToken():
 
     def process(self, request, headers):
-
-        new_tokens = get_refreshed_tokens(headers)
-        if new_tokens:
-            headers['Authorization'] = "Bearer {}".format(new_tokens.get('access_token'))
 
         return headers

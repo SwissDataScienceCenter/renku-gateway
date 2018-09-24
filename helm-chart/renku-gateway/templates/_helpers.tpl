@@ -41,3 +41,13 @@ https
 http
 {{- end -}}
 {{- end -}}
+
+{{/*
+Hack for calling templates in a fake scope (until this is solved https://github.com/helm/helm/issues/4535)
+*/}}
+{{- define "call-nested" }}
+{{- $dot := index . 0 }}
+{{- $subchart := index . 1 }}
+{{- $template := index . 2 }}
+{{- include $template (dict "Chart" (dict "Name" $subchart) "Values" (index $dot.Values $subchart) "Release" $dot.Release "Capabilities" $dot.Capabilities) }}
+{{- end }}

@@ -8,10 +8,11 @@ Werkzeug = "*"
 hypercorn = "*"
 oic = "*"
 requests = "*"
-blinker = "*"
 quart = "*"
 Quart-CORS = "*"
 PyJWT = "*"
+redis = "*"
+flask_kvsession = "*"
 
 [dev-packages]
 pytest = "*"
@@ -19,6 +20,7 @@ pytest_asyncio = "*"
 nose = "*"
 chartpress = "*"
 responses = "*"
+mockredispy = "*"
 
 [requires]
 python_version = "3.7"

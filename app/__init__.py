@@ -18,6 +18,12 @@
 """Quart initialization."""
 
 import logging
+import redis
+import sys
+import quart.flask_patch
+from flask_kvsession import KVSessionExtension
+from simplekv.decorator import PrefixDecorator
+from simplekv.memory.redisstore import RedisStore
 from quart import Quart
 from quart_cors import cors
 
@@ -26,12 +32,23 @@ from .config import config, load_config
 logging.basicConfig(level=logging.DEBUG)
 
 app = Quart(__name__)
-app = cors(app)
 
 for key in config.keys():
     app.config[key] = config[key]
 
+app = cors(app, allow_headers=['X-Requested-With'], allow_origin="*")
+
 load_config()
+
+if "pytest" in sys.modules:
+    from mockredis import mock_strict_redis_client
+    store = RedisStore(mock_strict_redis_client())
+else:
+    store = RedisStore(redis.StrictRedis(host=app.config['REDIS_HOST']))
+
+prefixed_store = PrefixDecorator('sessions_', store)
+KVSessionExtension(prefixed_store, app)
 
 from .gateway import proxy
 from .auth import web
+from .auth.gitlab_auth import gitlab_login, gitlab_get_tokens, gitlab_logout

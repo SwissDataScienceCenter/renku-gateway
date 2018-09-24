@@ -30,10 +30,27 @@ logger = getLogger(__name__)
 
 
 config = dict()
+
 config['HOST_NAME'] = os.environ.get('HOST_NAME', 'http://gateway.renku.build')
+
+config['SECRET_KEY'] = os.environ.get('GATEWAY_SECRET_KEY', 'dummy-secret')
+
+# We need to specify that the cookie is valid for all .renku.build subdomains
+if 'gateway.renku.build' in config['HOST_NAME']:
+    config['SESSION_COOKIE_DOMAIN'] = '.'.join([''] + config['HOST_NAME'].split('.')[1:])
+else:
+    config['SESSION_COOKIE_DOMAIN'] = None
+
+config['SESSION_COOKIE_HTTPONLY'] = True
+config['SESSION_COOKIE_SECURE'] = config['HOST_NAME'].startswith('https')
+
+config['REDIS_HOST'] = os.environ.get('GATEWAY_REDIS_HOST', 'renku-gw-redis')
+
 config['RENKU_ENDPOINT'] = os.environ.get('RENKU_ENDPOINT', 'http://renku.build')
 config['GITLAB_URL'] = os.environ.get('GITLAB_URL', 'http://gitlab.renku.build')
 config['GITLAB_PASS'] = os.environ.get('GITLAB_PASS', 'dummy-secret')
+config['GITLAB_CLIENT_ID'] = os.environ.get('GITLAB_CLIENT_ID', 'renku-ui')
+config['GITLAB_CLIENT_SECRET'] = os.environ.get('GITLAB_CLIENT_SECRET', 'no-secret-needed')
 
 config['OIDC_ISSUER'] = os.environ.get('KEYCLOAK_URL', 'http://keycloak.renku.build:8080') \
                         + '/auth/realms/Renku'

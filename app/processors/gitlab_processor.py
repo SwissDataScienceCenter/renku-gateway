@@ -105,7 +105,7 @@ class GitlabProjects(BaseProcessor):
 
     async def process(self, request, headers):
         endpoint = self.endpoint.format(**app.config)
-        if 'Sudo' in headers:
+        if 'Authorization' in headers:
             project_response = requests.request(
                 request.method,
                 endpoint,
