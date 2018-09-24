@@ -12,6 +12,6 @@
     "(/)?": {
         "endpoint": "{GITLAB_URL}/api/",
         "processor": "app.processors.GitlabGeneric",
-        "auth": "app.auth.GitlabSudoToken"
+        "auth": "app.auth.GitlabUserToken"
     }
 }

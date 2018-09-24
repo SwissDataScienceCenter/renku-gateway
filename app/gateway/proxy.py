@@ -20,10 +20,13 @@ import logging
 import importlib
 import json
 import jwt
+import re
+
 from quart import request, Response
 from urllib.parse import urljoin
 
 from .. import app
+from app.auth.web import get_valid_token
 
 
 logger = logging.getLogger(__name__)
@@ -69,6 +72,29 @@ async def pass_through(path):
 
     if auth:
         try:
+            # validate incomming authentication
+            # it can either be in session-cookie or Authorization header
+            new_tokens = get_valid_token(headers)
+            if new_tokens:
+                headers['Authorization'] = "Bearer {}".format(new_tokens.get('access_token'))
+            if 'Authorization' in headers and 'Referer' in headers:
+                allowed = False
+                origins = jwt.decode(
+                    headers['Authorization'][7:],
+                    app.config['OIDC_PUBLIC_KEY'],
+                    algorithms='RS256',
+                    audience=app.config['OIDC_CLIENT_ID']
+                ).get('allowed-origins')
+                for o in origins:
+                    if re.match(o.replace("*", ".*"), headers['Referer']):
+                        allowed = True
+                        break
+                if not allowed:
+                    return Response(json.dumps({'error': 'origin not allowed: {} not matching {}'.format(headers['Referer'], origins)}), status=403)
+            if 'Cookie' in headers:
+                del headers['Cookie']  # don't forward our secret tokens, backend APIs shouldn't expect cookies?
+
+            # auth processors always assume a valid Authorization in header, if any
             headers = auth.process(request, headers)
         except jwt.ExpiredSignatureError:
             return Response(json.dumps({'error': 'token_expired'}), status=401)

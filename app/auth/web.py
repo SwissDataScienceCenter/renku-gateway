@@ -21,8 +21,9 @@ import json
 import time
 import logging
 import re
+import urllib.parse
 from oic.oauth2.grant import Token
-from quart import request, redirect, url_for, current_app, Response
+from quart import request, redirect, url_for, current_app, Response, session
 from urllib.parse import urljoin
 
 from oic.oic import Client
@@ -30,16 +31,8 @@ from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic import rndstr
 from oic.oic.message import AuthorizationResponse, RegistrationResponse
 
-from blinker import Namespace
+from .. import app, store
 
-from .. import app
-
-# TODO: Currently, storing the short-lived login sessions inside a simple dictionary
-# TODO: and using in-process signaling limits this service to be run by only one worker
-# TODO: process and only one instance of it.
-
-login_signals = Namespace()
-login_done = login_signals.signal('login_done')
 
 logger = logging.getLogger(__name__)
 # Note that this part of the service should be seen as the server-side part of the UI or
@@ -48,18 +41,6 @@ logger = logging.getLogger(__name__)
 JWT_SECRET = rndstr(size=32)
 JWT_ALGORITHM = 'HS256'
 SCOPE = ['openid']
-
-# We need to specify that the cookie is valid for all .renku.build subdomains
-if 'gateway.renku.build' in app.config['HOST_NAME']:
-    COOKIE_DOMAIN = '.'.join([''] + app.config['HOST_NAME'].split('.')[1:])
-else:
-    COOKIE_DOMAIN = None
-
-# We use a short-lived dictionary to store ongoing login sessions.
-# This should not grow in size and can easily be trashed when the service needs
-# to be restarted.
-login_sessions = {}
-
 
 # We prepare the OIC client instance with the necessary configurations.
 client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
@@ -80,31 +61,101 @@ client_reg = RegistrationResponse(
 client.store_registration_info(client_reg)
 
 
-def get_refreshed_tokens(headers):
+def get_valid_token(headers):
+    """
+    Look for a fresh and valid token, first in headers, then in the session.
+
+    If a refresh token is available, it can be swapped for an access token.
+    """
     m = re.search(r'bearer (?P<token>.+)', headers.get('Authorization', ''), re.IGNORECASE)
 
-    if m and jwt.decode(m.group('token'), verify=False).get('typ') in ['Offline', 'Refresh']:
-        logger.debug("Swapping the token")
-        to = Token(resp={'refresh_token': m.group('token')})
-        return client.do_access_token_refresh(token=to)
+    if m:
+        if jwt.decode(m.group('token'), verify=False).get('typ') in ['Offline', 'Refresh']:
+            logger.debug("Swapping the token")
+            to = Token(resp={'refresh_token': m.group('token')})
+            token_response = client.do_access_token_refresh(token=to)
+
+            if 'access_token' in token_response:
+                try:
+                    a = jwt.decode(
+                        token_response['access_token'], app.config['OIDC_PUBLIC_KEY'],
+                        algorithms='RS256',
+                        audience=app.config['OIDC_CLIENT_ID']
+                    )
+                    return token_response
+                except:
+                    return None
+        else:
+            try:
+                jwt.decode(
+                    m.group('token'),
+                    app.config['OIDC_PUBLIC_KEY'],
+                    algorithms='RS256',
+                    audience=app.config['OIDC_CLIENT_ID']
+                )
+
+                return {'access_token': m.group('token')}
+
+            except:
+                return None
     else:
-        return None
+        try:
+            if headers.get('X-Requested-With') == 'XMLHttpRequest' and 'token' in session:
+                a = jwt.decode(
+                    session.get('token'),
+                    app.config['OIDC_PUBLIC_KEY'],
+                    algorithms='RS256',
+                    audience=app.config['OIDC_CLIENT_ID']
+                )
+                access_token = store.get(get_key_for_user(a, 'kc_access_token')).decode()
+                jwt.decode(
+                    access_token,
+                    app.config['OIDC_PUBLIC_KEY'],
+                    algorithms='RS256',
+                    audience=app.config['OIDC_CLIENT_ID']
+                )
+                return {'access_token': access_token}
+
+        except:
+            if 'token' in session and jwt.decode(session.get('token'), verify=False).get('typ') in ['Offline', 'Refresh']:
+                logger.debug("Swapping the token")
+                to = Token(resp={'refresh_token': session.get('token')})
+
+                token_response = client.do_access_token_refresh(token=to)
+
+                if 'access_token' in token_response:
+                    try:
+                        a = jwt.decode(
+                            token_response['access_token'], app.config['OIDC_PUBLIC_KEY'],
+                            algorithms='RS256',
+                            audience=app.config['OIDC_CLIENT_ID']
+                        )
+                        # session['token'] = token_response['refresh_token']  # uncomment to allow sessions to be extended
+                        store.put(get_key_for_user(a, 'kc_access_token'), token_response['access_token'].encode())
+                        store.put(get_key_for_user(a, 'kc_refresh_token'), token_response['refresh_token'].encode())
+                        store.put(get_key_for_user(a, 'kc_id_token'), json.dumps(token_response['id_token'].to_dict()).encode())
+                        return token_response
+                    except:
+                        return None
+
+    return None
+
+
+def get_key_for_user(token, name):
+    return "cache_{}_{}".format(token.get('sub'), name)
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/login'))
 async def login():
 
-    session_id = rndstr(size=32)
     state = rndstr()
-    login_session_token = jwt.encode({
-        'id': session_id,
-    }, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
-    login_sessions[session_id] = {
-        'state': state,
-        'ui_redirect_url': request.args.get('redirect_url'),
-        'cli_token': request.args.get('cli_token'),
-    }
+    session['state'] = state
+    session['ui_redirect_url'] = request.args.get('redirect_url')
+    session['cli_token'] = request.args.get('cli_token')
+    if session['cli_token']:
+        session['ui_redirect_url'] = app.config['HOST_NAME'] + url_for('info')
+
     args = {
         'client_id': app.config['OIDC_CLIENT_ID'],
         'response_type': 'code',
@@ -115,15 +166,11 @@ async def login():
     auth_req = client.construct_AuthorizationRequest(request_args=args)
     login_url = auth_req.request(client.authorization_endpoint)
     response = await app.make_response(redirect(login_url))
-    response.set_cookie('session', value=login_session_token)
     return response
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/token'))
 async def get_tokens():
-
-    browser_session = jwt.decode(request.cookies['session'], JWT_SECRET, algorithms=[JWT_ALGORITHM])
-    server_session = login_sessions.pop(browser_session['id'], None)
 
     # This is more about parsing the request data than any response data....
     authorization_parameters = client.parse_response(
@@ -132,52 +179,46 @@ async def get_tokens():
         sformat='urlencoded'
     )
 
-    if server_session['state'] != authorization_parameters['state']:
+    if session.get('state') != authorization_parameters['state']:
         return 'Something went wrong while trying to log you in.'
 
     token_response = client.do_access_token_request(
         scope=SCOPE,
         state=authorization_parameters['state'],
         request_args={
-            'code': authorization_parameters['code']
+            'code': authorization_parameters['code'],
+            'redirect_uri': app.config['HOST_NAME'] + url_for('get_tokens'),
         }
     )
 
-    response = await app.make_response(redirect(
-        '/auth/info' if server_session.get('cli_token') else server_session['ui_redirect_url']
-    ))
-    response.set_cookie('access_token', value=token_response['access_token'], domain=COOKIE_DOMAIN)
-    response.set_cookie('refresh_token', value=token_response['refresh_token'], domain=COOKIE_DOMAIN)
-    response.set_cookie('id_token', value=json.dumps(token_response['id_token'].to_dict()), domain=COOKIE_DOMAIN)
-    response.delete_cookie('session')
-
-    if server_session.get('cli_token'):
-        logger.debug("Notification for request {}".format(server_session.get('cli_token')))
-        login_done.send(
-            current_app._get_current_object(),
-            cli_token=server_session.get('cli_token'),
-            access_token=token_response['access_token'],
-            refresh_token=token_response['refresh_token'],
+    # chain logins to get the gitlab token
+    response = await app.make_response(
+        redirect(
+            "{}?{}".format(
+                url_for('gitlab_login'),
+                urllib.parse.urlencode({'redirect_url': session['ui_redirect_url']}),
+            )
         )
+    )
+
+    a = jwt.decode(
+        token_response['refresh_token'], app.config['OIDC_PUBLIC_KEY'],
+        algorithms='RS256',
+        audience=app.config['OIDC_CLIENT_ID']
+    )
+    session['token'] = token_response['refresh_token']
+    store.put(get_key_for_user(a, 'kc_access_token'), token_response['access_token'].encode())
+    store.put(get_key_for_user(a, 'kc_refresh_token'), token_response['refresh_token'].encode())
+    store.put(get_key_for_user(a, 'kc_id_token'), json.dumps(token_response['id_token'].to_dict()).encode())
+
+    # we can already tell the CLI which token to use
+    if session.get('cli_token'):
+        logger.debug("Notification for request {}".format(session.get('cli_token')))
+
+        key = "cli_{}".format(hashlib.sha256(session.get('cli_token').encode()).hexdigest())
+        store.put(key, json.dumps({'access_token': token_response['access_token'], 'refresh_token': token_response['refresh_token']}).encode())
 
     return response
-
-
-@app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/token/refresh'))
-async def refresh_tokens():
-    headers = dict(request.headers)
-    refresh_token_response = get_refreshed_tokens(headers)
-    try:
-        response = json.dumps({
-            'access_token': refresh_token_response['access_token'],
-            'refresh_token': refresh_token_response['refresh_token']
-        })
-    except KeyError:
-        response = json.dumps({
-            'error': refresh_token_response['error'],
-            'error_description': refresh_token_response['error_description']
-        })
-    return Response(response)
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/info'))
@@ -185,35 +226,59 @@ async def info():
 
     t = request.args.get('cli_token')
     if t:
-        signal = []
-
-        def receive(sender, cli_token, access_token, refresh_token):
-            if cli_token == t:
-                signal.append((cli_token, access_token, refresh_token))
-        login_done.connect(receive, current_app._get_current_object())
         timeout = 120
+        key = "cli_{}".format(hashlib.sha256(t.encode()).hexdigest())
         logger.debug("Waiting for Keycloak callback for request {}".format(t))
-        while not signal and timeout > 0:
-            time.sleep(1)
-            timeout -= 1
-        login_done.disconnect(receive, current_app._get_current_object())
-        if signal:
-            return json.dumps({'access_token': signal[0][1], 'refresh_token': signal[0][2]})
+        val = store.get(key)
+        while not val and timeout > 0:
+            time.sleep(3)
+            timeout -= 3
+            val = store.get(key)
+        if val:
+            store.delete(key)
+            return val
         else:
             logger.debug("Timeout while waiting for request {}".format(t))
             return '{"error": "timeout"}'
     else:
+
+        if 'access_token' not in session:
+            return await app.make_response(redirect(url_for('login')))
+
+        a = jwt.decode(session['token'])  # TODO: logout and redirect if fails because of expired
+
         return "You can copy/paste the following tokens if needed and close this page: <br> Access Token: {}<br>Refresh Token: {}".format(
-            request.cookies.get('access_token'), request.cookies.get('refresh_token'))
+            store.get(get_key_for_user(a, 'kc_access_token')).decode(), store.get(get_key_for_user(a, 'kc_refresh_token')).decode())
+
+
+@app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/user'))
+async def user():
+
+    if 'token' not in session:
+        return await app.make_response(redirect(url_for('login')))
+
+    a = jwt.decode(session['token'])  # TODO: logout and redirect if fails because of expired
+    return store.get(get_key_for_user(a, 'kc_id_token')).decode()
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/logout'))
 async def logout():
-    logout_url = app.config['OIDC_ISSUER'] + '/protocol/openid-connect/logout?redirect_uri=' + \
-                 request.args.get('redirect_url')
+
+    logout_url = '{}/protocol/openid-connect/logout?{}'.format(
+        app.config['OIDC_ISSUER'],
+        urllib.parse.urlencode({'redirect_uri': request.args.get('redirect_url')}),
+    )
     response = await app.make_response(redirect(logout_url))
-    response.delete_cookie('access_token', domain=COOKIE_DOMAIN)
-    response.delete_cookie('refresh_token', domain=COOKIE_DOMAIN)
-    response.delete_cookie('id_token', domain=COOKIE_DOMAIN)
+
+    a = jwt.decode(session['token'], verify=False)
+
+    # cleanup the session in redis immediately
+    cookie_val = request.cookies.get('session').split(".")[0]
+    app.permanent_session_lifetime = timedelta(seconds=1)
+    store.delete(cookie_val)
+    session.clear()
+
+    for k in store.keys(prefix=get_key_for_user(a, '')):
+        store.delete(k)
 
     return response

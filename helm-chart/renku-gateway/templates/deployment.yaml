@@ -18,6 +18,7 @@ spec:
       labels:
         app: {{ template "gateway.name" . }}
         release: {{ .Release.Name }}
+        {{ include "call-nested" (list . "redis" "redis.fullname") }}-client: "true"
     spec:
       containers:
         - name: {{ .Chart.Name }}
@@ -34,6 +35,10 @@ spec:
               value: {{ .Values.renkuEndpoint | default (printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: GITLAB_URL
               value: {{ .Values.gitlabUrl | default (printf "%s://%s/gitlab" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+            - name: GITLAB_CLIENT_SECRET
+              value: {{ .Values.gitlabClientSecret | default .Values.global.gateway.gitlabClientSecret | quote }}
+            - name: GITLAB_CLIENT_ID
+              value: {{ .Values.gitlabClientId | default .Values.global.gateway.gitlabClientId | quote }}
             - name: GITLAB_PASS
               value: {{ .Values.gitlabSudoToken | default .Values.global.gitlab.sudoToken | quote }}
             - name: JUPYTERHUB_URL
@@ -46,6 +51,10 @@ spec:
               value: {{ .Values.oidcClientSecret | default .Values.global.gateway.clientSecret | quote }}
             - name: OIDC_CLIENT_ID
               value: {{ .Values.oidcClientId | default "gateway" | quote }}
+            - name: GATEWAY_REDIS_HOST
+              value: {{ include "call-nested" (list . "redis" "redis.fullname") }}-master
+            - name: GATEWAY_SECRET_KEY
+              value: {{ .Values.secretKey | quote }}
           livenessProbe:
             httpGet:
               path: /health

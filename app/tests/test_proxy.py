@@ -103,6 +103,9 @@ async def test_gitlab_happyflow(client):
     access_token = jwt.encode(payload=TOKEN_PAYLOAD, key=PRIVATE_KEY, algorithm='RS256').decode('utf-8')
     headers = {'Authorization': 'Bearer {}'.format(access_token)}
 
+    from .. import store
+    store.put('cache_5dbdeba7-e40f-42a7-b46b-6b8a07c65966_gl_access_token', 'some_token'.encode())
+
     responses.add(responses.GET, app.config['GITLAB_URL'] + '/api/v4/projects', json=GITLAB_PROJECTS, status=200)
     responses.add(responses.GET, app.config['GITLAB_URL'] + "/api/v4/projects/1/repository/files/README.md/raw?ref=master", body="test", status=200)
     responses.add(responses.GET, app.config['GITLAB_URL'] + "/api/v4/projects/1/issues?scope=all", json=GITLAB_ISSUES, status=200)
