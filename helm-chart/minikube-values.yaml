@@ -5,5 +5,7 @@ global:
 gitlabUrl: "http://gitlab.renku.build"
 keycloakUrl: "http://keycloak.renku.build:8080"
 
+secretKey: "dummy-secret"
+
 ingress:
   enabled: false
