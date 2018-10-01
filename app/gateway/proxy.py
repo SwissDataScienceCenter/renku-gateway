@@ -21,10 +21,12 @@ import importlib
 import json
 import jwt
 import re
+
 from quart import request, Response
 from urllib.parse import urljoin
 
 from .. import app
+
 from app.auth.web import COOKIE_DOMAIN, COOKIE_SECURE, get_refreshed_tokens
 
 
