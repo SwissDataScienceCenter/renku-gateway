@@ -17,15 +17,17 @@
 # limitations under the License.
 """ Test for the proxy """
 
-
 import pytest
+import asyncio
+import functools
 from .. import app
 import json
+import responses
 from urllib.parse import urljoin
 from .test_data import PUBLIC_KEY
 from app.processors.base_processor import BaseProcessor
 from app.config import load_config
-from flask import Response
+from quart import Response
 
 
 @pytest.fixture
@@ -38,16 +40,27 @@ def client():
     yield client
 
 
-def test_empty_config(client):
+def aiotest(func):
+    @functools.wraps(func)
+    def _func(*args, **kwargs):
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(func(*args, **kwargs))
+        loop.close()
+    return _func
+
+
+@aiotest
+async def test_empty_config(client):
 
     app.config['GATEWAY_ENDPOINT_CONFIG'] = {}
-    rv = client.get(urljoin(app.config['SERVICE_PREFIX'], 'something'))
+    rv = await client.get(urljoin(app.config['SERVICE_PREFIX'], 'something'))
 
     assert rv.status_code == 404
-    assert json.loads(rv.data) == {"error": "No processor found for this path"}
+    assert json.loads(await rv.get_data()) == {"error": "No processor found for this path"}
 
 
-def test_catch_all(client):
+@aiotest
+async def test_catch_all(client):
     with open(app.config['GATEWAY_ENDPOINT_CONFIG_FILE'], 'w') as f:
         json.dump({
             "": {
@@ -58,14 +71,15 @@ def test_catch_all(client):
         }, f)
     load_config()
 
-    rv = client.get(urljoin(app.config['SERVICE_PREFIX'], 'something/interesting?p=nothing'))
+    rv = await client.get(urljoin(app.config['SERVICE_PREFIX'], 'something/interesting?p=nothing'))
 
     assert rv.status_code == 200
-    assert rv.data == b'something/interesting'
+    assert (await rv.get_data()) == b'something/interesting'
     assert rv.headers.get('X-DummyAuth') == 'ok'
 
 
-def test_regex_config(client):
+@aiotest
+async def test_regex_config(client):
     with open(app.config['GATEWAY_ENDPOINT_CONFIG_FILE'], 'w') as f:
         json.dump({
             "obj(ect)?/[\d-]+/": {
@@ -75,29 +89,29 @@ def test_regex_config(client):
         }, f)
     load_config()
 
-    rv = client.get(urljoin(app.config['SERVICE_PREFIX'], 'obj/23-3/issues?p=nothing'))
+    rv = await client.get(urljoin(app.config['SERVICE_PREFIX'], 'obj/23-3/issues?p=nothing'))
 
     assert rv.status_code == 200
-    assert rv.data == b'issues'
+    assert (await rv.get_data()) == b'issues'
 
-    rv = client.get(urljoin(app.config['SERVICE_PREFIX'], 'object/-/issues/4?p=nothing'))
+    rv = await client.get(urljoin(app.config['SERVICE_PREFIX'], 'object/-/issues/4?p=nothing'))
 
     assert rv.status_code == 200
-    assert rv.data == b'issues/4'
+    assert (await rv.get_data()) == b'issues/4'
 
-    rv = client.get(urljoin(app.config['SERVICE_PREFIX'], 'objects/-/issues/4?p=nothing'))
-
-    assert rv.status_code == 404
-    assert json.loads(rv.data) == {"error": "No processor found for this path"}
-
-    rv = client.get(urljoin(app.config['SERVICE_PREFIX'], 'obj/2a/issues/4?p=nothing'))
+    rv = await client.get(urljoin(app.config['SERVICE_PREFIX'], 'objects/-/issues/4?p=nothing'))
 
     assert rv.status_code == 404
-    assert json.loads(rv.data) == {"error": "No processor found for this path"}
+    assert json.loads(await rv.get_data()) == {"error": "No processor found for this path"}
+
+    rv = await client.get(urljoin(app.config['SERVICE_PREFIX'], 'obj/2a/issues/4?p=nothing'))
+
+    assert rv.status_code == 404
+    assert json.loads(await rv.get_data()) == {"error": "No processor found for this path"}
 
 
 class DummyProcessor(BaseProcessor):
-    def process(self, request, header):
+    async def process(self, request, header):
         rsp = Response(self.path)
         rsp.headers = header
         return rsp

@@ -8,8 +8,8 @@ import json
 import requests
 import re
 
-from flask import Response
 from werkzeug.datastructures import Headers
+from quart import Response
 
 
 logger = logging.getLogger(__name__)
@@ -74,14 +74,14 @@ class GitlabGeneric(BaseProcessor):
         self.forwarded_headers += GITLAB_FORWARDED_RESPONSE_HEADERS
 
 
-    def process(self, request, headers):
+    async def process(self, request, headers):
         # Gitlab has routes where the resource identifier can include slashes
         # which must be url-encoded. We list these routes individually and re-encode
         # slashes which have been unencoded by uWSGI.
         self.path = urlencode_paths(self.path)
 
         self.endpoint = urljoin(self.endpoint.format(**app.config), self.path)
-        return super().process(request, headers)
+        return await super().process(request, headers)
 
     def create_response_headers(self, response):
         headers = super().create_response_headers(response)
@@ -91,7 +91,7 @@ class GitlabGeneric(BaseProcessor):
 
 class GitlabProjects(BaseProcessor):
 
-    def process(self, request, headers):
+    async def process(self, request, headers):
         endpoint = self.endpoint.format(**app.config)
         if 'Sudo' in headers:
             project_response = requests.request(

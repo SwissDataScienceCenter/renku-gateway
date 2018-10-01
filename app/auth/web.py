@@ -16,14 +16,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Web auth routes."""
-
 import jwt
 import json
 import time
 import logging
 import re
+import os
+
 from oic.oauth2.grant import Token
-from flask import request, redirect, url_for, current_app, Response
+from quart import request, redirect, url_for, current_app, Response
 from urllib.parse import urljoin
 
 from oic.oic import Client
@@ -56,6 +57,11 @@ if 'gateway.renku.build' in app.config['HOST_NAME']:
 else:
     COOKIE_DOMAIN = None
 
+if app.config['HOST_NAME'].startswith("https"):
+    COOKIE_SECURE = {'secure': True, 'httponly': True}
+else:
+    COOKIE_SECURE = {'httponly': True}
+
 # We use a short-lived dictionary to store ongoing login sessions.
 # This should not grow in size and can easily be trashed when the service needs
 # to be restarted.
@@ -81,19 +87,37 @@ client_reg = RegistrationResponse(
 client.store_registration_info(client_reg)
 
 
-def get_refreshed_tokens(headers):
+def get_refreshed_tokens(headers, cookies):
     m = re.search(r'bearer (?P<token>.+)', headers.get('Authorization', ''), re.IGNORECASE)
 
-    if m and jwt.decode(m.group('token'), verify=False).get('typ') in ['Offline', 'Refresh']:
-        logger.debug("Swapping the token")
-        to = Token(resp={'refresh_token': m.group('token')})
-        return client.do_access_token_refresh(token=to)
+    if m:
+        if jwt.decode(m.group('token'), verify=False).get('typ') in ['Offline', 'Refresh']:
+            logger.debug("Swapping the token")
+            to = Token(resp={'refresh_token': m.group('token')})
+            return client.do_access_token_refresh(token=to)
+        else:
+            return None
     else:
-        return None
+        try:
+            if headers.get('X-Requested-With') == 'XMLHttpRequest' and cookies.get('access_token'):
+                jwt.decode(
+                    cookies.get('access_token'),
+                    app.config['OIDC_PUBLIC_KEY'],
+                    algorithms='RS256',
+                    audience=app.config['OIDC_CLIENT_ID']
+                )
+                return cookies
+        except:
+            if cookies.get('refresh_token') and jwt.decode(cookies.get('refresh_token'), verify=False).get('typ') in ['Offline', 'Refresh']:
+                logger.debug("Swapping the token")
+                to = Token(resp={'refresh_token': m.group('token')})
+                return client.do_access_token_refresh(token=to)
+
+    return None
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/login'))
-def login():
+async def login():
 
     session_id = rndstr(size=32)
     state = rndstr()
@@ -115,13 +139,13 @@ def login():
     }
     auth_req = client.construct_AuthorizationRequest(request_args=args)
     login_url = auth_req.request(client.authorization_endpoint)
-    response = app.make_response(redirect(login_url))
+    response = await app.make_response(redirect(login_url))
     response.set_cookie('session', value=login_session_token)
     return response
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/token'))
-def get_tokens():
+async def get_tokens():
 
     browser_session = jwt.decode(request.cookies['session'], JWT_SECRET, algorithms=[JWT_ALGORITHM])
     server_session = login_sessions.pop(browser_session['id'], None)
@@ -144,11 +168,11 @@ def get_tokens():
         }
     )
 
-    response = app.make_response(redirect(
+    response = await app.make_response(redirect(
         '/auth/info' if server_session.get('cli_token') else server_session['ui_redirect_url']
     ))
-    response.set_cookie('access_token', value=token_response['access_token'], domain=COOKIE_DOMAIN)
-    response.set_cookie('refresh_token', value=token_response['refresh_token'], domain=COOKIE_DOMAIN)
+    response.set_cookie('access_token', value=token_response['access_token'], domain=COOKIE_DOMAIN, **COOKIE_SECURE)
+    response.set_cookie('refresh_token', value=token_response['refresh_token'], domain=COOKIE_DOMAIN, **COOKIE_SECURE)
     response.set_cookie('id_token', value=json.dumps(token_response['id_token'].to_dict()), domain=COOKIE_DOMAIN)
     response.delete_cookie('session')
 
@@ -165,9 +189,9 @@ def get_tokens():
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/token/refresh'))
-def refresh_tokens():
+async def refresh_tokens():
     headers = dict(request.headers)
-    refresh_token_response = get_refreshed_tokens(headers)
+    refresh_token_response = get_refreshed_tokens(headers, request.cookies)
     try:
         response = json.dumps({
             'access_token': refresh_token_response['access_token'],
@@ -182,7 +206,7 @@ def refresh_tokens():
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/info'))
-def info():
+async def info():
 
     t = request.args.get('cli_token')
     if t:
@@ -209,10 +233,10 @@ def info():
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/logout'))
-def logout():
+async def logout():
     logout_url = app.config['OIDC_ISSUER'] + '/protocol/openid-connect/logout?redirect_uri=' + \
                  request.args.get('redirect_url')
-    response = app.make_response(redirect(logout_url))
+    response = await app.make_response(redirect(logout_url))
     response.delete_cookie('access_token', domain=COOKIE_DOMAIN)
     response.delete_cookie('refresh_token', domain=COOKIE_DOMAIN)
     response.delete_cookie('id_token', domain=COOKIE_DOMAIN)

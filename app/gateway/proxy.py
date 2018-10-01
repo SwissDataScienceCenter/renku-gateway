@@ -16,31 +16,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Gateway logic."""
-
 import logging
 import importlib
 import json
 import jwt
-from flask import request, Response
+import re
+
+from quart import request, Response
 from urllib.parse import urljoin
 
 from .. import app
-from flask_cors import CORS
+
+from app.auth.web import COOKIE_DOMAIN, COOKIE_SECURE, get_refreshed_tokens
 
 
 logger = logging.getLogger(__name__)
-CORS(app)
 
 CHUNK_SIZE = 1024
 
 
 @app.route('/health', methods=['GET'])
-def healthcheck():
+async def healthcheck():
     return Response(json.dumps("Up and running"), status=200)
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], '<path:path>'), methods=['GET', 'POST', 'PUT', 'DELETE'])
-def pass_through(path):
+async def pass_through(path):
     headers = dict(request.headers)
 
     # Keycloak public key is not defined so error
@@ -48,11 +49,14 @@ def pass_through(path):
         response = json.dumps("Ooops, something went wrong internally.")
         return Response(response, status=500)
 
-    del headers['Host']
+    if 'Host' in headers:
+        del headers['Host']
 
     processor = None
     auth = None
+    new_tokens = None
 
+    # find and instanciate the auth and content processors
     for key, val in app.config['GATEWAY_ENDPOINT_CONFIG'].items():
         p = key.match(path)
         if p:
@@ -71,6 +75,35 @@ def pass_through(path):
 
     if auth:
         try:
+            # validate incomming authentication
+            # it can either be in cookies or Authorization header
+            new_tokens = get_refreshed_tokens(headers, request.cookies)
+            if new_tokens:
+                headers['Authorization'] = "Bearer {}".format(new_tokens.get('access_token'))
+
+            if 'Authorization' in headers and 'Referer' in headers:
+
+                allowed = False
+
+                origins = jwt.decode(
+                    headers['Authorization'][7:],
+                    app.config['OIDC_PUBLIC_KEY'],
+                    algorithms='RS256',
+                    audience=app.config['OIDC_CLIENT_ID']
+                ).get('allowed-origins')
+
+                for o in origins:
+                    if re.match(o.replace("*", ".*"), headers['Referer']):
+                        allowed = True
+                        break
+
+                if not allowed:
+                    return Response(json.dumps({'error': 'origin not allowed: {} not matching {}'.format(headers['Referer'], origins)}), status=403)
+
+            if 'Cookie' in headers:
+                del headers['Cookie']  # don't forward our secret tokens, backend APIs shouldn't expect cookies?
+
+            # auth processors always assume Authorization in header, if any
             headers = auth.process(request, headers)
         except jwt.ExpiredSignatureError:
             return Response(json.dumps({'error': 'token_expired'}), status=401)
@@ -79,7 +112,12 @@ def pass_through(path):
             return Response(json.dumps({'error': "Error while authenticating"}), status=401)
 
     if processor:
-        return processor.process(request, headers)
+        response = await processor.process(request, headers)
+        if new_tokens:
+            # if the tokens got refreshed, update the cookies too
+            response.set_cookie('access_token', value=new_tokens.get('access_token'), domain=COOKIE_DOMAIN, **COOKIE_SECURE)
+            response.set_cookie('refresh_token', value=new_tokens.get('refresh_token'), domain=COOKIE_DOMAIN, **COOKIE_SECURE)
+        return response
 
     else:
         response = json.dumps({'error': "No processor found for this path"})
@@ -87,5 +125,5 @@ def pass_through(path):
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'dummy'), methods=['GET'])
-def dummy():
+async def dummy():
     return 'Dummy works'
