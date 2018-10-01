@@ -8,6 +8,7 @@ import json
 import requests
 import re
 
+from werkzeug.datastructures import Headers
 from quart import Response
 
 
@@ -29,6 +30,16 @@ SPECIAL_ROUTE_REGEXES = [
     '(.*)({before})(.*)({after})(.*)'.format(before=rule['before'], after=rule['after']) for rule in SPECIAL_ROUTE_RULES
 ]
 
+GITLAB_FORWARDED_RESPONSE_HEADERS = [
+    'Link',
+    'X-Next-Page',
+    'X-Page',
+    'X-Per-Page',
+    'X-Prev-Page',
+    'X-Total',
+    'X-Total-Pages'
+]
+
 
 def urlencode_paths(path):
     """Urlencode some paths before forwarding requests."""
@@ -45,7 +56,23 @@ def urlencode_paths(path):
     return path
 
 
+def fix_link_header(headers):
+    """Replace the GitLab URL in the Link header."""
+
+    if 'Link' in headers:
+        headers['Link'] = headers['Link'].replace(
+            app.config['GITLAB_URL'], app.config['HOST_NAME']
+        )
+
+    return headers
+
+
 class GitlabGeneric(BaseProcessor):
+
+    def __init__(self, path, endpoint):
+        super().__init__(path, endpoint)
+        self.forwarded_headers += GITLAB_FORWARDED_RESPONSE_HEADERS
+
 
     async def process(self, request, headers):
         # Gitlab has routes where the resource identifier can include slashes
@@ -55,6 +82,11 @@ class GitlabGeneric(BaseProcessor):
 
         self.endpoint = urljoin(self.endpoint.format(**app.config), self.path)
         return await super().process(request, headers)
+
+    def create_response_headers(self, response):
+        headers = super().create_response_headers(response)
+        headers = fix_link_header(headers)
+        return headers
 
 
 class GitlabProjects(BaseProcessor):

@@ -13,6 +13,9 @@ class BaseProcessor:
     def __init__(self, path, endpoint):
         self.path = path
         self.endpoint = endpoint
+        self.forwarded_headers = [
+            'Content-Type',
+        ]
         logger.debug('Processor with path = "{}" and endpoint = "{}"'.format(path, endpoint))
 
     async def process(self, request, headers):
@@ -31,16 +34,24 @@ class BaseProcessor:
             timeout=300
         )
 
-        rsp = Response(self.generate(response), response.status_code)
-        # rsp.headers = Headers(response.headers.lower_items())  # this seems to break things sometimes
-
         logger.debug('Response: {}'.format(response.status_code))
-        logger.debug('Response headers: {}'.format(rsp.headers))
+        logger.debug('Response headers: {}'.format(response.headers))
 
-        return rsp
+        return Response(
+            response=self.generate_response_data(response),
+            headers=self.create_response_headers(response),
+            status=response.status_code,
+        )
 
-    async def generate(self, response):
+    async def generate_response_data(self, response):
         for c in response.iter_lines():
             # logger.debug(c)
             yield c + "\r\n".encode()
         yield "\r\n".encode()
+
+    def create_response_headers(self, response):
+        headers = Headers()
+        for header in response.headers:
+            if header in self.forwarded_headers:
+                headers.add(header, response.headers[header])
+        return headers
