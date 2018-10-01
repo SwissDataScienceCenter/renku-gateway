@@ -19,14 +19,12 @@
 
 import logging
 from quart import Quart
-from quart_cors import cors
 
 from .config import config, load_config
 
 logging.basicConfig(level=logging.DEBUG)
 
 app = Quart(__name__)
-app = cors(app)
 
 for key in config.keys():
     app.config[key] = config[key]

@@ -29,9 +29,6 @@ class GitlabSudoToken():
 
     def process(self, request, headers):
 
-        from . import KeycloakAccessToken
-        headers = KeycloakAccessToken().process(request, headers)
-
         if 'Authorization' in headers:
             # logger.debug('Authorization header present, sudo token exchange')
             # logger.debug('outgoing headers: {}'.format(json.dumps(headers))
