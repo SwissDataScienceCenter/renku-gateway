@@ -121,13 +121,11 @@ async def test_gitlab_happyflow(client):
 async def test_service_happyflow(client):
     # If a request does has the required headers, it should be able to pass through
     access_token = jwt.encode(payload=TOKEN_PAYLOAD, key=PRIVATE_KEY, algorithm='RS256').decode('utf-8')
-    _headers = {'X-Requested-With': 'XMLHttpRequest'}
+    headers = {'Authorization': 'Bearer {}'.format(access_token)}
 
     responses.add(responses.POST, app.config['RENKU_ENDPOINT'] + '/service/storage/object/23/meta', json={'id': 1}, status=201)
 
-    client.set_cookie('access_token', value=access_token, httponly=True)
-
-    rv = await client.post(urljoin(app.config['SERVICE_PREFIX'], 'objects/23/meta'), headers=_headers)
+    rv = await client.post(urljoin(app.config['SERVICE_PREFIX'], 'objects/23/meta'), headers=headers)
 
     assert rv.status_code == 201
     assert json.loads(await rv.get_data()) == {'id': 1}
