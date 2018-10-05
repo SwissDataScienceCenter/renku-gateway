@@ -18,6 +18,7 @@
 """Server entrypoint."""
 
 import app
+import os
 
-if __name__ == "__main__":
-    app.app.run(host='0.0.0.0')
+if os.getenv('QUART_APP') == 'run:app.app':
+    app.app.run(host='0.0.0.0', use_reloader=True)
