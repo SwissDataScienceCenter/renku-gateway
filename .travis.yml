@@ -27,7 +27,7 @@ cache:
   - node_modules
 
 install:
-  - travis_retry pip install -U pip pipenv
+  - travis_retry pip install -U pip==18.0 pipenv
   - travis_retry pipenv install --dev --system --deploy
   # Installing Helm
   - wget -q ${HELM_URL}/${HELM_TGZ}
