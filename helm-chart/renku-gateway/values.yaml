@@ -44,10 +44,14 @@ replicaCount: 1
 ## The client secret for authentication against gitlab
 # gitlabClientSecret: no-secret
 
+## You can restrict here the allowed origins for CORS.
+## This can be a single value, a comma-separeted list or *.
+# allowOrigin: "*"
+
 image:
   name: renku/renku-gateway
   repository: renku/renku-gateway
-  tag: 0.0-unclean-fd237f2
+  tag: '0.2.1'
   pullPolicy: IfNotPresent
 
 service:

@@ -36,7 +36,7 @@ app = Quart(__name__)
 for key in config.keys():
     app.config[key] = config[key]
 
-app = cors(app, allow_headers=['X-Requested-With'], allow_origin="*")
+app = cors(app, allow_headers=['X-Requested-With'], allow_origin=app.config['ALLOW_ORIGIN'])
 
 load_config()
 
