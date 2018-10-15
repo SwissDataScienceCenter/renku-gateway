@@ -166,6 +166,7 @@ async def login():
     auth_req = client.construct_AuthorizationRequest(request_args=args)
     login_url = auth_req.request(client.authorization_endpoint)
     response = await app.make_response(redirect(login_url))
+
     return response
 
 
@@ -274,7 +275,6 @@ async def logout():
 
     # cleanup the session in redis immediately
     cookie_val = request.cookies.get('session').split(".")[0]
-    app.permanent_session_lifetime = timedelta(seconds=1)
     store.delete(cookie_val)
     session.clear()
 

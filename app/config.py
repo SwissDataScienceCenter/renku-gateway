@@ -44,6 +44,8 @@ else:
 config['SESSION_COOKIE_HTTPONLY'] = True
 config['SESSION_COOKIE_SECURE'] = config['HOST_NAME'].startswith('https')
 
+config['ALLOW_ORIGIN'] = os.environ.get('GATEWAY_ALLOW_ORIGIN', "").split(',')
+
 config['REDIS_HOST'] = os.environ.get('GATEWAY_REDIS_HOST', 'renku-gw-redis')
 
 config['RENKU_ENDPOINT'] = os.environ.get('RENKU_ENDPOINT', 'http://renku.build')
