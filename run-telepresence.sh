@@ -21,6 +21,10 @@ set -e
 MINIKUBE_IP=`minikube ip`
 CURRENT_CONTEXT=`kubectl config current-context`
 
+# On Mac we can not use `pipenv run quart run` because of
+# https://www.telepresence.io/reference/methods
+QUART_EXECUTABLE=`pipenv --venv`/bin/quart
+
 echo "You are going to exchange k8s deployments using the following context: ${CURRENT_CONTEXT}"
 read -p "Do you want to proceed? [y/n]"
 if [[ ! $REPLY =~ ^[Yy]$ ]]
@@ -32,13 +36,8 @@ echo "==========================================================================
 echo "Once telepresence has started, copy-paste the following command to start the development server:"
 echo "QUART_DEBUG=1 \
 QUART_APP=run:app.app \
-HOST_NAME=http://${MINIKUBE_IP} \
-RENKU_ENDPOINT=http://${MINIKUBE_IP} \
-GITLAB_URL=http://${MINIKUBE_IP}/gitlab \
-KEYCLOAK_URL=http://${MINIKUBE_IP} \
-GATEWAY_SERVICE_PREFIX=/api/ \
 PYTHONASYNCIODEBUG=1 \
-pipenv run quart run"
+${QUART_EXECUTABLE} run"
 echo "================================================================================================================="
 
 telepresence --swap-deployment renku-gateway --namespace renku --method inject-tcp --expose 5000 --run-shell
