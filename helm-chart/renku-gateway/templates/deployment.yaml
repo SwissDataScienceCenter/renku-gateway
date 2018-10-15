@@ -56,6 +56,8 @@ spec:
               value: {{ include "call-nested" (list . "redis" "redis.fullname") }}-master
             - name: GATEWAY_SECRET_KEY
               value: {{ .Values.secretKey | quote }}
+            - name: GATEWAY_ALLOW_ORIGIN
+              value: {{ .Values.allowOrigin | quote }}
           livenessProbe:
             httpGet:
               path: /health
