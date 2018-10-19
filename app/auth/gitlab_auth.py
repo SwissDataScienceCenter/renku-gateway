@@ -52,9 +52,9 @@ class GitlabUserToken():
                 audience=app.config['OIDC_CLIENT_ID']
             )
 
-            # TODO: maybe add a way to verify if the token is still valid ? (it is not JWT)
             gl_token = store.get(get_key_for_user(decodentoken, 'gl_access_token'))
             headers['Authorization'] = "Bearer {}".format(gl_token.decode())
+            headers['Renku-Token'] = access_token  # can be needed later in the request processing
 
         else:
             # logger.debug("No authorization header, returning empty auth headers")
@@ -151,6 +151,11 @@ def gitlab_get_tokens():
 
 
 def get_gitlab_refresh_token(access_token):
+    access_token = jwt.decode(
+        access_token, app.config['OIDC_PUBLIC_KEY'],
+        algorithms='RS256',
+        audience=app.config['OIDC_CLIENT_ID']
+    )
     to = Token(resp={'refresh_token': store.get(get_key_for_user(access_token, 'gl_refresh_token'))})
     refresh_token_response = gitlab_client.do_access_token_refresh(token=to)
     if 'access_token' in refresh_token_response:
