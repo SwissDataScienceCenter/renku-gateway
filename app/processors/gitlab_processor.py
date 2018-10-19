@@ -81,7 +81,16 @@ class GitlabGeneric(BaseProcessor):
         self.path = urlencode_paths(self.path)
 
         self.endpoint = urljoin(self.endpoint.format(**app.config), self.path)
-        return await super().process(request, headers)
+        access_token = headers.pop('Renku-Token', '')
+        resp = await super().process(request, headers)
+
+        if resp.status_code == 401 and access_token:  # Token has expired or is revoked
+            new_token = get_gitlab_refresh_token(access_token)
+            headers['Authorization'] = "Bearer {}".format(new_token)
+            return await super().process(request, headers)  # retry
+
+        return resp
+
 
     def create_response_headers(self, response):
         headers = super().create_response_headers(response)
