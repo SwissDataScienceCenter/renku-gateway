@@ -9,6 +9,11 @@
         "processor": "app.processors.ServiceGeneric",
         "auth": "app.auth.KeycloakAccessToken"
     },
+    "notebooks(/)?": {
+        "endpoint": "{JUPYTERHUB_URL}/hub/home/",
+        "processor": "app.processors.ServiceGeneric",
+        "auth": "app.auth.JupyterhubUserToken"
+    },
     "(/)?": {
         "endpoint": "{GITLAB_URL}/api/",
         "processor": "app.processors.GitlabGeneric",

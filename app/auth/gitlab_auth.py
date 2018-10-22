@@ -17,6 +17,7 @@
 # limitations under the License.
 import jwt
 import logging
+import urllib
 
 import json
 import re
@@ -119,7 +120,7 @@ def gitlab_login():
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/gitlab/token'))
-def gitlab_get_tokens():
+async def gitlab_get_tokens():
 
     # This is more about parsing the request data than any response data....
     authorization_parameters = gitlab_client.parse_response(
@@ -145,7 +146,15 @@ def gitlab_get_tokens():
     store.put(get_key_for_user(a, 'gl_refresh_token'), token_response['refresh_token'].encode())
     store.put(get_key_for_user(a, 'gl_id_token'), json.dumps(token_response['id_token'].to_dict()).encode())
 
-    response = app.make_response(redirect(session['gitlab_ui_redirect_url']))
+    # chain logins to get the jupyterhub token
+    response = await app.make_response(
+        redirect(
+            "{}?{}".format(
+                url_for('jupyterhub_login'),
+                urllib.parse.urlencode({'redirect_url': session['gitlab_ui_redirect_url']}),
+            )
+        )
+    )
 
     return response
 
