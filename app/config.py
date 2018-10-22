@@ -54,6 +54,10 @@ config['GITLAB_PASS'] = os.environ.get('GITLAB_PASS', 'dummy-secret')
 config['GITLAB_CLIENT_ID'] = os.environ.get('GITLAB_CLIENT_ID', 'renku-ui')
 config['GITLAB_CLIENT_SECRET'] = os.environ.get('GITLAB_CLIENT_SECRET', 'no-secret-needed')
 
+config['JUPYTERHUB_URL'] = os.environ.get('JUPYTERHUB_URL', '{}/jupyterhub'.format(config['HOST_NAME']))
+config['JUPYTERHUB_CLIENT_ID'] = os.environ.get('JUPYTERHUB_CLIENT_ID', 'gateway')
+config['JUPYTERHUB_CLIENT_SECRET'] = os.environ.get('JUPYTERHUB_CLIENT_SECRET', 'dummy-secret')
+
 config['OIDC_ISSUER'] = os.environ.get('KEYCLOAK_URL', 'http://keycloak.renku.build:8080') \
                         + '/auth/realms/Renku'
 config['OIDC_CLIENT_ID'] = os.environ.get('OIDC_CLIENT_ID', 'gateway')

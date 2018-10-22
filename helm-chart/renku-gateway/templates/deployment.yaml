@@ -46,6 +46,13 @@ spec:
                   key: gitlabSudoToken
             - name: JUPYTERHUB_URL
               value: {{ .Values.jupyterhubUrl | default (printf "%s://%s/jupyterhub" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+            - name: JUPYTERHUB_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "gateway.fullname" . }}
+                  key: jupyterhubClientSecret
+            - name: JUPYTERHUB_CLIENT_ID
+              value: {{ .Values.jupyterhubClientId | default .Values.global.gateway.jupyterhubClientId | quote }}
             - name: KEYCLOAK_URL
               value: {{ .Values.keycloakUrl | default (printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: GATEWAY_SERVICE_PREFIX

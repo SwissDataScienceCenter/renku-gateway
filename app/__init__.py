@@ -52,3 +52,4 @@ KVSessionExtension(prefixed_store, app)
 from .gateway import proxy
 from .auth import web
 from .auth.gitlab_auth import gitlab_login, gitlab_get_tokens, gitlab_logout
+from .auth.jupyterhub_auth import jupyterhub_login, jupyterhub_get_tokens, jupyterhub_logout
