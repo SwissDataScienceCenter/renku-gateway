@@ -28,11 +28,6 @@ global:
     https: false
     ## Domain name for the deployed instance of renku
     domain: example.local
-  jupyterhub:
-    ## Client ID, this should match the jupyter hub config of services: oauth_client_id
-    jupyterhubClientId: gateway
-    ## Client secret, this should match the api_token
-    jupyterhubClientSecret: dummy-secret
 
 replicaCount: 1
 
@@ -56,6 +51,14 @@ replicaCount: 1
 ## For production deployment, you will need to define the secret key
 ## This is a random string, used for cryptographic operations on cookies
 secretKey: dummy-secret
+
+jupyterhub:
+  ## the url of the jupyterhub deployment
+  # url:
+  ## Client ID, this should match the jupyter hub config of services: oauth_client_id
+  clientId: gateway
+  ## Client secret, this should match the api_token
+  clientSecret: '' # use `openssl rand -hex 32`
 
 image:
   name: renku/renku-gateway
