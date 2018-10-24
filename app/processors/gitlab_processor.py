@@ -23,7 +23,19 @@ SPECIAL_ROUTE_RULES = [
     {
         'before': 'repository/files/',
         'after': ''
-    }
+    },
+    {
+        'before': 'groups/',
+        'after': '/projects'
+    },
+    {
+        'before': 'groups/',
+        'after': '/subgroups'
+    },
+    {
+        'before': 'groups/',
+        'after': ''
+    },
 ]
 
 SPECIAL_ROUTE_REGEXES = [
