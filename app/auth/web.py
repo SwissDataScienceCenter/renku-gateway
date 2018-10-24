@@ -24,7 +24,7 @@ import re
 import urllib.parse
 from oic.oauth2.grant import Token
 from quart import request, redirect, url_for, current_app, Response, session
-from urllib.parse import urljoin
+from urllib.parse import urljoin, quote_plus
 
 from oic.oic import Client
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
@@ -243,23 +243,42 @@ async def info():
             return '{"error": "timeout"}'
     else:
 
-        if 'access_token' not in session:
-            return await app.make_response(redirect(url_for('login')))
+        if 'token' not in session:
+            return await app.make_response(redirect("{}?redirect_url={}".format(url_for('login'), quote_plus(url_for('info')))))
 
-        a = jwt.decode(session['token'])  # TODO: logout and redirect if fails because of expired
+        try:
+            a = jwt.decode(
+                session['token'],
+                app.config['OIDC_PUBLIC_KEY'],
+                algorithms='RS256',
+                audience=app.config['OIDC_CLIENT_ID']
+            )  # TODO: logout and redirect if fails because of expired
 
-        return "You can copy/paste the following tokens if needed and close this page: <br> Access Token: {}<br>Refresh Token: {}".format(
-            store.get(get_key_for_user(a, 'kc_access_token')).decode(), store.get(get_key_for_user(a, 'kc_refresh_token')).decode())
+            return "You can copy/paste the following tokens if needed and close this page: <br> Access Token: {}<br>Refresh Token: {}".format(
+                store.get(get_key_for_user(a, 'kc_access_token')).decode(), store.get(get_key_for_user(a, 'kc_refresh_token')).decode())
+
+        except jwt.ExpiredSignatureError:
+            return await app.make_response(redirect("{}?redirect_url={}".format(url_for('login'), quote_plus(url_for('info')))))
+
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/user'))
 async def user():
 
     if 'token' not in session:
-        return await app.make_response(redirect(url_for('login')))
+        return await app.make_response(redirect("{}?redirect_url={}".format(url_for('login'), quote_plus(url_for('user')))))
+    try:
+        a = jwt.decode(
+            session['token'],
+            app.config['OIDC_PUBLIC_KEY'],
+            algorithms='RS256',
+            audience=app.config['OIDC_CLIENT_ID']
+        )  # TODO: logout and redirect if fails because of expired
 
-    a = jwt.decode(session['token'])  # TODO: logout and redirect if fails because of expired
-    return store.get(get_key_for_user(a, 'kc_id_token')).decode()
+        return store.get(get_key_for_user(a, 'kc_id_token')).decode()
+
+    except jwt.ExpiredSignatureError:
+            return await app.make_response(redirect("{}?redirect_url={}".format(url_for('login'), quote_plus(url_for('user')))))
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/logout'))

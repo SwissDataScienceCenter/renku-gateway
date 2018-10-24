@@ -10,7 +10,7 @@
         "auth": "app.auth.KeycloakAccessToken"
     },
     "notebooks(/)?": {
-        "endpoint": "{JUPYTERHUB_URL}/hub/home/",
+        "endpoint": "{JUPYTERHUB_URL}/hub/api/",
         "processor": "app.processors.ServiceGeneric",
         "auth": "app.auth.JupyterhubUserToken"
     },

@@ -39,7 +39,6 @@ class JupyterhubUserToken():
         m = re.search(r'bearer (?P<token>.+)', headers.get('Authorization', ''), re.IGNORECASE)
         if m:
             # logger.debug('Authorization header present, token exchange')
-            # logger.debug('outgoing headers: {}'.format(json.dumps(headers))
             access_token = m.group('token')
             decodentoken = jwt.decode(
                 access_token, app.config['OIDC_PUBLIC_KEY'],
@@ -48,7 +47,9 @@ class JupyterhubUserToken():
             )
 
             jh_token = store.get(get_key_for_user(decodentoken, 'jh_access_token'))
-            headers['Authorization'] = "Bearer {}".format(jh_token.decode())
+            headers['Authorization'] = "token {}".format(jh_token.decode())
+
+            # logger.debug('outgoing headers: {}'.format(json.dumps(headers)))
         else:
             # logger.debug("No authorization header, returning empty auth headers")
             headers.pop('Authorization', None)
