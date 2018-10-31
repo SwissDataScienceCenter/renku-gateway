@@ -27,7 +27,7 @@ from urllib.parse import urljoin, urlencode, parse_qs
 from oic import rndstr
 
 from .. import app, store
-from .web import get_key_for_user
+from .web import get_key_for_user, JWT_ALGORITHM
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ class JupyterhubUserToken():
             access_token = m.group('token')
             decodentoken = jwt.decode(
                 access_token, app.config['OIDC_PUBLIC_KEY'],
-                algorithms='RS256',
+                algorithms=JWT_ALGORITHM,
                 audience=app.config['OIDC_CLIENT_ID']
             )
 
