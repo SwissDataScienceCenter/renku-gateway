@@ -71,7 +71,7 @@ You can run tests with
 Login workflow
 --------------
 
-To be able to collect the user's token from the various backend services, the gateway uses the OAuth2/OIDC protocol and redirect the users to each of them.
+To collect the user's token from the various backend services, the gateway uses the OAuth2/OIDC protocol and redirects the users to each of them.
 
 .. image:: docs/login.png
   :width: 979
