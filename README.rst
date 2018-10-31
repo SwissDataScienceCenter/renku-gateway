@@ -67,3 +67,19 @@ You can run tests with
 
     $ pipenv run pytest
 
+
+Login workflow
+--------------
+
+To be able to collect the user's token from the various backend services, the gateway uses the OAuth2/OIDC protocol and redirect the users to each of them.
+
+.. image:: docs/login.png
+  :width: 979
+
+Redis storage
+-------------
+
+To allow server-side sessions, the gateway relies on Redis.
+
+.. image:: docs/redis.png
+  :width: 651
