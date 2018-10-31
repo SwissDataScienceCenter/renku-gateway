@@ -33,7 +33,10 @@ config = dict()
 
 config['HOST_NAME'] = os.environ.get('HOST_NAME', 'http://gateway.renku.build')
 
-config['SECRET_KEY'] = os.environ.get('GATEWAY_SECRET_KEY', 'dummy-secret')
+if 'GATEWAY_SECRET_KEY' not in os.environ and "pytest" not in sys.modules:
+    logger.critical('The environment variable GATEWAY_SECRET_KEY is not set. It is mandatory for securely signing session cookie.')
+    exit(2)
+config['SECRET_KEY'] = os.environ.get('GATEWAY_SECRET_KEY')
 
 # We need to specify that the cookie is valid for all .renku.build subdomains
 if 'gateway.renku.build' in config['HOST_NAME']:
@@ -53,15 +56,22 @@ config['GITLAB_URL'] = os.environ.get('GITLAB_URL', 'http://gitlab.renku.build')
 config['GITLAB_PASS'] = os.environ.get('GITLAB_PASS', 'dummy-secret')
 config['GITLAB_CLIENT_ID'] = os.environ.get('GITLAB_CLIENT_ID', 'renku-ui')
 config['GITLAB_CLIENT_SECRET'] = os.environ.get('GITLAB_CLIENT_SECRET', 'no-secret-needed')
+if 'GITLAB_CLIENT_SECRET' not in os.environ:
+    logger.warning('The environment variable GITLAB_CLIENT_SECRET is not set. It is mandatory for Gitlab login.')
 
 config['JUPYTERHUB_URL'] = os.environ.get('JUPYTERHUB_URL', '{}/jupyterhub'.format(config['HOST_NAME']))
 config['JUPYTERHUB_CLIENT_ID'] = os.environ.get('JUPYTERHUB_CLIENT_ID', 'gateway')
 config['JUPYTERHUB_CLIENT_SECRET'] = os.environ.get('JUPYTERHUB_CLIENT_SECRET', 'dummy-secret')
+if 'JUPYTERHUB_CLIENT_SECRET' not in os.environ:
+    logger.warning('The environment variable JUPYTERHUB_CLIENT_SECRET is not set. It is mandatory for JupyterHub login.')
 
 config['OIDC_ISSUER'] = os.environ.get('KEYCLOAK_URL', 'http://keycloak.renku.build:8080') \
                         + '/auth/realms/Renku'
 config['OIDC_CLIENT_ID'] = os.environ.get('OIDC_CLIENT_ID', 'gateway')
 config['OIDC_CLIENT_SECRET'] = os.environ.get('OIDC_CLIENT_SECRET', 'dummy-secret')
+if 'OIDC_CLIENT_SECRET' not in os.environ:
+    logger.warning('The environment variable OIDC_CLIENT_SECRET is not set. It is mandatory for OpenId-Connect login.')
+
 config['SERVICE_PREFIX'] = os.environ.get('GATEWAY_SERVICE_PREFIX', '/')
 
 # Get the public key of the OIDC provider to verify access- and refresh_tokens

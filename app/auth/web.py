@@ -37,9 +37,7 @@ from .. import app, store
 logger = logging.getLogger(__name__)
 # Note that this part of the service should be seen as the server-side part of the UI or
 
-
-JWT_SECRET = rndstr(size=32)
-JWT_ALGORITHM = 'HS256'
+JWT_ALGORITHM = 'RS256'
 SCOPE = ['openid']
 
 # We prepare the OIC client instance with the necessary configurations.
@@ -79,7 +77,7 @@ def get_valid_token(headers):
                 try:
                     a = jwt.decode(
                         token_response['access_token'], app.config['OIDC_PUBLIC_KEY'],
-                        algorithms='RS256',
+                        algorithms=JWT_ALGORITHM,
                         audience=app.config['OIDC_CLIENT_ID']
                     )
                     return token_response
@@ -90,7 +88,7 @@ def get_valid_token(headers):
                 jwt.decode(
                     m.group('token'),
                     app.config['OIDC_PUBLIC_KEY'],
-                    algorithms='RS256',
+                    algorithms=JWT_ALGORITHM,
                     audience=app.config['OIDC_CLIENT_ID']
                 )
 
@@ -104,14 +102,14 @@ def get_valid_token(headers):
                 a = jwt.decode(
                     session.get('token'),
                     app.config['OIDC_PUBLIC_KEY'],
-                    algorithms='RS256',
+                    algorithms=JWT_ALGORITHM,
                     audience=app.config['OIDC_CLIENT_ID']
                 )
                 access_token = store.get(get_key_for_user(a, 'kc_access_token')).decode()
                 jwt.decode(
                     access_token,
                     app.config['OIDC_PUBLIC_KEY'],
-                    algorithms='RS256',
+                    algorithms=JWT_ALGORITHM,
                     audience=app.config['OIDC_CLIENT_ID']
                 )
                 return {'access_token': access_token}
@@ -127,7 +125,7 @@ def get_valid_token(headers):
                     try:
                         a = jwt.decode(
                             token_response['access_token'], app.config['OIDC_PUBLIC_KEY'],
-                            algorithms='RS256',
+                            algorithms=JWT_ALGORITHM,
                             audience=app.config['OIDC_CLIENT_ID']
                         )
                         # session['token'] = token_response['refresh_token']  # uncomment to allow sessions to be extended
@@ -159,7 +157,7 @@ async def login():
     args = {
         'client_id': app.config['OIDC_CLIENT_ID'],
         'response_type': 'code',
-        'scope': request.args.get('scope', SCOPE),
+        'scope': SCOPE,
         'redirect_uri': app.config['HOST_NAME'] + url_for('get_tokens'),
         'state': state
     }
@@ -204,7 +202,7 @@ async def get_tokens():
 
     a = jwt.decode(
         token_response['refresh_token'], app.config['OIDC_PUBLIC_KEY'],
-        algorithms='RS256',
+        algorithms=JWT_ALGORITHM,
         audience=app.config['OIDC_CLIENT_ID']
     )
     session['token'] = token_response['refresh_token']
@@ -250,7 +248,7 @@ async def info():
             a = jwt.decode(
                 session['token'],
                 app.config['OIDC_PUBLIC_KEY'],
-                algorithms='RS256',
+                algorithms=JWT_ALGORITHM,
                 audience=app.config['OIDC_CLIENT_ID']
             )  # TODO: logout and redirect if fails because of expired
 
@@ -271,7 +269,7 @@ async def user():
         a = jwt.decode(
             session['token'],
             app.config['OIDC_PUBLIC_KEY'],
-            algorithms='RS256',
+            algorithms=JWT_ALGORITHM,
             audience=app.config['OIDC_CLIENT_ID']
         )  # TODO: logout and redirect if fails because of expired
 

@@ -32,7 +32,7 @@ from oic.oic.message import AuthorizationResponse, RegistrationResponse
 from oic.utils.keyio import KeyJar
 
 from .. import app, store
-from .web import get_key_for_user
+from .web import get_key_for_user, JWT_ALGORITHM
 from app.helpers.gitlab_user_utils import get_or_create_gitlab_user
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ class GitlabUserToken():
             access_token = m.group('token')
             decodentoken = jwt.decode(
                 access_token, app.config['OIDC_PUBLIC_KEY'],
-                algorithms='RS256',
+                algorithms=JWT_ALGORITHM,
                 audience=app.config['OIDC_CLIENT_ID']
             )
 
@@ -64,8 +64,6 @@ class GitlabUserToken():
         return headers
 
 
-JWT_SECRET = rndstr(size=32)
-JWT_ALGORITHM = 'HS256'
 SCOPE = ['openid', 'api', 'read_user', 'read_repository']
 
 # We prepare the OIC client instance with the necessary configurations.
@@ -162,7 +160,7 @@ async def gitlab_get_tokens():
 def get_gitlab_refresh_token(access_token):
     access_token = jwt.decode(
         access_token, app.config['OIDC_PUBLIC_KEY'],
-        algorithms='RS256',
+        algorithms=JWT_ALGORITHM,
         audience=app.config['OIDC_CLIENT_ID']
     )
     to = Token(resp={'refresh_token': store.get(get_key_for_user(access_token, 'gl_refresh_token'))})
