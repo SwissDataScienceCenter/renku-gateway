@@ -32,7 +32,7 @@ Quickstart
 In order to get an instance of Renku up and running, clone the main Renku
 repository and follow these instructions_.
 
-.. _instructions: https://renku.readthedocs.io/en/latest/developer/minikube.html
+.. _instructions: https://renku.readthedocs.io/en/latest/developer/setup.html
 
 Developing the gateway
 ----------------------
