@@ -259,7 +259,6 @@ async def info():
             return await app.make_response(redirect("{}?redirect_url={}".format(url_for('login'), quote_plus(url_for('info')))))
 
 
-
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/user'))
 async def user():
 
@@ -286,7 +285,6 @@ async def logout():
         app.config['OIDC_ISSUER'],
         urllib.parse.urlencode({'redirect_uri': request.args.get('redirect_url')}),
     )
-    response = await app.make_response(redirect(logout_url))
 
     a = jwt.decode(session['token'], verify=False)
 
@@ -298,4 +296,4 @@ async def logout():
     for k in store.keys(prefix=get_key_for_user(a, '')):
         store.delete(k)
 
-    return response
+    return await app.make_response(redirect(logout_url))
