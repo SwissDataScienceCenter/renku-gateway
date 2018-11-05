@@ -286,14 +286,15 @@ async def logout():
         urllib.parse.urlencode({'redirect_uri': request.args.get('redirect_url')}),
     )
 
-    a = jwt.decode(session['token'], verify=False)
+    if 'token' in session:
+        a = jwt.decode(session['token'], verify=False)
 
-    # cleanup the session in redis immediately
-    cookie_val = request.cookies.get('session').split(".")[0]
-    store.delete(cookie_val)
-    session.clear()
+        # cleanup the session in redis immediately
+        cookie_val = request.cookies.get('session').split(".")[0]
+        store.delete(cookie_val)
+        session.clear()
 
-    for k in store.keys(prefix=get_key_for_user(a, '')):
-        store.delete(k)
+        for k in store.keys(prefix=get_key_for_user(a, '')):
+            store.delete(k)
 
     return await app.make_response(redirect(logout_url))
