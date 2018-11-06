@@ -20,7 +20,7 @@
         "auth": "app.auth.JupyterhubUserToken"
     },
     "(/)?": {
-        "endpoint": "{GITLAB_URL}/api/",
+        "endpoint": "{GITLAB_URL}/api/v4/",
         "processor": "app.processors.GitlabGeneric",
         "auth": "app.auth.GitlabUserToken"
     }
