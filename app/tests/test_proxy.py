@@ -113,7 +113,7 @@ async def test_gitlab_happyflow(client):
     responses.add(responses.GET, app.config['GITLAB_URL'] + "/api/v4/projects/1/issues/1/notes", json=[], status=200)
     responses.add(responses.GET, app.config['GITLAB_URL'] + '/api/v4/users', json=[{'username': 'foo'}])
 
-    rv = await client.get(urljoin(app.config['SERVICE_PREFIX'], 'v4/projects'), headers=headers)
+    rv = await client.get(urljoin(app.config['SERVICE_PREFIX'], 'projects'), headers=headers)
 
     assert rv.status_code == 200
     assert json.loads(await rv.get_data()) == GITLAB_PROJECTS
