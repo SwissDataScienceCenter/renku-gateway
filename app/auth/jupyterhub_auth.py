@@ -64,8 +64,8 @@ def jupyterhub_login():
 
     state = rndstr()
 
+    session['login_seq'] += 1
     session['jupyterhub_state'] = state
-    session['jupyterhub_ui_redirect_url'] = request.args.get('redirect_url')
 
     args = {
         'client_id': app.config['JUPYTERHUB_CLIENT_ID'],
@@ -80,7 +80,7 @@ def jupyterhub_login():
 
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/jupyterhub/token'))
-def jupyterhub_get_tokens():
+async def jupyterhub_get_tokens():
 
     authorization_parameters = parse_qs(request.query_string.decode())
 
@@ -102,7 +102,7 @@ def jupyterhub_get_tokens():
     a = jwt.decode(session['token'], verify=False)
     store.put(get_key_for_user(a, 'jh_access_token'), token_response.json().get('access_token').encode())
 
-    response = app.make_response(redirect(session['jupyterhub_ui_redirect_url']))
+    response = await app.make_response(redirect(url_for('login_next')))
 
     return response
 
