@@ -101,8 +101,8 @@ def gitlab_login():
 
     state = rndstr()
 
+    session['login_seq'] += 1
     session['gitlab_state'] = state
-    session['gitlab_ui_redirect_url'] = request.args.get('redirect_url')
 
     args = {
         'client_id': app.config['GITLAB_CLIENT_ID'],
@@ -144,15 +144,7 @@ async def gitlab_get_tokens():
     store.put(get_key_for_user(a, 'gl_refresh_token'), token_response['refresh_token'].encode())
     store.put(get_key_for_user(a, 'gl_id_token'), json.dumps(token_response['id_token'].to_dict()).encode())
 
-    # chain logins to get the jupyterhub token
-    response = await app.make_response(
-        redirect(
-            "{}?{}".format(
-                url_for('jupyterhub_login'),
-                urllib.parse.urlencode({'redirect_url': session['gitlab_ui_redirect_url']}),
-            )
-        )
-    )
+    response = await app.make_response(redirect(url_for('login_next')))
 
     return response
 

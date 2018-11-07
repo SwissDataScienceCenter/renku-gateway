@@ -23,7 +23,7 @@ import logging
 import re
 import urllib.parse
 from oic.oauth2.grant import Token
-from quart import request, redirect, url_for, current_app, Response, session
+from quart import request, redirect, url_for, current_app, Response, session, render_template
 from urllib.parse import urljoin, quote_plus
 
 from oic.oic import Client
@@ -142,6 +142,16 @@ def get_valid_token(headers):
 def get_key_for_user(token, name):
     return "cache_{}_{}".format(token.get('sub'), name)
 
+LOGIN_SEQUENCE = ['gitlab_login', 'jupyterhub_login']
+
+@app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/login/next'))
+async def login_next():
+
+    if session['login_seq'] < len(LOGIN_SEQUENCE):
+        return await render_template('redirect.html', redirect_url=url_for(LOGIN_SEQUENCE[session['login_seq']]))
+    else:
+        return redirect(session['ui_redirect_url'])
+
 
 @app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/login'))
 async def login():
@@ -149,6 +159,7 @@ async def login():
     state = rndstr()
 
     session['state'] = state
+    session['login_seq'] = 0
     session['ui_redirect_url'] = request.args.get('redirect_url')
     session['cli_token'] = request.args.get('cli_token')
     if session['cli_token']:
@@ -190,15 +201,9 @@ async def get_tokens():
         }
     )
 
-    # chain logins to get the gitlab token
-    response = await app.make_response(
-        redirect(
-            "{}?{}".format(
-                url_for('gitlab_login'),
-                urllib.parse.urlencode({'redirect_url': session['ui_redirect_url']}),
-            )
-        )
-    )
+    # chain logins
+    response = await app.make_response(redirect(url_for('login_next')))
+
 
     a = jwt.decode(
         token_response['refresh_token'], app.config['OIDC_PUBLIC_KEY'],
