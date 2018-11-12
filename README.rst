@@ -67,6 +67,50 @@ You can run tests with
 
     $ pipenv run pytest
 
+Configuration
+-------------
+The simplest way to deploy the gateway is using Helm charts_ and setting the needed values.
+But if you prefer to run directly the docker image here is the list of all environment variables that can be set, with their default values.
+
+.. _charts: helm-chart/
+
++---------------------------------+--------------------------------------------------------------------------------------------------------------+----------------------------------+
+| Variable name                   | Description                                                                                                  | Default value                    |
++=================================+==============================================================================================================+==================================+
+| HOST_NAME                       | The URL of this service.                                                                                     | http://gateway.renku.build       |
++---------------------------------+--------------------------------------------------------------------------------------------------------------+----------------------------------+
+| GATEWAY_SECRET_KEY              | The key used, among others, to encrypt session cookies. This parameter is mandatory and there is no default. | -                                |
++---------------------------------+--------------------------------------------------------------------------------------------------------------+----------------------------------+
+| GATEWAY_ALLOW_ORIGIN            | CORS configuration listing all domains allowed to use the gateway. Use "*" to allow all.                     | ""                               |
++---------------------------------+--------------------------------------------------------------------------------------------------------------+----------------------------------+
+| GATEWAY_REDIS_HOST              | The hostname/ip of the Redis instance used for persisting sessions.                                          | renku-gw-redis                   |
++---------------------------------+--------------------------------------------------------------------------------------------------------------+----------------------------------+
+| RENKU_ENDPOINT                  | The URL of the UI of Renku.                                                                                  | http://renku.build               |
++---------------------------------+--------------------------------------------------------------------------------------------------------------+----------------------------------+
+| GITLAB_URL                      | The URL of the Gitlab instance to proxy.                                                                     | http://gitlab.renku.build        |
++---------------------------------+--------------------------------------------------------------------------------------------------------------+----------------------------------+
+| GITLAB_PASS                     | A personal access token with api and sudo capabilities.                                                      | dummy-secret                     |
++---------------------------------+--------------------------------------------------------------------------------------------------------------+----------------------------------+
+| GITLAB_CLIENT_ID                | The client ID for the gateway in Gitlab.                                                                     | renku-ui                         |
++---------------------------------+--------------------------------------------------------------------------------------------------------------+----------------------------------+
+| GITLAB_CLIENT_SECRET            | The corresponding secret.                                                                                    | no-secret-needed                 |
++---------------------------------+--------------------------------------------------------------------------------------------------------------+----------------------------------+
+| JUPYTERHUB_URL                  | The URL of the JupyterHub.                                                                                   | {{HOST_NAME}}/jupyterhub         |
++---------------------------------+--------------------------------------------------------------------------------------------------------------+----------------------------------+
+| JUPYTERHUB_CLIENT_ID            | The client ID for the gateway in JupyterHub. This corresponds to the service oauth_client_id.                | gateway                          |
++---------------------------------+--------------------------------------------------------------------------------------------------------------+----------------------------------+
+| JUPYTERHUB_CLIENT_SECRET        | The client secret for the gateway in JupyterHub. This corresponds to the service api_token.                  | dummy-secret                     |
++---------------------------------+--------------------------------------------------------------------------------------------------------------+----------------------------------+
+| KEYCLOAK_URL                    | The URL of the Keycloak instance.                                                                            | http://keycloak.renku.build:8080 |
++---------------------------------+--------------------------------------------------------------------------------------------------------------+----------------------------------+
+| OIDC_CLIENT_ID                  | The client ID for the gateway in Keycloak.                                                                   | gateway                          |
++---------------------------------+--------------------------------------------------------------------------------------------------------------+----------------------------------+
+| OIDC_CLIENT_SECRET              | The client secret for the gateway in Keycloak.                                                               | dummy-secret                     |
++---------------------------------+--------------------------------------------------------------------------------------------------------------+----------------------------------+
+| GATEWAY_SERVICE_PREFIX          | The URL prefix for the gateway.                                                                              | /                                |
++---------------------------------+--------------------------------------------------------------------------------------------------------------+----------------------------------+
+| GATEWAY_ENDPOINT_CONFIG_FILE    | The JSON definition of the API proxying endpoints.                                                           | endpoints.json                   |
++---------------------------------+--------------------------------------------------------------------------------------------------------------+----------------------------------+
 
 Login workflow
 --------------
@@ -76,10 +120,38 @@ To collect the user's token from the various backend services, the gateway uses 
 .. image:: docs/login.png
   :width: 979
 
+
 Redis storage
 -------------
 
 To allow server-side sessions, the gateway relies on Redis.
 
-.. image:: docs/redis.png
-  :width: 651
++------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| key                                                        | value                                                                                                                     | remarks                                                                                                                                                                                                                                                     |
++============================================================+===========================================================================================================================+=============================================================================================================================================================================================================================================================+
+| sessions_{{session key}}                                   | a dictionary with some temporary states (redirect_urls, login states, cli_token) and the user's Keycloak refresh token.   | The session key is managed by Flask-KVsession and kept in a secured, http-only cookie.                                                                                                                                                                      |
++------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| cache_{{id sub}}_{{backend}}_{{token type}}                | The corresponding token                                                                                                   | Id sub is taken from the Keycloak refresh token in the session or Authorizazion header (after validation of the token). Current backends are Keycloak (kc), Gitlab (gl) and JupyterHub (jh). Token types can be access_token, refresh_token or id_token.    |
++------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+Extending the gateway
+---------------------
+
+If you want to add more services behind the gateway, you can easily configure the mapping in `endpoints.json` (or point to another configuration file).
+
+Adding a service backend handling authentication
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This part is still work in progress to make it plug and play. But the idea is to add the necessary http endpoints for the login/redirect/tokens for the external service and start the process by redirecting from the last service. (At the moment Keycloak -> Gitlab -> JupyterHub).
+You can take as an example the gitlab_auth.py or jupyterhub_auth.py files and implement the /auth/<your service>/login, /auth/<your service>/token and /auth/<your service>/logout endpoints.
+You can then populate the Redis cache with the collected tokens that identify the user and can be used for authorization towards some API.
+
+Adding an authorization method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If your backend API needs a specific authentication/authorization method you can write an auth processor, like the GitlabUserToken, JupyterhubUserToken or KeycloakAccessToken.
+
+Processing the requests and responses
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By implementing a class extending the base processor, you can pre-process the incomming request and/or the returning response. You can have a look at the gitlab_processor.py as a starting example.
