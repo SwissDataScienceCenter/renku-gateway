@@ -288,7 +288,7 @@ async def logout():
 
     logout_url = '{}/protocol/openid-connect/logout?{}'.format(
         app.config['OIDC_ISSUER'],
-        urllib.parse.urlencode({'redirect_uri': request.args.get('redirect_url')}),
+        urllib.parse.urlencode({'redirect_uri': app.config['HOST_NAME'] + url_for('gitlab_logout')}),
     )
 
     if 'token' in session:
