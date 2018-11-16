@@ -50,7 +50,8 @@ replicaCount: 1
 
 ## For production deployment, you will need to define the secret key
 ## This is a random string, used for cryptographic operations on cookies
-secretKey: dummy-secret
+## use `openssl rand -hex 32`
+secretKey:
 
 jupyterhub:
   ## the url of the jupyterhub deployment
@@ -58,7 +59,8 @@ jupyterhub:
   ## Client ID, this should match the jupyter hub config of services: oauth_client_id
   clientId: gateway
   ## Client secret, this should match the api_token
-  clientSecret: '' # use `openssl rand -hex 32`
+  ## use `openssl rand -hex 32`
+  clientSecret:
 
 image:
   name: renku/renku-gateway
