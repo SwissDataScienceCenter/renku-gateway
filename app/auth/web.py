@@ -291,6 +291,13 @@ async def logout():
         urllib.parse.urlencode({'redirect_uri': app.config['HOST_NAME'] + url_for('gitlab_logout')}),
     )
 
+    if request.args.get('gitlab_logout'):
+        if 'logout_from' in session:
+            session.clear()
+            return await app.make_response(redirect('/'))
+        else:
+            return await app.make_response(redirect(app.config['GITLAB_URL']))
+
     if 'token' in session:
         a = jwt.decode(session['token'], verify=False)
 
@@ -301,5 +308,7 @@ async def logout():
 
         for k in store.keys(prefix=get_key_for_user(a, '')):
             store.delete(k)
+
+        session['logout_from'] = "Renku"
 
     return await app.make_response(redirect(logout_url))
