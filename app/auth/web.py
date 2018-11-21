@@ -294,7 +294,7 @@ async def logout():
     if request.args.get('gitlab_logout'):
         if 'logout_from' in session:
             session.clear()
-            return await app.make_response(redirect('/'))
+            return await render_template('redirect_logout.html', redirect_url='/', logout_page=url_for('jupyterhub_logout'))
         else:
             return await app.make_response(redirect(app.config['GITLAB_URL']))
 
