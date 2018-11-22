@@ -36,7 +36,10 @@ spec:
             - name: GITLAB_URL
               value: {{ .Values.gitlabUrl | default (printf "%s://%s/gitlab" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: GITLAB_CLIENT_SECRET
-              value: {{ .Values.gitlabClientSecret | default .Values.global.gateway.gitlabClientSecret | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "gateway.fullname" . }}
+                  key: gitlabClientSecret
             - name: GITLAB_CLIENT_ID
               value: {{ .Values.gitlabClientId | default .Values.global.gateway.gitlabClientId | quote }}
             - name: GITLAB_PASS
@@ -57,14 +60,22 @@ spec:
               value: {{ .Values.keycloakUrl | default (printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: GATEWAY_SERVICE_PREFIX
               value: {{ .Values.gatewayServicePrefix | default "/api/" | quote }}
-            - name: OIDC_CLIENT_ID
-              value: {{ .Values.oidcClientId | default "gateway" | quote }}
             - name: GATEWAY_REDIS_HOST
               value: {{ include "call-nested" (list . "redis" "redis.fullname") }}-master
             - name: GATEWAY_SECRET_KEY
-              value: {{ .Values.secretKey | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "gateway.fullname" . }}
+                  key: gatewaySecret
             - name: GATEWAY_ALLOW_ORIGIN
               value: {{ .Values.allowOrigin | quote }}
+            - name: OIDC_CLIENT_ID
+              value: {{ .Values.oidcClientId | default "gateway" | quote }}
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "gateway.fullname" . }}
+                  key: oidcClientSecret
           livenessProbe:
             httpGet:
               path: /health
