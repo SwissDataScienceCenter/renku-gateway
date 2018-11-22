@@ -29,6 +29,7 @@ make login
 
 # build charts/images and push
 cd helm-chart
+helm dep update renku-gateway
 chartpress --push --publish-chart
 chartpress --tag latest --push
 git diff
