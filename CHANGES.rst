@@ -10,7 +10,7 @@ session and the mapping to the backend API tokens.
 * Redis is added to the helm dependencies (and its name overriden to avoid
  conflicts). New values can control its parameters, such as replication.
 
-* Gitlab and Jupyter hub are added as Oauth2 providers, a service/application
+* Gitlab and JupyterHub are added as OAuth2 providers, a service/application
  has to be registered into them to allow the gateway to proceed. The
  corresponding values are mandatory.
 
