@@ -28,7 +28,7 @@ v0.2.0
 ------
 *(released 2018-09-25)*
 Initial release as a part of the larger Renku release. The gateway acts as a
-stateless proxy between the UI and Gitlab, providing the necessray endpoints
+stateless proxy between the UI and Gitlab, providing the necessary endpoints
 for OAuth2/OpenID-connect login/logout and token retrieval.
 Calls to Gitlab are transformed to use a "sudo token" and taking the identity
 of the user, given the Keycloak access token sent from UI.
