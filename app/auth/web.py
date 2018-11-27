@@ -97,27 +97,23 @@ def get_valid_token(headers):
             except:
                 return None
     else:
-        try:
-            if headers.get('X-Requested-With') == 'XMLHttpRequest' and 'token' in session:
-                a = jwt.decode(
+        if headers.get('X-Requested-With') == 'XMLHttpRequest' and 'token' in session:
+            try:
+                jwt.decode(
                     session.get('token'),
                     app.config['OIDC_PUBLIC_KEY'],
                     algorithms=JWT_ALGORITHM,
                     audience=app.config['OIDC_CLIENT_ID']
                 )
-                access_token = store.get(get_key_for_user(a, 'kc_access_token')).decode()
-                jwt.decode(
-                    access_token,
-                    app.config['OIDC_PUBLIC_KEY'],
-                    algorithms=JWT_ALGORITHM,
-                    audience=app.config['OIDC_CLIENT_ID']
-                )
-                return {'access_token': access_token}
+                return {'access_token': session.get('token')}
 
-        except:
-            if 'token' in session and jwt.decode(session.get('token'), verify=False).get('typ') in ['Offline', 'Refresh']:
-                logger.debug("Swapping the token")
-                to = Token(resp={'refresh_token': session.get('token')})
+            except:
+
+                a = jwt.decode(session.get('token'), verify=False)
+                refresh_token = store.get(get_key_for_user(a, 'kc_refresh_token')).decode()
+
+                logger.debug("Refreshing the token")
+                to = Token(resp={'refresh_token': refresh_token})
 
                 token_response = client.do_access_token_refresh(token=to)
 
@@ -128,7 +124,7 @@ def get_valid_token(headers):
                             algorithms=JWT_ALGORITHM,
                             audience=app.config['OIDC_CLIENT_ID']
                         )
-                        # session['token'] = token_response['refresh_token']  # uncomment to allow sessions to be extended
+                        session['token'] = token_response['access_token']
                         store.put(get_key_for_user(a, 'kc_access_token'), token_response['access_token'].encode())
                         store.put(get_key_for_user(a, 'kc_refresh_token'), token_response['refresh_token'].encode())
                         store.put(get_key_for_user(a, 'kc_id_token'), json.dumps(token_response['id_token'].to_dict()).encode())
@@ -204,13 +200,12 @@ async def get_tokens():
     # chain logins
     response = await app.make_response(redirect(url_for('login_next')))
 
-
     a = jwt.decode(
-        token_response['refresh_token'], app.config['OIDC_PUBLIC_KEY'],
+        token_response['access_token'], app.config['OIDC_PUBLIC_KEY'],
         algorithms=JWT_ALGORITHM,
         audience=app.config['OIDC_CLIENT_ID']
     )
-    session['token'] = token_response['refresh_token']
+    session['token'] = token_response['access_token']
     store.put(get_key_for_user(a, 'kc_access_token'), token_response['access_token'].encode())
     store.put(get_key_for_user(a, 'kc_refresh_token'), token_response['refresh_token'].encode())
     store.put(get_key_for_user(a, 'kc_id_token'), json.dumps(token_response['id_token'].to_dict()).encode())
