@@ -19,6 +19,11 @@
         "processor": "app.processors.ServiceGeneric",
         "auth": "app.auth.JupyterhubUserToken"
     },
+    "graph(/)?": {
+        "endpoint": "{RENKU_ENDPOINT}/graph/",
+        "processor": "app.processors.GraphGeneric",
+        "auth": "app.auth.KeycloakAccessToken"
+    },
     "(/)?": {
         "endpoint": "{GITLAB_URL}/api/v4/",
         "processor": "app.processors.GitlabGeneric",

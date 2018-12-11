@@ -19,3 +19,4 @@
 
 from .gitlab_processor import GitlabGeneric #GitlabProjects
 from .service_processor import ServiceGeneric
+from .graph_processor import GraphGeneric
