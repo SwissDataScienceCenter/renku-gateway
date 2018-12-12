@@ -14,6 +14,7 @@ PyJWT = "*"
 redis = "*"
 flask_kvsession = "*"
 aiohttp = "*"
+sparqlwrapper = "*"
 
 [dev-packages]
 pytest = "*"

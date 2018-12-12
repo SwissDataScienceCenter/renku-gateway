@@ -65,6 +65,11 @@ config['JUPYTERHUB_CLIENT_SECRET'] = os.environ.get('JUPYTERHUB_CLIENT_SECRET', 
 if 'JUPYTERHUB_CLIENT_SECRET' not in os.environ:
     logger.warning('The environment variable JUPYTERHUB_CLIENT_SECRET is not set. It is mandatory for JupyterHub login.')
 
+
+config['SPARQL_ENDPOINT'] = os.environ.get('SPARQL_ENDPOINT', 'http://localhost:3030/renku/sparql')
+config['SPARQL_USERNAME'] = os.environ.get('SPARQL_USERNAME', 'admin')
+config['SPARQL_PASSWORD'] = os.environ.get('SPARQL_PASSWORD', 'admin')
+
 config['OIDC_ISSUER'] = os.environ.get('KEYCLOAK_URL', 'http://keycloak.renku.build:8080') \
                         + '/auth/realms/Renku'
 config['OIDC_CLIENT_ID'] = os.environ.get('OIDC_CLIENT_ID', 'gateway')
