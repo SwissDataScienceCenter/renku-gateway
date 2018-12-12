@@ -13,6 +13,7 @@ Quart-CORS = "*"
 PyJWT = "*"
 redis = "*"
 flask_kvsession = "*"
+sparqlwrapper = "*"
 
 [dev-packages]
 pytest = "*"

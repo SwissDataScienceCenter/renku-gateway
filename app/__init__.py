@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2017 - Swiss Data Science Center (SDSC)
+# Copyright 2017-2018 - Swiss Data Science Center (SDSC)
 # A partnership between École Polytechnique Fédérale de Lausanne (EPFL) and
 # Eidgenössische Technische Hochschule Zürich (ETHZ).
 #
@@ -18,15 +18,18 @@
 """Quart initialization."""
 
 import logging
-import redis
 import sys
+from urllib.parse import urljoin
+
 import quart.flask_patch
+import redis
 from flask_kvsession import KVSessionExtension
-from simplekv.decorator import PrefixDecorator
-from simplekv.memory.redisstore import RedisStore
 from quart import Quart
 from quart_cors import cors
+from simplekv.decorator import PrefixDecorator
+from simplekv.memory.redisstore import RedisStore
 
+from .blueprints import graph
 from .config import config, load_config
 
 logging.basicConfig(level=logging.DEBUG)
@@ -49,7 +52,14 @@ else:
 prefixed_store = PrefixDecorator('sessions_', store)
 KVSessionExtension(prefixed_store, app)
 
-from .gateway import proxy
+app.register_blueprint(
+    graph.blueprint,
+    url_prefix=urljoin(app.config['SERVICE_PREFIX'], 'graph'),
+)
+
+# FIXME refactor to use blueprints
 from .auth import web
-from .auth.gitlab_auth import gitlab_login, gitlab_get_tokens, gitlab_logout
-from .auth.jupyterhub_auth import jupyterhub_login, jupyterhub_get_tokens, jupyterhub_logout
+from .auth.gitlab_auth import gitlab_get_tokens, gitlab_login, gitlab_logout
+from .auth.jupyterhub_auth import (jupyterhub_get_tokens, jupyterhub_login,
+                                   jupyterhub_logout)
+from .gateway import proxy
