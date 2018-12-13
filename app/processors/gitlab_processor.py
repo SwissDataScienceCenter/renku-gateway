@@ -1,19 +1,18 @@
-from app.processors.base_processor import BaseProcessor
-from .. import app
-from app.helpers.gitlab_parsers import parse_project
+import json
+import logging
+import re
 from urllib.parse import quote, urljoin
 
-import logging
-import json
 import requests
-import re
-
-from werkzeug.datastructures import Headers
 from quart import Response
+from werkzeug.datastructures import Headers
 
+from app.helpers.gitlab_parsers import parse_project
+from app.processors.base_processor import BaseProcessor
+
+from .. import app
 
 logger = logging.getLogger(__name__)
-
 
 SPECIAL_ROUTE_RULES = [
     {
@@ -39,16 +38,13 @@ SPECIAL_ROUTE_RULES = [
 ]
 
 SPECIAL_ROUTE_REGEXES = [
-    '(.*)({before})(.*)({after})(.*)'.format(before=rule['before'], after=rule['after']) for rule in SPECIAL_ROUTE_RULES
+    '(.*)({before})(.*)({after})(.*)'.format(
+        before=rule['before'], after=rule['after']
+    ) for rule in SPECIAL_ROUTE_RULES
 ]
 
 GITLAB_FORWARDED_RESPONSE_HEADERS = [
-    'Link',
-    'X-Next-Page',
-    'X-Page',
-    'X-Per-Page',
-    'X-Prev-Page',
-    'X-Total',
+    'Link', 'X-Next-Page', 'X-Page', 'X-Per-Page', 'X-Prev-Page', 'X-Total',
     'X-Total-Pages'
 ]
 
@@ -80,11 +76,9 @@ def fix_link_header(headers):
 
 
 class GitlabGeneric(BaseProcessor):
-
     def __init__(self, path, endpoint):
         super().__init__(path, endpoint)
         self.forwarded_headers += GITLAB_FORWARDED_RESPONSE_HEADERS
-
 
     async def process(self, request, headers):
         # Gitlab has routes where the resource identifier can include slashes
@@ -102,7 +96,6 @@ class GitlabGeneric(BaseProcessor):
             return await super().process(request, headers)  # retry
 
         return resp
-
 
     def create_response_headers(self, response):
         headers = super().create_response_headers(response)

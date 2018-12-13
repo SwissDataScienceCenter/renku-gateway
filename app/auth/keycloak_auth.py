@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 
 
 class KeycloakAccessToken():
-
     def process(self, request, headers):
 
         return headers

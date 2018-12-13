@@ -17,13 +17,12 @@
 # limitations under the License.
 """Helpers for dealing with the GitLab user data."""
 
-import logging
 import json
-import requests
+import logging
 import re
 
-from .. import app
-
+import requests
+from quart import current_app
 
 logger = logging.getLogger(__name__)
 
@@ -41,24 +40,25 @@ def get_or_create_gitlab_user(access_token):
     if username:
         return username
 
-    sudo_header = {
-        'Private-Token': app.config['GITLAB_PASS']
-    }
+    sudo_header = {'Private-Token': current_app.config['GITLAB_PASS']}
 
     query_params = {
         'extern_uid': access_token['sub'],
         'provider': 'oauth2_generic'
     }
     user_response = requests.get(
-        app.config['GITLAB_URL'] + '/api/v4/users',
+        current_app.config['GITLAB_URL'] + '/api/v4/users',
         headers=sudo_header,
         params=query_params
     )
 
     # More than one user found -> should not happen
     if len(user_response.json()) > 1:
-        logging.error('More than one user with ' +
-                      'extern_uid={} for provider oauth2_generic.'.format(access_token['sub']))
+        logging.error(
+            'More than one user with ' +
+            'extern_uid={} for provider oauth2_generic.'.
+            format(access_token['sub'])
+        )
         return None
 
     # No user found, lets create it.
@@ -68,13 +68,21 @@ def get_or_create_gitlab_user(access_token):
 
         username_counter = 0
         while True:
-            username_appendix = '' if username_counter == 0 else str(username_counter)
-            username_base = re.match(r'[a-zA-Z0-9\.\_\-]*', access_token['preferred_username']).group(0)
+            username_appendix = '' if username_counter == 0 else str(
+                username_counter
+            )
+            username_base = re.match(
+                r'[a-zA-Z0-9\.\_\-]*', access_token['preferred_username']
+            ).group(0)
 
             body = {
                 'username': username_base + username_appendix,
                 'email': access_token['email'],
-                'name': '{first} {last}'.format(first=access_token['given_name'], last=access_token['family_name']),
+                'name':
+                    '{first} {last}'.format(
+                        first=access_token['given_name'],
+                        last=access_token['family_name']
+                    ),
                 'extern_uid': access_token['sub'],
                 'provider': 'oauth2_generic',
                 'skip_confirmation': True,
@@ -82,17 +90,22 @@ def get_or_create_gitlab_user(access_token):
             }
 
             new_user_response = requests.post(
-                app.config['GITLAB_URL'] + '/api/v4/users',
+                current_app.config['GITLAB_URL'] + '/api/v4/users',
                 headers=sudo_header,
                 data=body
             )
-            if (new_user_response.status_code != 409 or
-                    new_user_response.json()['message'] != 'Username has already been taken'):
+            if (
+                new_user_response.status_code != 409 or
+                new_user_response.json()['message'] !=
+                'Username has already been taken'
+            ):
                 break
             username_counter += 1
 
         if new_user_response.status_code != 201:
-            logging.error('Problem creating user from body {}'.format(json.dumps(body)))
+            logging.error(
+                'Problem creating user from body {}'.format(json.dumps(body))
+            )
             logging.error(new_user_response.json()['message'])
 
         username = new_user_response.json()['username']

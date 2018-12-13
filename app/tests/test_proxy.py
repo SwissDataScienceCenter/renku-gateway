@@ -17,18 +17,24 @@
 # limitations under the License.
 """ Test for the proxy """
 
-import pytest
 import asyncio
 import functools
-from .. import app
-import responses
-import requests
-import jwt
 import json
 from urllib.parse import urljoin
-from .test_data import PUBLIC_KEY, PRIVATE_KEY, TOKEN_PAYLOAD, GITLAB_PROJECTS, GITLAB_ISSUES, GATEWAY_PROJECT
+
+import jwt
+import pytest
+import requests
+import responses
+
 from app.config import load_config
 from aioresponses import aioresponses
+
+from .. import app
+from .test_data import (
+    GATEWAY_PROJECT, GITLAB_ISSUES, GITLAB_PROJECTS, PRIVATE_KEY, PUBLIC_KEY,
+    TOKEN_PAYLOAD
+)
 
 
 @pytest.fixture
@@ -48,6 +54,7 @@ def aiotest(func):
         asyncio.set_event_loop(None)
         loop.run_until_complete(func(*args, **kwargs))
         loop.close()
+
     return _func
 
 
@@ -55,8 +62,9 @@ def aiotest(func):
 def test_simple(client):
 
     test_url = app.config['GITLAB_URL'] + '/dummy'
-    responses.add(responses.GET, test_url,
-                  json={'error': 'not found'}, status=404)
+    responses.add(
+        responses.GET, test_url, json={'error': 'not found'}, status=404
+    )
 
     resp = requests.get(test_url)
 
@@ -94,13 +102,14 @@ async def test_passthrough_nopubkeyflow(client):
 #    assert rv.status_code == 401
 #    assert b'No authorization header found' in (await rv.get_data())
 
-
 ## TODO: currently the project mapper is not used, but we keep the other response for future use.
 
 @aiotest
 async def test_gitlab_happyflow(client):
     # If a request does has the required headers, it should be able to pass through
-    access_token = jwt.encode(payload=TOKEN_PAYLOAD, key=PRIVATE_KEY, algorithm='RS256').decode('utf-8')
+    access_token = jwt.encode(
+        payload=TOKEN_PAYLOAD, key=PRIVATE_KEY, algorithm='RS256'
+    ).decode('utf-8')
     headers = {'Authorization': 'Bearer {}'.format(access_token)}
 
     from .. import store
@@ -127,7 +136,9 @@ async def test_gitlab_happyflow(client):
 @aiotest
 async def test_service_happyflow(client):
     # If a request does has the required headers, it should be able to pass through
-    access_token = jwt.encode(payload=TOKEN_PAYLOAD, key=PRIVATE_KEY, algorithm='RS256').decode('utf-8')
+    access_token = jwt.encode(
+        payload=TOKEN_PAYLOAD, key=PRIVATE_KEY, algorithm='RS256'
+    ).decode('utf-8')
     headers = {'Authorization': 'Bearer {}'.format(access_token)}
 
     with aioresponses() as mocked:

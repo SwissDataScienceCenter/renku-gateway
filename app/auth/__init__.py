@@ -17,5 +17,5 @@
 # limitations under the License.
 """auth module."""
 from .gitlab_auth import GitlabUserToken
-from .keycloak_auth import KeycloakAccessToken
 from .jupyterhub_auth import JupyterhubUserToken
+from .keycloak_auth import KeycloakAccessToken
