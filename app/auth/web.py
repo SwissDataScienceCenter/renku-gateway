@@ -16,25 +16,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Web auth routes."""
-import jwt
+
 import json
-import time
 import logging
 import re
+import time
 import urllib.parse
-from oic.oauth2.grant import Token
-from quart import request, redirect, url_for, current_app, Response, session, render_template
-from urllib.parse import urljoin, quote_plus
+from urllib.parse import quote_plus, urljoin
 
-from oic.oic import Client
-from oic.utils.authn.client import CLIENT_AUTHN_METHOD
+import jwt
 from oic import rndstr
+from oic.oauth2.grant import Token
+from oic.oic import Client
 from oic.oic.message import AuthorizationResponse, RegistrationResponse
-
-from .. import app, store
-
+from oic.utils.authn.client import CLIENT_AUTHN_METHOD
+from quart import (
+    Blueprint, Response, current_app, redirect, render_template, request,
+    session, url_for
+)
 
 logger = logging.getLogger(__name__)
+
+blueprint = Blueprint('web_auth', __name__, url_prefix='/auth')
+
 # Note that this part of the service should be seen as the server-side part of the UI or
 
 JWT_ALGORITHM = 'RS256'
@@ -43,20 +47,20 @@ SCOPE = ['openid']
 # We prepare the OIC client instance with the necessary configurations.
 client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
 
-try:
-    client.provider_config(
-        issuer=app.config['OIDC_ISSUER']
+
+@blueprint.before_app_first_request
+def before_first():
+    """Fake the response from registering the client through the API."""
+    try:
+        client.provider_config(issuer=current_app.config['OIDC_ISSUER'])
+    except:
+        pass
+
+    client_reg = RegistrationResponse(
+        client_id=current_app.config['OIDC_CLIENT_ID'],
+        client_secret=current_app.config['OIDC_CLIENT_SECRET']
     )
-except:
-    pass
-
-
-# This fakes the response we would get from registering the client through the API
-client_reg = RegistrationResponse(
-    client_id=app.config['OIDC_CLIENT_ID'],
-    client_secret=app.config['OIDC_CLIENT_SECRET']
-)
-client.store_registration_info(client_reg)
+    client.store_registration_info(client_reg)
 
 
 def get_valid_token(headers):
@@ -65,10 +69,17 @@ def get_valid_token(headers):
 
     If a refresh token is available, it can be swapped for an access token.
     """
-    m = re.search(r'bearer (?P<token>.+)', headers.get('Authorization', ''), re.IGNORECASE)
+    from .. import store
+
+    m = re.search(
+        r'bearer (?P<token>.+)', headers.get('Authorization', ''),
+        re.IGNORECASE
+    )
 
     if m:
-        if jwt.decode(m.group('token'), verify=False).get('typ') in ['Offline', 'Refresh']:
+        if jwt.decode(
+            m.group('token'), verify=False
+        ).get('typ') in ['Offline', 'Refresh']:
             logger.debug("Swapping the token")
             to = Token(resp={'refresh_token': m.group('token')})
             token_response = client.do_access_token_refresh(token=to)
@@ -76,9 +87,10 @@ def get_valid_token(headers):
             if 'access_token' in token_response:
                 try:
                     a = jwt.decode(
-                        token_response['access_token'], app.config['OIDC_PUBLIC_KEY'],
+                        token_response['access_token'],
+                        current_app.config['OIDC_PUBLIC_KEY'],
                         algorithms=JWT_ALGORITHM,
-                        audience=app.config['OIDC_CLIENT_ID']
+                        audience=current_app.config['OIDC_CLIENT_ID']
                     )
                     return token_response
                 except:
@@ -87,9 +99,9 @@ def get_valid_token(headers):
             try:
                 jwt.decode(
                     m.group('token'),
-                    app.config['OIDC_PUBLIC_KEY'],
+                    current_app.config['OIDC_PUBLIC_KEY'],
                     algorithms=JWT_ALGORITHM,
-                    audience=app.config['OIDC_CLIENT_ID']
+                    audience=current_app.config['OIDC_CLIENT_ID']
                 )
 
                 return {'access_token': m.group('token')}
@@ -97,20 +109,24 @@ def get_valid_token(headers):
             except:
                 return None
     else:
-        if headers.get('X-Requested-With') == 'XMLHttpRequest' and 'token' in session:
+        if headers.get(
+            'X-Requested-With'
+        ) == 'XMLHttpRequest' and 'token' in session:
             try:
                 jwt.decode(
                     session.get('token'),
-                    app.config['OIDC_PUBLIC_KEY'],
+                    current_app.config['OIDC_PUBLIC_KEY'],
                     algorithms=JWT_ALGORITHM,
-                    audience=app.config['OIDC_CLIENT_ID']
+                    audience=current_app.config['OIDC_CLIENT_ID']
                 )
                 return {'access_token': session.get('token')}
 
             except:
 
                 a = jwt.decode(session.get('token'), verify=False)
-                refresh_token = store.get(get_key_for_user(a, 'kc_refresh_token')).decode()
+                refresh_token = store.get(
+                    get_key_for_user(a, 'kc_refresh_token')
+                ).decode()
 
                 logger.debug("Refreshing the token")
                 to = Token(resp={'refresh_token': refresh_token})
@@ -120,14 +136,25 @@ def get_valid_token(headers):
                 if 'access_token' in token_response:
                     try:
                         a = jwt.decode(
-                            token_response['access_token'], app.config['OIDC_PUBLIC_KEY'],
+                            token_response['access_token'],
+                            current_app.config['OIDC_PUBLIC_KEY'],
                             algorithms=JWT_ALGORITHM,
-                            audience=app.config['OIDC_CLIENT_ID']
+                            audience=current_app.config['OIDC_CLIENT_ID']
                         )
                         session['token'] = token_response['access_token']
-                        store.put(get_key_for_user(a, 'kc_access_token'), token_response['access_token'].encode())
-                        store.put(get_key_for_user(a, 'kc_refresh_token'), token_response['refresh_token'].encode())
-                        store.put(get_key_for_user(a, 'kc_id_token'), json.dumps(token_response['id_token'].to_dict()).encode())
+                        store.put(
+                            get_key_for_user(a, 'kc_access_token'),
+                            token_response['access_token'].encode()
+                        )
+                        store.put(
+                            get_key_for_user(a, 'kc_refresh_token'),
+                            token_response['refresh_token'].encode()
+                        )
+                        store.put(
+                            get_key_for_user(a, 'kc_id_token'),
+                            json.dumps(token_response['id_token'].to_dict()
+                                       ).encode()
+                        )
                         return token_response
                     except:
                         return None
@@ -138,18 +165,23 @@ def get_valid_token(headers):
 def get_key_for_user(token, name):
     return "cache_{}_{}".format(token.get('sub'), name)
 
+
 LOGIN_SEQUENCE = ['gitlab_login', 'jupyterhub_login']
 
-@app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/login/next'))
+
+@blueprint.route('/login/next')
 async def login_next():
 
     if session['login_seq'] < len(LOGIN_SEQUENCE):
-        return await render_template('redirect.html', redirect_url=url_for(LOGIN_SEQUENCE[session['login_seq']]))
+        return await render_template(
+            'redirect.html',
+            redirect_url=url_for(LOGIN_SEQUENCE[session['login_seq']])
+        )
     else:
         return redirect(session['ui_redirect_url'])
 
 
-@app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/login'))
+@blueprint.route('/login')
 async def login():
 
     state = rndstr()
@@ -159,24 +191,26 @@ async def login():
     session['ui_redirect_url'] = request.args.get('redirect_url')
     session['cli_token'] = request.args.get('cli_token')
     if session['cli_token']:
-        session['ui_redirect_url'] = app.config['HOST_NAME'] + url_for('info')
+        session['ui_redirect_url'
+                ] = current_app.config['HOST_NAME'] + url_for('info')
 
     args = {
-        'client_id': app.config['OIDC_CLIENT_ID'],
+        'client_id': current_app.config['OIDC_CLIENT_ID'],
         'response_type': 'code',
         'scope': SCOPE,
-        'redirect_uri': app.config['HOST_NAME'] + url_for('get_tokens'),
+        'redirect_uri': current_app.config['HOST_NAME'] +
+                        url_for('get_tokens'),
         'state': state
     }
     auth_req = client.construct_AuthorizationRequest(request_args=args)
     login_url = auth_req.request(client.authorization_endpoint)
-    response = await app.make_response(redirect(login_url))
+    response = await current_app.make_response(redirect(login_url))
 
     return response
 
 
-@app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/token'))
-async def get_tokens():
+@blueprint.route('/token')
+async def token():
 
     # This is more about parsing the request data than any response data....
     authorization_parameters = client.parse_response(
@@ -193,34 +227,55 @@ async def get_tokens():
         state=authorization_parameters['state'],
         request_args={
             'code': authorization_parameters['code'],
-            'redirect_uri': app.config['HOST_NAME'] + url_for('get_tokens'),
+            'redirect_uri':
+                current_app.config['HOST_NAME'] + url_for('get_tokens'),
         }
     )
 
     # chain logins
-    response = await app.make_response(redirect(url_for('login_next')))
+    response = await current_app.make_response(redirect(url_for('login_next')))
 
     a = jwt.decode(
-        token_response['access_token'], app.config['OIDC_PUBLIC_KEY'],
+        token_response['access_token'],
+        current_app.config['OIDC_PUBLIC_KEY'],
         algorithms=JWT_ALGORITHM,
-        audience=app.config['OIDC_CLIENT_ID']
+        audience=current_app.config['OIDC_CLIENT_ID']
     )
     session['token'] = token_response['access_token']
-    store.put(get_key_for_user(a, 'kc_access_token'), token_response['access_token'].encode())
-    store.put(get_key_for_user(a, 'kc_refresh_token'), token_response['refresh_token'].encode())
-    store.put(get_key_for_user(a, 'kc_id_token'), json.dumps(token_response['id_token'].to_dict()).encode())
+    store.put(
+        get_key_for_user(a, 'kc_access_token'),
+        token_response['access_token'].encode()
+    )
+    store.put(
+        get_key_for_user(a, 'kc_refresh_token'),
+        token_response['refresh_token'].encode()
+    )
+    store.put(
+        get_key_for_user(a, 'kc_id_token'),
+        json.dumps(token_response['id_token'].to_dict()).encode()
+    )
 
     # we can already tell the CLI which token to use
     if session.get('cli_token'):
-        logger.debug("Notification for request {}".format(session.get('cli_token')))
+        logger.debug(
+            "Notification for request {}".format(session.get('cli_token'))
+        )
 
-        key = "cli_{}".format(hashlib.sha256(session.get('cli_token').encode()).hexdigest())
-        store.put(key, json.dumps({'access_token': token_response['access_token'], 'refresh_token': token_response['refresh_token']}).encode())
+        key = "cli_{}".format(
+            hashlib.sha256(session.get('cli_token').encode()).hexdigest()
+        )
+        store.put(
+            key,
+            json.dumps({
+                'access_token': token_response['access_token'],
+                'refresh_token': token_response['refresh_token']
+            }).encode()
+        )
 
     return response
 
 
-@app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/info'))
+@blueprint.route('/info')
 async def info():
 
     t = request.args.get('cli_token')
@@ -242,56 +297,96 @@ async def info():
     else:
 
         if 'token' not in session:
-            return await app.make_response(redirect("{}?redirect_url={}".format(url_for('login'), quote_plus(url_for('info')))))
+            return await current_app.make_response(
+                redirect(
+                    "{}?redirect_url={}".format(
+                        url_for('login'), quote_plus(url_for('info'))
+                    )
+                )
+            )
 
         try:
             a = jwt.decode(
                 session['token'],
-                app.config['OIDC_PUBLIC_KEY'],
+                current_app.config['OIDC_PUBLIC_KEY'],
                 algorithms=JWT_ALGORITHM,
-                audience=app.config['OIDC_CLIENT_ID']
+                audience=current_app.config['OIDC_CLIENT_ID']
             )  # TODO: logout and redirect if fails because of expired
 
-            return "You can copy/paste the following tokens if needed and close this page: <br> Access Token: {}<br>Refresh Token: {}".format(
-                store.get(get_key_for_user(a, 'kc_access_token')).decode(), store.get(get_key_for_user(a, 'kc_refresh_token')).decode())
+            return (
+                "You can copy/paste the following tokens if needed "
+                "and close this page: "
+                "<br> Access Token: {}<br>Refresh Token: {}".format(
+                    store.get(get_key_for_user(a, 'kc_access_token')).decode(),
+                    store.get(get_key_for_user(a,
+                                               'kc_refresh_token')).decode(),
+                )
+            )
 
         except jwt.ExpiredSignatureError:
-            return await app.make_response(redirect("{}?redirect_url={}".format(url_for('login'), quote_plus(url_for('info')))))
+            return await current_app.make_response(
+                redirect(
+                    "{}?redirect_url={}".format(
+                        url_for('login'), quote_plus(url_for('info'))
+                    )
+                )
+            )
 
 
-@app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/user'))
+@blueprint.route('/user')
 async def user():
 
     if 'token' not in session:
-        return await app.make_response(redirect("{}?redirect_url={}".format(url_for('login'), quote_plus(url_for('user')))))
+        return await current_app.make_response(
+            redirect(
+                "{}?redirect_url={}".format(
+                    url_for('login'), quote_plus(url_for('user'))
+                )
+            )
+        )
     try:
         a = jwt.decode(
             session['token'],
-            app.config['OIDC_PUBLIC_KEY'],
+            current_app.config['OIDC_PUBLIC_KEY'],
             algorithms=JWT_ALGORITHM,
-            audience=app.config['OIDC_CLIENT_ID']
+            audience=current_app.config['OIDC_CLIENT_ID']
         )  # TODO: logout and redirect if fails because of expired
 
         return store.get(get_key_for_user(a, 'kc_id_token')).decode()
 
     except jwt.ExpiredSignatureError:
-            return await app.make_response(redirect("{}?redirect_url={}".format(url_for('login'), quote_plus(url_for('user')))))
+        return await current_app.make_response(
+            redirect(
+                "{}?redirect_url={}".format(
+                    url_for('login'), quote_plus(url_for('user'))
+                )
+            )
+        )
 
 
-@app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/logout'))
+@blueprint.route('/logout')
 async def logout():
 
     logout_url = '{}/protocol/openid-connect/logout?{}'.format(
-        app.config['OIDC_ISSUER'],
-        urllib.parse.urlencode({'redirect_uri': app.config['HOST_NAME'] + url_for('gitlab_logout')}),
+        current_app.config['OIDC_ISSUER'],
+        urllib.parse.urlencode({
+            'redirect_uri':
+                current_app.config['HOST_NAME'] + url_for('gitlab_logout')
+        }),
     )
 
     if request.args.get('gitlab_logout'):
         if 'logout_from' in session:
             session.clear()
-            return await render_template('redirect_logout.html', redirect_url='/', logout_page=url_for('jupyterhub_logout'))
+            return await render_template(
+                'redirect_logout.html',
+                redirect_url='/',
+                logout_page=url_for('jupyterhub_logout')
+            )
         else:
-            return await app.make_response(redirect(app.config['GITLAB_URL']))
+            return await current_app.make_response(
+                redirect(current_app.config['GITLAB_URL'])
+            )
 
     if 'token' in session:
         a = jwt.decode(session['token'], verify=False)
@@ -306,4 +401,4 @@ async def logout():
 
         session['logout_from'] = "Renku"
 
-    return await app.make_response(redirect(logout_url))
+    return await current_app.make_response(redirect(logout_url))

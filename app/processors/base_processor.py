@@ -1,7 +1,7 @@
 import json
 import logging
-import requests
 
+import requests
 from quart import Response
 from werkzeug.datastructures import Headers
 
@@ -9,14 +9,17 @@ logger = logging.getLogger(__name__)
 
 
 class BaseProcessor:
-
     def __init__(self, path, endpoint):
         self.path = path
         self.endpoint = endpoint
         self.forwarded_headers = [
             'Content-Type',
         ]
-        logger.debug('Processor with path = "{}" and endpoint = "{}"'.format(path, endpoint))
+        logger.debug(
+            'Processor with path = "{}" and endpoint = "{}"'.format(
+                path, endpoint
+            )
+        )
 
     async def process(self, request, headers):
         logger.debug('Request path: {}'.format(self.path))

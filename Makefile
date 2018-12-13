@@ -46,7 +46,7 @@ start:
 
 dev-docker:
 	@echo "Running development server to develop against renku running inside docker"
-	QUART_DEBUG=1 HOST_NAME=http://localhost:5000 python run.py
+	QUART_APP=app:app QUART_DEBUG=1 HOST_NAME=http://localhost:5000 quart run
 
 dev:
 	./run-telepresence.sh

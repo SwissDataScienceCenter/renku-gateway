@@ -29,37 +29,54 @@ from quart_cors import cors
 from simplekv.decorator import PrefixDecorator
 from simplekv.memory.redisstore import RedisStore
 
+from .auth import gitlab_auth, jupyterhub_auth, web
 from .blueprints import graph
 from .config import config, load_config
+from .gateway import proxy
 
 logging.basicConfig(level=logging.DEBUG)
 
 app = Quart(__name__)
-
-for key in config.keys():
-    app.config[key] = config[key]
-
-app = cors(app, allow_headers=['X-Requested-With'], allow_origin=app.config['ALLOW_ORIGIN'])
+app.config.from_mapping(config)
+app = cors(
+    app,
+    allow_headers=['X-Requested-With'],
+    allow_origin=app.config['ALLOW_ORIGIN'],
+)
 
 load_config()
 
 if "pytest" in sys.modules:
-    from mockredis import mock_strict_redis_client
-    store = RedisStore(mock_strict_redis_client())
+    from simplekv.memory import DictStore
+    store = DictStore()
 else:
     store = RedisStore(redis.StrictRedis(host=app.config['REDIS_HOST']))
 
 prefixed_store = PrefixDecorator('sessions_', store)
 KVSessionExtension(prefixed_store, app)
 
-app.register_blueprint(
+url_prefix = app.config['SERVICE_PREFIX']
+blueprints = (
     graph.blueprint,
-    url_prefix=urljoin(app.config['SERVICE_PREFIX'], 'graph'),
+    gitlab_auth.blueprint,
+    jupyterhub_auth.blueprint,
+    proxy.blueprint,
+    web.blueprint,
 )
 
-# FIXME refactor to use blueprints
-from .auth import web
-from .auth.gitlab_auth import gitlab_get_tokens, gitlab_login, gitlab_logout
-from .auth.jupyterhub_auth import (jupyterhub_get_tokens, jupyterhub_login,
-                                   jupyterhub_logout)
-from .gateway import proxy
+
+def _join_url_prefix(first, second):
+    """Join prefixes."""
+    first = (first or '').strip('/')
+    second = (second or '').lstrip('/')
+    if first:
+        return f'/{first}/{second}'
+    elif second:
+        return f'/{second}'
+
+
+for blueprint in blueprints:
+    app.register_blueprint(
+        blueprint,
+        url_prefix=_join_url_prefix(url_prefix, blueprint.url_prefix),
+    )

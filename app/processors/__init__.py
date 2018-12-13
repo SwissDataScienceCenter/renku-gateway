@@ -16,7 +16,3 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Processors module."""
-
-from .gitlab_processor import GitlabGeneric, GitlabProjects
-from .service_processor import ServiceGeneric
-from .graph_processor import GraphGeneric

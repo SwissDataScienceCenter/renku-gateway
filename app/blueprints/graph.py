@@ -17,10 +17,10 @@
 # limitations under the License.
 """Graph endpoint."""
 
-from SPARQLWrapper import DIGEST, JSON, POST, SPARQLWrapper, XML
 from quart import Blueprint, Response, current_app, jsonify
+from SPARQLWrapper import DIGEST, JSON, POST, XML, SPARQLWrapper
 
-blueprint = Blueprint('graph', __name__)
+blueprint = Blueprint('graph', __name__, url_prefix='/graph')
 
 LINEAGE_GLOBAL = """
 PREFIX prov: <http://www.w3.org/ns/prov#>
@@ -40,22 +40,6 @@ WHERE {{
 
 }}
 """
-
-response = {
-    "nodeIds": [
-        "5e733:/data/zh/standardized.csv", "5e733:",
-        "cab58:/data/zh/homog_mo_SMA.txt"
-    ],
-    "edges": [{
-        "v": "cab58:/data/zh/homog_mo_SMA.txt",
-        "w": "5e733:"
-    }, {
-        "v": "5e733:",
-        "w": "5e733:/data/zh/standardized.csv"
-    }],
-    "centralNode":
-    "cab58:/data/zh/homog_mo_SMA.txt"
-}
 
 
 @blueprint.route('/<namespace>/<project>/lineage')

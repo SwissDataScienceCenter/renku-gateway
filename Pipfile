@@ -21,7 +21,6 @@ pytest_asyncio = "*"
 nose = "*"
 chartpress = "*"
 responses = "*"
-mockredispy = "*"
 
 [requires]
 python_version = "3.7"

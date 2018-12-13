@@ -15,38 +15,48 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import jwt
-import logging
-import requests
-import re
+"""Implement JupyterHub authentication workflow."""
 
 import json
-from quart import request, redirect, url_for, session
-from urllib.parse import urljoin, urlencode, parse_qs
+import logging
+import re
+from urllib.parse import parse_qs, urlencode, urljoin
 
+import jwt
+import requests
 from oic import rndstr
+from quart import Blueprint, redirect, request, session, url_for
 
-from .. import app, store
-from .web import get_key_for_user, JWT_ALGORITHM
+from .web import JWT_ALGORITHM, get_key_for_user
 
 logger = logging.getLogger(__name__)
 
+blueprint = Blueprint(
+    'jupyterhub_auth', __name__, url_prefix='/auth/jupyterhub'
+)
+
 
 class JupyterhubUserToken():
-
     def process(self, request, headers):
+        from .. import store
 
-        m = re.search(r'bearer (?P<token>.+)', headers.get('Authorization', ''), re.IGNORECASE)
+        m = re.search(
+            r'bearer (?P<token>.+)', headers.get('Authorization', ''),
+            re.IGNORECASE
+        )
         if m:
             # logger.debug('Authorization header present, token exchange')
             access_token = m.group('token')
             decodentoken = jwt.decode(
-                access_token, app.config['OIDC_PUBLIC_KEY'],
+                access_token,
+                current_app.config['OIDC_PUBLIC_KEY'],
                 algorithms=JWT_ALGORITHM,
-                audience=app.config['OIDC_CLIENT_ID']
+                audience=current_app.config['OIDC_CLIENT_ID']
             )
 
-            jh_token = store.get(get_key_for_user(decodentoken, 'jh_access_token'))
+            jh_token = store.get(
+                get_key_for_user(decodentoken, 'jh_access_token')
+            )
             headers['Authorization'] = "token {}".format(jh_token.decode())
 
             # logger.debug('outgoing headers: {}'.format(json.dumps(headers)))
@@ -56,31 +66,34 @@ class JupyterhubUserToken():
 
         return headers
 
+
 JUPYTERHUB_OAUTH2_PATH = "/hub/api/oauth2"
 
 
-@app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/jupyterhub/login'))
-def jupyterhub_login():
-
+@blueprint.route('/login')
+def login():
     state = rndstr()
 
     session['login_seq'] += 1
     session['jupyterhub_state'] = state
 
     args = {
-        'client_id': app.config['JUPYTERHUB_CLIENT_ID'],
+        'client_id': current_app.config['JUPYTERHUB_CLIENT_ID'],
         'response_type': 'code',
-        'redirect_uri': app.config['HOST_NAME'] + url_for('jupyterhub_get_tokens'),
+        'redirect_uri':
+            current_app.config['HOST_NAME'] + url_for('jupyterhub_get_tokens'),
         'state': state
     }
-    url = app.config['JUPYTERHUB_URL'] + JUPYTERHUB_OAUTH2_PATH + "/authorize"
+    url = current_app.config['JUPYTERHUB_URL'
+                             ] + JUPYTERHUB_OAUTH2_PATH + "/authorize"
     login_url = "{}?{}".format(url, urlencode(args))
-    response = app.make_response(redirect(login_url))
+    response = current_app.make_response(redirect(login_url))
     return response
 
 
-@app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/jupyterhub/token'))
-async def jupyterhub_get_tokens():
+@blueprint.route('/token')
+async def token():
+    from .. import store
 
     authorization_parameters = parse_qs(request.query_string.decode())
 
@@ -88,28 +101,34 @@ async def jupyterhub_get_tokens():
         return 'Something went wrong while trying to log you in.'
 
     token_response = requests.post(
-        app.config['JUPYTERHUB_URL'] + JUPYTERHUB_OAUTH2_PATH + "/token",
+        current_app.config['JUPYTERHUB_URL'] + JUPYTERHUB_OAUTH2_PATH +
+        "/token",
         data={
-            'client_id': app.config['JUPYTERHUB_CLIENT_ID'],
-            'client_secret': app.config['JUPYTERHUB_CLIENT_SECRET'],
+            'client_id': current_app.config['JUPYTERHUB_CLIENT_ID'],
+            'client_secret': current_app.config['JUPYTERHUB_CLIENT_SECRET'],
             'state': session['jupyterhub_state'],
             'code': authorization_parameters['code'][0],
             'grant_type': 'authorization_code',
-            'redirect_uri': app.config['HOST_NAME'] + url_for('jupyterhub_get_tokens'),
+            'redirect_uri':
+                current_app.config['HOST_NAME'] +
+                url_for('jupyterhub_get_tokens'),
         }
     )
 
     a = jwt.decode(session['token'], verify=False)
-    store.put(get_key_for_user(a, 'jh_access_token'), token_response.json().get('access_token').encode())
+    store.put(
+        get_key_for_user(a, 'jh_access_token'),
+        token_response.json().get('access_token').encode()
+    )
 
-    response = await app.make_response(redirect(url_for('login_next')))
+    response = await current_app.make_response(redirect(url_for('login_next')))
 
     return response
 
 
-@app.route(urljoin(app.config['SERVICE_PREFIX'], 'auth/jupyterhub/logout'))
-def jupyterhub_logout():
-    logout_url = app.config['JUPYTERHUB_URL'] + '/hub/logout'
-    response = app.make_response(redirect(logout_url))
+@blueprint.route('/logout')
+def logout():
+    logout_url = current_app.config['JUPYTERHUB_URL'] + '/hub/logout'
+    response = current_app.make_response(redirect(logout_url))
 
     return response

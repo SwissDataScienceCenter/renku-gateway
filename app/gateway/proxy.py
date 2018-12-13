@@ -16,35 +16,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Gateway logic."""
-import logging
+
 import importlib
 import json
-import jwt
+import logging
 import re
-
-from quart import request, Response
 from urllib.parse import urljoin
 
-from .. import app
+import jwt
+from quart import Blueprint, Response, current_app, request
+
 from app.auth.web import get_valid_token
 
-
 logger = logging.getLogger(__name__)
+
+blueprint = Blueprint('proxy', __name__)
 
 CHUNK_SIZE = 1024
 
 
-@app.route('/health', methods=['GET'])
+@blueprint.route('/health', methods=['GET'])
 async def healthcheck():
     return Response(json.dumps("Up and running"), status=200)
 
 
-@app.route(urljoin(app.config['SERVICE_PREFIX'], '<path:path>'), methods=['GET', 'POST', 'PUT', 'DELETE'])
+@blueprint.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 async def pass_through(path):
     headers = dict(request.headers)
 
     # Keycloak public key is not defined so error
-    if app.config['OIDC_PUBLIC_KEY'] is None:
+    if current_app.config['OIDC_PUBLIC_KEY'] is None:
         response = json.dumps("Ooops, something went wrong internally.")
         return Response(response, status=500)
 
@@ -54,13 +55,15 @@ async def pass_through(path):
     processor = None
     auth = None
 
-    for key, val in app.config['GATEWAY_ENDPOINT_CONFIG'].items():
+    for key, val in current_app.config['GATEWAY_ENDPOINT_CONFIG'].items():
         p = key.match(path)
         if p:
             try:
                 m, _, c = val.get('processor').rpartition('.')
                 module = importlib.import_module(m)
-                processor = getattr(module, c)(p.group('remaining'), val.get('endpoint'))
+                processor = getattr(module, c)(
+                    p.group('remaining'), val.get('endpoint')
+                )
                 if 'auth' in val:
                     m, _, c = val.get('auth').rpartition('.')
                     module = importlib.import_module(m)
@@ -68,7 +71,12 @@ async def pass_through(path):
                 break
             except:
                 logger.warning("Error loading processor", exc_info=True)
-                return Response(json.dumps({'error': "Error loading processor"}), status=500)
+                return Response(
+                    json.dumps({
+                        'error': "Error loading processor"
+                    }),
+                    status=500
+                )
 
     if auth:
         try:
@@ -76,23 +84,34 @@ async def pass_through(path):
             # it can either be in session-cookie or Authorization header
             new_tokens = get_valid_token(headers)
             if new_tokens:
-                headers['Authorization'] = "Bearer {}".format(new_tokens.get('access_token'))
+                headers['Authorization'] = "Bearer {}".format(
+                    new_tokens.get('access_token')
+                )
             if 'Authorization' in headers and 'Referer' in headers:
                 allowed = False
                 origins = jwt.decode(
                     headers['Authorization'][7:],
-                    app.config['OIDC_PUBLIC_KEY'],
+                    current_app.config['OIDC_PUBLIC_KEY'],
                     algorithms='RS256',
-                    audience=app.config['OIDC_CLIENT_ID']
+                    audience=current_app.config['OIDC_CLIENT_ID']
                 ).get('allowed-origins')
                 for o in origins:
                     if re.match(o.replace("*", ".*"), headers['Referer']):
                         allowed = True
                         break
                 if not allowed:
-                    return Response(json.dumps({'error': 'origin not allowed: {} not matching {}'.format(headers['Referer'], origins)}), status=403)
+                    return Response(
+                        json.dumps({
+                            'error':
+                                'origin not allowed: {} not matching {}'.
+                                format(headers['Referer'], origins)
+                        }),
+                        status=403
+                    )
             if 'Cookie' in headers:
-                del headers['Cookie']  # don't forward our secret tokens, backend APIs shouldn't expect cookies?
+                del headers[
+                    'Cookie'
+                ]  # don't forward our secret tokens, backend APIs shouldn't expect cookies?
 
             # auth processors always assume a valid Authorization in header, if any
             headers = auth.process(request, headers)
@@ -100,7 +119,12 @@ async def pass_through(path):
             return Response(json.dumps({'error': 'token_expired'}), status=401)
         except:
             logger.warning("Error while authenticating request", exc_info=True)
-            return Response(json.dumps({'error': "Error while authenticating"}), status=401)
+            return Response(
+                json.dumps({
+                    'error': "Error while authenticating"
+                }),
+                status=401
+            )
 
     if processor:
         return await processor.process(request, headers)
@@ -110,6 +134,6 @@ async def pass_through(path):
         return Response(response, status=404)
 
 
-@app.route(urljoin(app.config['SERVICE_PREFIX'], 'dummy'), methods=['GET'])
+@blueprint.route('/dummy', methods=['GET'])
 async def dummy():
     return 'Dummy works'
