@@ -8,6 +8,12 @@ from werkzeug.datastructures import Headers
 logger = logging.getLogger(__name__)
 
 
+def strip_problematic_headers(headers):
+    """Return a dict based on headers with problematic ones removed."""
+    headers_to_strip = set(["X-Forwarded-Proto"])
+    return {k: v for (k, v) in headers.items() if k not in headers_to_strip}
+
+
 class BaseProcessor:
 
     def __init__(self, path, endpoint):
@@ -23,11 +29,14 @@ class BaseProcessor:
         logger.debug('Forward endpoint: {}'.format(self.endpoint))
         logger.debug('incoming headers: {}'.format(json.dumps(headers)))
 
+        stripped_headers = strip_problematic_headers(headers)
+        logger.debug('stripped headers: {}'.format(json.dumps(stripped_headers)))
+
         # Respond to requester
         response = requests.request(
             request.method,
             self.endpoint,
-            headers=headers,
+            headers=stripped_headers,
             params=request.args,
             data=(await request.data),
             stream=True,
