@@ -34,7 +34,8 @@ fi
 
 echo "================================================================================================================="
 echo "Once telepresence has started, copy-paste the following command to start the development server:"
-echo "QUART_DEBUG=1 \
+echo "GATEWAY_ENV=development \
+QUART_DEBUG=1 \
 QUART_APP=run:app.app \
 PYTHONASYNCIODEBUG=1 \
 ${QUART_EXECUTABLE} run"

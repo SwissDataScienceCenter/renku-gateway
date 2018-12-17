@@ -1,3 +1,4 @@
+import os
 import json
 import logging
 import requests
@@ -5,11 +6,13 @@ import requests
 from quart import Response
 from werkzeug.datastructures import Headers
 
+gateway_env = os.environ.get('GATEWAY_ENV')
+dev_env = (gateway_env == 'development')
 logger = logging.getLogger(__name__)
 
 
-def strip_problematic_headers(headers):
-    """Return a dict based on headers with problematic ones removed."""
+def headers_for_development(headers):
+    """Return headers (dict) modified for the development env."""
     headers_to_strip = set(["X-Forwarded-Proto"])
     return {k: v for (k, v) in headers.items() if k not in headers_to_strip}
 
@@ -29,14 +32,15 @@ class BaseProcessor:
         logger.debug('Forward endpoint: {}'.format(self.endpoint))
         logger.debug('incoming headers: {}'.format(json.dumps(headers)))
 
-        stripped_headers = strip_problematic_headers(headers)
-        logger.debug('stripped headers: {}'.format(json.dumps(stripped_headers)))
+        if dev_env:
+            headers = headers_for_development(headers)
+            logger.debug('development headers: {}'.format(json.dumps(headers)))
 
         # Respond to requester
         response = requests.request(
             request.method,
             self.endpoint,
-            headers=stripped_headers,
+            headers=headers,
             params=request.args,
             data=(await request.data),
             stream=True,
