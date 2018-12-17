@@ -35,6 +35,8 @@ spec:
               value: {{ .Values.renkuEndpoint | default (printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: GITLAB_URL
               value: {{ .Values.gitlabUrl | default (printf "%s://%s/gitlab" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+            - name: GATEWAY_ENV
+              value: {{ .Values.gatewayEnv | default "deployment" | quote }}
             - name: GITLAB_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
