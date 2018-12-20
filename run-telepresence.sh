@@ -25,11 +25,16 @@ CURRENT_CONTEXT=`kubectl config current-context`
 # https://www.telepresence.io/reference/methods
 QUART_EXECUTABLE=`pipenv --venv`/bin/quart
 
-echo "You are going to exchange k8s deployments using the following context: ${CURRENT_CONTEXT}"
-read -p "Do you want to proceed? [y/n]"
-if [[ ! $REPLY =~ ^[Yy]$ ]]
+if [[ $CURRENT_CONTEXT == 'minikube' ]]
 then
-    exit 1
+  echo "Exchanging k8s deployments using the following context: ${CURRENT_CONTEXT}"
+else
+  echo "You are going to exchange k8s deployments using the following context: ${CURRENT_CONTEXT}"
+  read -p "Do you want to proceed? [y/n]"
+  if [[ ! $REPLY =~ ^[Yy]$ ]]
+  then
+      exit 1
+  fi
 fi
 
 echo "================================================================================================================="
