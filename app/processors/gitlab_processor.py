@@ -121,7 +121,7 @@ class GitlabProjects(BaseProcessor):
                 headers=headers,
                 data=request.data,
                 stream=True,
-                timeout=300
+                timeout=30
             )
             projects_list = project_response.json()
             logger.debug("Gitlab response: {}".format(projects_list))

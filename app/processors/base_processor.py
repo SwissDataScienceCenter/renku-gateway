@@ -44,7 +44,7 @@ class BaseProcessor:
             params=request.args,
             data=(await request.data),
             stream=True,
-            timeout=300
+            timeout=30
         )
 
         logger.debug('Response: {}'.format(response.status_code))

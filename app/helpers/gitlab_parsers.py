@@ -42,7 +42,7 @@ def parse_ku(headers, ku):
     projectid = ku['project_id']
 
     reactions_url = app.config['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/issues/" + str(kuid) +  "/award_emoji"
-    reactions_response = (requests.request(request.method, reactions_url, headers=headers, data=request.data, stream=True, timeout=300))
+    reactions_response = (requests.request(request.method, reactions_url, headers=headers, data=request.data, stream=True, timeout=30))
 
     if reactions_response.status_code == 200:
         reactions = reactions_response.json()
@@ -50,7 +50,7 @@ def parse_ku(headers, ku):
         reactions = []
 
     contribution_url =  app.config['GITLAB_URL'] + "/api/v4/projects/" + str(projectid) + "/issues/" + str(kuid) + "/notes"
-    contribution_response = (requests.request(request.method, contribution_url, headers=headers, data=request.data, stream=True, timeout=300))
+    contribution_response = (requests.request(request.method, contribution_url, headers=headers, data=request.data, stream=True, timeout=30))
 
     if contribution_response.status_code == 200:
         contributions = [parse_contribution(headers, x) for x in contribution_response.json()]
@@ -132,7 +132,7 @@ def parse_contribution(headers, contribution):
 def parse_user(headers, user_id):
 
     user_url =  app.config['GITLAB_URL'] + "api/v4/users" + str(user_id)
-    user = (requests.request(request.method, user_url, headers=headers, data=request.data, stream=True, timeout=300)).json()
+    user = (requests.request(request.method, user_url, headers=headers, data=request.data, stream=True, timeout=30)).json()
 
     return {
         'metadata': {
