@@ -17,5 +17,5 @@
 # limitations under the License.
 """Processors module."""
 
-from .gitlab_processor import GitlabGeneric, GitlabProjects
+from .gitlab_processor import GitlabGeneric #GitlabProjects
 from .service_processor import ServiceGeneric

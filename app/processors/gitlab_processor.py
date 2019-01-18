@@ -110,27 +110,32 @@ class GitlabGeneric(BaseProcessor):
         return headers
 
 
-class GitlabProjects(BaseProcessor):
+# Note: This specific processor which is supposed to parse giblab projects is
+#       not yet used and therefore commented out.
 
-    async def process(self, request, headers):
-        endpoint = self.endpoint.format(**app.config)
-        if 'Authorization' in headers:
-            project_response = requests.request(
-                request.method,
-                endpoint,
-                headers=headers,
-                data=request.data,
-                stream=True,
-                timeout=300
-            )
-            projects_list = project_response.json()
-            logger.debug("Gitlab response: {}".format(projects_list))
-            if request.method == 'POST':
-                return_project = json.dumps(parse_project(headers, projects_list))
-            else:
-                return_project = json.dumps([parse_project(headers, x) for x in projects_list])
-            return Response(return_project, project_response.status_code)
-
-        else:
-            response = json.dumps("No authorization header found")
-            return Response(response, status=401)
+# class GitlabProjects(BaseProcessor):
+#
+#     async def process(self, request, headers):
+#         endpoint = self.endpoint.format(**app.config)
+#         if 'Authorization' in headers:
+#             request_data = await request.data
+#
+#             project_response = requests.request(
+#                 request.method,
+#                 endpoint,
+#                 headers=headers,
+#                 data=request_data,
+#                 stream=True,
+#                 timeout=300
+#             )
+#             projects_list = project_response.json()
+#             logger.debug("Gitlab response: {}".format(projects_list))
+#             if request.method == 'POST':
+#                 return_project = json.dumps(parse_project(headers, projects_list))
+#             else:
+#                 return_project = json.dumps([parse_project(headers, x) for x in projects_list])
+#             return Response(return_project, project_response.status_code)
+#
+#         else:
+#             response = json.dumps("No authorization header found")
+#             return Response(response, status=401)
