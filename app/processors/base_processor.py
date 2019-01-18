@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-import requests
+import aiohttp
 
 from quart import Response
 from werkzeug.datastructures import Headers
@@ -36,31 +36,35 @@ class BaseProcessor:
             headers = headers_for_development(headers)
             logger.debug('development headers: {}'.format(json.dumps(headers)))
 
-        # Respond to requester
-        response = requests.request(
-            request.method,
-            self.endpoint,
-            headers=headers,
-            params=request.args,
-            data=(await request.data),
-            stream=True,
-            timeout=300
-        )
 
-        logger.debug('Response: {}'.format(response.status_code))
-        logger.debug('Response headers: {}'.format(response.headers))
 
-        return Response(
-            response=self.generate_response_data(response),
-            headers=self.create_response_headers(response),
-            status=response.status_code,
-        )
+        async with aiohttp.ClientSession() as session:
+            async with session.request(
+                        request.method,
+                        self.endpoint,
+                        headers=headers,
+                        params=request.args,
+                        data=(await request.data),
+                    ) as response:
 
-    async def generate_response_data(self, response):
-        for c in response.iter_lines():
-            # logger.debug(c)
-            yield c + "\r\n".encode()
-        yield "\r\n".encode()
+                response_data = await response.read()
+
+                logger.debug('Response: {}'.format(response.status))
+                logger.debug('Response headers: {}'.format(response.headers))
+
+                return Response(
+                    # response=response_generator(response),
+                    response=response_data,
+                    headers=self.create_response_headers(response),
+                    status=response.status
+                )
+
+    # TODO: This does not work yet.
+    # TODO: Enable streaming responses at a later point.
+
+    # async def response_generator(response):
+    #     async for chunk in response.content.iter_chunked(1024):
+    #         yield chunk
 
     def create_response_headers(self, response):
         headers = Headers()
