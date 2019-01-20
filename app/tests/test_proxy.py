@@ -28,6 +28,7 @@ import json
 from urllib.parse import urljoin
 from .test_data import PUBLIC_KEY, PRIVATE_KEY, TOKEN_PAYLOAD, GITLAB_PROJECTS, GITLAB_ISSUES, GATEWAY_PROJECT
 from app.config import load_config
+from aioresponses import aioresponses
 
 
 @pytest.fixture
@@ -96,7 +97,6 @@ async def test_passthrough_nopubkeyflow(client):
 
 ## TODO: currently the project mapper is not used, but we keep the other response for future use.
 
-@responses.activate
 @aiotest
 async def test_gitlab_happyflow(client):
     # If a request does has the required headers, it should be able to pass through
@@ -106,29 +106,34 @@ async def test_gitlab_happyflow(client):
     from .. import store
     store.put('cache_5dbdeba7-e40f-42a7-b46b-6b8a07c65966_gl_access_token', 'some_token'.encode())
 
-    responses.add(responses.GET, app.config['GITLAB_URL'] + '/api/v4/projects', json=GITLAB_PROJECTS, status=200)
-    responses.add(responses.GET, app.config['GITLAB_URL'] + "/api/v4/projects/1/repository/files/README.md/raw?ref=master", body="test", status=200)
-    responses.add(responses.GET, app.config['GITLAB_URL'] + "/api/v4/projects/1/issues?scope=all", json=GITLAB_ISSUES, status=200)
-    responses.add(responses.GET, app.config['GITLAB_URL'] + "/api/v4/projects/1/issues/1/award_emoji", json=[], status=200)
-    responses.add(responses.GET, app.config['GITLAB_URL'] + "/api/v4/projects/1/issues/1/notes", json=[], status=200)
-    responses.add(responses.GET, app.config['GITLAB_URL'] + '/api/v4/users', json=[{'username': 'foo'}])
+    with aioresponses() as mocked:
 
-    rv = await client.get(urljoin(app.config['SERVICE_PREFIX'], 'projects'), headers=headers)
+        mocked.get(app.config['GITLAB_URL'] + '/api/v4/projects', status=200, body=json.dumps(GITLAB_PROJECTS))
 
-    assert rv.status_code == 200
-    assert json.loads(await rv.get_data()) == GITLAB_PROJECTS
+        # NOTE: These mocks are not used yet, therefore commented out...
+        # mocked.get(app.config['GITLAB_URL'] + '/api/v4/projects', body=json.dumps(GITLAB_PROJECTS), status=200)
+        # mocked.get(app.config['GITLAB_URL'] + "/api/v4/projects/1/repository/files/README.md/raw?ref=master", body="test", status=200)
+        # mocked.get(app.config['GITLAB_URL'] + "/api/v4/projects/1/issues?scope=all", body=json.dumps(GITLAB_ISSUES), status=200)
+        # mocked.get(app.config['GITLAB_URL'] + "/api/v4/projects/1/issues/1/award_emoji", body=json.dumps([]), status=200)
+        # mocked.get(app.config['GITLAB_URL'] + "/api/v4/projects/1/issues/1/notes", body=json.dumps([]), status=200)
+        # mocked.get(app.config['GITLAB_URL'] + '/api/v4/users', body=json.dumps([{'username': 'foo'}]))
+
+        rv = await client.get(urljoin(app.config['SERVICE_PREFIX'], 'projects'), headers=headers)
+
+        assert rv.status_code == 200
+        assert json.loads(await rv.get_data()) == GITLAB_PROJECTS
 
 
-@responses.activate
 @aiotest
 async def test_service_happyflow(client):
     # If a request does has the required headers, it should be able to pass through
     access_token = jwt.encode(payload=TOKEN_PAYLOAD, key=PRIVATE_KEY, algorithm='RS256').decode('utf-8')
     headers = {'Authorization': 'Bearer {}'.format(access_token)}
 
-    responses.add(responses.POST, app.config['RENKU_ENDPOINT'] + '/service/storage/object/23/meta', json={'id': 1}, status=201)
+    with aioresponses() as mocked:
+        mocked.post(app.config['RENKU_ENDPOINT'] + '/service/storage/object/23/meta', payload={'id': 1}, status=201)
 
-    rv = await client.post(urljoin(app.config['SERVICE_PREFIX'], 'objects/23/meta'), headers=headers)
+        rv = await client.post(urljoin(app.config['SERVICE_PREFIX'], 'objects/23/meta'), headers=headers)
 
-    assert rv.status_code == 201
-    assert json.loads(await rv.get_data()) == {'id': 1}
+        assert rv.status_code == 201
+        assert json.loads(await rv.get_data()) == {'id': 1}
