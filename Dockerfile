@@ -9,6 +9,6 @@ RUN apt-get update && apt-get install -y gcc && \
     pip install pipenv && \
     pipenv install --system --deploy
 
-CMD ["hypercorn", "-b", "0.0.0.0:5000", "run:app.app"]
+CMD ["hypercorn", "-b", "0.0.0.0:5000", "app:app"]
 
 EXPOSE 5000
