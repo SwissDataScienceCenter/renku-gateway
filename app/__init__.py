@@ -65,14 +65,11 @@ blueprints = (
 )
 
 
-def _join_url_prefix(first, second):
+def _join_url_prefix(*parts):
     """Join prefixes."""
-    first = (first or '').strip('/')
-    second = (second or '').lstrip('/')
-    if first:
-        return f'/{first}/{second}'
-    elif second:
-        return f'/{second}'
+    parts = [part.strip('/') for part in parts if part]
+    if parts:
+        return '/' + '/'.join(parts)
 
 
 for blueprint in blueprints:
