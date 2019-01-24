@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2018 - Swiss Data Science Center (SDSC)
+# Copyright 2018-2019 - Swiss Data Science Center (SDSC)
 # A partnership between École Polytechnique Fédérale de Lausanne (EPFL) and
 # Eidgenössische Technische Hochschule Zürich (ETHZ).
 #
@@ -33,11 +33,6 @@ logger = logging.getLogger(__name__)
 blueprint = Blueprint('proxy', __name__)
 
 CHUNK_SIZE = 1024
-
-
-@blueprint.route('/health', methods=['GET'])
-async def healthcheck():
-    return Response(json.dumps("Up and running"), status=200)
 
 
 @blueprint.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])

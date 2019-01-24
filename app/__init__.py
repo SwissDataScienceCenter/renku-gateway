@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2017-2018 - Swiss Data Science Center (SDSC)
+# Copyright 2017-2019 - Swiss Data Science Center (SDSC)
 # A partnership between École Polytechnique Fédérale de Lausanne (EPFL) and
 # Eidgenössische Technische Hochschule Zürich (ETHZ).
 #
@@ -17,6 +17,7 @@
 # limitations under the License.
 """Quart initialization."""
 
+import json
 import logging
 import sys
 from urllib.parse import urljoin
@@ -24,7 +25,7 @@ from urllib.parse import urljoin
 import quart.flask_patch
 import redis
 from flask_kvsession import KVSessionExtension
-from quart import Quart
+from quart import Quart, Response
 from quart_cors import cors
 from simplekv.decorator import PrefixDecorator
 from simplekv.memory.redisstore import RedisStore
@@ -63,6 +64,11 @@ blueprints = (
     proxy.blueprint,
     web.blueprint,
 )
+
+
+@app.route('/health', methods=['GET'])
+async def healthcheck():
+    return Response(json.dumps("Up and running"), status=200)
 
 
 def _join_url_prefix(*parts):
