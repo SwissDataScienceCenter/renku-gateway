@@ -91,6 +91,8 @@ class GitlabGeneric(BaseProcessor):
         resp = await super().process(request, headers)
 
         if resp.status_code == 401 and access_token:  # Token has expired or is revoked
+            from app.auth.gitlab_auth import get_gitlab_refresh_token
+
             new_token = get_gitlab_refresh_token(access_token)
             headers['Authorization'] = "Bearer {}".format(new_token)
             return await super().process(request, headers)  # retry

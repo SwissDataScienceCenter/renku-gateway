@@ -35,6 +35,7 @@ blueprint = Blueprint(
     'jupyterhub_auth', __name__, url_prefix='/auth/jupyterhub'
 )
 
+from quart import current_app
 
 class JupyterhubUserToken():
     def process(self, request, headers):
