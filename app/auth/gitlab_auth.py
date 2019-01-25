@@ -136,7 +136,7 @@ def login():
         'response_type': 'code',
         'scope': SCOPE,
         'redirect_uri':
-            current_app.config['HOST_NAME'] + url_for('gitlab_get_tokens'),
+            current_app.config['HOST_NAME'] + url_for('gitlab_auth.token'),
         'state': state
     }
     auth_req = gitlab_client.construct_AuthorizationRequest(request_args=args)
@@ -165,7 +165,7 @@ async def token():
         request_args={
             'code': authorization_parameters['code'],
             'redirect_uri':
-                current_app.config['HOST_NAME'] + url_for('gitlab_get_tokens'),
+                current_app.config['HOST_NAME'] + url_for('gitlab_auth.token'),
         }
     )
 
@@ -183,7 +183,7 @@ async def token():
         json.dumps(token_response['id_token'].to_dict()).encode()
     )
 
-    response = await current_app.make_response(redirect(url_for('login_next')))
+    response = await current_app.make_response(redirect(url_for('web_auth.login_next')))
 
     return response
 

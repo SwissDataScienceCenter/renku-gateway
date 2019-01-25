@@ -75,7 +75,8 @@ def _join_url_prefix(*parts):
     """Join prefixes."""
     parts = [part.strip('/') for part in parts if part]
     if parts:
-        return '/' + '/'.join(parts)
+        print('/'.join(parts))
+        return '/'.join(parts)
 
 
 for blueprint in blueprints:

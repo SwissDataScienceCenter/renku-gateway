@@ -166,7 +166,7 @@ def get_key_for_user(token, name):
     return "cache_{}_{}".format(token.get('sub'), name)
 
 
-LOGIN_SEQUENCE = ['gitlab_login', 'jupyterhub_login']
+LOGIN_SEQUENCE = ['gitlab_auth.login', 'jupyterhub_auth.login']
 
 
 @blueprint.route('/login/next')
@@ -192,14 +192,14 @@ async def login():
     session['cli_token'] = request.args.get('cli_token')
     if session['cli_token']:
         session['ui_redirect_url'
-                ] = current_app.config['HOST_NAME'] + url_for('info')
+                ] = current_app.config['HOST_NAME'] + url_for('web_auth.info')
 
     args = {
         'client_id': current_app.config['OIDC_CLIENT_ID'],
         'response_type': 'code',
         'scope': SCOPE,
         'redirect_uri': current_app.config['HOST_NAME'] +
-                        url_for('get_tokens'),
+                        url_for('web_auth.token'),
         'state': state
     }
     auth_req = client.construct_AuthorizationRequest(request_args=args)
@@ -228,12 +228,12 @@ async def token():
         request_args={
             'code': authorization_parameters['code'],
             'redirect_uri':
-                current_app.config['HOST_NAME'] + url_for('get_tokens'),
+                current_app.config['HOST_NAME'] + url_for('web_auth.token'),
         }
     )
 
     # chain logins
-    response = await current_app.make_response(redirect(url_for('login_next')))
+    response = await current_app.make_response(redirect(url_for('web_auth.login_next')))
 
     a = jwt.decode(
         token_response['access_token'],
@@ -300,7 +300,7 @@ async def info():
             return await current_app.make_response(
                 redirect(
                     "{}?redirect_url={}".format(
-                        url_for('login'), quote_plus(url_for('info'))
+                        url_for('web_auth.login'), quote_plus(url_for('web_auth.info'))
                     )
                 )
             )
@@ -327,7 +327,7 @@ async def info():
             return await current_app.make_response(
                 redirect(
                     "{}?redirect_url={}".format(
-                        url_for('login'), quote_plus(url_for('info'))
+                        url_for('web_auth.login'), quote_plus(url_for('web_auth.info'))
                     )
                 )
             )
@@ -340,7 +340,7 @@ async def user():
         return await current_app.make_response(
             redirect(
                 "{}?redirect_url={}".format(
-                    url_for('login'), quote_plus(url_for('user'))
+                    url_for('web_auth.login'), quote_plus(url_for('web_auth.user'))
                 )
             )
         )
@@ -358,7 +358,7 @@ async def user():
         return await current_app.make_response(
             redirect(
                 "{}?redirect_url={}".format(
-                    url_for('login'), quote_plus(url_for('user'))
+                    url_for('web_auth.login'), quote_plus(url_for('web_auth.user'))
                 )
             )
         )
@@ -371,7 +371,7 @@ async def logout():
         current_app.config['OIDC_ISSUER'],
         urllib.parse.urlencode({
             'redirect_uri':
-                current_app.config['HOST_NAME'] + url_for('gitlab_logout')
+                current_app.config['HOST_NAME'] + url_for('gitlab_auth.logout')
         }),
     )
 
@@ -381,7 +381,7 @@ async def logout():
             return await render_template(
                 'redirect_logout.html',
                 redirect_url='/',
-                logout_page=url_for('jupyterhub_logout')
+                logout_page=url_for('jupyterhub_auth.logout')
             )
         else:
             return await current_app.make_response(
