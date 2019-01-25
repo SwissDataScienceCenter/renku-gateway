@@ -198,8 +198,8 @@ async def login():
         'client_id': current_app.config['OIDC_CLIENT_ID'],
         'response_type': 'code',
         'scope': SCOPE,
-        'redirect_uri': current_app.config['HOST_NAME'] +
-                        url_for('web_auth.token'),
+        'redirect_uri':
+            current_app.config['HOST_NAME'] + url_for('web_auth.token'),
         'state': state
     }
     auth_req = client.construct_AuthorizationRequest(request_args=args)
@@ -211,6 +211,7 @@ async def login():
 
 @blueprint.route('/token')
 async def token():
+    from .. import store
 
     # This is more about parsing the request data than any response data....
     authorization_parameters = client.parse_response(
@@ -233,7 +234,9 @@ async def token():
     )
 
     # chain logins
-    response = await current_app.make_response(redirect(url_for('web_auth.login_next')))
+    response = await current_app.make_response(
+        redirect(url_for('web_auth.login_next'))
+    )
 
     a = jwt.decode(
         token_response['access_token'],
@@ -277,6 +280,7 @@ async def token():
 
 @blueprint.route('/info')
 async def info():
+    from .. import store
 
     t = request.args.get('cli_token')
     if t:
@@ -300,7 +304,8 @@ async def info():
             return await current_app.make_response(
                 redirect(
                     "{}?redirect_url={}".format(
-                        url_for('web_auth.login'), quote_plus(url_for('web_auth.info'))
+                        url_for('web_auth.login'),
+                        quote_plus(url_for('web_auth.info'))
                     )
                 )
             )
@@ -327,7 +332,8 @@ async def info():
             return await current_app.make_response(
                 redirect(
                     "{}?redirect_url={}".format(
-                        url_for('web_auth.login'), quote_plus(url_for('web_auth.info'))
+                        url_for('web_auth.login'),
+                        quote_plus(url_for('web_auth.info'))
                     )
                 )
             )
@@ -335,12 +341,14 @@ async def info():
 
 @blueprint.route('/user')
 async def user():
+    from .. import store
 
     if 'token' not in session:
         return await current_app.make_response(
             redirect(
                 "{}?redirect_url={}".format(
-                    url_for('web_auth.login'), quote_plus(url_for('web_auth.user'))
+                    url_for('web_auth.login'),
+                    quote_plus(url_for('web_auth.user'))
                 )
             )
         )
@@ -358,7 +366,8 @@ async def user():
         return await current_app.make_response(
             redirect(
                 "{}?redirect_url={}".format(
-                    url_for('web_auth.login'), quote_plus(url_for('web_auth.user'))
+                    url_for('web_auth.login'),
+                    quote_plus(url_for('web_auth.user'))
                 )
             )
         )
@@ -366,12 +375,14 @@ async def user():
 
 @blueprint.route('/logout')
 async def logout():
+    from .. import store
 
     logout_url = '{}/protocol/openid-connect/logout?{}'.format(
         current_app.config['OIDC_ISSUER'],
         urllib.parse.urlencode({
             'redirect_uri':
-                current_app.config['HOST_NAME'] + url_for('gitlab_auth.logout')
+                current_app.config['HOST_NAME'] +
+                url_for('gitlab_auth.logout')
         }),
     )
 
