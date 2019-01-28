@@ -73,9 +73,9 @@ async def healthcheck():
 
 def _join_url_prefix(*parts):
     """Join prefixes."""
-    parts = [part.strip('/') for part in parts if part]
+    parts = [part.strip('/') for part in parts if part and part.strip('/')]
     if parts:
-        return '/' + '/'.join(parts).lstrip('/')
+        return '/' + '/'.join(parts)
 
 
 for blueprint in blueprints:
