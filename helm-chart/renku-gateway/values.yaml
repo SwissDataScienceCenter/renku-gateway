@@ -65,7 +65,7 @@ jupyterhub:
 image:
   name: renku/renku-gateway
   repository: renku/renku-gateway
-  tag: '0.3.0'
+  tag: '0.3.1'
   pullPolicy: IfNotPresent
 
 service:
@@ -106,3 +106,10 @@ redis:
   networkPolicy:
     enabled: true
     allowExternal: false
+
+## Settings for the graph services
+graph:
+  sparql:
+    endpoint:
+    # username: admin
+    # password: 12345

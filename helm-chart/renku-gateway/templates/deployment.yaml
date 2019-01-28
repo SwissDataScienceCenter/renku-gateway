@@ -78,6 +78,12 @@ spec:
                 secretKeyRef:
                   name: {{ template "gateway.fullname" . }}
                   key: oidcClientSecret
+            - name: SPARQL_ENDPOINT
+              value: {{ .Values.graph.sparql.endpoint | default (printf "%s://jena.%s/renku/sparql" (include "gateway.protocol" .) .Values.global.renku.domain ) | quote }}
+            - name: SPARQL_USERNAME
+              value: {{ required "Please specify a username for the SPARQL endpoint." .Values.graph.sparql.username | quote }}
+            - name: SPARQL_PASSWORD
+              value: {{ required "Please specify a password for the SPARQL endpoint user." .Values.graph.sparql.password | quote }}
           livenessProbe:
             httpGet:
               path: /health
