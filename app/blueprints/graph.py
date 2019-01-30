@@ -57,9 +57,12 @@ WHERE {{
 @blueprint.route('/<namespace>/<project>/lineage/<commit_ish>/<path:path>')
 async def lineage(namespace, project, commit_ish=None, path=None):
     """Query graph service."""
+    gitlab_url = current_app.config['GITLAB_URL']
+    if gitlab_url.endswith('/gitlab'):
+        gitlab_url = gitlab_url[:-len('/gitlab')]
     central_node = None
     project_url = '{gitlab}/{namespace}/{project}'.format(
-        gitlab=current_app.config['GITLAB_URL'],
+        gitlab=gitlab_url,
         namespace=namespace,
         project=project,
     )
@@ -84,7 +87,7 @@ async def lineage(namespace, project, commit_ish=None, path=None):
         filter.extend([
             '?entity (prov:qualifiedGeneration/prov:activity | '
             '^prov:entity/^prov:qualifiedUsage) ?qactivity .',
-            'FILTER (?qactivity = <file:///{commit_ish}#>)'.format(
+            'FILTER (?qactivity = <file:///commit/{commit_ish}>)'.format(
                 commit_ish=commit_ish
             ),
         ])
