@@ -44,11 +44,6 @@ spec:
                   key: gitlabClientSecret
             - name: GITLAB_CLIENT_ID
               value: {{ .Values.gitlabClientId | default .Values.global.gateway.gitlabClientId | quote }}
-            - name: GITLAB_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: {{ template "gateway.fullname" . }}
-                  key: gitlabSudoToken
             - name: JUPYTERHUB_URL
               value: {{ .Values.jupyterhub.url | default (printf "%s://%s/jupyterhub" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: JUPYTERHUB_CLIENT_SECRET
