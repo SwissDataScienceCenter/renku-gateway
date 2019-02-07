@@ -34,7 +34,6 @@ from quart import (
     Blueprint, Response, current_app, redirect, request, session, url_for
 )
 
-from ..helpers.gitlab_user_utils import get_or_create_gitlab_user
 from .web import JWT_ALGORITHM, get_key_for_user
 
 logger = logging.getLogger(__name__)
