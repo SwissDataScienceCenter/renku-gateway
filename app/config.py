@@ -61,7 +61,7 @@ config['RENKU_ENDPOINT'] = os.environ.get(
 config['GITLAB_URL'] = os.environ.get(
     'GITLAB_URL', 'http://gitlab.renku.build'
 )
-config['GITLAB_PASS'] = os.environ.get('GITLAB_PASS', 'dummy-secret')
+
 config['GITLAB_CLIENT_ID'] = os.environ.get('GITLAB_CLIENT_ID', 'renku-ui')
 config['GITLAB_CLIENT_SECRET'] = os.environ.get(
     'GITLAB_CLIENT_SECRET', 'no-secret-needed'

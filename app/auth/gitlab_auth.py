@@ -50,7 +50,6 @@ class GitlabUserToken():
             re.IGNORECASE
         )
         if m:
-            # logger.debug('Authorization header present, sudo token exchange')
             # logger.debug('outgoing headers: {}'.format(json.dumps(headers))
             access_token = m.group('token')
             decodentoken = jwt.decode(
@@ -70,7 +69,7 @@ class GitlabUserToken():
 
         else:
             # logger.debug("No authorization header, returning empty auth headers")
-            headers.pop('Sudo', None)
+            pass
 
         return headers
 
