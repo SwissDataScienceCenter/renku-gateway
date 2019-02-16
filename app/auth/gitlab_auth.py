@@ -42,6 +42,10 @@ blueprint = Blueprint('gitlab_auth', __name__, url_prefix='/auth/gitlab')
 
 
 class GitlabUserToken():
+    def __init__(self, header_field='Authorization', header_prefix='Bearer '):
+        self.header_field = header_field
+        self.header_prefix = header_prefix
+
     def process(self, request, headers):
         from .. import store
 
@@ -62,7 +66,10 @@ class GitlabUserToken():
             gl_token = store.get(
                 get_key_for_user(decodentoken, 'gl_access_token')
             )
-            headers['Authorization'] = "Bearer {}".format(gl_token.decode())
+            headers[self.header_field] = "{}{}".format(
+                self.header_prefix,
+                gl_token.decode()
+            )
             headers[
                 'Renku-Token'
             ] = access_token  # can be needed later in the request processing

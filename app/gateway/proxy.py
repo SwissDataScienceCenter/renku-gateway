@@ -17,26 +17,19 @@
 # limitations under the License.
 """Gateway logic."""
 
-import importlib
 import json
 import logging
 import re
-from urllib.parse import urljoin
 
 import jwt
-from quart import Blueprint, Response, current_app, request
+from quart import Response, current_app
 
 from app.auth.web import get_valid_token
 
 logger = logging.getLogger(__name__)
 
-blueprint = Blueprint('proxy', __name__)
 
-CHUNK_SIZE = 1024
-
-
-@blueprint.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
-async def pass_through(path):
+async def pass_through(request, processor, auth):
     headers = dict(request.headers)
 
     # Keycloak public key is not defined so error
@@ -46,32 +39,6 @@ async def pass_through(path):
 
     if 'Host' in headers:
         del headers['Host']
-
-    processor = None
-    auth = None
-
-    for key, val in current_app.config['GATEWAY_ENDPOINT_CONFIG'].items():
-        p = key.match(path)
-        if p:
-            try:
-                m, _, c = val.get('processor').rpartition('.')
-                module = importlib.import_module(m)
-                processor = getattr(module, c)(
-                    p.group('remaining'), val.get('endpoint')
-                )
-                if 'auth' in val:
-                    m, _, c = val.get('auth').rpartition('.')
-                    module = importlib.import_module(m)
-                    auth = getattr(module, c)()
-                break
-            except:
-                logger.warning("Error loading processor", exc_info=True)
-                return Response(
-                    json.dumps({
-                        'error': "Error loading processor"
-                    }),
-                    status=500
-                )
 
     if auth:
         try:
@@ -123,12 +90,3 @@ async def pass_through(path):
 
     if processor:
         return await processor.process(request, headers)
-
-    else:
-        response = json.dumps({'error': "No processor found for this path"})
-        return Response(response, status=404)
-
-
-@blueprint.route('/dummy', methods=['GET'])
-async def dummy():
-    return 'Dummy works'

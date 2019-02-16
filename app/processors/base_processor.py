@@ -3,7 +3,6 @@ import json
 import logging
 
 import aiohttp
-import requests
 from quart import Response
 from werkzeug.datastructures import Headers
 
@@ -39,8 +38,6 @@ class BaseProcessor:
         if dev_env:
             headers = headers_for_development(headers)
             logger.debug('development headers: {}'.format(json.dumps(headers)))
-
-
 
         async with aiohttp.ClientSession() as session:
             async with session.request(
