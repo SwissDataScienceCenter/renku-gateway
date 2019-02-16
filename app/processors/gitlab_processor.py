@@ -4,13 +4,12 @@ import re
 from urllib.parse import quote, urljoin
 
 import requests
-from quart import Response
+from quart import Response, current_app
 from werkzeug.datastructures import Headers
 
-from app.helpers.gitlab_parsers import parse_project
+# from app.helpers.gitlab_parsers import parse_project
 from app.processors.base_processor import BaseProcessor
 
-from .. import app
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +68,7 @@ def fix_link_header(headers):
 
     if 'Link' in headers:
         headers['Link'] = headers['Link'].replace(
-            app.config['GITLAB_URL'], app.config['HOST_NAME']
+            current_app.config['GITLAB_URL'], current_app.config['HOST_NAME']
         )
 
     return headers
@@ -86,7 +85,7 @@ class GitlabGeneric(BaseProcessor):
         # slashes which have been unencoded by uWSGI.
         self.path = urlencode_paths(self.path)
 
-        self.endpoint = urljoin(self.endpoint.format(**app.config), self.path)
+        self.endpoint = urljoin(self.endpoint.format(**current_app.config), self.path)
         access_token = headers.pop('Renku-Token', '')
         resp = await super().process(request, headers)
 

@@ -27,12 +27,11 @@ import pytest
 import requests
 import responses
 
-from app.config import load_config
 from aioresponses import aioresponses
 
 from .. import app
 from .test_data import (
-    GATEWAY_PROJECT, GITLAB_ISSUES, GITLAB_PROJECTS, PRIVATE_KEY, PUBLIC_KEY,
+    GITLAB_ISSUES, GITLAB_PROJECTS, PRIVATE_KEY, PUBLIC_KEY,
     TOKEN_PAYLOAD
 )
 
@@ -41,8 +40,6 @@ from .test_data import (
 def client():
     app.config['TESTING'] = True
     app.config['OIDC_PUBLIC_KEY'] = PUBLIC_KEY
-    app.config['GATEWAY_ENDPOINT_CONFIG_FILE'] = 'endpoints.json'
-    load_config()
     client = app.test_client()
     yield client
 
@@ -76,11 +73,9 @@ def test_simple(client):
 
 
 @aiotest
-async def test_empty_db(client):
-    """Start with a blank database."""
-
-    rv = await client.get('/dummy')
-    assert b'Dummy works' in (await rv.get_data())
+async def test_health_endpoint(client):
+    rv = await client.get('/health')
+    assert b'"Up and running"' in (await rv.get_data())
 
 
 @aiotest
@@ -131,20 +126,3 @@ async def test_gitlab_happyflow(client):
 
         assert rv.status_code == 200
         assert json.loads(await rv.get_data()) == GITLAB_PROJECTS
-
-
-@aiotest
-async def test_service_happyflow(client):
-    # If a request does has the required headers, it should be able to pass through
-    access_token = jwt.encode(
-        payload=TOKEN_PAYLOAD, key=PRIVATE_KEY, algorithm='RS256'
-    ).decode('utf-8')
-    headers = {'Authorization': 'Bearer {}'.format(access_token)}
-
-    with aioresponses() as mocked:
-        mocked.post(app.config['RENKU_ENDPOINT'] + '/service/storage/object/23/meta', payload={'id': 1}, status=201)
-
-        rv = await client.post(urljoin(app.config['SERVICE_PREFIX'], 'objects/23/meta'), headers=headers)
-
-        assert rv.status_code == 201
-        assert json.loads(await rv.get_data()) == {'id': 1}

@@ -20,7 +20,6 @@
 import json
 import logging
 import sys
-from urllib.parse import urljoin
 
 import quart.flask_patch
 import redis
@@ -31,11 +30,12 @@ from simplekv.decorator import PrefixDecorator
 from simplekv.memory.redisstore import RedisStore
 
 from .auth import gitlab_auth, jupyterhub_auth, web
-from .blueprints import graph
-from .config import config, load_config
-from .gateway import proxy
+from .blueprints import graph, backend_services
+from .config import config
 
 logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 
 app = Quart(__name__)
 app.config.from_mapping(config)
@@ -44,8 +44,6 @@ app = cors(
     allow_headers=['X-Requested-With'],
     allow_origin=app.config['ALLOW_ORIGIN'],
 )
-
-load_config()
 
 if "pytest" in sys.modules:
     from simplekv.memory import DictStore
@@ -59,9 +57,9 @@ KVSessionExtension(prefixed_store, app)
 url_prefix = app.config['SERVICE_PREFIX']
 blueprints = (
     graph.blueprint,
+    backend_services.blueprint,
     gitlab_auth.blueprint,
     jupyterhub_auth.blueprint,
-    proxy.blueprint,
     web.blueprint,
 )
 

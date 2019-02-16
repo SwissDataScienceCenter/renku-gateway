@@ -17,8 +17,12 @@
 # limitations under the License.
 """Graph endpoint."""
 
-from quart import Blueprint, Response, current_app, jsonify
-from SPARQLWrapper import DIGEST, JSON, POST, XML, SPARQLWrapper
+import logging
+from quart import Blueprint, current_app, jsonify, request
+from SPARQLWrapper import DIGEST, JSON, POST, SPARQLWrapper
+
+
+logger = logging.getLogger(__name__)
 
 blueprint = Blueprint('graph', __name__, url_prefix='/graph')
 

@@ -17,11 +17,8 @@
 # limitations under the License.
 """Global settings."""
 
-import json
 import os
-import re
 import sys
-from collections import OrderedDict
 from logging import getLogger
 from time import sleep
 
@@ -87,6 +84,10 @@ if 'JUPYTERHUB_CLIENT_SECRET' not in os.environ:
         'It is mandatory for JupyterHub login.'
     )
 
+config['WEBHOOK_SERVICE_HOSTNAME'] = os.environ.get(
+    'WEBHOOK_SERVICE_HOSTNAME', 'http://renku-graph-webhooks-service'
+)
+
 config['SPARQL_ENDPOINT'] = os.environ.get(
     'SPARQL_ENDPOINT', 'http://localhost:3030/renku/sparql'
 )
@@ -114,26 +115,6 @@ config['SERVICE_PREFIX'] = os.environ.get('GATEWAY_SERVICE_PREFIX', '/')
 # TODO: regularly or whenever the validation of a token fails and
 #       the public key has not been
 # TODO: updated in a while.
-
-config['GATEWAY_ENDPOINT_CONFIG_FILE'] = os.environ.get(
-    'GATEWAY_ENDPOINT_CONFIG_FILE', 'endpoints.json'
-)
-
-
-def load_config():
-    from . import app
-    app.config['GATEWAY_ENDPOINT_CONFIG'] = {}
-    try:
-        with open(app.config['GATEWAY_ENDPOINT_CONFIG_FILE']) as f:
-            c = json.load(f, object_pairs_hook=OrderedDict)
-        for k, v in c.items():
-            app.config['GATEWAY_ENDPOINT_CONFIG'][re.compile(
-                r"{}(?P<remaining>.*)".format(k)
-            )] = v
-    except:
-        logger.error("Error reading endpoints config file", exc_info=True)
-
-    logger.debug(app.config['GATEWAY_ENDPOINT_CONFIG'])
 
 
 if "pytest" in sys.modules:

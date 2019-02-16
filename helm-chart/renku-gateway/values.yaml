@@ -113,3 +113,5 @@ graph:
     endpoint:
     # username: admin
     # password: 12345
+  webhookService:
+    hostname:
