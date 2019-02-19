@@ -29,6 +29,7 @@ PREFIX wfdesc: <http://purl.org/wf4ever/wfdesc#>
 PREFIX wf: <http://www.w3.org/2005/01/wf/flow#>
 PREFIX wfprov: <http://purl.org/wf4ever/wfprov#>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
 
 SELECT ?v ?w
 WHERE {{
@@ -80,7 +81,7 @@ async def lineage(namespace, project, commit_ish=None, path=None):
     sparql.setMethod(POST)
 
     filter = [
-        '?entity prov:atLocation ?project .',
+        '?entity dcterms:isPartOf ?project .',
         'FILTER (?project = <{project_url}>)'.format(project_url=project_url),
     ]
     if commit_ish:
