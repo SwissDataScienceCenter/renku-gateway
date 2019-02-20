@@ -94,7 +94,7 @@ async def lineage(namespace, project, commit_ish=None, path=None):
         ])
 
     if path:
-        central_node = 'file:///{commit_ish}/{path}'.format(
+        central_node = 'file:///blob/{commit_ish}/{path}'.format(
             commit_ish=commit_ish,
             path=path,
         )
