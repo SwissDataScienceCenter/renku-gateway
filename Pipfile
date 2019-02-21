@@ -15,6 +15,7 @@ redis = "*"
 flask_kvsession = "*"
 aiohttp = "*"
 sparqlwrapper = "*"
+rdflib-jsonld = "*"
 
 [dev-packages]
 pytest = "*"

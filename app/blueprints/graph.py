@@ -17,22 +17,27 @@
 # limitations under the License.
 """Graph endpoint."""
 
-from quart import Blueprint, Response, current_app, jsonify
-from SPARQLWrapper import DIGEST, JSON, POST, XML, SPARQLWrapper
+from quart import Blueprint, Response, current_app
+from SPARQLWrapper import DIGEST, JSONLD, POST, SPARQLWrapper
 
 blueprint = Blueprint('graph', __name__, url_prefix='/graph')
 
 LINEAGE_GLOBAL = """
 PREFIX prov: <http://www.w3.org/ns/prov#>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX wfdesc: <http://purl.org/wf4ever/wfdesc#>
 PREFIX wf: <http://www.w3.org/2005/01/wf/flow#>
 PREFIX wfprov: <http://purl.org/wf4ever/wfprov#>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 
-SELECT ?v ?w
-WHERE {{
+CONSTRUCT {{
+  ?v rdfs:label ?label_v .
+  ?w prov:used ?v ;
+     rdfs:label ?label_w ;
+     prov:hadRole ?role .
+}} WHERE {{
   {{
     SELECT ?entity
     WHERE {{
@@ -41,13 +46,33 @@ WHERE {{
     GROUP BY ?entity
   }}
   {{
-    ?entity prov:qualifiedGeneration/prov:activity ?activity .
-    BIND (?entity AS ?v)
-    BIND (?activity AS ?w)
+    SELECT (?entity AS ?v) (?activity AS ?w) ?role (?comment AS ?label_w)
+           (?path AS ?label_v)
+    WHERE {{
+      ?activity (prov:qualifiedUsage/prov:entity) ?entity .
+      ?entity prov:atLocation ?path .
+      ?activity prov:qualifiedUsage ?qual .
+      ?qual prov:hadRole ?role .
+      ?qual prov:entity ?entity .
+      ?qual rdf:type ?type .
+      ?activity rdf:type wfprov:ProcessRun .
+      ?activity rdfs:comment ?comment .
+      FILTER NOT EXISTS {{ ?activity rdf:type wfprov:WorkflowRun }}
+    }}
   }} UNION {{
-    ?activity prov:qualifiedUsage/prov:entity ?entity .
-    BIND (?activity AS ?v)
-    BIND (?entity AS ?w)
+    SELECT (?activity AS ?v) (?entity AS ?w) ?role (?comment AS ?label_v)
+           (?path AS ?label_w)
+    WHERE {{
+      ?entity (prov:qualifiedGeneration/prov:activity) ?activity .
+      ?entity prov:qualifiedGeneration ?qual ;
+              prov:atLocation ?path .
+      ?qual prov:hadRole ?role .
+      ?qual prov:activity ?activity .
+      ?qual rdf:type ?type .
+      ?activity rdf:type wfprov:ProcessRun ;
+      rdfs:comment ?comment .
+      FILTER NOT EXISTS {{ ?activity rdf:type wfprov:WorkflowRun }}
+    }}
   }}
 }}
 """
@@ -77,7 +102,7 @@ async def lineage(namespace, project, commit_ish=None, path=None):
         current_app.config['SPARQL_USERNAME'],
         current_app.config['SPARQL_PASSWORD'],
     )
-    sparql.setReturnFormat(JSON)
+    sparql.setReturnFormat(JSONLD)
     sparql.setMethod(POST)
 
     filter = [
@@ -105,19 +130,9 @@ async def lineage(namespace, project, commit_ish=None, path=None):
         )
 
     query = LINEAGE_GLOBAL.format(filter='\n          '.join(filter))
-
     sparql.setQuery(query)
-    results = sparql.query().convert()
 
-    node_ids = set()
-    edges = []
-
-    for item in results['results']['bindings']:
-        node_ids |= set(value['value'] for value in item.values())
-        edges.append({key: value['value'] for key, value in item.items()})
-
-    return jsonify({
-        'nodeIds': list(node_ids),
-        'edges': edges,
-        'centralNode': central_node,
-    })
+    return Response(
+        sparql.query(),
+        content_type='application/ld+json',
+    )
