@@ -18,7 +18,6 @@
 
 set -e
 
-MINIKUBE_IP=`minikube ip`
 CURRENT_CONTEXT=`kubectl config current-context`
 
 # On Mac we can not use `pipenv run quart run` because of
@@ -28,6 +27,8 @@ QUART_EXECUTABLE=`pipenv --venv`/bin/quart
 if [[ $CURRENT_CONTEXT == 'minikube' ]]
 then
   echo "Exchanging k8s deployments using the following context: ${CURRENT_CONTEXT}"
+  SERVICE_NAME=renku-gateway
+  DEV_NAMESPACE=renku
 else
   echo "You are going to exchange k8s deployments using the following context: ${CURRENT_CONTEXT}"
   read -p "Do you want to proceed? [y/n]"
@@ -35,15 +36,33 @@ else
   then
       exit 1
   fi
+
+  if [[ ! $DEV_NAMESPACE ]]
+  then
+    read -p "enter your k8s namespace: "
+    DEV_NAMESPACE=$REPLY
+  fi
+  SERVICE_NAME=${DEV_NAMESPACE}-renku-gateway
 fi
+
 
 echo "================================================================================================================="
 echo "Once telepresence has started, copy-paste the following command to start the development server:"
 echo "GATEWAY_ENV=development \
 QUART_DEBUG=1 \
-QUART_APP=run:app.app \
+QUART_APP=app:app \
 PYTHONASYNCIODEBUG=1 \
 ${QUART_EXECUTABLE} run"
 echo "================================================================================================================="
 
-telepresence --swap-deployment renku-gateway --namespace renku --method inject-tcp --expose 5000 --run-shell
+
+# The `inject-tcp` proxying switch helps when running multiple instances of telepresence but creates problems when
+# suid bins need to run. This is a problem when running on Linux only.
+# Reference: https://www.telepresence.io/reference/methods
+
+if [[ "$OSTYPE" == "linux-gnu" ]]
+then
+  telepresence --swap-deployment ${SERVICE_NAME} --namespace ${DEV_NAMESPACE} --expose 5000 --run-shell
+else
+  telepresence --swap-deployment ${SERVICE_NAME} --namespace ${DEV_NAMESPACE} --method inject-tcp --expose 5000 --run-shell
+fi
