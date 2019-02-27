@@ -30,7 +30,7 @@ from simplekv.decorator import PrefixDecorator
 from simplekv.memory.redisstore import RedisStore
 
 from .auth import gitlab_auth, jupyterhub_auth, web
-from .blueprints import graph, backend_services
+from .blueprints import gitlab, graph, jupyterhub, notebooks, webhooks
 from .config import config
 
 logging.basicConfig(level=logging.DEBUG)
@@ -56,11 +56,14 @@ KVSessionExtension(prefixed_store, app)
 
 url_prefix = app.config['SERVICE_PREFIX']
 blueprints = (
-    graph.blueprint,
-    backend_services.blueprint,
     gitlab_auth.blueprint,
     jupyterhub_auth.blueprint,
     web.blueprint,
+    graph.blueprint,
+    notebooks.blueprint,
+    jupyterhub.blueprint,
+    webhooks.blueprint,
+    gitlab.blueprint,
 )
 
 
