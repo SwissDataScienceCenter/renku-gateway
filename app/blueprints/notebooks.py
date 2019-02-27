@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2017-2019 - Swiss Data Science Center (SDSC)
+# Copyright 2018-2019 - Swiss Data Science Center (SDSC)
 # A partnership between École Polytechnique Fédérale de Lausanne (EPFL) and
 # Eidgenössische Technische Hochschule Zürich (ETHZ).
 #
@@ -15,6 +15,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Notebooks endpoints."""
 
-# We define a list of all HTTP methods which are forwarded per default here.
-all_methods = ['GET', 'POST', 'PUT', 'DELETE']
+from quart import Blueprint, current_app, request
+
+from app.processors.service_processor import ServiceGeneric
+from app.gateway.proxy import pass_through
+from app.auth import JupyterhubUserToken
+
+from . import all_methods
+
+
+blueprint = Blueprint('notebooks', __name__, url_prefix='/notebooks')
+
+
+@blueprint.route('/<path:path>', methods=all_methods)
+async def forward_to_notebooks(path):
+    processor = ServiceGeneric(
+        path,
+        '{}/services/notebooks/'.format(current_app.config['JUPYTERHUB_URL'])
+    )
+    return await pass_through(request, processor, JupyterhubUserToken())
