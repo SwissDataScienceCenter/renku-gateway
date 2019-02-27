@@ -31,23 +31,27 @@ PREFIX wfprov: <http://purl.org/wf4ever/wfprov#>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 
-SELECT ?v ?w
+SELECT ?target ?source
 WHERE {{
   {{
     SELECT ?entity
     WHERE {{
       {filter}
+      ?qentity (
+        ^(prov:qualifiedGeneration/prov:activity/prov:qualifiedUsage/prov:entity)* |
+        (prov:qualifiedGeneration/prov:activity/prov:qualifiedUsage/prov:entity)*
+      ) ?entity .
     }}
     GROUP BY ?entity
   }}
   {{
     ?entity prov:qualifiedGeneration/prov:activity ?activity .
-    BIND (?entity AS ?v)
-    BIND (?activity AS ?w)
+    BIND (?entity AS ?target)
+    BIND (?activity AS ?source)
   }} UNION {{
     ?activity prov:qualifiedUsage/prov:entity ?entity .
-    BIND (?activity AS ?v)
-    BIND (?entity AS ?w)
+    BIND (?activity AS ?target)
+    BIND (?entity AS ?source)
   }}
 }}
 """
@@ -81,12 +85,13 @@ async def lineage(namespace, project, commit_ish=None, path=None):
     sparql.setMethod(POST)
 
     filter = [
-        '?entity dcterms:isPartOf ?project .',
+        '?qentity dcterms:isPartOf ?project .',
+        # TODO filter entities from private projects
         'FILTER (?project = <{project_url}>)'.format(project_url=project_url),
     ]
     if commit_ish:
         filter.extend([
-            '?entity (prov:qualifiedGeneration/prov:activity | '
+            '?qentity (prov:qualifiedGeneration/prov:activity | '
             '^prov:entity/^prov:qualifiedUsage) ?qactivity .',
             'FILTER (?qactivity = <file:///commit/{commit_ish}>)'.format(
                 commit_ish=commit_ish
@@ -99,7 +104,7 @@ async def lineage(namespace, project, commit_ish=None, path=None):
             path=path,
         )
         filter.append(
-            'FILTER (?entity = <{central_node}>)'.format(
+            'FILTER (?qentity = <{central_node}>)'.format(
                 central_node=central_node
             ),
         )
@@ -117,7 +122,6 @@ async def lineage(namespace, project, commit_ish=None, path=None):
         edges.append({key: value['value'] for key, value in item.items()})
 
     return jsonify({
-        'nodeIds': list(node_ids),
+        'nodes': [{'id': node_id} for node_id in node_ids],
         'edges': edges,
-        'centralNode': central_node,
     })
