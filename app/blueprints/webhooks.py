@@ -31,7 +31,7 @@ blueprint = Blueprint('webhooks', __name__)
 
 @blueprint.route('/projects/<project_id>/graph-hooks/<path:path>',
                  methods=all_methods)
-@blueprint.route('/projects/<project_id>/graph-hooks', methods=all_methods)
+@blueprint.route('/projects/<project_id>/graph-hooks', methods=ALL_HTTP_METHODS)
 async def forward_to_webooks(project_id, path=''):
     path = '/projects/{}/webhooks/{}'.format(project_id, path).rstrip('/')
     processor = ServiceGeneric(

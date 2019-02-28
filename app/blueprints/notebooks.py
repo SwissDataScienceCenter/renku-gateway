@@ -29,7 +29,7 @@ from . import all_methods
 blueprint = Blueprint('notebooks', __name__, url_prefix='/notebooks')
 
 
-@blueprint.route('/<path:path>', methods=all_methods)
+@blueprint.route('/<path:path>', methods=ALL_HTTP_METHODS)
 async def forward_to_notebooks(path):
     processor = ServiceGeneric(
         path,
