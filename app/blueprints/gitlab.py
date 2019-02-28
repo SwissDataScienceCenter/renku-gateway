@@ -29,7 +29,7 @@ from . import all_methods
 blueprint = Blueprint('gitlab', __name__)
 
 
-@blueprint.route('/<path:path>', methods=all_methods)
+@blueprint.route('/<path:path>', methods=ALL_HTTP_METHODS)
 async def forward_gitlab(path):
     processor = GitlabGeneric(
         path,

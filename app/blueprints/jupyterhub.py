@@ -29,7 +29,7 @@ from . import all_methods
 blueprint = Blueprint('jupyterhub', __name__, url_prefix='/jupyterhub')
 
 
-@blueprint.route('/<path:path>', methods=all_methods)
+@blueprint.route('/<path:path>', methods=ALL_HTTP_METHODS)
 async def forward_to_jupyterhub(path):
     processor = ServiceGeneric(
         path,
