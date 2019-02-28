@@ -100,6 +100,11 @@ class GitlabGeneric(BaseProcessor):
 
     def create_response_headers(self, response):
         headers = super().create_response_headers(response)
+
+        # We add back all gitlab-specific headers
+        for header_name in response.headers:
+            if header_name.startswith('X-Gitlab'):
+                headers[header_name] = response.headers[header_name]
         headers = fix_link_header(headers)
         return headers
 

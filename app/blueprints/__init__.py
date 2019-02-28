@@ -17,4 +17,4 @@
 # limitations under the License.
 
 # We define a list of all HTTP methods which are forwarded per default here.
-ALL_HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE']
+ALL_HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD']
