@@ -23,14 +23,14 @@ from app.processors.service_processor import ServiceGeneric
 from app.gateway.proxy import pass_through
 from app.auth import GitlabUserToken
 
-from . import all_methods
+from . import ALL_HTTP_METHODS
 
 
 blueprint = Blueprint('webhooks', __name__)
 
 
 @blueprint.route('/projects/<project_id>/graph-hooks/<path:path>',
-                 methods=all_methods)
+                 methods=ALL_HTTP_METHODS)
 @blueprint.route('/projects/<project_id>/graph-hooks', methods=ALL_HTTP_METHODS)
 async def forward_to_webooks(project_id, path=''):
     path = '/projects/{}/webhooks/{}'.format(project_id, path).rstrip('/')

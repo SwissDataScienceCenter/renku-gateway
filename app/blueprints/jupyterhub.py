@@ -23,7 +23,7 @@ from app.processors.service_processor import ServiceGeneric
 from app.gateway.proxy import pass_through
 from app.auth import JupyterhubUserToken
 
-from . import all_methods
+from . import ALL_HTTP_METHODS
 
 
 blueprint = Blueprint('jupyterhub', __name__, url_prefix='/jupyterhub')

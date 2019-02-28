@@ -23,7 +23,7 @@ from app.processors.gitlab_processor import GitlabGeneric
 from app.gateway.proxy import pass_through
 from app.auth import GitlabUserToken
 
-from . import all_methods
+from . import ALL_HTTP_METHODS
 
 
 blueprint = Blueprint('gitlab', __name__)
