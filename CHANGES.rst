@@ -1,9 +1,17 @@
 Changes
 =======
+v0.3.1
+------
+*(released 2019-02-28)*
+This release fixes an error in the implementation which prevented the forwarded 
+requests from being handled asynchronously. This alleviates some of the observed
+performance issues related to the gateway.
+
+
 v0.3.0
 ------
 *(released 2018-11-26)*
-The most notable change is the  use of a storage backend to support stateful
+The most notable change is the use of a storage backend to support stateful
 sessions. Namely a Redis instance is now spawned to store the current user's
 session and the mapping to the backend API tokens.
 
