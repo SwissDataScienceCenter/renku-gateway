@@ -50,10 +50,12 @@ WHERE {{
   }}
   {{
     ?entity prov:qualifiedGeneration/prov:activity ?activity .
+    FILTER NOT EXISTS {{?activity rdf:type wfprov:WorkflowRun}}
     BIND (?entity AS ?target)
     BIND (?activity AS ?source)
   }} UNION {{
     ?activity prov:qualifiedUsage/prov:entity ?entity .
+    FILTER NOT EXISTS {{?activity rdf:type wfprov:WorkflowRun}}
     BIND (?activity AS ?target)
     BIND (?entity AS ?source)
   }}
