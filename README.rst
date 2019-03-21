@@ -15,9 +15,15 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
+
 ==================
  Renku API gateway
 ==================
+
+.. image:: https://pullreminders.com/badge.svg
+    :target: https://pullreminders.com?ref=badge
+    :alt: Pull reminders
+    :align: right
 
 **The Renku platform is under very active development and should be considered highly
 volatile.**
