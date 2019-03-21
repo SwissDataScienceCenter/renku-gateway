@@ -64,6 +64,16 @@ swaps the renku-gateway service in your minikube deployment for a locally runnin
 the gateway served by a flask development server. This gives you live updates on code change
 in a minikube deployment!
 
+Running in a debugger
+^^^^^^^^^^^^^^^^^^^^^
+
+To run the gateway in the VS Code debugger, it is possible to use the *Python: Remote Attach*
+launch configuration. The :code:`run-telepresence.sh` script prints the command to be used
+for this purpose.
+
+The prerequisite is that the :code:`ptvsd` module is installed in your Python environment.
+This should be the case if you use the pipenv environment to run the gateway.
+
 Tests
 -----
 

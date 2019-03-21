@@ -20,6 +20,7 @@
 import json
 import logging
 import sys
+import os
 
 import quart.flask_patch
 import redis
@@ -32,6 +33,18 @@ from simplekv.memory.redisstore import RedisStore
 from .auth import gitlab_auth, jupyterhub_auth, web
 from .blueprints import gitlab, graph, jupyterhub, notebooks, webhooks
 from .config import config
+
+# Wait for the VS Code debugger to attach if requested
+VSCODE_DEBUG = os.environ.get('VSCODE_DEBUG') == "1"
+print("{}:{}".format(os.environ.get('VSCODE_DEBUG'), VSCODE_DEBUG))
+if VSCODE_DEBUG:
+    import ptvsd
+
+    # 5678 is the default attach port in the VS Code debug configurations
+    print("Waiting for debugger attach")
+    ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
+    ptvsd.wait_for_attach()
+    breakpoint()
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
