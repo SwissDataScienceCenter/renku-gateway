@@ -15,15 +15,14 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-
-==================
- Renku API gateway
-==================
-
 .. image:: https://pullreminders.com/badge.svg
     :target: https://pullreminders.com?ref=badge
     :alt: Pull reminders
     :align: right
+
+==================
+ Renku API gateway
+==================
 
 **The Renku platform is under very active development and should be considered highly
 volatile.**
@@ -31,6 +30,7 @@ volatile.**
 The Renku API gateway connects the different Renku clients to the various Renku backend
 services (GitLab, Jupyterhub, etc). Currently, it mainly acts on the communication between
 the Renku web UI and GitLab.
+
 
 Quickstart
 ----------
