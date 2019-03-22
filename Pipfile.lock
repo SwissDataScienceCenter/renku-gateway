@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "98c86f3a1dec9f4aa558172d1e96a17903fa35336bcceea7c20e9bc51d796962"
+            "sha256": "43dba6ccb92fc8390acd00e50682863e6a59f450acc98666a1e0f7d15d55ba30"
         },
         "host-environment-markers": {
             "implementation_name": "cpython",
@@ -36,6 +36,10 @@
         "aiohttp": {
             "hashes": [],
             "version": "==3.5.4"
+        },
+        "aioresponses": {
+            "hashes": [],
+            "version": "==0.6.0"
         },
         "alabaster": {
             "hashes": [],
@@ -194,6 +198,10 @@
             "hashes": [],
             "version": "==2.21.0"
         },
+        "responses": {
+            "hashes": [],
+            "version": "==0.10.6"
+        },
         "simplekv": {
             "hashes": [],
             "version": "==0.12.0"
@@ -212,6 +220,7 @@
         },
         "typing-extensions": {
             "hashes": [],
+            "markers": "python_version < '3.7'",
             "version": "==3.7.2"
         },
         "urllib3": {
@@ -220,7 +229,7 @@
         },
         "werkzeug": {
             "hashes": [],
-            "version": "==0.15.0"
+            "version": "==0.15.1"
         },
         "wsproto": {
             "hashes": [],

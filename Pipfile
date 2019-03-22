@@ -18,6 +18,8 @@ redis = "*"
 flask-kvsession = "*"
 aiohttp = "*"
 sparqlwrapper = "*"
+responses = "*"
+aioresponses = "*"
 
 
 [dev-packages]
