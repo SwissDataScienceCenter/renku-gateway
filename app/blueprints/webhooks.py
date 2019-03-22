@@ -41,5 +41,5 @@ async def forward_to_webooks(project_id, path=''):
     return await pass_through(
         request,
         processor,
-        GitlabUserToken(header_field='OAUTH-TOKEN', header_prefix='')
+        GitlabUserToken(header_field='Authorization', header_prefix='Bearer ')
     )
