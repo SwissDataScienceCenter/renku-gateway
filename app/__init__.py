@@ -19,21 +19,23 @@
 
 import json
 import logging
+import re
 import sys
 import os
 
+import jwt
 import quart.flask_patch
 import redis
 import requests
 from flask_kvsession import KVSessionExtension
-from quart import Quart, Response, current_app
+from quart import Quart, Response, current_app, request
 from quart_cors import cors
 from simplekv.decorator import PrefixDecorator
 from simplekv.memory.redisstore import RedisStore
 
+from . import config
 from .auth import gitlab_auth, jupyterhub_auth, web
-from .blueprints import gitlab, graph, jupyterhub, notebooks, webhooks
-from app import config
+from .blueprints import graph
 
 # Wait for the VS Code debugger to attach if requested
 VSCODE_DEBUG = os.environ.get('VSCODE_DEBUG') == "1"
@@ -76,11 +78,76 @@ blueprints = (
     jupyterhub_auth.blueprint,
     web.blueprint,
     graph.blueprint,
-    notebooks.blueprint,
-    jupyterhub.blueprint,
-    webhooks.blueprint,
-    gitlab.blueprint,
 )
+
+
+@app.route('/', methods=['GET'])
+async def auth():
+    if 'auth' not in request.args:
+        return Response('', status=200)
+
+    from .auth.gitlab_auth import GitlabUserToken
+    from .auth.jupyterhub_auth import JupyterhubUserToken
+
+    auths = {
+        'gitlab': GitlabUserToken,
+        'jupyterhub': JupyterhubUserToken,
+    }
+
+    auth = auths[request.args.get('auth')]()
+    headers = dict(request.headers)
+
+    # Keycloak public key is not defined so error
+    if current_app.config['OIDC_PUBLIC_KEY'] is None:
+        response = json.dumps("Ooops, something went wrong internally.")
+        return Response(response, status=500)
+
+    try:
+        # validate incomming authentication
+        # it can either be in session-cookie or Authorization header
+        new_tokens = web.get_valid_token(headers)
+        if new_tokens:
+            headers['Authorization'] = "Bearer {}".format(
+                new_tokens.get('access_token')
+            )
+        if 'Authorization' in headers and 'Referer' in headers:
+            allowed = False
+            origins = jwt.decode(
+                headers['Authorization'][7:],
+                current_app.config['OIDC_PUBLIC_KEY'],
+                algorithms='RS256',
+                audience=current_app.config['OIDC_CLIENT_ID']
+            ).get('allowed-origins')
+            for o in origins:
+                if re.match(o.replace("*", ".*"), headers['Referer']):
+                    allowed = True
+                    break
+            if not allowed:
+                return Response(
+                    json.dumps({
+                        'error':
+                            'origin not allowed: {} not matching {}'.
+                            format(headers['Referer'], origins)
+                    }),
+                    status=403
+                )
+
+        # auth processors always assume a valid Authorization in header, if any
+        headers = auth.process(request, headers)
+    except jwt.ExpiredSignatureError:
+        return Response(json.dumps({'error': 'token_expired'}), status=401)
+    except:
+        logger.warning("Error while authenticating request", exc_info=True)
+        return Response(
+            json.dumps({'error': "Error while authenticating"}),
+            status=401
+        )
+
+    return Response(
+        json.dumps("Up and running"),
+        headers=headers,
+        status=200,
+    )
 
 
 @app.route('/health', methods=['GET'])

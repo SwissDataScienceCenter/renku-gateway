@@ -12,4 +12,4 @@ charts:
         contextPath: ..
         # Dockerfile path relative to chartpress.yaml
         dockerfilePath: ../Dockerfile
-        valuesPath: image
+        valuesPath: image.auth

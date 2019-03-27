@@ -1,0 +1,94 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "gateway.fullname" . }}
+  labels:
+    app: {{ template "gateway.name" . }}
+    chart: {{ template "gateway.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  traefik.toml: |
+    [api]
+      dashboard = true
+    [providers]
+      [providers.file]
+        watch = true
+        directory = "/config"
+    [entrypoints]
+      [entrypoints.http]
+        address = ":{{ .Values.service.port }}"
+    [http.routers]
+      [http.routers.gateway]
+        entryPoints = ["http"]
+        Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}auth`) || PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}graph`)"
+        Service = "gateway"
+      [http.routers.jupyterhub]
+        entryPoints = ["http"]
+        Middlewares = ["auth-jupyterhub", "api", "noCookies", "jupyterhub"]
+        Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}jupyterhub`)"
+        Service = "jupyterhub"
+      [http.routers.notebooks]
+        entryPoints = ["http"]
+        Middlewares = ["auth-jupyterhub", "api", "noCookies", "notebooks"]
+        Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}notebooks`)"
+        Service = "jupyterhub"
+      [http.routers.webhooks]
+        entryPoints = ["http"]
+        Middlewares = ["auth-gitlab", "api", "noCookies", "webhooks"]
+        Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/(.*)/graph-hooks(.*)`)"
+        Service = "webhooks"
+      [http.routers.gitlab]
+        entryPoints = ["http"]
+        Middlewares = ["auth-gitlab", "api", "noCookies", "gitlab"]
+        Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}`)"
+        Service = "gitlab"
+    [http.middlewares]
+      [http.middlewares.noCookies.headers]
+        [http.middlewares.noCookies.headers.CustomRequestHeaders]
+          Cookie = ""
+      [http.middlewares.api.ReplacePathRegex]
+        regex = "^{{ .Values.gatewayServicePrefix | default "/api/" }}(.*)"
+        replacement = "/$1"
+      [http.middlewares.gitlab.ReplacePathRegex]
+        regex = "^(.*)"
+        replacement = "{{ .Values.global.gitlab.urlPrefix | default "/gitlab" }}/api/v4/$1"
+      [http.middlewares.jupyterhub.ReplacePathRegex]
+        regex = "^/jupyterhub/(.*)"
+        replacement = "/jupyterhub/hub/api/$1"
+      [http.middlewares.notebooks.ReplacePathRegex]
+        regex = "^/notebooks/(.*)"
+        replacement = "/jupyterhub/services/notebooks/$1"
+      [http.middlewares.auth-gitlab.forwardauth]
+        address = "http://{{ template "gateway.fullname" . }}-auth/?auth=gitlab"
+        trustForwardHeader = true
+        authResponseHeaders = ["Authorization"]
+      [http.middlewares.auth-jupyterhub.forwardauth]
+        address = "http://{{ template "gateway.fullname" . }}-auth/?auth=jupyterhub"
+        trustForwardHeader = true
+        authResponseHeaders = ["Authorization"]
+      [http.middlewares.webhooks.ReplacePathRegex]
+        regex = "^/projects/([^/]*)/graph-hooks(.*)"
+        replacement = "/projects/$1/webhooks$2"
+    [http.services]
+      [http.services.gateway.LoadBalancer]
+        method = "drr"
+        [[http.services.gateway.LoadBalancer.servers]]
+          url = "http://{{ template "gateway.fullname" . }}-auth/"
+          weight = 1
+      [http.services.gitlab.LoadBalancer]
+        method = "drr"
+        [[http.services.gitlab.LoadBalancer.servers]]
+          url = {{ .Values.gitlabUrl | default (printf "%s://%s/gitlab" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+          weight = 1
+      [http.services.jupyterhub.LoadBalancer]
+        method = "drr"
+        [[http.services.jupyterhub.LoadBalancer.servers]]
+          url = {{ .Values.jupyterhub.url | default (printf "%s://%s/jupyterhub" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+          weight = 1
+      [http.services.webhooks.LoadBalancer]
+        method = "drr"
+        [[http.services.webhooks.LoadBalancer.servers]]
+          url = {{ .Values.graph.webhookService.hostname | default (printf "http://%s-graph-webhook-service" .Release.Name ) | quote }}
+          weight = 1
