@@ -82,8 +82,7 @@ async def test_health_endpoint(client):
 async def test_passthrough_nopubkeyflow(client):
     # If no keycloak token exists, the pass through should fail with 500
     app.config['OIDC_PUBLIC_KEY'] = None
-    path = urljoin(app.config['SERVICE_PREFIX'], 'v4/projects/')
-    rv = await client.get(path)
+    rv = await client.get('/?auth=gitlab')
     assert rv.status_code == 500
 
 
@@ -109,19 +108,7 @@ async def test_gitlab_happyflow(client):
     from .. import store
     store.put('cache_5dbdeba7-e40f-42a7-b46b-6b8a07c65966_gl_access_token', 'some_token'.encode())
 
-    with aioresponses() as mocked:
+    rv = await client.get('/?auth=gitlab', headers=headers)
 
-        mocked.get(app.config['GITLAB_URL'] + '/api/v4/projects', status=200, body=json.dumps(GITLAB_PROJECTS))
-
-        # NOTE: These mocks are not used yet, therefore commented out...
-        # mocked.get(app.config['GITLAB_URL'] + '/api/v4/projects', body=json.dumps(GITLAB_PROJECTS), status=200)
-        # mocked.get(app.config['GITLAB_URL'] + "/api/v4/projects/1/repository/files/README.md/raw?ref=master", body="test", status=200)
-        # mocked.get(app.config['GITLAB_URL'] + "/api/v4/projects/1/issues?scope=all", body=json.dumps(GITLAB_ISSUES), status=200)
-        # mocked.get(app.config['GITLAB_URL'] + "/api/v4/projects/1/issues/1/award_emoji", body=json.dumps([]), status=200)
-        # mocked.get(app.config['GITLAB_URL'] + "/api/v4/projects/1/issues/1/notes", body=json.dumps([]), status=200)
-        # mocked.get(app.config['GITLAB_URL'] + '/api/v4/users', body=json.dumps([{'username': 'foo'}]))
-
-        rv = await client.get(urljoin(app.config['SERVICE_PREFIX'], 'projects'), headers=headers)
-
-        assert rv.status_code == 200
-        assert json.loads(await rv.get_data()) == GITLAB_PROJECTS
+    assert rv.status_code == 200
+    assert 'Bearer some_token' == rv.headers['Authorization']

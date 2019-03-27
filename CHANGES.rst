@@ -1,16 +1,25 @@
 Changes
 =======
-v0.3.1
-------
+
+``v0.4.0``
+----------
+*(released TBD)*
+
+This release uses Traefik for proxing requests to GitLab and JupyterHub.
+
+``v0.3.1``
+----------
 *(released 2019-02-28)*
-This release fixes an error in the implementation which prevented the forwarded 
+
+This release fixes an error in the implementation which prevented the forwarded
 requests from being handled asynchronously. This alleviates some of the observed
 performance issues related to the gateway.
 
 
-v0.3.0
-------
+``v0.3.0``
+----------
 *(released 2018-11-26)*
+
 The most notable change is the use of a storage backend to support stateful
 sessions. Namely a Redis instance is now spawned to store the current user's
 session and the mapping to the backend API tokens.
@@ -32,9 +41,10 @@ session and the mapping to the backend API tokens.
  file: endpoints.json
 
 
-v0.2.0
-------
+``v0.2.0``
+----------
 *(released 2018-09-25)*
+
 Initial release as a part of the larger Renku release. The gateway acts as a
 stateless proxy between the UI and Gitlab, providing the necessary endpoints
 for OAuth2/OpenID-connect login/logout and token retrieval.

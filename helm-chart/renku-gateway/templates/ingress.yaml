@@ -2,6 +2,7 @@
 {{- $fullName := include "gateway.fullname" . -}}
 {{- $servicePort := .Values.service.port -}}
 {{- $ingressPath := .Values.ingress.path -}}
+---
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:

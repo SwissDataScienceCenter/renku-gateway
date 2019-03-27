@@ -63,14 +63,21 @@ jupyterhub:
   clientSecret:
 
 image:
-  name: renku/renku-gateway
-  repository: renku/renku-gateway
-  tag: '0.3.1'
+  name: traefik
+  repository: traefik
+  tag: 'v2.0'
   pullPolicy: IfNotPresent
+
+  ## Define image for auth middleware
+  auth:
+    name: renku/renku-gateway
+    repository: renku/renku-gateway
+    tag: '0.4.0'
+    pullPolicy: IfNotPresent
 
 service:
   type: ClusterIP
-  port: 5000
+  port: 80
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious

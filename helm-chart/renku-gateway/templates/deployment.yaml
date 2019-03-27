@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
@@ -18,8 +19,11 @@ spec:
       labels:
         app: {{ template "gateway.name" . }}
         release: {{ .Release.Name }}
-        {{ include "call-nested" (list . "redis" "redis.fullname") }}-client: "true"
     spec:
+      volumes:
+        - name: config
+          configMap:
+            name: {{ template "gateway.fullname" . }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -27,6 +31,74 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
+              protocol: TCP
+            - name: admin
+              containerPort: 8080
+          args:
+            - --configfile=/config/traefik.toml
+          volumeMounts:
+            - mountPath: /config
+              name: config
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.service.port }}
+            failureThreshold: 1
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.service.port }}
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ template "gateway.fullname" . }}-auth
+  labels:
+    app: {{ template "gateway.name" . }}-auth
+    chart: {{ template "gateway.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "gateway.name" . }}-auth
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "gateway.name" . }}-auth
+        release: {{ .Release.Name }}
+        {{ include "call-nested" (list . "redis" "redis.fullname") }}-client: "true"
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.auth.repository }}:{{ .Values.image.auth.tag }}"
+          imagePullPolicy: {{ .Values.image.auth.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 5000
               protocol: TCP
           env:
             - name: HOST_NAME
