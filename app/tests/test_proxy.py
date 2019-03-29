@@ -85,7 +85,6 @@ async def test_passthrough_nopubkeyflow(client):
     path = urljoin(app.config['SERVICE_PREFIX'], 'v4/projects/')
     rv = await client.get(path)
     assert rv.status_code == 500
-    assert b'"Ooops, something went wrong internally' in (await rv.get_data())
 
 
 ## TODO: currently no endpoint absolutely requires a token

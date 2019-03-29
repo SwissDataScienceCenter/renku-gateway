@@ -18,7 +18,6 @@
 """Implement GitLab authentication workflow."""
 
 import json
-import logging
 import re
 import urllib
 from urllib.parse import urljoin
@@ -36,8 +35,6 @@ from quart import (
 
 from .web import JWT_ALGORITHM, get_key_for_user
 
-logger = logging.getLogger(__name__)
-
 blueprint = Blueprint('gitlab_auth', __name__, url_prefix='/auth/gitlab')
 
 
@@ -54,7 +51,7 @@ class GitlabUserToken():
             re.IGNORECASE
         )
         if m:
-            # logger.debug('outgoing headers: {}'.format(json.dumps(headers))
+            # current_app.logger.debug('outgoing headers: {}'.format(json.dumps(headers))
             access_token = m.group('token')
             decodentoken = jwt.decode(
                 access_token,
@@ -75,7 +72,7 @@ class GitlabUserToken():
             ] = access_token  # can be needed later in the request processing
 
         else:
-            # logger.debug("No authorization header, returning empty auth headers")
+            # current_app.logger.debug("No authorization header, returning empty auth headers")
             pass
 
         return headers

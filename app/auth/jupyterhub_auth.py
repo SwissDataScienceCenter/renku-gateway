@@ -18,24 +18,21 @@
 """Implement JupyterHub authentication workflow."""
 
 import json
-import logging
 import re
 from urllib.parse import parse_qs, urlencode, urljoin
 
 import jwt
 import requests
 from oic import rndstr
-from quart import Blueprint, redirect, request, session, url_for
+from quart import Blueprint, redirect, request, session, url_for, current_app
 
 from .web import JWT_ALGORITHM, get_key_for_user
 
-logger = logging.getLogger(__name__)
 
 blueprint = Blueprint(
     'jupyterhub_auth', __name__, url_prefix='/auth/jupyterhub'
 )
 
-from quart import current_app
 
 class JupyterhubUserToken():
     def process(self, request, headers):
@@ -46,7 +43,7 @@ class JupyterhubUserToken():
             re.IGNORECASE
         )
         if m:
-            # logger.debug('Authorization header present, token exchange')
+            # current_app.logger.debug('Authorization header present, token exchange')
             access_token = m.group('token')
             decodentoken = jwt.decode(
                 access_token,
@@ -60,9 +57,9 @@ class JupyterhubUserToken():
             )
             headers['Authorization'] = "token {}".format(jh_token.decode())
 
-            # logger.debug('outgoing headers: {}'.format(json.dumps(headers)))
+            # current_app.logger.debug('outgoing headers: {}'.format(json.dumps(headers)))
         else:
-            # logger.debug("No authorization header, returning empty auth headers")
+            # current_app.logger.debug("No authorization header, returning empty auth headers")
             headers.pop('Authorization', None)
 
         return headers

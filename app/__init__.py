@@ -24,15 +24,16 @@ import os
 
 import quart.flask_patch
 import redis
+import requests
 from flask_kvsession import KVSessionExtension
-from quart import Quart, Response
+from quart import Quart, Response, current_app
 from quart_cors import cors
 from simplekv.decorator import PrefixDecorator
 from simplekv.memory.redisstore import RedisStore
 
 from .auth import gitlab_auth, jupyterhub_auth, web
 from .blueprints import gitlab, graph, jupyterhub, notebooks, webhooks
-from .config import config
+from app import config
 
 # Wait for the VS Code debugger to attach if requested
 VSCODE_DEBUG = os.environ.get('VSCODE_DEBUG') == "1"
@@ -45,12 +46,15 @@ if VSCODE_DEBUG:
     ptvsd.wait_for_attach()
     breakpoint()
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-
 
 app = Quart(__name__)
-app.config.from_mapping(config)
+
+# We activate all log levels and prevent logs from showing twice.
+app.logger.setLevel(logging.DEBUG)
+app.logger.propagate = False
+
+app.config.from_object(config)
+
 app = cors(
     app,
     allow_headers=['X-Requested-With'],
@@ -96,3 +100,19 @@ for blueprint in blueprints:
         blueprint,
         url_prefix=_join_url_prefix(url_prefix, blueprint.url_prefix),
     )
+
+
+@app.before_request
+def load_public_key():
+    if current_app.config.get('OIDC_PUBLIC_KEY'):
+        return
+
+    raw_key = requests.get(current_app.config['OIDC_ISSUER']).json()[
+        'public_key'
+    ]
+    current_app.config[
+        'OIDC_PUBLIC_KEY'
+    ] = '-----BEGIN PUBLIC KEY-----\n{}\n-----END PUBLIC KEY-----'.format(
+        raw_key
+    )
+    current_app.logger.info('Obtained public key from Keycloak.')
