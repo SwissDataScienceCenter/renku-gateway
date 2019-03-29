@@ -1,12 +1,9 @@
 [[source]]
-
 url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
-
 [packages]
-
 werkzeug = "*"
 hypercorn = "*"
 oic = "*"
@@ -21,9 +18,7 @@ sparqlwrapper = "*"
 responses = "*"
 aioresponses = "*"
 
-
 [dev-packages]
-
 pytest = "*"
 pytest-asyncio = "*"
 nose = "*"
@@ -33,8 +28,7 @@ mockredispy = "*"
 aioresponses = "*"
 pylint = "*"
 ptvsd = "*"
-
+typing-extensions = "*"
 
 [requires]
-
 python_version = "3.7"
