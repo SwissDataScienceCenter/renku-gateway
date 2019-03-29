@@ -36,7 +36,6 @@ from .config import config
 
 # Wait for the VS Code debugger to attach if requested
 VSCODE_DEBUG = os.environ.get('VSCODE_DEBUG') == "1"
-print("{}:{}".format(os.environ.get('VSCODE_DEBUG'), VSCODE_DEBUG))
 if VSCODE_DEBUG:
     import ptvsd
 
