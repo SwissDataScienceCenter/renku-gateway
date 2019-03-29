@@ -4,26 +4,31 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-Werkzeug = "*"
+werkzeug = "*"
 hypercorn = "*"
 oic = "*"
 requests = "*"
 quart = "*"
-Quart-CORS = "*"
-PyJWT = "*"
+quart-cors = "*"
+pyjwt = "*"
 redis = "*"
-flask_kvsession = "*"
+flask-kvsession = "*"
 aiohttp = "*"
 sparqlwrapper = "*"
+responses = "*"
+aioresponses = "*"
 
 [dev-packages]
 pytest = "*"
-pytest_asyncio = "*"
+pytest-asyncio = "*"
 nose = "*"
 chartpress = "*"
 responses = "*"
 mockredispy = "*"
 aioresponses = "*"
+pylint = "*"
+ptvsd = "*"
+typing-extensions = "*"
 
 [requires]
 python_version = "3.7"
