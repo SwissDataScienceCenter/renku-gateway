@@ -25,13 +25,14 @@ blueprint = Blueprint('graph', __name__, url_prefix='/graph')
 LINEAGE_GLOBAL = """
 PREFIX prov: <http://www.w3.org/ns/prov#>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX wfdesc: <http://purl.org/wf4ever/wfdesc#>
 PREFIX wf: <http://www.w3.org/2005/01/wf/flow#>
 PREFIX wfprov: <http://purl.org/wf4ever/wfprov#>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 
-SELECT ?target ?source
+SELECT ?target ?source ?target_label ?source_label
 WHERE {{
   {{
     SELECT ?entity
@@ -45,12 +46,16 @@ WHERE {{
     GROUP BY ?entity
   }}
   {{
-    ?entity prov:qualifiedGeneration/prov:activity ?activity .
+    ?entity prov:qualifiedGeneration/prov:activity ?activity ;
+            rdfs:label ?target_label .
+    ?activity rdfs:comment ?source_label .
     FILTER NOT EXISTS {{?activity rdf:type wfprov:WorkflowRun}}
     BIND (?entity AS ?target)
     BIND (?activity AS ?source)
   }} UNION {{
-    ?activity prov:qualifiedUsage/prov:entity ?entity .
+    ?activity prov:qualifiedUsage/prov:entity ?entity ;
+              rdfs:comment ?target_label .
+    ?entity rdfs:label ?source_label .
     FILTER NOT EXISTS {{?activity rdf:type wfprov:WorkflowRun}}
     BIND (?activity AS ?target)
     BIND (?entity AS ?source)
@@ -116,14 +121,21 @@ async def lineage(namespace, project, commit_ish=None, path=None):
     sparql.setQuery(query)
     results = sparql.query().convert()
 
-    node_ids = set()
+    nodes = {}
     edges = []
 
     for item in results['results']['bindings']:
-        node_ids |= set(value['value'] for value in item.values())
-        edges.append({key: value['value'] for key, value in item.items()})
+        nodes[item['source']['value']] = {
+            'id': item['source']['value'],
+            'label': item['source_label']['value']
+        }
+        nodes[item['target']['value']] = {
+            'id': item['target']['value'],
+            'label': item['target_label']['value']
+        }
+        edges.append({key: item[key]['value'] for key in ('source', 'target')})
 
     return jsonify({
-        'nodes': [{'id': node_id} for node_id in node_ids],
+        'nodes': nodes.values(),
         'edges': edges,
     })
