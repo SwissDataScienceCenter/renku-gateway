@@ -1,14 +1,12 @@
 import os
 import json
-import logging
 
 import aiohttp
-from quart import Response
+from quart import Response, current_app
 from werkzeug.datastructures import Headers
 
 gateway_env = os.environ.get('GATEWAY_ENV')
 dev_env = (gateway_env == 'development')
-logger = logging.getLogger(__name__)
 
 
 def headers_for_development(headers):
@@ -24,20 +22,20 @@ class BaseProcessor:
         self.forwarded_headers = [
             'Content-Type',
         ]
-        logger.debug(
+        current_app.logger.debug(
             'Processor with path = "{}" and endpoint = "{}"'.format(
                 path, endpoint
             )
         )
 
     async def process(self, request, headers):
-        logger.debug('Request path: {}'.format(self.path))
-        logger.debug('Forward endpoint: {}'.format(self.endpoint))
-        logger.debug('incoming headers: {}'.format(json.dumps(headers)))
+        current_app.logger.debug('Request path: {}'.format(self.path))
+        current_app.logger.debug('Forward endpoint: {}'.format(self.endpoint))
+        current_app.logger.debug('incoming headers: {}'.format(json.dumps(headers)))
 
         if dev_env:
             headers = headers_for_development(headers)
-            logger.debug('development headers: {}'.format(json.dumps(headers)))
+            current_app.logger.debug('development headers: {}'.format(json.dumps(headers)))
 
         async with aiohttp.ClientSession() as session:
             async with session.request(
@@ -50,8 +48,8 @@ class BaseProcessor:
 
                 response_data = await response.read()
 
-                logger.debug('Response: {}'.format(response.status))
-                logger.debug('Response headers: {}'.format(response.headers))
+                current_app.logger.debug('Response: {}'.format(response.status))
+                current_app.logger.debug('Response headers: {}'.format(response.headers))
 
                 return Response(
                     # response=response_generator(response),

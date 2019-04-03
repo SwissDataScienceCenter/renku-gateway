@@ -18,7 +18,6 @@
 """Web auth routes."""
 
 import json
-import logging
 import re
 import time
 import urllib.parse
@@ -35,7 +34,6 @@ from quart import (
     session, url_for
 )
 
-logger = logging.getLogger(__name__)
 
 blueprint = Blueprint('web_auth', __name__, url_prefix='/auth')
 
@@ -80,7 +78,7 @@ def get_valid_token(headers):
         if jwt.decode(
             m.group('token'), verify=False
         ).get('typ') in ['Offline', 'Refresh']:
-            logger.debug("Swapping the token")
+            current_app.logger.debug("Swapping the token")
             to = Token(resp={'refresh_token': m.group('token')})
             token_response = client.do_access_token_refresh(token=to)
 
@@ -128,7 +126,7 @@ def get_valid_token(headers):
                     get_key_for_user(a, 'kc_refresh_token')
                 ).decode()
 
-                logger.debug("Refreshing the token")
+                current_app.logger.debug("Refreshing the token")
                 to = Token(resp={'refresh_token': refresh_token})
 
                 token_response = client.do_access_token_refresh(token=to)
@@ -260,7 +258,7 @@ async def token():
 
     # we can already tell the CLI which token to use
     if session.get('cli_token'):
-        logger.debug(
+        current_app.logger.debug(
             "Notification for request {}".format(session.get('cli_token'))
         )
 
@@ -286,7 +284,7 @@ async def info():
     if t:
         timeout = 120
         key = "cli_{}".format(hashlib.sha256(t.encode()).hexdigest())
-        logger.debug("Waiting for Keycloak callback for request {}".format(t))
+        current_app.logger.debug("Waiting for Keycloak callback for request {}".format(t))
         val = store.get(key)
         while not val and timeout > 0:
             time.sleep(3)
@@ -296,7 +294,7 @@ async def info():
             store.delete(key)
             return val
         else:
-            logger.debug("Timeout while waiting for request {}".format(t))
+            current_app.logger.debug("Timeout while waiting for request {}".format(t))
             return '{"error": "timeout"}'
     else:
 

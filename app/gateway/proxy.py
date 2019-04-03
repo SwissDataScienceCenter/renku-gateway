@@ -18,7 +18,6 @@
 """Gateway logic."""
 
 import json
-import logging
 import re
 
 import jwt
@@ -26,16 +25,9 @@ from quart import Response, current_app
 
 from app.auth.web import get_valid_token
 
-logger = logging.getLogger(__name__)
-
 
 async def pass_through(request, processor, auth):
     headers = dict(request.headers)
-
-    # Keycloak public key is not defined so error
-    if current_app.config['OIDC_PUBLIC_KEY'] is None:
-        response = json.dumps("Ooops, something went wrong internally.")
-        return Response(response, status=500)
 
     if 'Host' in headers:
         del headers['Host']
@@ -80,7 +72,7 @@ async def pass_through(request, processor, auth):
         except jwt.ExpiredSignatureError:
             return Response(json.dumps({'error': 'token_expired'}), status=401)
         except:
-            logger.warning("Error while authenticating request", exc_info=True)
+            current_app.logger.warning("Error while authenticating request", exc_info=True)
             return Response(
                 json.dumps({
                     'error': "Error while authenticating"

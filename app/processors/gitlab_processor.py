@@ -1,5 +1,4 @@
 import json
-import logging
 import re
 from urllib.parse import quote, urljoin
 
@@ -10,8 +9,6 @@ from werkzeug.datastructures import Headers
 # from app.helpers.gitlab_parsers import parse_project
 from app.processors.base_processor import BaseProcessor
 
-
-logger = logging.getLogger(__name__)
 
 SPECIAL_ROUTE_RULES = [
     {
