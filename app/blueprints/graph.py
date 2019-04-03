@@ -50,6 +50,7 @@ WHERE {{
             rdfs:label ?target_label .
     ?activity rdfs:comment ?source_label .
     FILTER NOT EXISTS {{?activity rdf:type wfprov:WorkflowRun}}
+    FILTER EXISTS {{?activity rdf:type wfprov:ProcessRun}}
     BIND (?entity AS ?target)
     BIND (?activity AS ?source)
   }} UNION {{
@@ -57,6 +58,7 @@ WHERE {{
               rdfs:comment ?target_label .
     ?entity rdfs:label ?source_label .
     FILTER NOT EXISTS {{?activity rdf:type wfprov:WorkflowRun}}
+    FILTER EXISTS {{?activity rdf:type wfprov:ProcessRun}}
     BIND (?activity AS ?target)
     BIND (?entity AS ?source)
   }}
@@ -135,7 +137,19 @@ async def lineage(namespace, project, commit_ish=None, path=None):
         }
         edges.append({key: item[key]['value'] for key in ('source', 'target')})
 
+    # TODO: Maybe this logic can be integrated in the SPARQL query itself?
+    nodes_list = list(nodes.values())
+    renku_cli_nodes = [node for node in nodes_list
+                       if node['label'].startswith('renku')]
+
+    for node in renku_cli_nodes:
+        edges_target = [edge for edge in edges if edge['target'] == node['id']]
+        edges_source = [edge for edge in edges if edge['source'] == node['id']]
+        if len(edges_target) == 1 and len(edges_source) == 0:
+            edges.remove(edges_target[0])
+            nodes_list.remove(node)
+
     return jsonify({
-        'nodes': nodes.values(),
+        'nodes': nodes_list,
         'edges': edges,
     })
