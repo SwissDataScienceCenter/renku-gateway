@@ -148,6 +148,9 @@ async def lineage(namespace, project, commit_ish=None, path=None):
         if len(edges_target) == 1 and len(edges_source) == 0:
             edges.remove(edges_target[0])
             nodes_list.remove(node)
+        elif len(edges_target) == 0 and len(edges_source) == 1:
+            edges.remove(edges_source[0])
+            nodes_list.remove(node)
 
     return jsonify({
         'nodes': nodes_list,
