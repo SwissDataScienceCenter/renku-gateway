@@ -37,7 +37,7 @@ data:
       [http.routers.webhooks]
         entryPoints = ["http"]
         Middlewares = ["auth-gitlab", "api", "noCookies", "webhooks"]
-        Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/(.*)/graph-hooks(.*)`)"
+        Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph-hooks{endpoint:(.*)}`)"
         Service = "webhooks"
       [http.routers.gitlab]
         entryPoints = ["http"]
