@@ -174,6 +174,10 @@ def load_public_key():
     if current_app.config.get('OIDC_PUBLIC_KEY'):
         return
 
+    current_app.logger.info('Obtaining public key from {}'.format(
+        current_app.config['OIDC_ISSUER']
+    ))
+
     raw_key = requests.get(current_app.config['OIDC_ISSUER']).json()[
         'public_key'
     ]
@@ -182,4 +186,5 @@ def load_public_key():
     ] = '-----BEGIN PUBLIC KEY-----\n{}\n-----END PUBLIC KEY-----'.format(
         raw_key
     )
-    current_app.logger.info('Obtained public key from Keycloak.')
+
+    current_app.logger.info(current_app.config['OIDC_PUBLIC_KEY'])
