@@ -42,7 +42,7 @@ else
     read -p "enter your k8s namespace: "
     DEV_NAMESPACE=$REPLY
   fi
-  SERVICE_NAME=${DEV_NAMESPACE}-renku-gateway
+  SERVICE_NAME=${DEV_NAMESPACE}-renku-gateway-auth
 fi
 
 
