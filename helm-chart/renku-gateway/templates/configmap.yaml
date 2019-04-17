@@ -19,6 +19,8 @@ data:
     [entrypoints]
       [entrypoints.http]
         address = ":{{ .Values.service.port }}"
+    [accessLog]
+      bufferingSize = 10
     [http.routers]
       [http.routers.gateway]
         entryPoints = ["http"]
