@@ -80,14 +80,16 @@ class GitlabUserToken():
 
 SCOPE = ['openid', 'api', 'read_user', 'read_repository']
 
-# We prepare the OIC client instance with the necessary configurations.
-gitlab_client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
 
+@blueprint.before_request
+def create_gitlab_oic_client():
+    if current_app.config.get('GITLAB_OIC_CLIENT'):
+        return
 
-@blueprint.before_app_first_request
-def before_first():
     try:
-        gitlab_client.provider_config(
+        # We prepare the OIC client instance with the necessary configurations.
+        gitlab_oic_client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
+        gitlab_oic_client.provider_config(
             issuer=current_app.config['GITLAB_URL'],
             keys=False,
         )
@@ -99,35 +101,40 @@ def before_first():
         client_id=current_app.config['GITLAB_CLIENT_ID'],
         client_secret=current_app.config['GITLAB_CLIENT_SECRET'],
     )
-    gitlab_client.store_registration_info(client_reg)
+    gitlab_oic_client.store_registration_info(client_reg)
 
     # gitlab /.well-known/openid-configuration doesn't take into account
     # the protocol for generating its URLs
     # so we have to manualy fix them here
-    gitlab_client.authorization_endpoint = "{}/oauth/authorize".format(
+    gitlab_oic_client.authorization_endpoint = "{}/oauth/authorize".format(
         current_app.config['GITLAB_URL']
     )
-    gitlab_client.token_endpoint = "{}/oauth/token".format(
+    gitlab_oic_client.token_endpoint = "{}/oauth/token".format(
         current_app.config['GITLAB_URL']
     )
-    gitlab_client.userinfo_endpoint = "{}/oauth/userinfo".format(
+    gitlab_oic_client.userinfo_endpoint = "{}/oauth/userinfo".format(
         current_app.config['GITLAB_URL']
     )
-    gitlab_client.jwks_uri = "{}/oauth/discovery/keys".format(
+    gitlab_oic_client.jwks_uri = "{}/oauth/discovery/keys".format(
         current_app.config['GITLAB_URL']
     )
-    gitlab_client.keyjar = KeyJar()
-    gitlab_client.keyjar.load_keys({
+    gitlab_oic_client.keyjar = KeyJar()
+    gitlab_oic_client.keyjar.load_keys({
         'jwks_uri':
             '{0}/oauth/discovery/keys'.format(
                 current_app.config['GITLAB_URL']
             )
     }, current_app.config['GITLAB_URL'])
 
+    current_app.config['GITLAB_OIC_CLIENT'] = gitlab_oic_client
+
 
 @blueprint.route('/login')
 def login():
     """Login with GitLab."""
+
+    gitlab_oic_client = current_app.config.get('GITLAB_OIC_CLIENT')
+
     state = rndstr()
 
     session['login_seq'] += 1
@@ -141,8 +148,10 @@ def login():
             current_app.config['HOST_NAME'] + url_for('gitlab_auth.token'),
         'state': state
     }
-    auth_req = gitlab_client.construct_AuthorizationRequest(request_args=args)
-    login_url = auth_req.request(gitlab_client.authorization_endpoint)
+    auth_req = gitlab_oic_client.construct_AuthorizationRequest(
+        request_args=args
+    )
+    login_url = auth_req.request(gitlab_oic_client.authorization_endpoint)
     response = current_app.make_response(redirect(login_url))
     return response
 
@@ -151,8 +160,10 @@ def login():
 async def token():
     from .. import store
 
+    gitlab_oic_client = current_app.config.get('GITLAB_OIC_CLIENT')
+
     # This is more about parsing the request data than any response data....
-    authorization_parameters = gitlab_client.parse_response(
+    authorization_parameters = gitlab_oic_client.parse_response(
         AuthorizationResponse,
         info=request.query_string.decode('utf-8'),
         sformat='urlencoded'
@@ -161,7 +172,7 @@ async def token():
     if session['gitlab_state'] != authorization_parameters['state']:
         return 'Something went wrong while trying to log you in.'
 
-    token_response = gitlab_client.do_access_token_request(
+    token_response = gitlab_oic_client.do_access_token_request(
         scope=SCOPE,
         state=authorization_parameters['state'],
         request_args={
@@ -185,13 +196,17 @@ async def token():
         json.dumps(token_response['id_token'].to_dict()).encode()
     )
 
-    response = await current_app.make_response(redirect(url_for('web_auth.login_next')))
+    response = await current_app.make_response(
+        redirect(url_for('web_auth.login_next'))
+    )
 
     return response
 
 
 def get_gitlab_refresh_token(access_token):
     from .. import store
+
+    gitlab_oic_client = current_app.config.get('GITLAB_OIC_CLIENT')
 
     access_token = jwt.decode(
         access_token,
@@ -205,7 +220,9 @@ def get_gitlab_refresh_token(access_token):
                 store.get(get_key_for_user(access_token, 'gl_refresh_token'))
         }
     )
-    refresh_token_response = gitlab_client.do_access_token_refresh(token=to)
+    refresh_token_response = gitlab_oic_client.do_access_token_refresh(
+        token=to
+    )
     if 'access_token' in refresh_token_response:
         store.put(
             get_key_for_user(access_token, 'gl_access_token'),
