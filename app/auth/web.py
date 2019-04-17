@@ -42,15 +42,17 @@ blueprint = Blueprint('web_auth', __name__, url_prefix='/auth')
 JWT_ALGORITHM = 'RS256'
 SCOPE = ['openid']
 
-# We prepare the OIC client instance with the necessary configurations.
-client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
 
-
-@blueprint.before_app_first_request
+@blueprint.before_request
 def before_first():
+    if current_app.config.get('KEYCLOAK_OIC_CLIENT'):
+        return
+
     """Fake the response from registering the client through the API."""
     try:
-        client.provider_config(issuer=current_app.config['OIDC_ISSUER'])
+        # We prepare the OIC client instance with the necessary configurations.
+        keycloak_oic_client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
+        keycloak_oic_client.provider_config(issuer=current_app.config['OIDC_ISSUER'])
     except:
         pass
 
@@ -58,7 +60,8 @@ def before_first():
         client_id=current_app.config['OIDC_CLIENT_ID'],
         client_secret=current_app.config['OIDC_CLIENT_SECRET']
     )
-    client.store_registration_info(client_reg)
+    keycloak_oic_client.store_registration_info(client_reg)
+    current_app.config['KEYCLOAK_OIC_CLIENT'] = keycloak_oic_client
 
 
 def get_valid_token(headers):
@@ -68,6 +71,8 @@ def get_valid_token(headers):
     If a refresh token is available, it can be swapped for an access token.
     """
     from .. import store
+
+    keycloak_oic_client = current_app.config.get('KEYCLOAK_OIC_CLIENT')
 
     m = re.search(
         r'bearer (?P<token>.+)', headers.get('Authorization', ''),
@@ -80,7 +85,9 @@ def get_valid_token(headers):
         ).get('typ') in ['Offline', 'Refresh']:
             current_app.logger.debug("Swapping the token")
             to = Token(resp={'refresh_token': m.group('token')})
-            token_response = client.do_access_token_refresh(token=to)
+            token_response = keycloak_oic_client.do_access_token_refresh(
+                token=to
+            )
 
             if 'access_token' in token_response:
                 try:
@@ -129,7 +136,9 @@ def get_valid_token(headers):
                 current_app.logger.debug("Refreshing the token")
                 to = Token(resp={'refresh_token': refresh_token})
 
-                token_response = client.do_access_token_refresh(token=to)
+                token_response = keycloak_oic_client.do_access_token_refresh(
+                    token=to
+                )
 
                 if 'access_token' in token_response:
                     try:
@@ -182,6 +191,8 @@ async def login_next():
 @blueprint.route('/login')
 async def login():
 
+    keycloak_oic_client = current_app.config.get('KEYCLOAK_OIC_CLIENT')
+
     state = rndstr()
 
     session['state'] = state
@@ -200,8 +211,10 @@ async def login():
             current_app.config['HOST_NAME'] + url_for('web_auth.token'),
         'state': state
     }
-    auth_req = client.construct_AuthorizationRequest(request_args=args)
-    login_url = auth_req.request(client.authorization_endpoint)
+    auth_req = keycloak_oic_client.construct_AuthorizationRequest(
+        request_args=args
+    )
+    login_url = auth_req.request(keycloak_oic_client.authorization_endpoint)
     response = await current_app.make_response(redirect(login_url))
 
     return response
@@ -211,8 +224,10 @@ async def login():
 async def token():
     from .. import store
 
+    keycloak_oic_client = current_app.config.get('KEYCLOAK_OIC_CLIENT')
+
     # This is more about parsing the request data than any response data....
-    authorization_parameters = client.parse_response(
+    authorization_parameters = keycloak_oic_client.parse_response(
         AuthorizationResponse,
         info=request.query_string.decode('utf-8'),
         sformat='urlencoded'
@@ -221,7 +236,7 @@ async def token():
     if session.get('state') != authorization_parameters['state']:
         return 'Something went wrong while trying to log you in.'
 
-    token_response = client.do_access_token_request(
+    token_response = keycloak_oic_client.do_access_token_request(
         scope=SCOPE,
         state=authorization_parameters['state'],
         request_args={
