@@ -50,12 +50,10 @@ data:
       [http.middlewares.noCookies.headers]
         [http.middlewares.noCookies.headers.CustomRequestHeaders]
           Cookie = ""
-      [http.middlewares.api.ReplacePathRegex]
-        regex = "^{{ .Values.gatewayServicePrefix | default "/api/" }}(.*)"
-        replacement = "/$1"
-      [http.middlewares.gitlab.ReplacePathRegex]
-        regex = "^(.*)"
-        replacement = "{{ .Values.global.gitlab.urlPrefix | default "/gitlab" }}/api/v4/$1"
+      [http.middlewares.api.StripPrefix]
+        prefixes = ["/api"]
+      [http.middlewares.gitlab.AddPrefix]
+        prefix = "/gitlab/api/v4"
       [http.middlewares.jupyterhub.ReplacePathRegex]
         regex = "^/jupyterhub/(.*)"
         replacement = "/jupyterhub/hub/api/$1"
