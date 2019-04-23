@@ -5,36 +5,25 @@
 ## Global variables
 ## Shared values/secrets
 global:
-  gitlab:
-    ## Client secret, set this to a random string.
-    ## To change this value after deploying, first generate a new secret using the Keycloak admin console
-    ## then paste the generated secret here
-    clientSecret: open_secret
-    ## Name of the postgres database to be used by Gitlab
-    postgresDatabase: gitlabhq_production
-    ## Postgres user for the gitlab database
-    postgresUser: gitlab
-    ## Postgres password for the gitlab database
-    postgresPassword: gitlab
-  keycloak:
-    ## Name of the postgres database to be used by Keycloak
-    postgresDatabase: keycloak
-    ## Postgres user for the Keycloak database
-    postgresUser: keycloak
-    ## Postgres password for the Keycloak database
-    postgresPassword: keycloak
+  ## Set to true if using https
+  useHTTPS: false
+  gateway:
+    ## Client secret of the renku client application registered in
+    ## keycloak.
+    clientSecret:
+    ## Client id and client secret of the renku gateway client application
+    ## which is registered in GitLab.
+    # gitlabClientId:
+    # gitlabClientSecret:
   renku:
-    ## Set to true if using https
-    https: false
-    ## Domain name for the deployed instance of renku
+    ## Domain name for the deployed instance of Renku. Most likely
+    ## set by parent chart.
     domain: example.local
 
 replicaCount: 1
 
-## Set to a custom base URL if deployed manually
-# baseUrl: "http://127.0.0.1:8080"
 ## Set to a custom GitLab URL if deployed manually
-# gitlabUrl: "http://gitlab.renku.build"
+# gitlabUrl:
 
 ## Configure application ID from "{{ gitlabUrl }}/oauth/application"
 ## by setting redirect URL to "{{ baseUrl }}/login/redirect/gitlab"
@@ -68,7 +57,7 @@ image:
   tag: 'v2.0'
   pullPolicy: IfNotPresent
 
-  ## Define image for auth middleware
+  ## Define the image for the auth middleware
   auth:
     name: renku/renku-gateway
     repository: renku/renku-gateway
@@ -97,6 +86,8 @@ tolerations: []
 
 affinity: {}
 
+## The gateway deploys its own redis as a dependency. These values
+## do probably not need to be changed.
 redis:
 
   nameOverride: gw-redis
@@ -121,4 +112,7 @@ graph:
     # username: admin
     # password: 12345
   webhookService:
+    ## Set the hostname under which the webhook service
+    ## can be reached (internally). This will default to
+    ## http://<release-name>-graph-webhook-service
     hostname:
