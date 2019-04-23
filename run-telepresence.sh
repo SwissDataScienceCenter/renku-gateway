@@ -48,15 +48,13 @@ fi
 
 echo "================================================================================================================="
 echo "Once telepresence has started, copy-paste the following command to start the development server:"
-echo "GATEWAY_ENV=development \
-QUART_DEBUG=1 \
+echo "QUART_DEBUG=1 \
 QUART_APP=app:app \
 PYTHONASYNCIODEBUG=1 \
 ${QUART_EXECUTABLE} run"
 echo ""
 echo "Or use the following to run in the VS Code debugger:"
-echo "GATEWAY_ENV=development \
-QUART_DEBUG=1 \
+echo "QUART_DEBUG=1 \
 QUART_APP=app:app \
 PYTHONASYNCIODEBUG=1 \
 VSCODE_DEBUG=1 \
