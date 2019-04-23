@@ -39,9 +39,6 @@ ALLOW_ORIGIN = os.environ.get('GATEWAY_ALLOW_ORIGIN', "").split(',')
 
 REDIS_HOST = os.environ.get('GATEWAY_REDIS_HOST', 'renku-gw-redis')
 
-RENKU_ENDPOINT = os.environ.get(
-        'RENKU_ENDPOINT', 'http://renku.build'
-    )
 GITLAB_URL = os.environ.get(
         'GITLAB_URL', 'http://gitlab.renku.build'
     )
