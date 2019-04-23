@@ -43,7 +43,7 @@ http
 {{- end -}}
 
 {{/*
-Hack for calling templates in a fake scope (until this is solved https://github.com/helm/helm/issues/4535)
+Hack for calling templates in a fake scope (until this is solved https://github.com/helm/helm/issues/3920)
 */}}
 {{- define "call-nested" }}
 {{- $dot := index . 0 }}
