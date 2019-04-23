@@ -103,8 +103,6 @@ spec:
           env:
             - name: HOST_NAME
               value: {{ .Values.hostName | default (printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
-            - name: RENKU_ENDPOINT
-              value: {{ .Values.renkuEndpoint | default (printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: GITLAB_URL
               value: {{ .Values.gitlabUrl | default (printf "%s://%s/gitlab" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: GITLAB_CLIENT_SECRET
