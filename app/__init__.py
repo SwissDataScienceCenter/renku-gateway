@@ -137,7 +137,9 @@ async def auth():
     except jwt.ExpiredSignatureError:
         return Response(json.dumps({'error': 'token_expired'}), status=401)
     except:
-        logger.warning("Error while authenticating request", exc_info=True)
+        current_app.logger.warning(
+            "Error while authenticating request", exc_info=True
+        )
         return Response(
             json.dumps({'error': "Error while authenticating"}),
             status=401
