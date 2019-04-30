@@ -14,7 +14,11 @@ data:
       dashboard = true
     [providers]
       [providers.file]
-        watch = true
+        # Having file watching enabled prevents traefik from
+        # starting properly for our maxikube deployment (travis ci/cd)
+        # Not sure if this is a traefik bug or a problem with our maxikube
+        # deployment though.
+        watch = false
         directory = "/config"
     [entrypoints]
       [entrypoints.http]
