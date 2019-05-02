@@ -170,7 +170,11 @@ def get_valid_token(headers):
 
 
 def get_key_for_user(token, name):
-    return "cache_{}_{}".format(token.get('sub'), name)
+    """ Create a base-64 encoded key for the redis store """
+    from base64 import b64encode
+    key = 'cache_{}_{}'.format(token.get('sub'), name)
+    return b64encode(key.encode()).decode('utf-8')
+
 
 
 LOGIN_SEQUENCE = ['gitlab_auth.login', 'jupyterhub_auth.login']
