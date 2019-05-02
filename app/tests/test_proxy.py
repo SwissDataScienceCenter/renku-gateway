@@ -106,7 +106,14 @@ async def test_gitlab_happyflow(client):
     headers = {'Authorization': 'Bearer {}'.format(access_token)}
 
     from .. import store
-    store.put('cache_5dbdeba7-e40f-42a7-b46b-6b8a07c65966_gl_access_token', 'some_token'.encode())
+    from base64 import b64encode
+    store.put(
+        b64encode(
+            'cache_5dbdeba7-e40f-42a7-b46b-6b8a07c65966_gl_access_token'
+            .encode()
+        ).decode('utf-8'),
+        'some_token'.encode()
+    )
 
     rv = await client.get('/?auth=gitlab', headers=headers)
 
