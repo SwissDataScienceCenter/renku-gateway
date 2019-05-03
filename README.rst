@@ -166,4 +166,4 @@ If your backend API needs a specific authentication/authorization method you can
 Processing the requests and responses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By implementing a class extending the base processor, you can pre-process the incomming request and/or the returning response. You can have a look at the gitlab_processor.py as a starting example.
+By implementing a class extending the base processor, you can pre-process the incomming request and/or the returning response. You can have a look at the :code:`gitlab_processor.py` as a starting example.
