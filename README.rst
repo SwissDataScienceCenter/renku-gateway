@@ -149,19 +149,19 @@ To allow server-side sessions, the gateway relies on Redis.
 Extending the gateway
 ---------------------
 
-If you want to add more services behind the gateway, you can easily configure the mapping in `endpoints.json` (or point to another configuration file).
+If you want to add more services behind the gateway, you can easily configure the mapping in :code:`endpoints.json` (or point to another configuration file).
 
 Adding a service backend handling authentication
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This part is still work in progress to make it plug and play. But the idea is to add the necessary http endpoints for the login/redirect/tokens for the external service and start the process by redirecting from the last service. (At the moment Keycloak -> Gitlab -> JupyterHub).
-You can take as an example the gitlab_auth.py or jupyterhub_auth.py files and implement the /auth/<your service>/login, /auth/<your service>/token and /auth/<your service>/logout endpoints.
+You can take as an example the :code:`gitlab_auth.py` or :code:`jupyterhub_auth.py` files and implement the :code:`/auth/<your service>/login`, :code:`/auth/<your service>/token` and :code:`/auth/<your service>/logout` endpoints.
 You can then populate the Redis cache with the collected tokens that identify the user and can be used for authorization towards some API.
 
 Adding an authorization method
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If your backend API needs a specific authentication/authorization method you can write an auth processor, like the GitlabUserToken, JupyterhubUserToken or KeycloakAccessToken.
+If your backend API needs a specific authentication/authorization method you can write an auth processor, like the :code:`GitlabUserToken`, :code:`JupyterhubUserToken` or :code:`KeycloakAccessToken`.
 
 Processing the requests and responses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
