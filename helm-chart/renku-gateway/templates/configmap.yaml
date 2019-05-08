@@ -43,7 +43,12 @@ data:
       [http.routers.webhooks]
         entryPoints = ["http"]
         Middlewares = ["auth-gitlab", "api", "noCookies", "webhooks"]
-        Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph-hooks{endpoint:(.*)}`)"
+        Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph/webhooks{endpoint:(.*)}`)"
+        Service = "webhooks"
+      [http.routers.graphstatus]
+        entryPoints = ["http"]
+        Middlewares = ["auth-gitlab", "api", "noCookies", "graphstatus"]
+        Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph/status{endpoint:(.*)}`)"
         Service = "webhooks"
       [http.routers.gitlab]
         entryPoints = ["http"]
@@ -73,8 +78,11 @@ data:
         trustForwardHeader = true
         authResponseHeaders = ["Authorization"]
       [http.middlewares.webhooks.ReplacePathRegex]
-        regex = "^/projects/([^/]*)/graph-hooks(.*)"
+        regex = "^/projects/([^/]*)/graph/webhooks(.*)"
         replacement = "/projects/$1/webhooks$2"
+      [http.middlewares.graphstatus.ReplacePathRegex]
+        regex = "^/projects/([^/]*)/graph(.*)"
+        replacement = "/projects/$1/events$2"
     [http.services]
       [http.services.gateway.LoadBalancer]
         method = "drr"
