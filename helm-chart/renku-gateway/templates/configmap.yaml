@@ -10,6 +10,15 @@ metadata:
     heritage: {{ .Release.Service }}
 data:
   traefik.toml: |
+    {{ if .Values.development }}
+    [Global]
+      debug = true
+    [log]
+      level = "debug"
+    {{ else }}
+    [log]
+      level = "error"
+    {{ end }}
     [api]
       dashboard = true
     [providers]
@@ -32,35 +41,43 @@ data:
         Service = "gateway"
       [http.routers.jupyterhub]
         entryPoints = ["http"]
-        Middlewares = ["auth-jupyterhub", "api", "noCookies", "jupyterhub"]
+        Middlewares = ["auth-jupyterhub", "common", "jupyterhub" ]
         Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}jupyterhub`)"
         Service = "jupyterhub"
       [http.routers.notebooks]
         entryPoints = ["http"]
-        Middlewares = ["auth-jupyterhub", "api", "noCookies", "notebooks"]
+        Middlewares = ["auth-jupyterhub", "common", "notebooks"]
         Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}notebooks`)"
         Service = "jupyterhub"
       [http.routers.webhooks]
         entryPoints = ["http"]
-        Middlewares = ["auth-gitlab", "api", "noCookies", "webhooks"]
+        Middlewares = ["auth-gitlab", "common", "webhooks"]
         Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph/webhooks{endpoint:(.*)}`)"
         Service = "webhooks"
       [http.routers.graphstatus]
         entryPoints = ["http"]
-        Middlewares = ["auth-gitlab", "api", "noCookies", "graphstatus"]
+        Middlewares = ["auth-gitlab", "common", "graphstatus"]
         Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph/status{endpoint:(.*)}`)"
         Service = "webhooks"
       [http.routers.gitlab]
         entryPoints = ["http"]
-        Middlewares = ["auth-gitlab", "api", "noCookies", "gitlab"]
+        Middlewares = ["auth-gitlab", "common", "gitlab"]
         Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}`)"
         Service = "gitlab"
     [http.middlewares]
+      [http.middlewares.common.chain]
+        {{- if .Values.development }}
+        middlewares = ["api", "noCookies", "development"]
+        {{- else }}
+        middlewares = ["api", "noCookies"]
+        {{- end }}
       [http.middlewares.noCookies.headers]
         [http.middlewares.noCookies.headers.CustomRequestHeaders]
           Cookie = ""
       [http.middlewares.api.StripPrefix]
         prefixes = ["/api"]
+      [http.middlewares.development.headers]
+        isDevelopment = true
       [http.middlewares.gitlab.AddPrefix]
         prefix = "/gitlab/api/v4"
       [http.middlewares.jupyterhub.ReplacePathRegex]
