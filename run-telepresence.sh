@@ -27,7 +27,7 @@ QUART_EXECUTABLE=`pipenv --venv`/bin/quart
 if [[ $CURRENT_CONTEXT == 'minikube' ]]
 then
   echo "Exchanging k8s deployments using the following context: ${CURRENT_CONTEXT}"
-  SERVICE_NAME=renku-gateway
+  SERVICE_NAME=renku-gateway-auth
   DEV_NAMESPACE=renku
 else
   echo "You are going to exchange k8s deployments using the following context: ${CURRENT_CONTEXT}"
