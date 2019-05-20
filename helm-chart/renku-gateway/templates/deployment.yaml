@@ -19,6 +19,8 @@ spec:
       labels:
         app: {{ template "gateway.name" . }}
         release: {{ .Release.Name }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
       volumes:
         - name: config
