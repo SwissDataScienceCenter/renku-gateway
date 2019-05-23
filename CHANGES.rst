@@ -3,9 +3,9 @@ Changes
 
 ``v0.4.0``
 ----------
-*(released TBD)*
+*(released 2019-05-23)*
 
-This release uses Traefik for proxing requests to GitLab and JupyterHub.
+This release uses Traefik for proxying requests to GitLab and JupyterHub.
 
 ``v0.3.1``
 ----------
