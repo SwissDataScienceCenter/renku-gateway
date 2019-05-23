@@ -79,7 +79,7 @@ data:
       [http.middlewares.development.headers]
         isDevelopment = true
       [http.middlewares.gitlab.AddPrefix]
-        prefix = "/gitlab/api/v4"
+        prefix = "{{ .Values.global.gitlab.urlPrefix }}/api/v4"
       [http.middlewares.jupyterhub.ReplacePathRegex]
         regex = "^/jupyterhub/(.*)"
         replacement = "/jupyterhub/hub/api/$1"

@@ -7,6 +7,9 @@
 global:
   ## Set to true if using https
   useHTTPS: false
+  ## The URL path prefix under which gitlab is running.
+  gitlab:
+    urlPrefix: /gitlab
   gateway:
     ## Client secret of the renku client application registered in
     ## keycloak.
