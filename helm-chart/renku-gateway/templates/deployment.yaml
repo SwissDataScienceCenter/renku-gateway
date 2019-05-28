@@ -103,10 +103,13 @@ spec:
               containerPort: 5000
               protocol: TCP
           env:
-            - name: HOST_NAME
-              value: {{ .Values.hostName | default (printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+            {{ $gatewayUrl := (required "Missing value global.gateway.url" .Values.global.gateway.url) }}
+            - name: GATEWAY_ORIGIN
+              value: "{{ include "url.origin" $gatewayUrl }}"
+            - name: GATEWAY_SERVICE_PREFIX
+              value: "{{ include "url.path" $gatewayUrl }}"
             - name: GITLAB_URL
-              value: {{ .Values.gitlabUrl | default (printf "%s://%s/gitlab" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+              value: "{{ required "Missing value global.gitlab.url" .Values.global.gitlab.url }}"
             - name: GITLAB_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
@@ -115,7 +118,7 @@ spec:
             - name: GITLAB_CLIENT_ID
               value: {{ .Values.gitlabClientId | default .Values.global.gateway.gitlabClientId | quote }}
             - name: JUPYTERHUB_URL
-              value: {{ .Values.jupyterhub.url | default (printf "%s://%s/jupyterhub" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+              value: "{{ required "Missing value global.jupyterhub.url" .Values.global.jupyterhub.url }}"
             - name: JUPYTERHUB_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
@@ -124,13 +127,11 @@ spec:
             - name: JUPYTERHUB_CLIENT_ID
               value: {{ .Values.jupyterhub.clientId | quote }}
             - name: KEYCLOAK_URL
-              value: {{ .Values.keycloakUrl | default (printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+              value: "{{ required "Missing value global.keycloak.url" .Values.global.keycloak.url }}"
               {{ if .Values.global.keycloak.realm }}
             - name: KEYCLOAK_REALM
               value: {{ .Values.global.keycloak.realm | quote }}
               {{ end }}
-            - name: GATEWAY_SERVICE_PREFIX
-              value: {{ .Values.gatewayServicePrefix | default "/api/" | quote }}
             - name: GATEWAY_REDIS_HOST
               value: {{ include "call-nested" (list . "redis" "redis.fullname") }}-master
             - name: GATEWAY_SECRET_KEY

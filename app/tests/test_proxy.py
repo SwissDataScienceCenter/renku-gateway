@@ -31,7 +31,7 @@ from aioresponses import aioresponses
 
 from .. import app
 from .test_data import (
-    GITLAB_ISSUES, GITLAB_PROJECTS, PRIVATE_KEY, PUBLIC_KEY,
+    GITLAB_ISSUES, GITLAB_PROJECTS, GITLAB_URL, PRIVATE_KEY, PUBLIC_KEY,
     TOKEN_PAYLOAD
 )
 
@@ -40,6 +40,7 @@ from .test_data import (
 def client():
     app.config['TESTING'] = True
     app.config['OIDC_PUBLIC_KEY'] = PUBLIC_KEY
+    app.config['GITLAB_URL'] = GITLAB_URL
     client = app.test_client()
     yield client
 

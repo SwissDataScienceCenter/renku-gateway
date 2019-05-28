@@ -79,7 +79,7 @@ def login():
         'client_id': current_app.config['JUPYTERHUB_CLIENT_ID'],
         'response_type': 'code',
         'redirect_uri':
-            current_app.config['HOST_NAME'] + url_for('jupyterhub_auth.token'),
+            current_app.config['GATEWAY_ORIGIN'] + url_for('jupyterhub_auth.token'),
         'state': state
     }
     url = current_app.config['JUPYTERHUB_URL'
@@ -108,7 +108,7 @@ async def token():
             'code': authorization_parameters['code'][0],
             'grant_type': 'authorization_code',
             'redirect_uri':
-                current_app.config['HOST_NAME'] +
+                current_app.config['GATEWAY_ORIGIN'] +
                 url_for('jupyterhub_auth.token'),
         }
     )

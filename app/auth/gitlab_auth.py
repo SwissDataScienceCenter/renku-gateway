@@ -145,7 +145,7 @@ def login():
         'response_type': 'code',
         'scope': SCOPE,
         'redirect_uri':
-            current_app.config['HOST_NAME'] + url_for('gitlab_auth.token'),
+            current_app.config['GATEWAY_ORIGIN'] + url_for('gitlab_auth.token'),
         'state': state
     }
     auth_req = gitlab_oic_client.construct_AuthorizationRequest(
@@ -178,7 +178,7 @@ async def token():
         request_args={
             'code': authorization_parameters['code'],
             'redirect_uri':
-                current_app.config['HOST_NAME'] + url_for('gitlab_auth.token'),
+                current_app.config['GATEWAY_ORIGIN'] + url_for('gitlab_auth.token'),
         }
     )
 

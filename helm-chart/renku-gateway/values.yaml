@@ -7,10 +7,10 @@
 global:
   ## Set to true if using https
   useHTTPS: false
-  ## The URL path prefix under which gitlab is running.
-  gitlab:
-    urlPrefix: /gitlab
+
   gateway:
+    origin: # https://example.com
+    servicePrefix: api
     ## Client secret of the renku client application registered in
     ## keycloak.
     clientSecret:
@@ -23,13 +23,23 @@ global:
     ## set by parent chart.
     domain: example.local
 
-    ## Set the Keycloak Realm name used by Renku here - the default 
-    ## value is "Renku" and is set on the application level. You may 
-    ## override this here if you are using an external Keycloak instance 
-    ## and want to use an existing realm. If Keycloak is deployed as a 
-    ## part of Renku DO NOT change this value.
-    # keycloak:
-    #   realm: Renku
+  gitlab:
+    origin: # https://example.com
+    servicePrefix: ''
+
+  jupyterhub:
+    origin: # https://example.com
+    servicePrefix: ''
+
+  keycloak:
+    origin: # https://example.com
+    servicePrefix: /auth
+      ## Set the Keycloak Realm name used by Renku here - the default 
+      ## value is "Renku" and is set on the application level. You may 
+      ## override this here if you are using an external Keycloak instance 
+      ## and want to use an existing realm. If Keycloak is deployed as a 
+      ## part of Renku DO NOT change this value.
+      # realm: Renku
 
 replicaCount: 1
 

@@ -37,41 +37,44 @@ data:
       bufferingSize = 10
 
   rules.toml: |
+    {{ $gatewayUrl := (required "Missing value global.gateway.url" .Values.global.gateway.url) }}
+    {{ $gitlabUrl := (required "Missing value global.gitlab.url" .Values.global.gitlab.url) }}
+    {{ $jupyterhubUrl := (required "Missing value global.jupyterhub.url" .Values.global.jupyterhub.url) }}
     [http]
       [http.routers]
         [http.routers.gateway]
           entryPoints = ["http"]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}auth`) || PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}graph`)"
+          Rule = "PathPrefix(`{{- include "url.path" $gatewayUrl -}}/auth`) || PathPrefix(`{{- include "url.path" $gatewayUrl -}}/graph`)"
           Service = "gateway"
 
         [http.routers.jupyterhub]
           entryPoints = ["http"]
           Middlewares = ["auth-jupyterhub", "common", "jupyterhub" ]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}jupyterhub`)"
+          Rule = "PathPrefix(`{{- include "url.path" $gatewayUrl -}}/jupyterhub`)"
           Service = "jupyterhub"
 
         [http.routers.notebooks]
           entryPoints = ["http"]
           Middlewares = ["notebooks-ratelimit", "auth-jupyterhub", "common", "notebooks"]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}notebooks`)"
+          Rule = "PathPrefix(`{{- include "url.path" $gatewayUrl -}}/notebooks`)"
           Service = "jupyterhub"
 
         [http.routers.webhooks]
           entryPoints = ["http"]
           Middlewares = ["auth-gitlab", "common", "webhooks"]
-          Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph/webhooks{endpoint:(.*)}`)"
+          Rule = "Path(`{{- include "url.path" $gatewayUrl -}}/projects/{project-id}/graph/webhooks{endpoint:(.*)}`)"
           Service = "webhooks"
 
         [http.routers.graphstatus]
           entryPoints = ["http"]
           Middlewares = ["auth-gitlab", "common", "graphstatus"]
-          Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph/status{endpoint:(.*)}`)"
+          Rule = "Path(`{{- include "url.path" $gatewayUrl -}}/projects/{project-id}/graph/status{endpoint:(.*)}`)"
           Service = "webhooks"
 
         [http.routers.gitlab]
           entryPoints = ["http"]
           Middlewares = ["auth-gitlab", "common", "gitlab"]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}`)"
+          Rule = "PathPrefix(`{{- include "url.path" $gatewayUrl -}}`)"
           Service = "gitlab"
 
       [http.middlewares]
@@ -93,15 +96,15 @@ data:
           isDevelopment = true
 
         [http.middlewares.gitlab.AddPrefix]
-          prefix = "{{ .Values.global.gitlab.urlPrefix }}/api/v4"
+          prefix = "{{- include "url.path" $gitlabUrl -}}/api/v4"
 
         [http.middlewares.jupyterhub.ReplacePathRegex]
           regex = "^/jupyterhub/(.*)"
-          replacement = "/jupyterhub/hub/api/$1"
+          replacement = "{{- include "url.path" $jupyterhubUrl -}}/hub/api/$1"
 
         [http.middlewares.notebooks.ReplacePathRegex]
           regex = "^/notebooks/(.*)"
-          replacement = "/jupyterhub/services/notebooks/$1"
+          replacement = "{{- include "url.path" $jupyterhubUrl -}}/services/notebooks/$1"
 
         [http.middlewares.auth-gitlab.forwardauth]
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=gitlab"
@@ -145,13 +148,13 @@ data:
         [http.services.gitlab.LoadBalancer]
           method = "drr"
           [[http.services.gitlab.LoadBalancer.servers]]
-            url = {{ .Values.gitlabUrl | default (printf "%s://%s/gitlab" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+            url = "{{- include "url.origin" $gitlabUrl -}}"
             weight = 1
 
         [http.services.jupyterhub.LoadBalancer]
           method = "drr"
           [[http.services.jupyterhub.LoadBalancer.servers]]
-            url = {{ .Values.jupyterhub.url | default (printf "%s://%s/jupyterhub" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+            url = "{{- include "url.origin" $jupyterhubUrl -}}"
             weight = 1
 
         [http.services.webhooks.LoadBalancer]
@@ -159,3 +162,4 @@ data:
           [[http.services.webhooks.LoadBalancer.servers]]
             url = {{ .Values.graph.webhookService.hostname | default (printf "http://%s-graph-webhook-service" .Release.Name ) | quote }}
             weight = 1
+

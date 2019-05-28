@@ -22,7 +22,7 @@ import sys
 import warnings
 
 
-HOST_NAME = os.environ.get('HOST_NAME', 'http://gateway.renku.build')
+GATEWAY_ORIGIN = os.environ.get('GATEWAY_ORIGIN', 'http://gateway.renku.build')
 
 if 'GATEWAY_SECRET_KEY' not in os.environ and "pytest" not in sys.modules:
     warnings.warn(
@@ -33,14 +33,17 @@ if 'GATEWAY_SECRET_KEY' not in os.environ and "pytest" not in sys.modules:
 SECRET_KEY = os.environ.get('GATEWAY_SECRET_KEY')
 
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = HOST_NAME.startswith('https')
+SESSION_COOKIE_SECURE = GATEWAY_ORIGIN.startswith('https')
 
 ALLOW_ORIGIN = os.environ.get('GATEWAY_ALLOW_ORIGIN', "").split(',')
 
 REDIS_HOST = os.environ.get('GATEWAY_REDIS_HOST', 'renku-gw-redis')
 
-GITLAB_URL = os.environ.get(
-        'GITLAB_URL', 'http://gitlab.renku.build'
+GITLAB_URL = os.environ.get('GITLAB_URL')
+if not GITLAB_URL:
+    warnings.warn(
+        'The environment variable GITLAB_URL is not set.'
+        'Without it, the gateway does not know how to contact GitLab.'
     )
 
 GITLAB_CLIENT_ID = os.environ.get('GITLAB_CLIENT_ID', 'renku-ui')
@@ -51,9 +54,13 @@ if not GITLAB_CLIENT_SECRET:
         'It is mandatory for Gitlab login.'
     )
 
-JUPYTERHUB_URL = os.environ.get(
-        'JUPYTERHUB_URL', '{}/jupyterhub'.format(HOST_NAME)
+JUPYTERHUB_URL = os.environ.get('JUPYTERHUB_URL')
+if not GITLAB_URL:
+    warnings.warn(
+        'The environment variable JUPYTERHUB_URL is not set.'
+        'Without it, the gateway does not know how to contact Jupyterhub.'
     )
+
 JUPYTERHUB_CLIENT_ID = os.environ.get(
         'JUPYTERHUB_CLIENT_ID', 'gateway'
     )
@@ -81,7 +88,7 @@ if not KEYCLOAK_URL:
         'It is necessary because Keycloak acts as identity provider for Renku.'
     )
 KEYCLOAK_REALM = os.environ.get('KEYCLOAK_REALM', 'Renku')
-OIDC_ISSUER = '{}/auth/realms/{}'.format(KEYCLOAK_URL, KEYCLOAK_REALM)
+OIDC_ISSUER = '{}/realms/{}'.format(KEYCLOAK_URL, KEYCLOAK_REALM)
 OIDC_CLIENT_ID = os.environ.get('OIDC_CLIENT_ID', 'gateway')
 OIDC_CLIENT_SECRET = os.environ.get('OIDC_CLIENT_SECRET')
 if not OIDC_CLIENT_SECRET:
@@ -90,4 +97,9 @@ if not OIDC_CLIENT_SECRET:
         'It is mandatory for OpenId-Connect login.'
     )
 
-SERVICE_PREFIX = os.environ.get('GATEWAY_SERVICE_PREFIX', '/')
+SERVICE_PREFIX = os.environ.get('GATEWAY_SERVICE_PREFIX')
+if not SERVICE_PREFIX:
+    warnings.warn(
+        'The environment variable GATEWAY_SERVICE_PREFIX is not set. '
+        'It is mandatory for the gateway to form correct URLs to its own endpoints.'
+    )

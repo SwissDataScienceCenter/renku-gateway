@@ -1,3 +1,5 @@
+GITLAB_URL = 'https://gitlab.example.com'
+
 TOKEN_PAYLOAD = {
     "jti": "ebb2b1cb-6176-483c-9671-88ced95f9a2f",
     "exp": 999999999999,

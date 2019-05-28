@@ -205,14 +205,14 @@ async def login():
     session['cli_token'] = request.args.get('cli_token')
     if session['cli_token']:
         session['ui_redirect_url'
-                ] = current_app.config['HOST_NAME'] + url_for('web_auth.info')
+                ] = current_app.config['GATEWAY_ORIGIN'] + url_for('web_auth.info')
 
     args = {
         'client_id': current_app.config['OIDC_CLIENT_ID'],
         'response_type': 'code',
         'scope': SCOPE,
         'redirect_uri':
-            current_app.config['HOST_NAME'] + url_for('web_auth.token'),
+            current_app.config['GATEWAY_ORIGIN'] + url_for('web_auth.token'),
         'state': state
     }
     auth_req = keycloak_oic_client.construct_AuthorizationRequest(
@@ -246,7 +246,7 @@ async def token():
         request_args={
             'code': authorization_parameters['code'],
             'redirect_uri':
-                current_app.config['HOST_NAME'] + url_for('web_auth.token'),
+                current_app.config['GATEWAY_ORIGIN'] + url_for('web_auth.token'),
         }
     )
 
@@ -398,7 +398,7 @@ async def logout():
         current_app.config['OIDC_ISSUER'],
         urllib.parse.urlencode({
             'redirect_uri':
-                current_app.config['HOST_NAME'] +
+                current_app.config['GATEWAY_ORIGIN'] +
                 url_for('gitlab_auth.logout')
         }),
     )
