@@ -125,6 +125,10 @@ spec:
               value: {{ .Values.jupyterhub.clientId | quote }}
             - name: KEYCLOAK_URL
               value: {{ .Values.keycloakUrl | default (printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+              {{ if .Values.global.keycloak.realm }}
+            - name: KEYCLOAK_REALM
+              value: {{ .Values.global.keycloak.realm | quote }}
+              {{ end }}
             - name: GATEWAY_SERVICE_PREFIX
               value: {{ .Values.gatewayServicePrefix | default "/api/" | quote }}
             - name: GATEWAY_REDIS_HOST

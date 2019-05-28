@@ -74,9 +74,14 @@ SPARQL_ENDPOINT = os.environ.get(
 SPARQL_USERNAME = os.environ.get('SPARQL_USERNAME', 'admin')
 SPARQL_PASSWORD = os.environ.get('SPARQL_PASSWORD', 'admin')
 
-OIDC_ISSUER = os.environ.get(
-        'KEYCLOAK_URL', 'http://keycloak.renku.build:8080'
-    ) + '/auth/realms/Renku'
+KEYCLOAK_URL = os.environ.get('KEYCLOAK_URL')
+if not KEYCLOAK_URL:
+    warnings.warn(
+        'The environment variable KEYCLOAK_URL is not set. '
+        'It is necessary because Keycloak acts as identity provider for Renku.'
+    )
+KEYCLOAK_REALM = os.environ.get('KEYCLOAK_REALM', 'Renku')
+OIDC_ISSUER = '{}/auth/realms/{}'.format(KEYCLOAK_URL, KEYCLOAK_REALM)
 OIDC_CLIENT_ID = os.environ.get('OIDC_CLIENT_ID', 'gateway')
 OIDC_CLIENT_SECRET = os.environ.get('OIDC_CLIENT_SECRET')
 if not OIDC_CLIENT_SECRET:
