@@ -13,111 +13,138 @@ data:
     {{ if .Values.development }}
     [Global]
       debug = true
+
     [log]
       level = "debug"
     {{ else }}
     [log]
       level = "error"
     {{ end }}
+
     [api]
       dashboard = true
+
     [providers]
       [providers.file]
-        # Having file watching enabled prevents traefik from
-        # starting properly for our maxikube deployment (travis ci/cd)
-        # Not sure if this is a traefik bug or a problem with our maxikube
-        # deployment though.
-        watch = false
         directory = "/config"
+        filename = "rules.toml"
+
     [entrypoints]
       [entrypoints.http]
         address = ":{{ .Values.service.port }}"
+
     [accessLog]
       bufferingSize = 10
-    [http.routers]
-      [http.routers.gateway]
-        entryPoints = ["http"]
-        Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}auth`) || PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}graph`)"
-        Service = "gateway"
-      [http.routers.jupyterhub]
-        entryPoints = ["http"]
-        Middlewares = ["auth-jupyterhub", "common", "jupyterhub" ]
-        Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}jupyterhub`)"
-        Service = "jupyterhub"
-      [http.routers.notebooks]
-        entryPoints = ["http"]
-        Middlewares = ["auth-jupyterhub", "common", "notebooks"]
-        Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}notebooks`)"
-        Service = "jupyterhub"
-      [http.routers.webhooks]
-        entryPoints = ["http"]
-        Middlewares = ["auth-gitlab", "common", "webhooks"]
-        Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph/webhooks{endpoint:(.*)}`)"
-        Service = "webhooks"
-      [http.routers.graphstatus]
-        entryPoints = ["http"]
-        Middlewares = ["auth-gitlab", "common", "graphstatus"]
-        Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph/status{endpoint:(.*)}`)"
-        Service = "webhooks"
-      [http.routers.gitlab]
-        entryPoints = ["http"]
-        Middlewares = ["auth-gitlab", "common", "gitlab"]
-        Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}`)"
-        Service = "gitlab"
-    [http.middlewares]
-      [http.middlewares.common.chain]
-        {{- if .Values.development }}
-        middlewares = ["api", "noCookies", "development"]
-        {{- else }}
-        middlewares = ["api", "noCookies"]
-        {{- end }}
-      [http.middlewares.noCookies.headers]
-        [http.middlewares.noCookies.headers.CustomRequestHeaders]
-          Cookie = ""
-      [http.middlewares.api.StripPrefix]
-        prefixes = ["/api"]
-      [http.middlewares.development.headers]
-        isDevelopment = true
-      [http.middlewares.gitlab.AddPrefix]
-        prefix = "{{ .Values.global.gitlab.urlPrefix }}/api/v4"
-      [http.middlewares.jupyterhub.ReplacePathRegex]
-        regex = "^/jupyterhub/(.*)"
-        replacement = "/jupyterhub/hub/api/$1"
-      [http.middlewares.notebooks.ReplacePathRegex]
-        regex = "^/notebooks/(.*)"
-        replacement = "/jupyterhub/services/notebooks/$1"
-      [http.middlewares.auth-gitlab.forwardauth]
-        address = "http://{{ template "gateway.fullname" . }}-auth/?auth=gitlab"
-        trustForwardHeader = true
-        authResponseHeaders = ["Authorization"]
-      [http.middlewares.auth-jupyterhub.forwardauth]
-        address = "http://{{ template "gateway.fullname" . }}-auth/?auth=jupyterhub"
-        trustForwardHeader = true
-        authResponseHeaders = ["Authorization"]
-      [http.middlewares.webhooks.ReplacePathRegex]
-        regex = "^/projects/([^/]*)/graph/webhooks(.*)"
-        replacement = "/projects/$1/webhooks$2"
-      [http.middlewares.graphstatus.ReplacePathRegex]
-        regex = "^/projects/([^/]*)/graph(.*)"
-        replacement = "/projects/$1/events$2"
-    [http.services]
-      [http.services.gateway.LoadBalancer]
-        method = "drr"
-        [[http.services.gateway.LoadBalancer.servers]]
-          url = "http://{{ template "gateway.fullname" . }}-auth/"
-          weight = 1
-      [http.services.gitlab.LoadBalancer]
-        method = "drr"
-        [[http.services.gitlab.LoadBalancer.servers]]
-          url = {{ .Values.gitlabUrl | default (printf "%s://%s/gitlab" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
-          weight = 1
-      [http.services.jupyterhub.LoadBalancer]
-        method = "drr"
-        [[http.services.jupyterhub.LoadBalancer.servers]]
-          url = {{ .Values.jupyterhub.url | default (printf "%s://%s/jupyterhub" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
-          weight = 1
-      [http.services.webhooks.LoadBalancer]
-        method = "drr"
-        [[http.services.webhooks.LoadBalancer.servers]]
-          url = {{ .Values.graph.webhookService.hostname | default (printf "http://%s-graph-webhook-service" .Release.Name ) | quote }}
-          weight = 1
+
+  rules.toml: |
+    {{ $gatewayUrl := "https://andreas.dev.renku.ch/api" }}
+    {{ $gitlabUrl := "https://dev.renku.ch/gitlab" }}
+    {{ $jupyterhubUrl := "https://andreas.dev.renku.ch/jupyterhub" }}
+    [http]
+      [http.routers]
+        [http.routers.gateway]
+          entryPoints = ["http"]
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}auth`) || PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}graph`)"
+          Service = "gateway"
+
+        [http.routers.jupyterhub]
+          entryPoints = ["http"]
+          Middlewares = ["auth-jupyterhub", "common", "jupyterhub" ]
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}jupyterhub`)"
+          Service = "jupyterhub"
+
+        [http.routers.notebooks]
+          entryPoints = ["http"]
+          Middlewares = ["auth-jupyterhub", "common", "notebooks"]
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}notebooks`)"
+          Service = "jupyterhub"
+
+        [http.routers.webhooks]
+          entryPoints = ["http"]
+          Middlewares = ["auth-gitlab", "common", "webhooks"]
+          Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph/webhooks{endpoint:(.*)}`)"
+          Service = "webhooks"
+
+        [http.routers.graphstatus]
+          entryPoints = ["http"]
+          Middlewares = ["auth-gitlab", "common", "graphstatus"]
+          Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph/status{endpoint:(.*)}`)"
+          Service = "webhooks"
+
+        [http.routers.gitlab]
+          entryPoints = ["http"]
+          Middlewares = ["auth-gitlab", "common", "gitlab"]
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}`)"
+          Service = "gitlab"
+
+      [http.middlewares]
+        [http.middlewares.common.chain]
+          {{- if .Values.development }}
+          middlewares = ["api", "noCookies", "development"]
+          {{- else }}
+          middlewares = ["api", "noCookies"]
+          {{- end }}
+
+        [http.middlewares.noCookies.headers]
+          [http.middlewares.noCookies.headers.CustomRequestHeaders]
+            Cookie = ""
+
+        [http.middlewares.api.StripPrefix]
+          prefixes = ["/api"]
+
+        [http.middlewares.development.headers]
+          isDevelopment = true
+
+        [http.middlewares.gitlab.AddPrefix]
+          prefix = "{{ .Values.global.gitlab.urlPrefix }}/api/v4"
+
+        [http.middlewares.jupyterhub.ReplacePathRegex]
+          regex = "^/jupyterhub/(.*)"
+          replacement = "/jupyterhub/hub/api/$1"
+
+        [http.middlewares.notebooks.ReplacePathRegex]
+          regex = "^/notebooks/(.*)"
+          replacement = "/jupyterhub/services/notebooks/$1"
+
+        [http.middlewares.auth-gitlab.forwardauth]
+          address = "http://{{ template "gateway.fullname" . }}-auth/?auth=gitlab"
+          trustForwardHeader = true
+          authResponseHeaders = ["Authorization"]
+
+        [http.middlewares.auth-jupyterhub.forwardauth]
+          address = "http://{{ template "gateway.fullname" . }}-auth/?auth=jupyterhub"
+          trustForwardHeader = true
+          authResponseHeaders = ["Authorization"]
+
+        [http.middlewares.webhooks.ReplacePathRegex]
+          regex = "^/projects/([^/]*)/graph/webhooks(.*)"
+          replacement = "/projects/$1/webhooks$2"
+
+        [http.middlewares.graphstatus.ReplacePathRegex]
+          regex = "^/projects/([^/]*)/graph(.*)"
+          replacement = "/projects/$1/events$2"
+
+      [http.services]
+        [http.services.gateway.LoadBalancer]
+          method = "drr"
+          [[http.services.gateway.LoadBalancer.servers]]
+            url = "http://{{ template "gateway.fullname" . }}-auth/"
+            weight = 1
+
+        [http.services.gitlab.LoadBalancer]
+          method = "drr"
+          [[http.services.gitlab.LoadBalancer.servers]]
+            url = {{ .Values.gitlabUrl | default (printf "%s://%s/gitlab" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+            weight = 1
+
+        [http.services.jupyterhub.LoadBalancer]
+          method = "drr"
+          [[http.services.jupyterhub.LoadBalancer.servers]]
+            url = {{ .Values.jupyterhub.url | default (printf "%s://%s/jupyterhub" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+            weight = 1
+
+        [http.services.webhooks.LoadBalancer]
+          method = "drr"
+          [[http.services.webhooks.LoadBalancer.servers]]
+            url = {{ .Values.graph.webhookService.hostname | default (printf "http://%s-graph-webhook-service" .Release.Name ) | quote }}
+            weight = 1
