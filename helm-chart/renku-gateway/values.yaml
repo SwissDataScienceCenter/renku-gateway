@@ -69,7 +69,9 @@ jupyterhub:
 image:
   name: traefik
   repository: traefik
-  tag: 'v2.0'
+  # Specifically force the usage of alpha4 as it contains
+  # https://github.com/containous/traefik/commit/ef8894ef269e5e28d73e96c482d60162b898721a
+  tag: v2.0.0-alpha4
   pullPolicy: IfNotPresent
 
   ## Define the image for the auth middleware
