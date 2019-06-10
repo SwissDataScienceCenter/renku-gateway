@@ -37,6 +37,26 @@ replicaCount: 1
 ## implications and should never be done in a production setting.
 development: false
 
+## To protect the backend services from an excessive amount of API calls
+## issued by one client, one can enforce rate limits here. The limits apply
+## per UI client session (identified by the cookies). For an explanation of
+## the different values check out the rate limiting documentation of traefik
+## v2.0.
+rateLimits:
+  ## General rate limit, applies to all /api calls combined.
+  general:
+    extractorfunc: request.header.cookies
+    period: 10s
+    average: 20
+    burst: 100
+  ## Special rate limit for the notebooks service (/api/notebooks)
+  notebooks:
+    extractorfunc: request.header.cookies
+    period: 10s
+    average: 5
+    burst: 10
+
+
 ## Set to a custom GitLab URL if deployed manually
 # gitlabUrl:
 
