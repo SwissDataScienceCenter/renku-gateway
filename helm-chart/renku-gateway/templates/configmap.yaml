@@ -55,7 +55,7 @@ data:
 
         [http.routers.notebooks]
           entryPoints = ["http"]
-          Middlewares = ["auth-jupyterhub", "common", "notebooks"]
+          Middlewares = ["notebooks-ratelimit", "auth-jupyterhub", "common", "notebooks"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}notebooks`)"
           Service = "jupyterhub"
 
@@ -80,9 +80,9 @@ data:
       [http.middlewares]
         [http.middlewares.common.chain]
           {{- if .Values.development }}
-          middlewares = ["api", "noCookies", "development"]
+          middlewares = ["general-ratelimit", "api", "noCookies", "development"]
           {{- else }}
-          middlewares = ["api", "noCookies"]
+          middlewares = ["general-ratelimit", "api", "noCookies"]
           {{- end }}
 
         [http.middlewares.noCookies.headers]
@@ -123,6 +123,20 @@ data:
         [http.middlewares.graphstatus.ReplacePathRegex]
           regex = "^/projects/([^/]*)/graph(.*)"
           replacement = "/projects/$1/events$2"
+
+        [http.middlewares.general-ratelimit.ratelimit]
+          extractorfunc = "{{ .Values.rateLimits.general.extractorfunc }}"
+          [http.middlewares.general-ratelimit.ratelimit.rateset.rate0]
+            period = "{{ .Values.rateLimits.general.period }}"
+            average = {{ .Values.rateLimits.general.average }}
+            burst = {{ .Values.rateLimits.general.burst }}
+
+        [http.middlewares.notebooks-ratelimit.ratelimit]
+          extractorfunc = "{{ .Values.rateLimits.notebooks.extractorfunc }}"
+          [http.middlewares.notebooks-ratelimit.ratelimit.rateset.rate0]
+            period = "{{ .Values.rateLimits.notebooks.period }}"
+            average = {{ .Values.rateLimits.notebooks.average }}
+            burst = {{ .Values.rateLimits.notebooks.burst }}
 
       [http.services]
         [http.services.gateway.LoadBalancer]
