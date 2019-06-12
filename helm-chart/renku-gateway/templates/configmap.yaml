@@ -37,9 +37,6 @@ data:
       bufferingSize = 10
 
   rules.toml: |
-    {{ $gatewayUrl := "https://andreas.dev.renku.ch/api" }}
-    {{ $gitlabUrl := "https://dev.renku.ch/gitlab" }}
-    {{ $jupyterhubUrl := "https://andreas.dev.renku.ch/jupyterhub" }}
     [http]
       [http.routers]
         [http.routers.gateway]
