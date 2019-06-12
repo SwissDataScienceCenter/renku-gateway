@@ -45,13 +45,13 @@ development: false
 rateLimits:
   ## General rate limit, applies to all /api calls combined.
   general:
-    extractorfunc: request.header.cookies
+    extractorfunc: request.header.cookie
     period: 10s
     average: 20
     burst: 100
   ## Special rate limit for the notebooks service (/api/notebooks)
   notebooks:
-    extractorfunc: request.header.cookies
+    extractorfunc: request.header.cookie
     period: 10s
     average: 5
     burst: 10
