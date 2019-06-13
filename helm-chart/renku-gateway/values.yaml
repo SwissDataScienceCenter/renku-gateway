@@ -54,7 +54,7 @@ rateLimits:
     extractorfunc: request.header.cookie
     period: 10s
     average: 5
-    burst: 10
+    burst: 30
 
 
 ## Set to a custom GitLab URL if deployed manually
