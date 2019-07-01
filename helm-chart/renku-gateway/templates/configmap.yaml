@@ -52,7 +52,7 @@ data:
 
         [http.routers.notebooks]
           entryPoints = ["http"]
-          Middlewares = ["notebooks-ratelimit", "auth-jupyterhub", "common", "notebooks"]
+          Middlewares = ["auth-jupyterhub", "common", "notebooks"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}notebooks`)"
           Service = "jupyterhub"
 
@@ -127,13 +127,6 @@ data:
             period = "{{ .Values.rateLimits.general.period }}"
             average = {{ .Values.rateLimits.general.average }}
             burst = {{ .Values.rateLimits.general.burst }}
-
-        [http.middlewares.notebooks-ratelimit.ratelimit]
-          extractorfunc = "{{ .Values.rateLimits.notebooks.extractorfunc }}"
-          [http.middlewares.notebooks-ratelimit.ratelimit.rateset.rate0]
-            period = "{{ .Values.rateLimits.notebooks.period }}"
-            average = {{ .Values.rateLimits.notebooks.average }}
-            burst = {{ .Values.rateLimits.notebooks.burst }}
 
       [http.services]
         [http.services.gateway.LoadBalancer]

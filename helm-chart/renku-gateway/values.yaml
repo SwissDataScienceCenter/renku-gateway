@@ -49,13 +49,6 @@ rateLimits:
     period: 10s
     average: 20
     burst: 100
-  ## Special rate limit for the notebooks service (/api/notebooks)
-  notebooks:
-    extractorfunc: request.header.cookie
-    period: 10s
-    average: 5
-    burst: 30
-
 
 ## Set to a custom GitLab URL if deployed manually
 # gitlabUrl:
