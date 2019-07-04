@@ -91,7 +91,7 @@ image:
   auth:
     name: renku/renku-gateway
     repository: renku/renku-gateway
-    tag: '0.4.0'
+    tag: 'latest'
     pullPolicy: IfNotPresent
 
 service:
