@@ -17,8 +17,8 @@
 # limitations under the License.
 """Graph endpoint."""
 
-from quart import Blueprint, current_app, jsonify, request
-from SPARQLWrapper import DIGEST, JSON, POST, SPARQLWrapper
+from quart import Blueprint, current_app, jsonify
+from SPARQLWrapper import BASIC, JSON, POST, SPARQLWrapper
 
 blueprint = Blueprint('graph', __name__, url_prefix='/graph')
 
@@ -85,7 +85,7 @@ async def lineage(namespace, project, commit_ish=None, path=None):
 
     # SPARQLWrapper2 for JSON
 
-    sparql.setHTTPAuth(DIGEST)
+    sparql.setHTTPAuth(BASIC)
     sparql.setCredentials(
         current_app.config['SPARQL_USERNAME'],
         current_app.config['SPARQL_PASSWORD'],
