@@ -1,6 +1,19 @@
 Changes
 =======
 
+``v0.4.1``
+----------
+*(released 2019-07-23)*
+
+* Remove restrictive rate limits for the notebooks service (
+  `#155 <https://github.com/SwissDataScienceCenter/renku-gateway/pull/155>`_)
+* Use basic authentication with Jena (
+  `#156 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/156>`_,
+  `#157 <https://github.com/SwissDataScienceCenter/renku-gateway/pull/157>`_)
+* Update SPARQL query for the Knowledge Graph endpoint (
+  `#160 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/160>`_,
+  `#161 <https://github.com/SwissDataScienceCenter/renku-gateway/pull/161>`_)
+
 ``v0.4.0``
 ----------
 *(released 2019-05-23)*
