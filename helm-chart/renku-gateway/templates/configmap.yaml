@@ -41,7 +41,7 @@ data:
       [http.routers]
         [http.routers.gateway]
           entryPoints = ["http"]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}auth`) || PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}graph`)"
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}auth`)"
           Service = "gateway"
 
         [http.routers.jupyterhub]
@@ -67,6 +67,12 @@ data:
           Middlewares = ["auth-gitlab", "common", "graphstatus"]
           Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph/status{endpoint:(.*)}`)"
           Service = "webhooks"
+        
+        [http.routers.graphql]
+          entryPoints = ["http"]
+          Middlewares = ["common", "graphql"]
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}graphql`)"
+          Service = "graphql"
 
         [http.routers.gitlab]
           entryPoints = ["http"]
@@ -120,6 +126,10 @@ data:
         [http.middlewares.graphstatus.ReplacePathRegex]
           regex = "^/projects/([^/]*)/graph(.*)"
           replacement = "/projects/$1/events$2"
+        
+        [http.middlewares.graphql.ReplacePathRegex]
+          regex = "/graphql"
+          replacement = "/knowledge-graph/graphql"
 
         [http.middlewares.general-ratelimit.ratelimit]
           extractorfunc = "{{ .Values.rateLimits.general.extractorfunc }}"
@@ -151,4 +161,10 @@ data:
           method = "drr"
           [[http.services.webhooks.LoadBalancer.servers]]
             url = {{ .Values.graph.webhookService.hostname | default (printf "http://%s-graph-webhook-service" .Release.Name ) | quote }}
+            weight = 1
+        
+        [http.services.graphql.LoadBalancer]
+          method = "drr"
+          [[http.services.graphql.LoadBalancer.servers]]
+            url = {{ default (printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             weight = 1
