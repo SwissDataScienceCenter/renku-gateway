@@ -166,5 +166,5 @@ data:
         [http.services.graphql.LoadBalancer]
           method = "drr"
           [[http.services.graphql.LoadBalancer.servers]]
-            url = {{ default (printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+          url = {{ printf "http://%s" (include "knowledgeGraph.fullname" .) | default (printf "http://%s-knowledge-graph" .Release.Name ) | quote }}
             weight = 1
