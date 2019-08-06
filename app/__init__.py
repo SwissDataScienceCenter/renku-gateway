@@ -35,7 +35,6 @@ from simplekv.memory.redisstore import RedisStore
 
 from . import config
 from .auth import gitlab_auth, jupyterhub_auth, web
-from .blueprints import graph
 
 # Wait for the VS Code debugger to attach if requested
 VSCODE_DEBUG = os.environ.get('VSCODE_DEBUG') == "1"
@@ -77,7 +76,6 @@ blueprints = (
     gitlab_auth.blueprint,
     jupyterhub_auth.blueprint,
     web.blueprint,
-    graph.blueprint,
 )
 
 
