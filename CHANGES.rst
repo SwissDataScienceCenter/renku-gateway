@@ -1,6 +1,38 @@
 Changes
 =======
 
+`0.5.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.4.1...0.5.0>`__ (2019-08-06)
+------------------------------------------------------------------------------------------------------
+
+Bug Fixes
+~~~~~~~~~
+
+-  **traefik:** update graphql load balancer path
+   (`4e1389f <https://github.com/SwissDataScienceCenter/renku-gateway/commit/4e1389f>`__),
+   closes
+   `#158 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/158>`__
+
+Code Refactoring
+~~~~~~~~~~~~~~~~
+
+-  **graph:** remove legacy graph code
+   (`1b7b9b2 <https://github.com/SwissDataScienceCenter/renku-gateway/commit/1b7b9b2>`__)
+
+Features
+~~~~~~~~
+
+-  add graphql routing in traefik
+   (`7a0271d <https://github.com/SwissDataScienceCenter/renku-gateway/commit/7a0271d>`__),
+   closes
+   `#158 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/158>`__
+
+BREAKING CHANGES
+~~~~~~~~~~~~~~~~
+
+-  **graph:** graph API has been moved to another repo
+   https://github.com/SwissDataScienceCenter/renku-graph/tree/master/knowledge-graph
+
+
 ``v0.4.1``
 ----------
 *(released 2019-07-23)*
