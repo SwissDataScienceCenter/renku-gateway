@@ -67,7 +67,7 @@ data:
           Middlewares = ["auth-gitlab", "common", "graphstatus"]
           Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph/status{endpoint:(.*)}`)"
           Service = "webhooks"
-        
+
         [http.routers.graphql]
           entryPoints = ["http"]
           Middlewares = ["common", "graphql"]
@@ -126,7 +126,7 @@ data:
         [http.middlewares.graphstatus.ReplacePathRegex]
           regex = "^/projects/([^/]*)/graph(.*)"
           replacement = "/projects/$1/events$2"
-        
+
         [http.middlewares.graphql.ReplacePathRegex]
           regex = "/graphql"
           replacement = "/knowledge-graph/graphql"
@@ -160,9 +160,9 @@ data:
         [http.services.webhooks.LoadBalancer]
           method = "drr"
           [[http.services.webhooks.LoadBalancer.servers]]
-            url = {{ .Values.graph.webhookService.hostname | default (printf "http://%s-graph-webhook-service" .Release.Name ) | quote }}
+            url = {{ .Values.graph.webhookService.hostname | default (printf "http://%s-webhook-service" .Release.Name ) | quote }}
             weight = 1
-        
+
         [http.services.graphql.LoadBalancer]
           method = "drr"
           [[http.services.graphql.LoadBalancer.servers]]
