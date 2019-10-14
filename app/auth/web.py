@@ -390,6 +390,17 @@ async def user():
         )
 
 
+@blueprint.route('/user-profile')
+async def user_profile():
+    return await current_app.make_response(
+        redirect(
+            '{}/account?referrer=renku'.format(
+                current_app.config['OIDC_ISSUER']
+            )
+        )
+    )
+
+
 @blueprint.route('/logout')
 async def logout():
     from .. import store
