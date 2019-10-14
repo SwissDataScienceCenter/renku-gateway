@@ -82,7 +82,7 @@ if not KEYCLOAK_URL:
     )
 KEYCLOAK_REALM = os.environ.get('KEYCLOAK_REALM', 'Renku')
 OIDC_ISSUER = '{}/auth/realms/{}'.format(KEYCLOAK_URL, KEYCLOAK_REALM)
-OIDC_CLIENT_ID = os.environ.get('OIDC_CLIENT_ID', 'gateway')
+OIDC_CLIENT_ID = os.environ.get('OIDC_CLIENT_ID', 'renku')
 OIDC_CLIENT_SECRET = os.environ.get('OIDC_CLIENT_SECRET')
 if not OIDC_CLIENT_SECRET:
     warnings.warn(

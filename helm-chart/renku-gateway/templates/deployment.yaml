@@ -141,7 +141,7 @@ spec:
             - name: GATEWAY_ALLOW_ORIGIN
               value: {{ .Values.allowOrigin | quote }}
             - name: OIDC_CLIENT_ID
-              value: {{ .Values.oidcClientId | default "gateway" | quote }}
+              value: {{ .Values.oidcClientId | default "renku" | quote }}
             - name: OIDC_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
