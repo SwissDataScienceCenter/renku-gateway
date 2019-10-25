@@ -28,7 +28,7 @@ aioresponses = "*"
 pylint = "*"
 ptvsd = "*"
 typing-extensions = "*"
-chartpress = {editable = true,git = "https://github.com/jupyterhub/chartpress.git"}
+chartpress = "==0.3.2"
 
 [requires]
 python_version = "3.7"
