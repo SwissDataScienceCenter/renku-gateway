@@ -1,6 +1,30 @@
 Changes
 =======
 
+`0.6.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.5.0...0.6.0>`__ (2019-11-04)
+------------------------------------------------------------------------------------------------------
+
+
+Code Refactoring
+~~~~~~~~~~~~~~~~
+
+-  **chart:** Several small changes to the charts, including the renaming of the main keycloak client
+   application to be used from `gateway` to `renku`.
+   (`b332cdc <https://github.com/SwissDataScienceCenter/renku-gateway/commit/b332cdc>`__)
+
+Features
+~~~~~~~~
+
+-  add a user profile endpoint which redirects the browser to Keycloak
+   (`76a57bc <https://github.com/SwissDataScienceCenter/renku-gateway/commit/76a57bc>`__),
+   closes
+   `#173 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/173>`__
+
+BREAKING CHANGES
+~~~~~~~~~~~~~~~~
+
+-  **chart:** Several small changes to the charts require corresponding changes in the Renku umbrella chart.
+
 `0.5.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.4.1...0.5.0>`__ (2019-08-06)
 ------------------------------------------------------------------------------------------------------
 
