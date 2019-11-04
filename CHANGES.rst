@@ -9,7 +9,7 @@ Code Refactoring
 ~~~~~~~~~~~~~~~~
 
 -  **chart:** Several small changes to the charts, including the renaming of the main keycloak client
-   application to be used from `gateay` to `renku`.
+   application to be used from `gateway` to `renku`.
    (`b332cdc <https://github.com/SwissDataScienceCenter/renku-gateway/commit/b332cdc>`__)
 
 Features
