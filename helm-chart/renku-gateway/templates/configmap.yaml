@@ -80,6 +80,12 @@ data:
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}`)"
           Service = "gitlab"
 
+        [http.routers.core]
+          entryPoints = ["http"]
+          Middlewares = ["auth-gitlab", "common"]
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}core`)"
+          Service = "core-service"
+
       [http.middlewares]
         [http.middlewares.common.chain]
           {{- if .Values.development }}
@@ -167,4 +173,10 @@ data:
           method = "drr"
           [[http.services.graphql.LoadBalancer.servers]]
           url = {{ printf "http://%s" (include "knowledgeGraph.fullname" .) | default (printf "http://%s-knowledge-graph" .Release.Name ) | quote }}
+            weight = 1
+
+        [http.services.core-service.LoadBalancer]
+          method = "drr"
+          [[http.services.core-service.LoadBalancer.servers]]
+          url = {{ printf "http://%s" (include "core-service.fullname" .) | default (printf "http://%s-core-service" .Release.Name ) | quote }}
             weight = 1
