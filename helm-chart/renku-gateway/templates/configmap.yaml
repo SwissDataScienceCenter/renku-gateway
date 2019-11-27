@@ -82,7 +82,7 @@ data:
 
         [http.routers.core]
           entryPoints = ["http"]
-          Middlewares = ["auth-gitlab", "common"]
+          Middlewares = ["auth-core", "common"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}core`)"
           Service = "core-service"
 
@@ -124,6 +124,11 @@ data:
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=jupyterhub"
           trustForwardHeader = true
           authResponseHeaders = ["Authorization"]
+
+        [http.middlewares.auth-core.forwardauth]
+          address = "http://{{ template "gateway.fullname" . }}-auth/?auth=core"
+          trustForwardHeader = true
+          authResponseHeaders = ["Authorization", "Renku-user-id", "Renku-user-fullname", "Renku-user-email"]
 
         [http.middlewares.webhooks.ReplacePathRegex]
           regex = "^/projects/([^/]*)/graph/webhooks(.*)"
