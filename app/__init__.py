@@ -86,10 +86,12 @@ async def auth():
 
     from .auth.gitlab_auth import GitlabUserToken
     from .auth.jupyterhub_auth import JupyterhubUserToken
+    from .auth.core_auth import CoreAuthHeaders
 
     auths = {
         'gitlab': GitlabUserToken,
         'jupyterhub': JupyterhubUserToken,
+        'core': CoreAuthHeaders,
     }
 
     auth = auths[request.args.get('auth')]()
