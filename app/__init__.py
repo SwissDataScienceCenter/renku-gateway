@@ -86,12 +86,12 @@ async def auth():
 
     from .auth.gitlab_auth import GitlabUserToken
     from .auth.jupyterhub_auth import JupyterhubUserToken
-    from .auth.core_auth import CoreAuthHeaders
+    from .auth.renku_auth import RenkuAuthHeaders
 
     auths = {
         'gitlab': GitlabUserToken,
         'jupyterhub': JupyterhubUserToken,
-        'core': CoreAuthHeaders,
+        'renku': RenkuAuthHeaders,
     }
 
     auth = auths[request.args.get('auth')]()

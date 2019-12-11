@@ -30,7 +30,7 @@ from .web import JWT_ALGORITHM, get_key_for_user
 
 # TODO: We're using a class here only to have a uniform interface
 # with GitlabUserToken and JupyterhubUserToken. This should be refactored.
-class CoreAuthHeaders():
+class RenkuAuthHeaders():
     def process(self, request, headers):
         from .. import store
 

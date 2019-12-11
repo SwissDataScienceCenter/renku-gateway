@@ -80,10 +80,10 @@ data:
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}`)"
           Service = "gitlab"
 
-        [http.routers.core]
+        [http.routers.renku]
           entryPoints = ["http"]
-          Middlewares = ["auth-core", "common"]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}core`)"
+          Middlewares = ["auth-renku", "common"]
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}renku`)"
           Service = "core-service"
 
       [http.middlewares]
@@ -125,8 +125,8 @@ data:
           trustForwardHeader = true
           authResponseHeaders = ["Authorization"]
 
-        [http.middlewares.auth-core.forwardauth]
-          address = "http://{{ template "gateway.fullname" . }}-auth/?auth=core"
+        [http.middlewares.auth-renku.forwardauth]
+          address = "http://{{ template "gateway.fullname" . }}-auth/?auth=renku"
           trustForwardHeader = true
           authResponseHeaders = ["Authorization", "Renku-user-id", "Renku-user-fullname", "Renku-user-email"]
 
