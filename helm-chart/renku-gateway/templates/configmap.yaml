@@ -84,7 +84,7 @@ data:
           entryPoints = ["http"]
           Middlewares = ["auth-renku", "common"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}renku`)"
-          Service = "core-service"
+          Service = "core"
 
       [http.middlewares]
         [http.middlewares.common.chain]
@@ -180,8 +180,8 @@ data:
           url = {{ printf "http://%s" (include "knowledgeGraph.fullname" .) | default (printf "http://%s-knowledge-graph" .Release.Name ) | quote }}
             weight = 1
 
-        [http.services.core-service.LoadBalancer]
+        [http.services.core.LoadBalancer]
           method = "drr"
-          [[http.services.core-service.LoadBalancer.servers]]
-          url = {{ printf "http://%s" (include "core-service.fullname" .) | default (printf "http://%s-core-service" .Release.Name ) | quote }}
+          [[http.services.core.LoadBalancer.servers]]
+          url = {{ printf "http://%s" (include "core.fullname" .) | default (printf "http://%s-core" .Release.Name ) | quote }}
             weight = 1
