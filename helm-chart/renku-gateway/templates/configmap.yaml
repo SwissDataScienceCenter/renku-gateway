@@ -80,6 +80,12 @@ data:
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}`)"
           Service = "gitlab"
 
+        [http.routers.renku]
+          entryPoints = ["http"]
+          Middlewares = ["auth-renku", "common"]
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}renku`)"
+          Service = "core"
+
       [http.middlewares]
         [http.middlewares.common.chain]
           {{- if .Values.development }}
@@ -118,6 +124,11 @@ data:
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=jupyterhub"
           trustForwardHeader = true
           authResponseHeaders = ["Authorization"]
+
+        [http.middlewares.auth-renku.forwardauth]
+          address = "http://{{ template "gateway.fullname" . }}-auth/?auth=renku"
+          trustForwardHeader = true
+          authResponseHeaders = ["Authorization", "Renku-user-id", "Renku-user-fullname", "Renku-user-email"]
 
         [http.middlewares.webhooks.ReplacePathRegex]
           regex = "^/projects/([^/]*)/graph/webhooks(.*)"
@@ -167,4 +178,10 @@ data:
           method = "drr"
           [[http.services.graphql.LoadBalancer.servers]]
           url = {{ printf "http://%s" (include "knowledgeGraph.fullname" .) | default (printf "http://%s-knowledge-graph" .Release.Name ) | quote }}
+            weight = 1
+
+        [http.services.core.LoadBalancer]
+          method = "drr"
+          [[http.services.core.LoadBalancer.servers]]
+          url = {{ printf "http://%s" (include "core.fullname" .) | default (printf "http://%s-core" .Release.Name ) | quote }}
             weight = 1
