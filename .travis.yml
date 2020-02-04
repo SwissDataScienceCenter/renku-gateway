@@ -1,54 +1,45 @@
 notifications:
   email: false
-
 sudo: required
-
 services:
-  - docker
-
+- docker
 language: python
-
 python:
-  - 3.7-dev
-
+- 3.7-dev
 env:
   global:
-    - DOCKER_LABEL=$TRAVIS_BRANCH
-    - DOCKER_PUSH_LATEST=true
-    - DOCKER_REPOSITORY=renku/
-    - HELM_URL=https://storage.googleapis.com/kubernetes-helm
-    - HELM_TGZ=helm-v2.9.1-linux-amd64.tar.gz
-
+  - DOCKER_LABEL=$TRAVIS_BRANCH
+  - DOCKER_PUSH_LATEST=true
+  - DOCKER_REPOSITORY=renku/
+  - HELM_URL=https://storage.googleapis.com/kubernetes-helm
+  - HELM_TGZ=helm-v2.9.1-linux-amd64.tar.gz
+  - secure: gsem+QYuPJm2Uwzurhz6QDBTDBm9hSs0up8Bc8xQ8tGTtgMQ+XKagTmSY594J9xvO9am6S7Aj/hnrxe2lKiNv6LJrZZKtqxXD6dSg+p+Ofpxmgit2D31kLFvHRbC6zCDkD3wsBSu4giHSsPgKQ3WqwjYUjZRByrIKKTdJW2GqBvr//Wh5pUF4Kl8wOT7z1NUT8wuweZiau5W83qv0RmFEi+Ha3Kk8jmLTxriqG+uuxFgt/34ewGDU5Wdb85uI/44z8w+lqC5IsUwCsF/Jxr2my4Zshi9sF4dpmRdVuGwukDRNb9UkaSG5eRVSMTatUubPF6LzyWQivDXQQg9O3XBuQYE6dETlkP/KkzhTwuOT+c5WGBHwJKMgSwFT7EzJW0XaNg5XCY5+r9TBPRveSolHszmTftThhZpK0+kZlggYeJxcDkAK3bcfjd5ywU5x8DBNi4ZsRjYgUetUuC34yLshevVgvXNTSdqhEJUbdOXv6LpZbEKnQ0P9S5cwDEYrcbG/n8cGZLYOpWXHQV2nUoB7e82Wzm0zGBMbTmOKqlA4NaHod8xHlugU4oLDlhq7eCC+i9BS5TVFTPRhMCh07VV3cHX4beyb44Nd/YAZv6N+fzRz103jyH4Gq5jAYKhDyKrU+yhFP1vnm79cvsE0988S1ck09cCKJKT2VjFj102DDg=
 git:
   depth: false
-
 cache:
   directories:
   - node_modules
-
 install:
-  - travis_retry pip install -U pip==18.1 pipenv
-  - travis_retry pipenv install --dev --system --deploy
-  # Installing Helm
-  - wget -q ${HELM_URL}/${HELM_TGZ}
-  - tar xzfv ${HELM_TGZ}
-  - PATH=`pwd`/linux-amd64/:$PATH
-  - helm init --client-only
-
+- travis_retry pip install -U pip==18.1 pipenv
+- travis_retry pipenv install --dev --system --deploy
+- wget -q ${HELM_URL}/${HELM_TGZ}
+- tar xzfv ${HELM_TGZ}
+- PATH=`pwd`/linux-amd64/:$PATH
+- helm init --client-only
 script:
-  - make
-  - pytest
-#  - helm lint helm-chart/renku-gateway -f helm-chart/minikube-values.yaml
-
+- make
+- pytest
 deploy:
-  - &script
-    provider: script
-    skip_cleanup: true
-    script: bash travis-deploy.sh
-    on: &script_on
-      branch: master
-      repo: SwissDataScienceCenter/renku-gateway
-  - <<: *script
-    on:
-      <<: *script_on
-      tags: true
+- provider: script
+  skip_cleanup: true
+  script: bash ./.travis/travis-deploy.sh
+  on:
+    branch: master
+    repo: SwissDataScienceCenter/renku-gateway
+- provider: script
+  skip_cleanup: true
+  script: bash ./.travis/travis-deploy.sh
+  on:
+    branch: master
+    repo: SwissDataScienceCenter/renku-gateway
+    tags: true
