@@ -39,6 +39,18 @@ data:
   rules.toml: |
     [http]
       [http.routers]
+        [http.routers.apiRedirect]
+          entryPoints = ["http"]
+          Middlewares = ["apiRediredctEncodeSlash", "apiRedirect"]
+          Rule = "PathPrefix(`/entities`) && HeadersRegexp(`Accept`,`application/json`)"
+          Service = "default"
+
+        [http.routers.uiRedirect]
+          entryPoints = ["http"]
+          Middlewares = ["uiRedirect"]
+          Rule = "PathPrefix(`/entities`) && HeadersRegexp(`Accept`,`text/html`)"
+          Service = "default"
+
         [http.routers.gateway]
           entryPoints = ["http"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}auth`)"
@@ -87,6 +99,22 @@ data:
           Service = "core"
 
       [http.middlewares]
+
+        # We assume entity IDs which are URL-safe except <namespace>/<project-name>
+        # IDs (so all IDs with one forward-slash) for projets which we capture and
+        # URL-encode explicitly. Full URL-encoding is tricky with GO regexes.
+        [http.middlewares.apiRediredctEncodeSlash.redirectRegex]
+          regex = "http://(.*)/entities/([^/]*)/([^/]*)/(.*)"
+          replacement = "{{(include "gateway.protocol" .)}}://${1}/api/${2}/${3}%2F${4}"
+
+        [http.middlewares.apiRedirect.redirectRegex]
+          regex = "http://(.*)/entities/(.*)"
+          replacement = "{{(include "gateway.protocol" .)}}://${1}/api/${2}"
+
+        [http.middlewares.uiRedirect.redirectRegex]
+          regex = "http://(.*)/entities/(.*)"
+          replacement = "{{(include "gateway.protocol" .)}}://${1}/${2}"
+
         [http.middlewares.common.chain]
           {{- if .Values.development }}
           middlewares = ["general-ratelimit", "api", "noCookies", "development"]
@@ -190,4 +218,11 @@ data:
           passHostHeader = false
           [[http.services.core.LoadBalancer.servers]]
           url = {{ printf "http://%s" (include "core.fullname" .) | default (printf "http://%s-core" .Release.Name ) | quote }}
+            weight = 1
+
+        # We need a default backend, should never be hit
+        [http.services.default.LoadBalancer]
+          method = "drr"
+          [[http.services.default.LoadBalancer.servers]]
+          url = {{ printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain | quote }}
             weight = 1
