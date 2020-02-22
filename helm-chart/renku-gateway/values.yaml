@@ -23,10 +23,10 @@ global:
     ## set by parent chart.
     domain: example.local
 
-    ## Set the Keycloak Realm name used by Renku here - the default 
-    ## value is "Renku" and is set on the application level. You may 
-    ## override this here if you are using an external Keycloak instance 
-    ## and want to use an existing realm. If Keycloak is deployed as a 
+    ## Set the Keycloak Realm name used by Renku here - the default
+    ## value is "Renku" and is set on the application level. You may
+    ## override this here if you are using an external Keycloak instance
+    ## and want to use an existing realm. If Keycloak is deployed as a
     ## part of Renku DO NOT change this value.
     # keycloak:
     #   realm: Renku
@@ -82,9 +82,7 @@ jupyterhub:
 image:
   name: traefik
   repository: traefik
-  # Specifically force the usage of alpha4 as it contains
-  # https://github.com/containous/traefik/commit/ef8894ef269e5e28d73e96c482d60162b898721a
-  tag: v2.0.0-alpha4
+  tag: 2.1.4
   pullPolicy: IfNotPresent
 
   ## Define the image for the auth middleware
