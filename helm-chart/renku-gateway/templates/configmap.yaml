@@ -152,36 +152,42 @@ data:
       [http.services]
         [http.services.gateway.LoadBalancer]
           method = "drr"
+          passHostHeader = false
           [[http.services.gateway.LoadBalancer.servers]]
             url = "http://{{ template "gateway.fullname" . }}-auth/"
             weight = 1
 
         [http.services.gitlab.LoadBalancer]
           method = "drr"
+          passHostHeader = false
           [[http.services.gitlab.LoadBalancer.servers]]
             url = {{ .Values.gitlabUrl | default (printf "%s://%s/gitlab" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             weight = 1
 
         [http.services.jupyterhub.LoadBalancer]
           method = "drr"
+          passHostHeader = false
           [[http.services.jupyterhub.LoadBalancer.servers]]
             url = {{ .Values.jupyterhub.url | default (printf "%s://%s/jupyterhub" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             weight = 1
 
         [http.services.webhooks.LoadBalancer]
           method = "drr"
+          passHostHeader = false
           [[http.services.webhooks.LoadBalancer.servers]]
             url = {{ .Values.graph.webhookService.hostname | default (printf "http://%s-webhook-service" .Release.Name ) | quote }}
             weight = 1
 
         [http.services.graphql.LoadBalancer]
           method = "drr"
+          passHostHeader = false
           [[http.services.graphql.LoadBalancer.servers]]
           url = {{ printf "http://%s" (include "knowledgeGraph.fullname" .) | default (printf "http://%s-knowledge-graph" .Release.Name ) | quote }}
             weight = 1
 
         [http.services.core.LoadBalancer]
           method = "drr"
+          passHostHeader = false
           [[http.services.core.LoadBalancer.servers]]
           url = {{ printf "http://%s" (include "core.fullname" .) | default (printf "http://%s-core" .Release.Name ) | quote }}
             weight = 1
