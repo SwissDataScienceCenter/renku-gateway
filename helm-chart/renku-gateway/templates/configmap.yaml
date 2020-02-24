@@ -86,6 +86,12 @@ data:
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}graphql`)"
           Service = "graphql"
 
+        [http.routers.datasets]
+          entryPoints = ["http"]
+          Middlewares = ["common", "knowledgeGraph"]
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}datasets`)"
+          Service = "knowledgeGraph"
+
         [http.routers.gitlab]
           entryPoints = ["http"]
           Middlewares = ["auth-gitlab", "common", "gitlab"]
@@ -170,6 +176,9 @@ data:
           regex = "/graphql"
           replacement = "/knowledge-graph/graphql"
 
+        [http.middlewares.knowledgeGraph.AddPrefix]
+          prefix = "/knowledge-graph"
+
         [http.middlewares.general-ratelimit.ratelimit]
           extractorfunc = "{{ .Values.rateLimits.general.extractorfunc }}"
           [http.middlewares.general-ratelimit.ratelimit.rateset.rate0]
@@ -210,6 +219,12 @@ data:
           method = "drr"
           passHostHeader = false
           [[http.services.graphql.LoadBalancer.servers]]
+          url = {{ printf "http://%s" (include "knowledgeGraph.fullname" .) | default (printf "http://%s-knowledge-graph" .Release.Name ) | quote }}
+            weight = 1
+
+        [http.services.knowledgeGraph.LoadBalancer]
+          method = "drr"
+          [[http.services.knowledgeGraph.LoadBalancer.servers]]
           url = {{ printf "http://%s" (include "knowledgeGraph.fullname" .) | default (printf "http://%s-knowledge-graph" .Release.Name ) | quote }}
             weight = 1
 
