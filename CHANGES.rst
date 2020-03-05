@@ -1,6 +1,17 @@
 Changes
 =======
 
+`0.7.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.6.0...0.7.0>`__ (2020-03-05)
+------------------------------------------------------------------------------------------------------
+
+Features
+~~~~~~~~
+
+-  add core service routing
+   (`#181 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/181>`__ ,
+   `ee94e63 <https://github.com/SwissDataScienceCenter/renku-gateway/commit/ee94e63bab0d3e70cf2cdc23f12df1faf50c9592>`__),
+
+
 `0.6.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.5.0...0.6.0>`__ (2019-11-04)
 ------------------------------------------------------------------------------------------------------
 
