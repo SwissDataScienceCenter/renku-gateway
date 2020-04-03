@@ -155,6 +155,10 @@ spec:
               value: {{ required "Please specify a password for the SPARQL endpoint user." .Values.graph.sparql.password | quote }}
             - name: WEBHOOK_SERVICE_HOSTNAME
               value: {{ .Values.graph.webhookService.hostname | default (printf "http://%s-graph-webhook-service" .Release.Name ) | quote }}
+            {{ if .Values.global.anonymousSessions.enabled }}
+            - name: ANONYMOUS_SESSIONS_ENABLED
+              value: "true"
+            {{ end }}
           livenessProbe:
             httpGet:
               path: /health
