@@ -22,6 +22,10 @@ import sys
 import warnings
 
 
+ANONYMOUS_SESSIONS_ENABLED = os.environ.get(
+    'ANONYMOUS_SESSIONS_ENABLED', 'false'
+) == 'true'
+
 HOST_NAME = os.environ.get('HOST_NAME', 'http://gateway.renku.build')
 
 if 'GATEWAY_SECRET_KEY' not in os.environ and "pytest" not in sys.modules:
@@ -54,6 +58,9 @@ if not GITLAB_CLIENT_SECRET:
 JUPYTERHUB_URL = os.environ.get(
         'JUPYTERHUB_URL', '{}/jupyterhub'.format(HOST_NAME)
     )
+if ANONYMOUS_SESSIONS_ENABLED:
+    JUPYTERHUB_TMP_URL = '{}-tmp'.format(JUPYTERHUB_URL)
+
 JUPYTERHUB_CLIENT_ID = os.environ.get(
         'JUPYTERHUB_CLIENT_ID', 'gateway'
     )

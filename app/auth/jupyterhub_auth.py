@@ -24,7 +24,8 @@ from urllib.parse import parse_qs, urlencode, urljoin
 import jwt
 import requests
 from oic import rndstr
-from quart import Blueprint, redirect, request, session, url_for, current_app
+from quart import (Blueprint, current_app, redirect, request,
+    Response, session, url_for)
 
 from .web import JWT_ALGORITHM, get_key_for_user
 
@@ -87,6 +88,27 @@ def login():
     login_url = "{}?{}".format(url, urlencode(args))
     response = current_app.make_response(redirect(login_url))
     return response
+
+
+@blueprint.route('/login-tmp')
+def login_tmp():
+    """Redirection creating an anonymous (temporary) Jupyterhub session."""
+
+    if not current_app.config['ANONYMOUS_SESSIONS_ENABLED']:
+        return Response(
+            'Anonymous notebooks sessions are disabled',
+            status=404
+        )
+
+    args = {'redirect_url': request.args['redirect_url']}
+
+    full_url = "{}{}?{}".format(
+        current_app.config['JUPYTERHUB_TMP_URL'],
+        '/services/notebooks/login-tmp',
+        urlencode(args)
+        )
+
+    return current_app.make_response(redirect(full_url))
 
 
 @blueprint.route('/token')

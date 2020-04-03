@@ -62,11 +62,13 @@ data:
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}jupyterhub`)"
           Service = "jupyterhub"
 
+{{ if eq .Values.global.anonymousSessions.enabled false }}
         [http.routers.notebooks]
           entryPoints = ["http"]
           Middlewares = ["auth-jupyterhub", "common", "notebooks"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}notebooks`)"
           Service = "jupyterhub"
+{{ end }}
 
         [http.routers.webhooks]
           entryPoints = ["http"]
@@ -93,6 +95,10 @@ data:
           Service = "knowledgeGraph"
 
         [http.routers.gitlab]
+          # Currently gitlab acts as fallback backend service, we
+          # therefore fix the priority of this router to the lowest
+          # possible value.
+          priority = 1
           entryPoints = ["http"]
           Middlewares = ["auth-gitlab", "common", "gitlab"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}`)"
@@ -121,12 +127,15 @@ data:
           regex = "http://(.*)/entities/(.*)"
           replacement = "{{(include "gateway.protocol" .)}}://${1}/${2}"
 
-        [http.middlewares.common.chain]
+        [http.middlewares.commonWithCookie.chain]
           {{- if .Values.development }}
-          middlewares = ["general-ratelimit", "api", "noCookies", "development"]
+          middlewares = ["general-ratelimit", "api", "development"]
           {{- else }}
-          middlewares = ["general-ratelimit", "api", "noCookies"]
+          middlewares = ["general-ratelimit", "api"]
           {{- end }}
+
+        [http.middlewares.common.chain]
+          middlewares = ["noCookies", "commonWithCookie"]
 
         [http.middlewares.noCookies.headers]
           [http.middlewares.noCookies.headers.CustomRequestHeaders]
@@ -145,9 +154,11 @@ data:
           regex = "^/jupyterhub/(.*)"
           replacement = "/jupyterhub/hub/api/$1"
 
+{{ if eq .Values.global.anonymousSessions.enabled false }}
         [http.middlewares.notebooks.ReplacePathRegex]
           regex = "^/notebooks/(.*)"
           replacement = "/jupyterhub/services/notebooks/$1"
+{{ end }}
 
         [http.middlewares.auth-gitlab.forwardauth]
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=gitlab"
@@ -241,3 +252,74 @@ data:
           [[http.services.default.LoadBalancer.servers]]
           url = {{ printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain | quote }}
             weight = 1
+
+{{ if .Values.global.anonymousSessions.enabled }}
+  rules-tmp.toml: |
+    [http]
+      [http.routers]
+
+        # What we do here is equivalent to using a second traefik instance in front
+        # of the two notebook services.
+        # - If the regular jupyterhub-auth finds a JH oauth token, we use
+        #   it and forward to the normal notebook service.
+        # - Otherwise we use the notebooks-tmp service.
+
+
+        # Note that routers are applied in the order of their priority,
+        # where the priority is derived from the length of the rule
+        # (longer -> more specific -> higher priority). This priority can be
+        # explicitly overwritten.
+
+        [http.routers.notebooksFirstPass]
+          priority=1001
+          entryPoints = ["http"]
+          Middlewares = ["auth-jupyterhub", "secondPassPath"]
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}notebooks`)"
+          Service = "notebooksSecondPass"
+
+        [http.routers.notebooksSecondPassTmp]
+          priority=1002
+          entryPoints = ["http"]
+          Middlewares = ["commonWithCookie", "notebooksTmp"]
+          Rule = "PathPrefix(`/notebooks-second-pass`)"
+          Service = "jupyterhubTmp"
+
+        [http.routers.notebooksSecondPassRegular]
+          priority=1003
+          entryPoints = ["http"]
+          Middlewares = ["common", "notebooks"]
+          Rule = "PathPrefix(`/notebooks-second-pass`) && HeadersRegexp(`Authorization`, `token`)"
+          Service = "jupyterhub"
+
+      [http.middlewares]
+
+        [http.middlewares.secondPassPath.ReplacePathRegex]
+          regex = "/api/notebooks/(.*)"
+          replacement = "/notebooks-second-pass/$1"
+
+        [http.middlewares.notebooks.ReplacePathRegex]
+          regex = "^/notebooks-second-pass/(.*)"
+          replacement = "/jupyterhub/services/notebooks/$1"
+
+        [http.middlewares.notebooksTmp.ReplacePathRegex]
+          regex = "^/notebooks-second-pass/(.*)"
+          replacement = "/jupyterhub-tmp/services/notebooks/$1"
+
+
+      [http.services]
+
+        [http.services.notebooksSecondPass.LoadBalancer]
+          method = "drr"
+          passHostHeader = false
+          [[http.services.notebooksSecondPass.LoadBalancer.servers]]
+            url = "http://{{ template "gateway.fullname" . }}"
+            weight = 1
+
+
+        [http.services.jupyterhubTmp.LoadBalancer]
+          method = "drr"
+          passHostHeader = false
+          [[http.services.jupyterhubTmp.LoadBalancer.servers]]
+            url = {{ .Values.jupyterhub.tmpUrl | default (printf "%s://%s/jupyterhub-tmp" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+            weight = 1
+{{ end }}
