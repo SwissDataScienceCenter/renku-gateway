@@ -27,7 +27,6 @@ data:
     [providers]
       [providers.file]
         directory = "/config"
-        filename = "rules.toml"
 
     [entrypoints]
       [entrypoints.http]
