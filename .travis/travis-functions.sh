@@ -43,7 +43,6 @@ function updateVersionInRenku() {
   # pushing to the remote
   git checkout -b auto-update/renku-gateway-$CHART_VERSION
   git add charts/renku/requirements.yaml
-  git add charts/renku/requirements.lock
   git commit -m "chore: updating renku-gateway version to $CHART_VERSION"
   git push --set-upstream origin auto-update/renku-gateway-$CHART_VERSION
 }
