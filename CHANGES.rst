@@ -1,6 +1,17 @@
 Changes
 =======
 
+`0.7.1 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.7.0...0.7.1>`__ (2020-04-24)
+------------------------------------------------------------------------------------------------------
+
+Features
+~~~~~~~~
+
+-  add routing and "login" route for anonymous notebooks sessions.
+   (`#193 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/193>`__ ,
+   `#195 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/195>`__),
+
+
 `0.7.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.6.0...0.7.0>`__ (2020-03-05)
 ------------------------------------------------------------------------------------------------------
 
