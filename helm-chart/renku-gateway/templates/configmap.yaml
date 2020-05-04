@@ -93,6 +93,12 @@ data:
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}datasets`)"
           Service = "knowledgeGraph"
 
+        [http.routers.graphQueries]
+          entryPoints = ["http"]
+          Middlewares = ["auth-gitlab", "common", "knowledgeGraph"]
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}graph/queries`)"
+          Service = "knowledgeGraph"
+
         [http.routers.gitlab]
           # Currently gitlab acts as fallback backend service, we
           # therefore fix the priority of this router to the lowest
