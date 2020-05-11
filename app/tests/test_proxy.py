@@ -31,15 +31,18 @@ from aioresponses import aioresponses
 
 from .. import app
 from .test_data import (
-    GITLAB_ISSUES, GITLAB_PROJECTS, PRIVATE_KEY, PUBLIC_KEY,
-    TOKEN_PAYLOAD
+    GITLAB_ISSUES,
+    GITLAB_PROJECTS,
+    PRIVATE_KEY,
+    PUBLIC_KEY,
+    TOKEN_PAYLOAD,
 )
 
 
 @pytest.fixture
 def client():
-    app.config['TESTING'] = True
-    app.config['OIDC_PUBLIC_KEY'] = PUBLIC_KEY
+    app.config["TESTING"] = True
+    app.config["OIDC_PUBLIC_KEY"] = PUBLIC_KEY
     client = app.test_client()
     yield client
 
@@ -58,10 +61,8 @@ def aiotest(func):
 @responses.activate
 def test_simple(client):
 
-    test_url = app.config['GITLAB_URL'] + '/dummy'
-    responses.add(
-        responses.GET, test_url, json={'error': 'not found'}, status=404
-    )
+    test_url = app.config["GITLAB_URL"] + "/dummy"
+    responses.add(responses.GET, test_url, json={"error": "not found"}, status=404)
 
     resp = requests.get(test_url)
 
@@ -74,9 +75,8 @@ def test_simple(client):
 
 @aiotest
 async def test_health_endpoint(client):
-    rv = await client.get('/health')
+    rv = await client.get("/health")
     assert b'"Up and running"' in (await rv.get_data())
-
 
 
 ## TODO: currently no endpoint absolutely requires a token
@@ -90,25 +90,26 @@ async def test_health_endpoint(client):
 
 ## TODO: currently the project mapper is not used, but we keep the other response for future use.
 
+
 @aiotest
 async def test_gitlab_happyflow(client):
     # If a request does has the required headers, it should be able to pass through
     access_token = jwt.encode(
-        payload=TOKEN_PAYLOAD, key=PRIVATE_KEY, algorithm='RS256'
-    ).decode('utf-8')
-    headers = {'Authorization': 'Bearer {}'.format(access_token)}
+        payload=TOKEN_PAYLOAD, key=PRIVATE_KEY, algorithm="RS256"
+    ).decode("utf-8")
+    headers = {"Authorization": "Bearer {}".format(access_token)}
 
     from .. import store
     from base64 import b64encode
+
     store.put(
         b64encode(
-            'cache_5dbdeba7-e40f-42a7-b46b-6b8a07c65966_gl_access_token'
-            .encode()
-        ).decode('utf-8'),
-        'some_token'.encode()
+            "cache_5dbdeba7-e40f-42a7-b46b-6b8a07c65966_gl_access_token".encode()
+        ).decode("utf-8"),
+        "some_token".encode(),
     )
 
-    rv = await client.get('/?auth=gitlab', headers=headers)
+    rv = await client.get("/?auth=gitlab", headers=headers)
 
     assert rv.status_code == 200
-    assert 'Bearer some_token' == rv.headers['Authorization']
+    assert "Bearer some_token" == rv.headers["Authorization"]

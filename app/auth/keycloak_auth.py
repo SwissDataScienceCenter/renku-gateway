@@ -17,6 +17,6 @@
 # limitations under the License.
 
 
-class KeycloakAccessToken():
+class KeycloakAccessToken:
     def process(self, request, headers):
         return headers

@@ -21,48 +21,42 @@ import json
 import re
 
 import jwt
-from quart import (
-    Blueprint, Response, current_app, redirect, request, session, url_for
-)
+from quart import Blueprint, Response, current_app, redirect, request, session, url_for
 
 from .gitlab_auth import GitlabUserToken
 from .web import JWT_ALGORITHM, get_key_for_user
 
 # TODO: We're using a class here only to have a uniform interface
 # with GitlabUserToken and JupyterhubUserToken. This should be refactored.
-class RenkuCoreAuthHeaders():
+class RenkuCoreAuthHeaders:
     def process(self, request, headers):
         from .. import store
 
         m = re.search(
-            r'bearer (?P<token>.+)', headers.get('Authorization', ''),
-            re.IGNORECASE
+            r"bearer (?P<token>.+)", headers.get("Authorization", ""), re.IGNORECASE
         )
         if m:
-            access_token = m.group('token')
+            access_token = m.group("token")
             decodentoken = jwt.decode(
                 access_token,
-                current_app.config['OIDC_PUBLIC_KEY'],
+                current_app.config["OIDC_PUBLIC_KEY"],
                 algorithms=JWT_ALGORITHM,
-                audience=current_app.config['OIDC_CLIENT_ID']
+                audience=current_app.config["OIDC_CLIENT_ID"],
             )
 
-            id_token = store.get(
-                get_key_for_user(decodentoken, 'kc_id_token')
-            ).decode()
+            id_token = store.get(get_key_for_user(decodentoken, "kc_id_token")).decode()
             id_dict = json.loads(id_token)
 
             gl_token = store.get(
-                get_key_for_user(decodentoken, 'gl_access_token')
+                get_key_for_user(decodentoken, "gl_access_token")
             ).decode()
 
-            headers['Renku-user-id'] = id_dict['sub']
-            headers['Renku-user-email'] = id_dict['email']
-            headers['Renku-user-fullname'] = '{} {}'.format(
-                id_dict['given_name'],
-                id_dict['family_name']
+            headers["Renku-user-id"] = id_dict["sub"]
+            headers["Renku-user-email"] = id_dict["email"]
+            headers["Renku-user-fullname"] = "{} {}".format(
+                id_dict["given_name"], id_dict["family_name"]
             )
-            headers['Authorization'] = 'Bearer {}'.format(gl_token)
+            headers["Authorization"] = "Bearer {}".format(gl_token)
 
         else:
             pass

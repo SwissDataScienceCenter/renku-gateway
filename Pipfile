@@ -30,6 +30,7 @@ ptvsd = "*"
 typing-extensions = "*"
 chartpress = "==0.3.2"
 pytoml = "*"
+black = "*"
 
 [requires]
 python_version = "3.7"

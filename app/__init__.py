@@ -37,13 +37,13 @@ from . import config
 from .auth import gitlab_auth, jupyterhub_auth, web
 
 # Wait for the VS Code debugger to attach if requested
-VSCODE_DEBUG = os.environ.get('VSCODE_DEBUG') == "1"
+VSCODE_DEBUG = os.environ.get("VSCODE_DEBUG") == "1"
 if VSCODE_DEBUG:
     import ptvsd
 
     # 5678 is the default attach port in the VS Code debug configurations
     print("Waiting for debugger attach")
-    ptvsd.enable_attach(address=('localhost', 5678), redirect_output=True)
+    ptvsd.enable_attach(address=("localhost", 5678), redirect_output=True)
     ptvsd.wait_for_attach()
     breakpoint()
 
@@ -57,21 +57,20 @@ app.logger.propagate = False
 app.config.from_object(config)
 
 app = cors(
-    app,
-    allow_headers=['X-Requested-With'],
-    allow_origin=app.config['ALLOW_ORIGIN'],
+    app, allow_headers=["X-Requested-With"], allow_origin=app.config["ALLOW_ORIGIN"],
 )
 
 if "pytest" in sys.modules:
     from simplekv.memory import DictStore
+
     store = DictStore()
 else:
-    store = RedisStore(redis.StrictRedis(host=app.config['REDIS_HOST']))
+    store = RedisStore(redis.StrictRedis(host=app.config["REDIS_HOST"]))
 
-prefixed_store = PrefixDecorator('sessions_', store)
+prefixed_store = PrefixDecorator("sessions_", store)
 KVSessionExtension(prefixed_store, app)
 
-url_prefix = app.config['SERVICE_PREFIX']
+url_prefix = app.config["SERVICE_PREFIX"]
 blueprints = (
     gitlab_auth.blueprint,
     jupyterhub_auth.blueprint,
@@ -79,26 +78,26 @@ blueprints = (
 )
 
 
-@app.route('/', methods=['GET'])
+@app.route("/", methods=["GET"])
 async def auth():
-    if 'auth' not in request.args:
-        return Response('', status=200)
+    if "auth" not in request.args:
+        return Response("", status=200)
 
     from .auth.gitlab_auth import GitlabUserToken
     from .auth.jupyterhub_auth import JupyterhubUserToken
     from .auth.renku_auth import RenkuCoreAuthHeaders
 
     auths = {
-        'gitlab': GitlabUserToken,
-        'jupyterhub': JupyterhubUserToken,
-        'renku': RenkuCoreAuthHeaders,
+        "gitlab": GitlabUserToken,
+        "jupyterhub": JupyterhubUserToken,
+        "renku": RenkuCoreAuthHeaders,
     }
 
-    auth = auths[request.args.get('auth')]()
+    auth = auths[request.args.get("auth")]()
     headers = dict(request.headers)
 
     # Keycloak public key is not defined so error
-    if current_app.config['OIDC_PUBLIC_KEY'] is None:
+    if current_app.config["OIDC_PUBLIC_KEY"] is None:
         response = json.dumps("Ooops, something went wrong internally.")
         return Response(response, status=500)
 
@@ -107,86 +106,74 @@ async def auth():
         # it can either be in session-cookie or Authorization header
         new_tokens = web.get_valid_token(headers)
         if new_tokens:
-            headers['Authorization'] = "Bearer {}".format(
-                new_tokens.get('access_token')
+            headers["Authorization"] = "Bearer {}".format(
+                new_tokens.get("access_token")
             )
-        if 'Authorization' in headers and 'Referer' in headers:
+        if "Authorization" in headers and "Referer" in headers:
             allowed = False
             origins = jwt.decode(
-                headers['Authorization'][7:],
-                current_app.config['OIDC_PUBLIC_KEY'],
-                algorithms='RS256',
-                audience=current_app.config['OIDC_CLIENT_ID']
-            ).get('allowed-origins')
+                headers["Authorization"][7:],
+                current_app.config["OIDC_PUBLIC_KEY"],
+                algorithms="RS256",
+                audience=current_app.config["OIDC_CLIENT_ID"],
+            ).get("allowed-origins")
             for o in origins:
-                if re.match(o.replace("*", ".*"), headers['Referer']):
+                if re.match(o.replace("*", ".*"), headers["Referer"]):
                     allowed = True
                     break
             if not allowed:
                 return Response(
-                    json.dumps({
-                        'error':
-                            'origin not allowed: {} not matching {}'.
-                            format(headers['Referer'], origins)
-                    }),
-                    status=403
+                    json.dumps(
+                        {
+                            "error": "origin not allowed: {} not matching {}".format(
+                                headers["Referer"], origins
+                            )
+                        }
+                    ),
+                    status=403,
                 )
 
         # auth processors always assume a valid Authorization in header, if any
         headers = auth.process(request, headers)
     except jwt.ExpiredSignatureError:
-        return Response(json.dumps({'error': 'token_expired'}), status=401)
+        return Response(json.dumps({"error": "token_expired"}), status=401)
     except:
-        current_app.logger.warning(
-            "Error while authenticating request", exc_info=True
-        )
-        return Response(
-            json.dumps({'error': "Error while authenticating"}),
-            status=401
-        )
+        current_app.logger.warning("Error while authenticating request", exc_info=True)
+        return Response(json.dumps({"error": "Error while authenticating"}), status=401)
 
-    return Response(
-        json.dumps("Up and running"),
-        headers=headers,
-        status=200,
-    )
+    return Response(json.dumps("Up and running"), headers=headers, status=200,)
 
 
-@app.route('/health', methods=['GET'])
+@app.route("/health", methods=["GET"])
 async def healthcheck():
     return Response(json.dumps("Up and running"), status=200)
 
 
 def _join_url_prefix(*parts):
     """Join prefixes."""
-    parts = [part.strip('/') for part in parts if part and part.strip('/')]
+    parts = [part.strip("/") for part in parts if part and part.strip("/")]
     if parts:
-        return '/' + '/'.join(parts)
+        return "/" + "/".join(parts)
 
 
 for blueprint in blueprints:
     app.register_blueprint(
-        blueprint,
-        url_prefix=_join_url_prefix(url_prefix, blueprint.url_prefix),
+        blueprint, url_prefix=_join_url_prefix(url_prefix, blueprint.url_prefix),
     )
 
 
 @app.before_request
 def load_public_key():
-    if current_app.config.get('OIDC_PUBLIC_KEY'):
+    if current_app.config.get("OIDC_PUBLIC_KEY"):
         return
 
-    current_app.logger.info('Obtaining public key from {}'.format(
-        current_app.config['OIDC_ISSUER']
-    ))
-
-    raw_key = requests.get(current_app.config['OIDC_ISSUER']).json()[
-        'public_key'
-    ]
-    current_app.config[
-        'OIDC_PUBLIC_KEY'
-    ] = '-----BEGIN PUBLIC KEY-----\n{}\n-----END PUBLIC KEY-----'.format(
-        raw_key
+    current_app.logger.info(
+        "Obtaining public key from {}".format(current_app.config["OIDC_ISSUER"])
     )
 
-    current_app.logger.info(current_app.config['OIDC_PUBLIC_KEY'])
+    raw_key = requests.get(current_app.config["OIDC_ISSUER"]).json()["public_key"]
+    current_app.config[
+        "OIDC_PUBLIC_KEY"
+    ] = "-----BEGIN PUBLIC KEY-----\n{}\n-----END PUBLIC KEY-----".format(raw_key)
+
+    current_app.logger.info(current_app.config["OIDC_PUBLIC_KEY"])
