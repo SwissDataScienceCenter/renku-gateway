@@ -78,13 +78,6 @@ async def test_health_endpoint(client):
     assert b'"Up and running"' in (await rv.get_data())
 
 
-@aiotest
-async def test_passthrough_nopubkeyflow(client):
-    # If no keycloak token exists, the pass through should fail with 500
-    app.config['OIDC_PUBLIC_KEY'] = None
-    rv = await client.get('/?auth=gitlab')
-    assert rv.status_code == 500
-
 
 ## TODO: currently no endpoint absolutely requires a token
 # @responses.activate
