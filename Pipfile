@@ -28,7 +28,7 @@ aioresponses = "*"
 pylint = "*"
 ptvsd = "*"
 typing-extensions = "*"
-chartpress = "==0.3.2"
+chartpress = "==0.6.0"
 pytoml = "*"
 
 [requires]
