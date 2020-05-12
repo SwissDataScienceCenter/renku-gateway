@@ -15,7 +15,7 @@ aiohttp = "*"
 sparqlwrapper = "*"
 responses = "*"
 aioresponses = "*"
-quart = "<0.11.0"
+quart = "<0.12.0"
 quart-cors = "<0.3.0"
 
 [dev-packages]

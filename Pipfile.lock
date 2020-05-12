@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "20c98999ceee231fc9b57fa4b4277d52c5dcf679c31e48c94fedafc5c5fbea5f"
+            "sha256": "764ccedb31d703eb16674f62f1eccbc587536c411c27427172413d13076d1884"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -380,11 +380,11 @@
         },
         "quart": {
             "hashes": [
-                "sha256:243db3bcd6698d1d6adb966e2ed5aca5d4d4648345abcaa3f79f14de76fb33be",
-                "sha256:d329f2c392031f87c32ff2dcd6e11dc1fbf94c7449c3afe2d7541326ae390703"
+                "sha256:187427d1a2d7fed20dcb825dddbe20fd971efd7ec413639f95d2e28ff59a0cb1",
+                "sha256:bd93650fa856dcfbc3890952ab3ca53f7755ab506d453a209db63713eceeceda"
             ],
             "index": "pypi",
-            "version": "==0.10.0"
+            "version": "==0.11.5"
         },
         "quart-cors": {
             "hashes": [
@@ -439,13 +439,6 @@
                 "sha256:8f3cd2e254d8f793e7f3d6d9df77b92252b52637291d0f0da013c76ea2724b6c"
             ],
             "version": "==1.14.0"
-        },
-        "sortedcontainers": {
-            "hashes": [
-                "sha256:974e9a32f56b17c1bac2aebd9dcf197f3eb9cd30553c5852a3187ad162e1a03a",
-                "sha256:d9e96492dd51fae31e60837736b38fe42a187b5404c16606ff7ee7cd582d4c60"
-            ],
-            "version": "==2.1.0"
         },
         "sparqlwrapper": {
             "hashes": [
