@@ -34,6 +34,7 @@ from simplekv.memory.redisstore import RedisStore
 
 from . import config
 from .auth import gitlab_auth, jupyterhub_auth, web
+from .auth.oauth_redis import OAuthRedis
 
 # Wait for the VS Code debugger to attach if requested
 VSCODE_DEBUG = os.environ.get("VSCODE_DEBUG") == "1"
@@ -59,15 +60,15 @@ CORS(
     app, allow_headers=["X-Requested-With"], allow_origin=app.config["ALLOW_ORIGIN"],
 )
 
-if "pytest" in sys.modules:
-    from simplekv.memory import DictStore
+if "pytest" not in sys.modules:
+    # Set up the redis store for tokens
+    app.store = OAuthRedis(
+        hex_key=app.config["SECRET_KEY"], host=app.config["REDIS_HOST"]
+    )
+    # We use the same store for sessions.
+    session_store = PrefixDecorator("sessions_", RedisStore(app.store))
+    KVSessionExtension(session_store, app)
 
-    store = DictStore()
-else:
-    store = RedisStore(redis.StrictRedis(host=app.config["REDIS_HOST"]))
-
-prefixed_store = PrefixDecorator("sessions_", store)
-KVSessionExtension(prefixed_store, app)
 
 url_prefix = app.config["SERVICE_PREFIX"]
 blueprints = (
@@ -101,7 +102,7 @@ def auth():
         return Response(response, status=500)
 
     try:
-        # validate incomming authentication
+        # validate incoming authentication
         # it can either be in session-cookie or Authorization header
         new_tokens = web.get_valid_token(headers)
         if new_tokens:
@@ -135,6 +136,7 @@ def auth():
         # auth processors always assume a valid Authorization in header, if any
         headers = auth.process(request, headers)
     except jwt.ExpiredSignatureError:
+        current_app.logger.warning("Error while authenticating request", exc_info=True)
         return Response(json.dumps({"error": "token_expired"}), status=401)
     except:
         current_app.logger.warning("Error while authenticating request", exc_info=True)

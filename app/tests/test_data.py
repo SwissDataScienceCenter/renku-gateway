@@ -267,3 +267,11 @@ GATEWAY_PROJECT = [
         "repository_content": [],
     }
 ]
+
+SECRET_KEY = "38d5affe8e8719f5e0b355da459b66fa120455324d7f4a232b2267f606a335e4"
+
+PROVIDER_APP_DICT = {
+    "client_id": "someId",
+    "client_secret": "someSecret",
+    "base_url": "someUrl",
+}

@@ -16,25 +16,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Implement JupyterHub authentication workflow."""
-
-import json
 import re
-from urllib.parse import parse_qs, urlencode, urljoin
+from urllib.parse import urlencode, urljoin
 
-import jwt
-import requests
-from oic import rndstr
-from flask import Blueprint, current_app, redirect, request, Response, session, url_for
+from flask import Blueprint, current_app, redirect, request, Response, url_for
 
-from .web import JWT_ALGORITHM, get_key_for_user
+from .oauth_provider_app import JupyterHubProviderApp
+from .utils import (
+    get_redis_key_from_token,
+    handle_login_request,
+    handle_token_request,
+)
 
+JH_SUFFIX = "jh_oauth_client"
 
 blueprint = Blueprint("jupyterhub_auth", __name__, url_prefix="/auth/jupyterhub")
 
 
 class JupyterhubUserToken:
     def process(self, request, headers):
-        from .. import store
 
         m = re.search(
             r"bearer (?P<token>.+)", headers.get("Authorization", ""), re.IGNORECASE
@@ -42,15 +42,12 @@ class JupyterhubUserToken:
         if m:
             # current_app.logger.debug('Authorization header present, token exchange')
             access_token = m.group("token")
-            decodentoken = jwt.decode(
-                access_token,
-                current_app.config["OIDC_PUBLIC_KEY"],
-                algorithms=JWT_ALGORITHM,
-                audience=current_app.config["OIDC_CLIENT_ID"],
+            jupyterhub_oauth_client = current_app.store.get_oauth_client(
+                get_redis_key_from_token(access_token, key_suffix=JH_SUFFIX)
             )
-
-            jh_token = store.get(get_key_for_user(decodentoken, "jh_access_token"))
-            headers["Authorization"] = "token {}".format(jh_token.decode())
+            headers["Authorization"] = "token {}".format(
+                jupyterhub_oauth_client.access_token
+            )
 
             # current_app.logger.debug('outgoing headers: {}'.format(json.dumps(headers)))
         else:
@@ -60,27 +57,19 @@ class JupyterhubUserToken:
         return headers
 
 
-JUPYTERHUB_OAUTH2_PATH = "/hub/api/oauth2"
-
-
 @blueprint.route("/login")
 def login():
-    state = rndstr()
-
-    session["login_seq"] += 1
-    session["jupyterhub_state"] = state
-
-    args = {
-        "client_id": current_app.config["JUPYTERHUB_CLIENT_ID"],
-        "response_type": "code",
-        "redirect_uri": current_app.config["HOST_NAME"]
-        + url_for("jupyterhub_auth.token"),
-        "state": state,
-    }
-    url = current_app.config["JUPYTERHUB_URL"] + JUPYTERHUB_OAUTH2_PATH + "/authorize"
-    login_url = "{}?{}".format(url, urlencode(args))
-    response = current_app.make_response(redirect(login_url))
-    return response
+    provider_app = JupyterHubProviderApp(
+        client_id=current_app.config["JUPYTERHUB_CLIENT_ID"],
+        client_secret=current_app.config["JUPYTERHUB_CLIENT_SECRET"],
+        base_url=current_app.config["JUPYTERHUB_URL"],
+    )
+    return handle_login_request(
+        provider_app,
+        urljoin(current_app.config["HOST_NAME"], url_for("jupyterhub_auth.token")),
+        JH_SUFFIX,
+        [],
+    )
 
 
 @blueprint.route("/login-tmp")
@@ -103,42 +92,11 @@ def login_tmp():
 
 @blueprint.route("/token")
 def token():
-    from .. import store
-
-    authorization_parameters = parse_qs(request.query_string.decode())
-
-    if session["jupyterhub_state"] != authorization_parameters["state"][0]:
-        return "Something went wrong while trying to log you in."
-
-    token_response = requests.post(
-        current_app.config["JUPYTERHUB_URL"] + JUPYTERHUB_OAUTH2_PATH + "/token",
-        data={
-            "client_id": current_app.config["JUPYTERHUB_CLIENT_ID"],
-            "client_secret": current_app.config["JUPYTERHUB_CLIENT_SECRET"],
-            "state": session["jupyterhub_state"],
-            "code": authorization_parameters["code"][0],
-            "grant_type": "authorization_code",
-            "redirect_uri": current_app.config["HOST_NAME"]
-            + url_for("jupyterhub_auth.token"),
-        },
-    )
-
-    a = jwt.decode(session["token"], verify=False)
-    store.put(
-        get_key_for_user(a, "jh_access_token"),
-        token_response.json().get("access_token").encode(),
-    )
-
-    response = current_app.make_response(
-        redirect(current_app.config["HOST_NAME"] + url_for("web_auth.login_next"))
-    )
-
+    response, _ = handle_token_request(request, JH_SUFFIX)
     return response
 
 
 @blueprint.route("/logout")
 def logout():
     logout_url = current_app.config["JUPYTERHUB_URL"] + "/hub/logout"
-    response = current_app.make_response(redirect(logout_url))
-
-    return response
+    return current_app.make_response(redirect(logout_url))

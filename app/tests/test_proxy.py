@@ -17,28 +17,36 @@
 # limitations under the License.
 """ Test for the proxy """
 
-import json
-from urllib.parse import urljoin
-
 import jwt
 import pytest
 import requests
 import responses
 
 from .. import app
+from ..auth.oauth_redis import OAuthRedis
+from ..auth.oauth_client import RenkuWebApplicationClient
+from ..auth.oauth_provider_app import OAuthProviderApp
+from ..auth.utils import get_redis_key_from_token
+from ..auth.gitlab_auth import GL_SUFFIX
 from .test_data import (
-    GITLAB_ISSUES,
-    GITLAB_PROJECTS,
     PRIVATE_KEY,
     PUBLIC_KEY,
     TOKEN_PAYLOAD,
+    SECRET_KEY,
+    PROVIDER_APP_DICT,
 )
+
+
+# TODO: Completely refactor all tests, massively improve test coverage.
+# TODO: https://github.com/swissdatasciencecenter/renku-gateway/issues/92
 
 
 @pytest.fixture
 def client():
+    app.app_context().push()
     app.config["TESTING"] = True
     app.config["OIDC_PUBLIC_KEY"] = PUBLIC_KEY
+    app.config["SECRET_KEY"] = SECRET_KEY
     client = app.test_client()
     yield client
 
@@ -82,15 +90,13 @@ def test_gitlab_happyflow(client):
     ).decode("utf-8")
     headers = {"Authorization": "Bearer {}".format(access_token)}
 
-    from .. import store
-    from base64 import b64encode
-
-    store.put(
-        b64encode(
-            "cache_5dbdeba7-e40f-42a7-b46b-6b8a07c65966_gl_access_token".encode()
-        ).decode("utf-8"),
-        "some_token".encode(),
+    app.store = OAuthRedis(hex_key=app.config["SECRET_KEY"])
+    redis_key = get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
+    provider_app = OAuthProviderApp(**PROVIDER_APP_DICT)
+    oauth_client = RenkuWebApplicationClient(
+        access_token="some_token", provider_app=provider_app
     )
+    app.store.set_oauth_client(redis_key, oauth_client)
 
     rv = client.get("/?auth=gitlab", headers=headers)
 

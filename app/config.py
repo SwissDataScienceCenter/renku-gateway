@@ -17,10 +17,21 @@
 # limitations under the License.
 """Global settings."""
 
+import base64
 import os
 import sys
 import warnings
 
+
+# This setting can force tokens to be refreshed in case
+# they are issued with a too long or unlimited lifetime.
+# This is currently the case for BOTH JupyterHub and GitLab!
+
+# Note that for a clean "client side token expiration" we will
+# need https://gitlab.com/gitlab-org/gitlab/-/issues/17259 to be
+# fixed and the implementation of JupyterHub as an OAuth2 provider
+# completed.
+MAX_ACCESS_TOKEN_LIFETIME = os.environ.get("MAX_ACCESS_TOKEN_LIFETIME", 3600 * 24)
 
 ANONYMOUS_SESSIONS_ENABLED = (
     os.environ.get("ANONYMOUS_SESSIONS_ENABLED", "false") == "true"
@@ -31,7 +42,8 @@ HOST_NAME = os.environ.get("HOST_NAME", "http://gateway.renku.build")
 if "GATEWAY_SECRET_KEY" not in os.environ and "pytest" not in sys.modules:
     warnings.warn(
         "The environment variable GATEWAY_SECRET_KEY is not set. "
-        "It is mandatory for securely signing session cookie."
+        "It is mandatory for securely signing session cookies and "
+        "encrypting REDIS content."
     )
     sys.exit(2)
 SECRET_KEY = os.environ.get("GATEWAY_SECRET_KEY")
@@ -44,7 +56,6 @@ ALLOW_ORIGIN = os.environ.get("GATEWAY_ALLOW_ORIGIN", "").split(",")
 REDIS_HOST = os.environ.get("GATEWAY_REDIS_HOST", "renku-gw-redis")
 
 GITLAB_URL = os.environ.get("GITLAB_URL", "http://gitlab.renku.build")
-
 GITLAB_CLIENT_ID = os.environ.get("GITLAB_CLIENT_ID", "renku-ui")
 GITLAB_CLIENT_SECRET = os.environ.get("GITLAB_CLIENT_SECRET")
 if not GITLAB_CLIENT_SECRET:
@@ -54,9 +65,6 @@ if not GITLAB_CLIENT_SECRET:
     )
 
 JUPYTERHUB_URL = os.environ.get("JUPYTERHUB_URL", "{}/jupyterhub".format(HOST_NAME))
-if ANONYMOUS_SESSIONS_ENABLED:
-    JUPYTERHUB_TMP_URL = "{}-tmp".format(JUPYTERHUB_URL)
-
 JUPYTERHUB_CLIENT_ID = os.environ.get("JUPYTERHUB_CLIENT_ID", "gateway")
 JUPYTERHUB_CLIENT_SECRET = os.environ.get("JUPYTERHUB_CLIENT_SECRET")
 if not JUPYTERHUB_CLIENT_SECRET:
@@ -64,6 +72,8 @@ if not JUPYTERHUB_CLIENT_SECRET:
         "The environment variable JUPYTERHUB_CLIENT_SECRET is not set. "
         "It is mandatory for JupyterHub login."
     )
+if ANONYMOUS_SESSIONS_ENABLED:
+    JUPYTERHUB_TMP_URL = "{}-tmp".format(JUPYTERHUB_URL)
 
 WEBHOOK_SERVICE_HOSTNAME = os.environ.get(
     "WEBHOOK_SERVICE_HOSTNAME", "http://renku-graph-webhooks-service"

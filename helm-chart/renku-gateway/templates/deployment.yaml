@@ -161,6 +161,10 @@ spec:
             - name: ANONYMOUS_SESSIONS_ENABLED
               value: "true"
             {{ end }}
+            # Note that this is ok because we're enforcing HTTPS
+            # further up the processing chain.
+            - name: OAUTHLIB_INSECURE_TRANSPORT
+              value: "1"
           livenessProbe:
             httpGet:
               path: /health
