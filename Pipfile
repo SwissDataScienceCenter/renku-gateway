@@ -14,14 +14,14 @@ sparqlwrapper = "*"
 responses = "*"
 flask = "*"
 flask-cors = "*"
+requests-oauthlib = "*"
+oauthlib = "*"
 gunicorn = {extras = ["gevent"],version = "*"}
 
 [dev-packages]
 pytest = "*"
-pytest-asyncio = "*"
 nose = "*"
 responses = "*"
-mockredispy = "*"
 pylint = "*"
 ptvsd = "*"
 typing-extensions = "*"
@@ -29,6 +29,7 @@ chartpress = "==0.3.2"
 pytoml = "*"
 black = "*"
 pytest-black = "*"
+fakeredis = "*"
 
 [requires]
 python_version = "3.7"

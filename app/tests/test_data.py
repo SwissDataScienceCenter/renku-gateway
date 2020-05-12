@@ -267,3 +267,11 @@ GATEWAY_PROJECT = [
         "repository_content": [],
     }
 ]
+
+FERNET_KEY = b"aPLtbUeAptXw1ZNKNq9eZwuk5SGeLUudLo9x8eNXPW8="
+
+PROVIDER_APP_DICT = {
+    "client_id": "someId",
+    "client_secret": "someSecret",
+    "base_url": "someUrl",
+}

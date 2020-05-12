@@ -51,6 +51,7 @@ echo "Once telepresence has started, copy-paste the following command to start t
 echo "FLASK_DEBUG=1 \
 FLASK_APP=app:app \
 HOST_NAME=\$HOST_NAME \
+OAUTHLIB_INSECURE_TRANSPORT=1 \
 ${FLASK_EXECUTABLE} run"
 echo ""
 echo "Or use the following to run in the VS Code debugger:"
@@ -58,6 +59,7 @@ echo "FLASK_DEBUG=1 \
 FLASK_APP=app:app \
 HOST_NAME=\$HOST_NAME \
 VSCODE_DEBUG=1 \
+OAUTHLIB_INSECURE_TRANSPORT=1 \
 ${FLASK_EXECUTABLE} run"
 echo "================================================================================================================="
 
