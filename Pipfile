@@ -31,6 +31,7 @@ typing-extensions = "*"
 chartpress = "==0.3.2"
 pytoml = "*"
 black = "*"
+pytest-black = "*"
 
 [requires]
 python_version = "3.7"
