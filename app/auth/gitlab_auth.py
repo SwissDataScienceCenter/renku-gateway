@@ -29,7 +29,16 @@ from oic.oic import Client
 from oic.oic.message import AuthorizationResponse, RegistrationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import KeyJar
-from quart import Blueprint, Response, current_app, redirect, request, session, url_for
+from quart import (
+    Blueprint,
+    Response,
+    current_app,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 
 from .web import JWT_ALGORITHM, get_key_for_user
 
@@ -226,5 +235,13 @@ def get_gitlab_refresh_token(access_token):
 @blueprint.route("/logout")
 def logout():
     logout_url = current_app.config["GITLAB_URL"] + "/users/sign_out"
-    response = current_app.make_response(redirect(logout_url))
+
+    # For gitlab versions previous to 12.7.0 we need to redirect the
+    # browser to the logout url. For versions 12.9.0 and newer the
+    # browser has to POST a form to the logout url.
+    if current_app.config["OLD_GITLAB_LOGOUT"]:
+        response = current_app.make_response(redirect(logout_url))
+    else:
+        response = render_template("gitlab_logout.html", logout_url=logout_url)
+
     return response

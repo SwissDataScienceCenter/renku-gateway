@@ -154,3 +154,9 @@ graph:
     ## can be reached (internally). This will default to
     ## http://<release-name>-graph-webhook-service
     hostname:
+
+# GitLab has introduced a new logout behavior in 12.7.0
+# which was initially broken and fixed in 12.9.0.
+# Set this to 'true' for versions < 12.7.0, leave it to
+# 'false' for versions >= 12.9.0.
+oldGitLabLogout: false
