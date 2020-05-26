@@ -147,6 +147,8 @@ spec:
                 secretKeyRef:
                   name: {{ template "gateway.fullname" . }}
                   key: oidcClientSecret
+            - name: OLD_GITLAB_LOGOUT
+              value: {{ .Values.oldGitLabLogout | quote }}
             - name: SPARQL_ENDPOINT
               value: {{ .Values.graph.sparql.endpoint | default (printf "http://%s-jena:3030/%s/sparql" .Release.Name .Release.Namespace ) | quote }}
             - name: SPARQL_USERNAME
