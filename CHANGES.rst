@@ -1,6 +1,30 @@
 Changes
 =======
 
+`0.8.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.7.1...0.8.0>`__ (2020-05-26)
+------------------------------------------------------------------------------------------------------
+
+Code Refactoring
+~~~~~~~~~~~~~~~~
+
+- **black:** apply black formatting test it on future PRs
+  (`956c767 <https://github.com/SwissDataScienceCenter/renku-gateway/commit/956c767733c75587c1d55171d387041be88774a7>`__).
+- **dependabot:** python dependencies were updated and dependabot enabled
+  (`4bfc0b1 <https://github.com/SwissDataScienceCenter/renku-gateway/commit/4bfc0b1c67c5f7f959893e77462e1b65a42c1b5d>`__).
+- **GitLab:** Adapt to new GitLab logout behaviour
+  (`01dff94 <https://github.com/SwissDataScienceCenter/renku-gateway/commit/01dff9478f5a2fdd1785a1926380819904585e25>`__).
+
+BREAKING CHANGES
+~~~~~~~~~~~~~~~~
+
+* **GitLab version:** We now assume a GitLab version `>= 12.9.0` per default. When deploying Renku
+  through the official helm chart, no changes to the deployment `values.yaml` file are necessary as
+  we also bump the GitLab version in the same
+  (`#1118 <https://github.com/SwissDataScienceCenter/renku/pull/1118)>`__).
+  GitLab versions `< 12.7.0` can be used with this version too, but a ``.Values.oldGitLabLogout: true``
+  has to be set explicitly.
+
+
 `0.7.1 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.7.0...0.7.1>`__ (2020-04-24)
 ------------------------------------------------------------------------------------------------------
 
