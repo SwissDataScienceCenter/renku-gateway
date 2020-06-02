@@ -29,7 +29,7 @@ from oic.oauth2.grant import Token
 from oic.oic import Client
 from oic.oic.message import AuthorizationResponse, RegistrationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
-from quart import (
+from flask import (
     Blueprint,
     Response,
     current_app,
@@ -180,10 +180,10 @@ LOGIN_SEQUENCE = ["gitlab_auth.login", "jupyterhub_auth.login"]
 
 
 @blueprint.route("/login/next")
-async def login_next():
+def login_next():
 
     if session["login_seq"] < len(LOGIN_SEQUENCE):
-        return await render_template(
+        return render_template(
             "redirect.html", redirect_url=url_for(LOGIN_SEQUENCE[session["login_seq"]])
         )
     else:
@@ -191,7 +191,7 @@ async def login_next():
 
 
 @blueprint.route("/login")
-async def login():
+def login():
 
     keycloak_oic_client = current_app.config.get("KEYCLOAK_OIC_CLIENT")
 
@@ -215,13 +215,13 @@ async def login():
     }
     auth_req = keycloak_oic_client.construct_AuthorizationRequest(request_args=args)
     login_url = auth_req.request(keycloak_oic_client.authorization_endpoint)
-    response = await current_app.make_response(redirect(login_url))
+    response = current_app.make_response(redirect(login_url))
 
     return response
 
 
 @blueprint.route("/token")
-async def token():
+def token():
     from .. import store
 
     keycloak_oic_client = current_app.config.get("KEYCLOAK_OIC_CLIENT")
@@ -246,7 +246,9 @@ async def token():
     )
 
     # chain logins
-    response = await current_app.make_response(redirect(url_for("web_auth.login_next")))
+    response = current_app.make_response(
+        redirect(current_app.config["HOST_NAME"] + url_for("web_auth.login_next"))
+    )
 
     a = jwt.decode(
         token_response["access_token"],
@@ -290,7 +292,7 @@ async def token():
 
 
 @blueprint.route("/info")
-async def info():
+def info():
     from .. import store
 
     t = request.args.get("cli_token")
@@ -314,7 +316,7 @@ async def info():
     else:
 
         if "token" not in session:
-            return await current_app.make_response(
+            return current_app.make_response(
                 redirect(
                     "{}?redirect_url={}".format(
                         url_for("web_auth.login"), quote_plus(url_for("web_auth.info"))
@@ -340,7 +342,7 @@ async def info():
             )
 
         except jwt.ExpiredSignatureError:
-            return await current_app.make_response(
+            return current_app.make_response(
                 redirect(
                     "{}?redirect_url={}".format(
                         url_for("web_auth.login"), quote_plus(url_for("web_auth.info"))
@@ -350,11 +352,11 @@ async def info():
 
 
 @blueprint.route("/user")
-async def user():
+def user():
     from .. import store
 
     if "token" not in session:
-        return await current_app.make_response(
+        return current_app.make_response(
             redirect(
                 "{}?redirect_url={}".format(
                     url_for("web_auth.login"), quote_plus(url_for("web_auth.user"))
@@ -372,7 +374,7 @@ async def user():
         return store.get(get_key_for_user(a, "kc_id_token")).decode()
 
     except jwt.ExpiredSignatureError:
-        return await current_app.make_response(
+        return current_app.make_response(
             redirect(
                 "{}?redirect_url={}".format(
                     url_for("web_auth.login"), quote_plus(url_for("web_auth.user"))
@@ -382,14 +384,14 @@ async def user():
 
 
 @blueprint.route("/user-profile")
-async def user_profile():
-    return await current_app.make_response(
+def user_profile():
+    return current_app.make_response(
         redirect("{}/account?referrer=renku".format(current_app.config["OIDC_ISSUER"]))
     )
 
 
 @blueprint.route("/logout")
-async def logout():
+def logout():
     from .. import store
 
     logout_url = "{}/protocol/openid-connect/logout?{}".format(
@@ -405,15 +407,13 @@ async def logout():
     if request.args.get("gitlab_logout"):
         if "logout_from" in session:
             session.clear()
-            return await render_template(
+            return render_template(
                 "redirect_logout.html",
                 redirect_url="/",
                 logout_page=url_for("jupyterhub_auth.logout"),
             )
         else:
-            return await current_app.make_response(
-                redirect(current_app.config["GITLAB_URL"])
-            )
+            return current_app.make_response(redirect(current_app.config["GITLAB_URL"]))
 
     if "token" in session:
         a = jwt.decode(session["token"], verify=False)
@@ -428,4 +428,4 @@ async def logout():
 
         session["logout_from"] = "Renku"
 
-    return await current_app.make_response(redirect(logout_url))
+    return current_app.make_response(redirect(logout_url))

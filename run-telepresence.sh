@@ -20,9 +20,9 @@ set -e
 
 CURRENT_CONTEXT=`kubectl config current-context`
 
-# On Mac we can not use `pipenv run quart run` because of
+# On Mac we can not use `pipenv run flask run` because of
 # https://www.telepresence.io/reference/methods
-QUART_EXECUTABLE=`pipenv --venv`/bin/quart
+FLASK_EXECUTABLE=`pipenv --venv`/bin/flask
 
 if [[ $CURRENT_CONTEXT == 'minikube' ]]
 then
@@ -48,17 +48,17 @@ fi
 
 echo "================================================================================================================="
 echo "Once telepresence has started, copy-paste the following command to start the development server:"
-echo "QUART_DEBUG=1 \
-QUART_APP=app:app \
-PYTHONASYNCIODEBUG=1 \
-${QUART_EXECUTABLE} run"
+echo "FLASK_DEBUG=1 \
+FLASK_APP=app:app \
+HOST_NAME=\$HOST_NAME \
+${FLASK_EXECUTABLE} run"
 echo ""
 echo "Or use the following to run in the VS Code debugger:"
-echo "QUART_DEBUG=1 \
-QUART_APP=app:app \
-PYTHONASYNCIODEBUG=1 \
+echo "FLASK_DEBUG=1 \
+FLASK_APP=app:app \
+HOST_NAME=\$HOST_NAME \
 VSCODE_DEBUG=1 \
-${QUART_EXECUTABLE} run"
+${FLASK_EXECUTABLE} run"
 echo "================================================================================================================="
 
 
