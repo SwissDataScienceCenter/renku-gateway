@@ -24,12 +24,11 @@ import sys
 import os
 
 import jwt
-import quart.flask_patch
 import redis
 import requests
 from flask_kvsession import KVSessionExtension
-from quart import Quart, Response, current_app, request
-from quart_cors import cors
+from flask import Flask, Response, current_app, request
+from flask_cors import CORS
 from simplekv.decorator import PrefixDecorator
 from simplekv.memory.redisstore import RedisStore
 
@@ -48,7 +47,7 @@ if VSCODE_DEBUG:
     breakpoint()
 
 
-app = Quart(__name__)
+app = Flask(__name__)
 
 # We activate all log levels and prevent logs from showing twice.
 app.logger.setLevel(logging.DEBUG)
@@ -56,7 +55,7 @@ app.logger.propagate = False
 
 app.config.from_object(config)
 
-app = cors(
+CORS(
     app, allow_headers=["X-Requested-With"], allow_origin=app.config["ALLOW_ORIGIN"],
 )
 
@@ -79,7 +78,7 @@ blueprints = (
 
 
 @app.route("/", methods=["GET"])
-async def auth():
+def auth():
     if "auth" not in request.args:
         return Response("", status=200)
 
@@ -145,7 +144,7 @@ async def auth():
 
 
 @app.route("/health", methods=["GET"])
-async def healthcheck():
+def healthcheck():
     return Response(json.dumps("Up and running"), status=200)
 
 

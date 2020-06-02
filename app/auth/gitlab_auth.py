@@ -29,7 +29,7 @@ from oic.oic import Client
 from oic.oic.message import AuthorizationResponse, RegistrationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import KeyJar
-from quart import (
+from flask import (
     Blueprint,
     Response,
     current_app,
@@ -158,7 +158,7 @@ def login():
 
 
 @blueprint.route("/token")
-async def token():
+def token():
     from .. import store
 
     gitlab_oic_client = current_app.config.get("GITLAB_OIC_CLIENT")
@@ -196,7 +196,9 @@ async def token():
         json.dumps(token_response["id_token"].to_dict()).encode(),
     )
 
-    response = await current_app.make_response(redirect(url_for("web_auth.login_next")))
+    response = current_app.make_response(
+        redirect(current_app.config["HOST_NAME"] + url_for("web_auth.login_next"))
+    )
 
     return response
 

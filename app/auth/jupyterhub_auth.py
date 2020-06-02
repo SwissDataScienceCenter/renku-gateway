@@ -24,7 +24,7 @@ from urllib.parse import parse_qs, urlencode, urljoin
 import jwt
 import requests
 from oic import rndstr
-from quart import Blueprint, current_app, redirect, request, Response, session, url_for
+from flask import Blueprint, current_app, redirect, request, Response, session, url_for
 
 from .web import JWT_ALGORITHM, get_key_for_user
 
@@ -102,7 +102,7 @@ def login_tmp():
 
 
 @blueprint.route("/token")
-async def token():
+def token():
     from .. import store
 
     authorization_parameters = parse_qs(request.query_string.decode())
@@ -129,7 +129,9 @@ async def token():
         token_response.json().get("access_token").encode(),
     )
 
-    response = await current_app.make_response(redirect(url_for("web_auth.login_next")))
+    response = current_app.make_response(
+        redirect(current_app.config["HOST_NAME"] + url_for("web_auth.login_next"))
+    )
 
     return response
 

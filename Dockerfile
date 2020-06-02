@@ -10,6 +10,6 @@ RUN apt-get update && apt-get install -y gcc && \
 
 COPY ./ /code
 
-CMD ["hypercorn", "-b", "0.0.0.0:5000", "app:app"]
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "run:app.app",  "-k", "gevent"]
 
 EXPOSE 5000

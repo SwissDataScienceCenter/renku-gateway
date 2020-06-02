@@ -21,7 +21,7 @@ import json
 import re
 
 import jwt
-from quart import Blueprint, Response, current_app, redirect, request, session, url_for
+from flask import Blueprint, Response, current_app, redirect, request, session, url_for
 
 from .gitlab_auth import GitlabUserToken
 from .web import JWT_ALGORITHM, get_key_for_user

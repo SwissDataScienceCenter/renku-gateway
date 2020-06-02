@@ -17,8 +17,6 @@
 # limitations under the License.
 """ Test for the proxy """
 
-import asyncio
-import functools
 import json
 from urllib.parse import urljoin
 
@@ -26,8 +24,6 @@ import jwt
 import pytest
 import requests
 import responses
-
-from aioresponses import aioresponses
 
 from .. import app
 from .test_data import (
@@ -47,17 +43,6 @@ def client():
     yield client
 
 
-def aiotest(func):
-    @functools.wraps(func)
-    def _func(*args, **kwargs):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(None)
-        loop.run_until_complete(func(*args, **kwargs))
-        loop.close()
-
-    return _func
-
-
 @responses.activate
 def test_simple(client):
 
@@ -73,10 +58,9 @@ def test_simple(client):
     assert responses.calls[0].response.text == '{"error": "not found"}'
 
 
-@aiotest
-async def test_health_endpoint(client):
-    rv = await client.get("/health")
-    assert b'"Up and running"' in (await rv.get_data())
+def test_health_endpoint(client):
+    rv = client.get("/health")
+    assert b'"Up and running"' in (rv.get_data())
 
 
 ## TODO: currently no endpoint absolutely requires a token
@@ -86,13 +70,12 @@ async def test_health_endpoint(client):
 #    path = urljoin(app.config['SERVICE_PREFIX'], 'v4/projects/')
 #    rv = client.get(path)
 #    assert rv.status_code == 401
-#    assert b'No authorization header found' in (await rv.get_data())
+#    assert b'No authorization header found' in (rv.get_data())
 
 ## TODO: currently the project mapper is not used, but we keep the other response for future use.
 
 
-@aiotest
-async def test_gitlab_happyflow(client):
+def test_gitlab_happyflow(client):
     # If a request does has the required headers, it should be able to pass through
     access_token = jwt.encode(
         payload=TOKEN_PAYLOAD, key=PRIVATE_KEY, algorithm="RS256"
@@ -109,7 +92,7 @@ async def test_gitlab_happyflow(client):
         "some_token".encode(),
     )
 
-    rv = await client.get("/?auth=gitlab", headers=headers)
+    rv = client.get("/?auth=gitlab", headers=headers)
 
     assert rv.status_code == 200
     assert "Bearer some_token" == rv.headers["Authorization"]
