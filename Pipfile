@@ -15,6 +15,7 @@ sparqlwrapper = "*"
 responses = "*"
 flask = "*"
 flask-cors = "*"
+gunicorn = {extras = ["gevent"],version = "*"}
 
 [dev-packages]
 pytest = "*"
