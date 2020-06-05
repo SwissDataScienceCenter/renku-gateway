@@ -17,33 +17,24 @@
 # limitations under the License.
 """Implement GitLab authentication workflow."""
 
-import json
 import re
-import urllib
 from urllib.parse import urljoin
 
-import jwt
-
-from requests_oauthlib import OAuth2Session
 from flask import (
     Blueprint,
-    Response,
     current_app,
     redirect,
     render_template,
     request,
-    session,
     url_for,
 )
 
 from .oauth_provider_app import GitLabProviderApp
 from .utils import (
-    get_redis_key_from_session,
     get_redis_key_from_token,
     handle_login_request,
     handle_token_request,
 )
-from .oauth_client import RenkuWebApplicationClient
 
 GL_SUFFIX = "gl_oauth_client"
 

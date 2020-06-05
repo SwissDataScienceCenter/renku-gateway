@@ -17,15 +17,10 @@
 # limitations under the License.
 """Web auth routes."""
 
-import json
-import re
-import time
-from urllib.parse import quote_plus, urljoin, urlencode
+from urllib.parse import urljoin, urlencode
 
-import jwt
 from flask import (
     Blueprint,
-    Response,
     current_app,
     redirect,
     render_template,
@@ -33,18 +28,13 @@ from flask import (
     session,
     url_for,
 )
-import random
-import requests
-import string
 
 from .oauth_provider_app import KeycloakProviderApp
-from .oauth_client import RenkuWebApplicationClient
 from .gitlab_auth import GL_SUFFIX
 from .jupyterhub_auth import JH_SUFFIX
 from .utils import (
     decode_keycloak_jwt,
     get_redis_key_from_session,
-    get_redis_key_from_token,
     handle_login_request,
     TEMP_SESSION_KEY,
     handle_token_request,

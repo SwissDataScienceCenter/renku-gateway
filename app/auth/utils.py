@@ -20,7 +20,7 @@ import string
 from urllib.parse import urljoin
 
 import jwt
-from flask import current_app, make_response, redirect, session, url_for
+from flask import current_app, redirect, session, url_for
 
 from .oauth_client import RenkuWebApplicationClient
 

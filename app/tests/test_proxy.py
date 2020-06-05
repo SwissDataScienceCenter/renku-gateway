@@ -17,9 +17,6 @@
 # limitations under the License.
 """ Test for the proxy """
 
-import json
-from urllib.parse import urljoin
-
 import jwt
 import pytest
 import requests
@@ -32,8 +29,6 @@ from ..auth.oauth_provider_app import OAuthProviderApp
 from ..auth.utils import get_redis_key_from_token
 from ..auth.gitlab_auth import GL_SUFFIX
 from .test_data import (
-    GITLAB_ISSUES,
-    GITLAB_PROJECTS,
     PRIVATE_KEY,
     PUBLIC_KEY,
     TOKEN_PAYLOAD,

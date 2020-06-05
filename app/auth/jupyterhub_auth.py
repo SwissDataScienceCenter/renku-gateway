@@ -19,12 +19,10 @@
 import re
 from urllib.parse import urlencode, urljoin
 
-import requests
-from flask import Blueprint, current_app, redirect, request, Response, session, url_for
+from flask import Blueprint, current_app, redirect, request, Response, url_for
 
 from .oauth_provider_app import JupyterHubProviderApp
 from .utils import (
-    get_redis_key_from_session,
     get_redis_key_from_token,
     handle_login_request,
     handle_token_request,

@@ -17,14 +17,12 @@
 # limitations under the License.
 """Add the headers for the Renku core service."""
 
-import json
 import re
 
-import jwt
-from flask import Blueprint, Response, current_app, redirect, request, session
+from flask import current_app
 
 from .utils import decode_keycloak_jwt, get_redis_key_from_token
-from .gitlab_auth import GitlabUserToken, GL_SUFFIX
+from .gitlab_auth import GL_SUFFIX
 from .web import KC_SUFFIX
 
 # TODO: We're using a class here only to have a uniform interface

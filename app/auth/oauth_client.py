@@ -17,11 +17,9 @@
 # limitations under the License.
 
 import json
-import sys
 import time
 
 from oauthlib.oauth2 import WebApplicationClient
-from oauthlib.oauth2.rfc6749.errors import OAuth2Error
 from requests_oauthlib import OAuth2Session
 
 from .oauth_provider_app import OAuthProviderApp, JupyterHubProviderApp
