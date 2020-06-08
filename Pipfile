@@ -5,7 +5,6 @@ name = "pypi"
 
 [packages]
 werkzeug = "*"
-hypercorn = "*"
 oic = "*"
 requests = "*"
 pyjwt = "*"
