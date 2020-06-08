@@ -37,7 +37,7 @@ from .test_data import (
 )
 
 
-# TODO: Completetly refactor all tests, masively improve test coverage.
+# TODO: Completely refactor all tests, massively improve test coverage.
 
 
 @pytest.fixture
