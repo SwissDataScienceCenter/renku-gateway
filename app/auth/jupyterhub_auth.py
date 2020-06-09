@@ -49,9 +49,13 @@ class JupyterhubUserToken:
                 jupyterhub_oauth_client.access_token
             )
 
-            # current_app.logger.debug('outgoing headers: {}'.format(json.dumps(headers)))
+            # current_app.logger.debug(
+            #    'outgoing headers: {}'.format(json.dumps(headers))
+            # )
         else:
-            # current_app.logger.debug("No authorization header, returning empty auth headers")
+            # current_app.logger.debug(
+            #    "No authorization header, returning empty auth headers"
+            # )
             headers.pop("Authorization", None)
 
         return headers

@@ -24,7 +24,6 @@ client instances in redis.
 import base64
 from cryptography.fernet import Fernet
 import sys
-import time
 
 from flask import current_app
 from oauthlib.oauth2.rfc6749.errors import OAuth2Error
@@ -85,7 +84,7 @@ class OAuthRedis(StrictRedis):
         if not no_refresh and oauth_client.expires_soon():
             try:
                 # TODO: Change logger to have no dependency on the current_app here.
-                # TODO: https://github.com/SwissDataScienceCenter/renku-gateway/issues/113
+                # https://github.com/SwissDataScienceCenter/renku-gateway/issues/113
                 current_app.logger.info("Refreshing {}".format(name))
                 oauth_client.refresh_access_token()
                 self.set_enc(name, oauth_client.to_json().encode(), **kwargs)

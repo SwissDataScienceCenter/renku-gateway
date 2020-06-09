@@ -185,7 +185,7 @@ def token():
 #             return await current_app.make_response(
 #                 redirect(
 #                     "{}?redirect_url={}".format(
-#                         url_for("web_auth.login"), quote_plus(url_for("web_auth.info"))
+# noqa                         url_for("web_auth.login"), quote_plus(url_for("web_auth.info"))
 #                     )
 #                 )
 #             )
@@ -202,8 +202,8 @@ def token():
 #                 "You can copy/paste the following tokens if needed "
 #                 "and close this page: "
 #                 "<br> Access Token: {}<br>Refresh Token: {}".format(
-#                     current_app.store.get(get_redis_key(a, "kc_access_token")).decode(),
-#                     current_app.store.get(get_redis_key(a, "kc_refresh_token")).decode(),
+# noqa                    current_app.store.get(get_redis_key(a, "kc_access_token")).decode(),
+# noqa                    current_app.store.get(get_redis_key(a, "kc_refresh_token")).decode(),
 #                 )
 #             )
 
@@ -211,7 +211,7 @@ def token():
 #             return await current_app.make_response(
 #                 redirect(
 #                     "{}?redirect_url={}".format(
-#                         url_for("web_auth.login"), quote_plus(url_for("web_auth.info"))
+# noqa                        url_for("web_auth.login"), quote_plus(url_for("web_auth.info"))
 #                     )
 #                 )
 #             )

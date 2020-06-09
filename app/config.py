@@ -17,7 +17,6 @@
 # limitations under the License.
 """Global settings."""
 
-import base64
 import os
 import sys
 import warnings

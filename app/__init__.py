@@ -24,7 +24,6 @@ import sys
 import os
 
 import jwt
-import redis
 import requests
 from flask_kvsession import KVSessionExtension
 from flask import Flask, Response, current_app, request
@@ -138,7 +137,9 @@ def auth():
     except jwt.ExpiredSignatureError:
         current_app.logger.warning("Error while authenticating request", exc_info=True)
         return Response(json.dumps({"error": "token_expired"}), status=401)
-    except:
+    # TODO: fix bare except
+    # https://github.com/SwissDataScienceCenter/renku-gateway/issues/232
+    except:  # noqa
         current_app.logger.warning("Error while authenticating request", exc_info=True)
         return Response(json.dumps({"error": "Error while authenticating"}), status=401)
 

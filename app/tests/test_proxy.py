@@ -71,7 +71,7 @@ def test_health_endpoint(client):
     assert b'"Up and running"' in (rv.get_data())
 
 
-## TODO: currently no endpoint absolutely requires a token
+# TODO: currently no endpoint absolutely requires a token
 # @responses.activate
 # def test_passthrough_notokenflow(client):
 #    # If a request does not have the required header it should not be let through
@@ -80,7 +80,8 @@ def test_health_endpoint(client):
 #    assert rv.status_code == 401
 #    assert b'No authorization header found' in (rv.get_data())
 
-## TODO: currently the project mapper is not used, but we keep the other response for future use.
+# TODO: currently the project mapper is not used, but we keep the other response
+# TODO: for future use.
 
 
 def test_gitlab_happyflow(client):
