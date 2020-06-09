@@ -73,16 +73,11 @@ class OAuthRedis(StrictRedis):
 
     def get_oauth_client(self, name, no_refresh=False, **kwargs):
         """Get a client object from the store, refresh if necessary."""
-        oauth_client = RenkuWebApplicationClient.from_json(
-            self.get_enc(name).decode()
-        )
+        oauth_client = RenkuWebApplicationClient.from_json(self.get_enc(name).decode())
 
         # We refresh 5 seconds before the token/client actually expires
         # to avoid unlucky edge cases.
-        if (
-            not no_refresh
-            and oauth_client.expires_soon()
-        ):
+        if not no_refresh and oauth_client.expires_soon():
             try:
                 # TODO: Change logger to have no dependency on the current_app here.
                 # TODO: https://github.com/SwissDataScienceCenter/renku-gateway/issues/113
