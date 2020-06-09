@@ -26,7 +26,7 @@ from .oauth_provider_app import OAuthProviderApp, JupyterHubProviderApp
 
 
 class RenkuWebApplicationClient(WebApplicationClient):
-    """WebApplicationClientClass enriched with provider/app information and
+    """``WebApplicationClientClass`` enriched with provider/app information and
     methods for (de-)serializing and obtaining tokens from the provider."""
 
     def __init__(

@@ -91,4 +91,4 @@ def handle_token_request(request, key_suffix):
             urljoin(current_app.config["HOST_NAME"], url_for("web_auth.login_next"))
         )
     )
-    return (response, oauth_client)
+    return response, oauth_client

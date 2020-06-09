@@ -40,19 +40,19 @@ class OAuthRedis(StrictRedis):
         self.fernet = Fernet(fernet_key)
 
     def set_enc(self, name, value, **kwargs):
-        """Set method with encryption"""
+        """Set method with encryption."""
         return super().set(name, self.fernet.encrypt(value), **kwargs)
 
     def get_enc(self, name, **kwargs):
-        """Get method with decryption"""
+        """Get method with decryption."""
         return self.fernet.decrypt(super().get(name, **kwargs))
 
     def set_oauth_client(self, name, oauth_client, **kwargs):
-        """Put a client object into the store"""
+        """Put a client object into the store."""
         return self.set_enc(name, oauth_client.to_json().encode(), **kwargs)
 
     def get_oauth_client(self, name, no_refresh=False, **kwargs):
-        """Get a client object from the store, refresh if necessary"""
+        """Get a client object from the store, refresh if necessary."""
         oauth_client = RenkuWebApplicationClient.from_json(
             self.get_enc(name, **kwargs).decode()
         )
