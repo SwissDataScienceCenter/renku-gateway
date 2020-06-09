@@ -31,6 +31,7 @@ pytest-black = "*"
 fakeredis = "*"
 flake8 = "*"
 pytest-flake8 = "*"
+pre-commit = "*"
 
 [requires]
 python_version = "3.7"
