@@ -152,8 +152,19 @@ graph:
   webhookService:
     ## Set the hostname under which the webhook service
     ## can be reached (internally). This will default to
-    ## http://<release-name>-graph-webhook-service
+    ## http://<release-name>-webhook-service
     hostname:
+  knowledgeGraph:
+    ## Set the hostname under which the webhook service
+    ## can be reached (internally). This will default to
+    ## http://<release-name>-knowledge-graph
+    hostname:
+
+core:
+  ## Set the hostname under which the core service
+  ## can be reached (internally). This will default to
+  ## http://<release-name>-core
+  hostname:
 
 # GitLab has introduced a new logout behavior in 12.7.0
 # which was initially broken and fixed in 12.9.0.

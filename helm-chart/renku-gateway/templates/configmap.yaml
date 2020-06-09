@@ -229,20 +229,20 @@ data:
           method = "drr"
           passHostHeader = false
           [[http.services.graphql.LoadBalancer.servers]]
-          url = {{ printf "http://%s" (include "knowledgeGraph.fullname" .) | default (printf "http://%s-knowledge-graph" .Release.Name ) | quote }}
+          url = {{ .Values.graph.knowledgeGraph.hostname | default (printf "http://%s-knowledge-graph" .Release.Name ) | quote }}
             weight = 1
 
         [http.services.knowledgeGraph.LoadBalancer]
           method = "drr"
           [[http.services.knowledgeGraph.LoadBalancer.servers]]
-          url = {{ printf "http://%s" (include "knowledgeGraph.fullname" .) | default (printf "http://%s-knowledge-graph" .Release.Name ) | quote }}
+          url = {{ .Values.graph.knowledgeGraph.hostname | default (printf "http://%s-knowledge-graph" .Release.Name ) | quote }}
             weight = 1
 
         [http.services.core.LoadBalancer]
           method = "drr"
           passHostHeader = false
           [[http.services.core.LoadBalancer.servers]]
-          url = {{ printf "http://%s" (include "core.fullname" .) | default (printf "http://%s-core" .Release.Name ) | quote }}
+          url = {{ .Values.core.hostname | default (printf "http://%s-core" .Release.Name ) | quote }}
             weight = 1
 
         # We need a default backend, should never be hit
