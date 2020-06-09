@@ -32,7 +32,7 @@ from .test_data import (
     PRIVATE_KEY,
     PUBLIC_KEY,
     TOKEN_PAYLOAD,
-    FERNET_KEY,
+    SECRET_KEY,
     PROVIDER_APP_DICT,
 )
 
@@ -46,7 +46,7 @@ def client():
     app.app_context().push()
     app.config["TESTING"] = True
     app.config["OIDC_PUBLIC_KEY"] = PUBLIC_KEY
-    app.config["FERNET_KEY"] = FERNET_KEY
+    app.config["SECRET_KEY"] = SECRET_KEY
     client = app.test_client()
     yield client
 
@@ -90,7 +90,7 @@ def test_gitlab_happyflow(client):
     ).decode("utf-8")
     headers = {"Authorization": "Bearer {}".format(access_token)}
 
-    app.store = OAuthRedis(fernet_key=app.config["FERNET_KEY"])
+    app.store = OAuthRedis(hex_key=app.config["SECRET_KEY"])
     redis_key = get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
     provider_app = OAuthProviderApp(**PROVIDER_APP_DICT)
     oauth_client = RenkuWebApplicationClient(

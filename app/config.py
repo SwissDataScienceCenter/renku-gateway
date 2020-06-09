@@ -23,24 +23,6 @@ import sys
 import warnings
 
 
-def create_fernet_key(hex_key):
-    """Small helper to transform a standard 64 hex character secret
-    into the required urlsafe base64 encoded 32-bytes which serve
-    as fernet key."""
-    # Check if we have 32 bytes in hex form
-    if not len(hex_key) == 64:
-        return None
-    try:
-        int(SECRET_KEY, 16)
-    except ValueError:
-        return None
-
-    # Convert
-    return base64.urlsafe_b64encode(
-        bytes([int(hex_key[i : i + 2], 16) for i in range(0, len(hex_key), 2)])
-    )
-
-
 # This setting can force tokens to be refreshed in case
 # they are issued with a too long or unlimited lifetime.
 # This is currently the case for BOTH JupyterHub and GitLab!
@@ -65,15 +47,6 @@ if "GATEWAY_SECRET_KEY" not in os.environ and "pytest" not in sys.modules:
     )
     sys.exit(2)
 SECRET_KEY = os.environ.get("GATEWAY_SECRET_KEY")
-
-if "pytest" not in sys.modules:
-    FERNET_KEY = create_fernet_key(SECRET_KEY)
-    if not FERNET_KEY:
-        warnings.warn(
-            "The env variable GATEWAY_SECRET_KEY must be 32 bytes in hex format."
-        )
-        sys.exit(2)
-
 
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = HOST_NAME.startswith("https")

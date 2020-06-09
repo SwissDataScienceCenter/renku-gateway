@@ -16,6 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 from cryptography.fernet import Fernet
 import sys
 import time
@@ -31,13 +32,32 @@ else:
     from redis import StrictRedis
 
 
+def create_fernet_key(hex_key):
+    """Small helper to transform a standard 64 hex character secret
+    into the required urlsafe base64 encoded 32-bytes which serve
+    as fernet key."""
+
+    # Check if we have 32 bytes in hex form
+    if not len(hex_key) == 64:
+        raise ValueError("provided key must be 64 characters: {}".format(hex_key))
+    try:
+        int(hex_key, 16)
+    except ValueError:
+        raise ValueError("provided key contains non-hex character: {}".format(hex_key))
+
+    # Convert
+    return base64.urlsafe_b64encode(
+        bytes([int(hex_key[i : i + 2], 16) for i in range(0, len(hex_key), 2)])
+    )
+
+
 class OAuthRedis(StrictRedis):
     """Just a regular StrictRedis store with extra methods for
     setting and getting encrypted serializations of oauth client objects."""
 
-    def __init__(self, *args, fernet_key=None, **kwargs):
+    def __init__(self, *args, hex_key=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fernet = Fernet(fernet_key)
+        self.fernet = Fernet(create_fernet_key(hex_key))
 
     def set_enc(self, name, value, **kwargs):
         """Set method with encryption."""

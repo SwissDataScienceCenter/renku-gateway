@@ -63,7 +63,7 @@ CORS(
 if "pytest" not in sys.modules:
     # Set up the redis store for tokens
     app.store = OAuthRedis(
-        fernet_key=app.config["FERNET_KEY"], host=app.config["REDIS_HOST"]
+        hex_key=app.config["SECRET_KEY"], host=app.config["REDIS_HOST"]
     )
     # We use the same store for sessions.
     session_store = PrefixDecorator("sessions_", RedisStore(app.store))
