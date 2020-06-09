@@ -33,7 +33,7 @@ class RenkuWebApplicationClient(WebApplicationClient):
         self,
         *args,
         provider_app=None,
-        scopes=[],
+        scopes=None,
         max_lifetime=None,
         _expires_at=None,
         **kwargs

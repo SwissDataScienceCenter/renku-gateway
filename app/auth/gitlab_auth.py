@@ -80,7 +80,7 @@ class GitlabUserToken:
         return headers
 
 
-SCOPES = (["openid", "api", "read_user", "read_repository"],)
+SCOPES = ["openid", "api", "read_user", "read_repository"]
 
 
 @blueprint.route("/login")
