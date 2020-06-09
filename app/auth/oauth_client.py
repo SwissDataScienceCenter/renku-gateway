@@ -47,12 +47,12 @@ class RenkuWebApplicationClient(WebApplicationClient):
         self.max_lifetime = max_lifetime
         self._expires_at = _expires_at
 
-    def prepare_authorization_request(self):
-        """Overwrite parent method to work with provider properties
-        instead of an argument"""
-        return super().prepare_authorization_request(
+    def get_authorization_url(self):
+        """Get the authorization url to redirect the browser to."""
+        authorization_url, _, _ = super().prepare_authorization_request(
             self.provider_app.authorization_endpoint
         )
+        return authorization_url
 
     def fetch_token(self, authorization_response, **kwargs):
         """Convenience method for fetching tokens."""

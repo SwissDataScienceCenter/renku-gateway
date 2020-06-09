@@ -74,7 +74,7 @@ def handle_login_request(provider_app, redirect_path, key_suffix, scopes):
         scopes=scopes,
         max_lifetime=current_app.config["MAX_ACCESS_TOKEN_LIFETIME"],
     )
-    authorization_url, _, _ = oauth_client.prepare_authorization_request()
+    authorization_url = oauth_client.get_authorization_url()
     redis_key = get_redis_key_from_session(key_suffix=key_suffix)
     current_app.store.set_oauth_client(redis_key, oauth_client)
     return current_app.make_response(redirect(authorization_url))
