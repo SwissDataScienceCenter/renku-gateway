@@ -92,7 +92,8 @@ def login_tmp():
 
 @blueprint.route("/token")
 def token():
-    return handle_token_request(request, JH_SUFFIX)[0]
+    response, _ = handle_token_request(request, JH_SUFFIX)
+    return response
 
 
 @blueprint.route("/logout")

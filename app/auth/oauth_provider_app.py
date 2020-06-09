@@ -49,7 +49,7 @@ class OAuthProviderApp:
     # TODO: https://github.com/SwissDataScienceCenter/renku-gateway/issues/231
     def to_json(self):
 
-        SERIALIZER_ATTRIBUTES = [
+        serializer_attributes = [
             "kind",
             "base_url",
             "client_id",
@@ -57,7 +57,7 @@ class OAuthProviderApp:
             "authorization_endpoint",
             "token_endpoint",
         ]
-        provider_app_dict = {key: vars(self)[key] for key in SERIALIZER_ATTRIBUTES}
+        provider_app_dict = {key: vars(self)[key] for key in serializer_attributes}
         return json.dumps(provider_app_dict)
 
     @classmethod

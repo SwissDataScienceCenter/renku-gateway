@@ -100,7 +100,8 @@ def login():
 
 @blueprint.route("/token")
 def token():
-    return handle_token_request(request, GL_SUFFIX)[0]
+    response, _ = handle_token_request(request, GL_SUFFIX)
+    return response
 
 
 @blueprint.route("/logout")

@@ -91,7 +91,7 @@ class RenkuWebApplicationClient(WebApplicationClient):
     # what's going to be pickeled, so we choose the safer approach.
     def to_json(self):
         """Serialize a client into json."""
-        SERIALIZER_ATTRIBUTES = [
+        serializer_attributes = [
             "token_type",
             "access_token",
             "refresh_token",
@@ -104,7 +104,7 @@ class RenkuWebApplicationClient(WebApplicationClient):
             "expires_in",
             "_expires_at",
         ]
-        client_dict = {key: vars(self)[key] for key in SERIALIZER_ATTRIBUTES}
+        client_dict = {key: vars(self)[key] for key in serializer_attributes}
         client_dict["provider_app"] = self.provider_app.to_json()
         return json.dumps(client_dict)
 
