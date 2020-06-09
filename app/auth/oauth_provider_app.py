@@ -115,12 +115,17 @@ class KeycloakProviderApp(OAuthProviderApp):
     # TODO: Keycloak public key / realm information could be added here.
 
 
+PROVIDERS = {
+    "gitlab": GitLabProviderApp,
+    "keycloak": KeycloakProviderApp,
+    "jupyterhub": JupyterHubProviderApp,
+}
+
+
 def _typecast_provider_app(provider_app):
     """Cast an OAuthProviderApp object to the correct subclass."""
-    if provider_app.kind == "gitlab":
-        provider_app.__class__ = GitLabProviderApp
-    if provider_app.kind == "keycloak":
-        provider_app.__class__ = KeycloakProviderApp
-    if provider_app.kind == "jupyterhub":
-        provider_app.__class__ = JupyterHubProviderApp
+    if provider_app.kind not in PROVIDERS:
+        return provider_app
+
+    provider_app.__class__ = PROVIDERS[provider_app.kind]
     return provider_app
