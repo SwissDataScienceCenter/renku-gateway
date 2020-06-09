@@ -22,7 +22,6 @@ gunicorn = {extras = ["gevent"],version = "*"}
 pytest = "*"
 nose = "*"
 responses = "*"
-pylint = "*"
 ptvsd = "*"
 typing-extensions = "*"
 chartpress = "==0.3.2"
@@ -30,6 +29,8 @@ pytoml = "*"
 black = "*"
 pytest-black = "*"
 fakeredis = "*"
+flake8 = "*"
+pytest-flake8 = "*"
 
 [requires]
 python_version = "3.7"
