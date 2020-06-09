@@ -25,6 +25,7 @@ from .utils import decode_keycloak_jwt, get_redis_key_from_token
 from .gitlab_auth import GL_SUFFIX
 from .web import KC_SUFFIX
 
+
 # TODO: We're using a class here only to have a uniform interface
 # with GitlabUserToken and JupyterhubUserToken. This should be refactored.
 class RenkuCoreAuthHeaders:
