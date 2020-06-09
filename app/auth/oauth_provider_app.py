@@ -57,8 +57,8 @@ class OAuthProviderApp:
             "authorization_endpoint",
             "token_endpoint",
         ]
-        provder_app_dict = {key: vars(self)[key] for key in SERIALIZER_ATTRIBUTES}
-        return json.dumps(provder_app_dict)
+        provider_app_dict = {key: vars(self)[key] for key in SERIALIZER_ATTRIBUTES}
+        return json.dumps(provider_app_dict)
 
     @classmethod
     def from_dict(cls, provider_app_dict):
