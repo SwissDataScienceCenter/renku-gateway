@@ -126,3 +126,7 @@ class RenkuWebApplicationClient(WebApplicationClient):
         ):
             self._expires_at = int(time.time()) + self.max_lifetime
             self.expires_in = self.max_lifetime
+
+    def expires_soon(self):
+        """Check if the client instance expires soon."""
+        return self._expires_at and self._expires_at < time.time() - 5

@@ -81,8 +81,7 @@ class OAuthRedis(StrictRedis):
         # to avoid unlucky edge cases.
         if (
             not no_refresh
-            and oauth_client._expires_at
-            and oauth_client._expires_at < time.time() - 5
+            and oauth_client.expires_soon()
         ):
             try:
                 # TODO: Change logger to have no dependency on the current_app here.
