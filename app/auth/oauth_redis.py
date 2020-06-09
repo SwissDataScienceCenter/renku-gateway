@@ -59,22 +59,22 @@ class OAuthRedis(StrictRedis):
         super().__init__(*args, **kwargs)
         self.fernet = Fernet(create_fernet_key(hex_key))
 
-    def set_enc(self, name, value, **kwargs):
+    def set_enc(self, name, value):
         """Set method with encryption."""
-        return super().set(name, self.fernet.encrypt(value), **kwargs)
+        return super().set(name, self.fernet.encrypt(value))
 
-    def get_enc(self, name, **kwargs):
+    def get_enc(self, name):
         """Get method with decryption."""
-        return self.fernet.decrypt(super().get(name, **kwargs))
+        return self.fernet.decrypt(super().get(name))
 
     def set_oauth_client(self, name, oauth_client, **kwargs):
         """Put a client object into the store."""
-        return self.set_enc(name, oauth_client.to_json().encode(), **kwargs)
+        return self.set_enc(name, oauth_client.to_json().encode())
 
     def get_oauth_client(self, name, no_refresh=False, **kwargs):
         """Get a client object from the store, refresh if necessary."""
         oauth_client = RenkuWebApplicationClient.from_json(
-            self.get_enc(name, **kwargs).decode()
+            self.get_enc(name).decode()
         )
 
         # We refresh 5 seconds before the token/client actually expires
