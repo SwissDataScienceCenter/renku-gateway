@@ -65,7 +65,8 @@ class OAuthRedis(StrictRedis):
             and oauth_client._expires_at < time.time() - 5
         ):
             try:
-                # Todo: Change logger to have no dependency on the current_app here.
+                # TODO: Change logger to have no dependency on the current_app here.
+                # TODO: https://github.com/SwissDataScienceCenter/renku-gateway/issues/113
                 current_app.logger.info("Refreshing {}".format(name))
                 oauth_client.refresh_access_token()
                 self.set_enc(name, oauth_client.to_json().encode(), **kwargs)

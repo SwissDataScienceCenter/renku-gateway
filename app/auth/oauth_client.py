@@ -67,7 +67,8 @@ class RenkuWebApplicationClient(WebApplicationClient):
             **kwargs
         )
         # TODO: Once Jupyterhub actually expires access tokens and implements
-        # TODO: usable refresh tokens, this subclass can be removed.
+        # TODO: usable refresh tokens, this subclass can be removed
+        # TODO: https://github.com/SwissDataScienceCenter/renku-gateway/issues/229
         # Could use a factory method instead, but seems like an overkill...
         if isinstance(self.provider_app, JupyterHubProviderApp):
             self.refresh_token = None

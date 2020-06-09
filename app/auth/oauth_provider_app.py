@@ -45,6 +45,8 @@ class OAuthProviderApp:
         self.authorization_endpoint = authorization_endpoint
         self.token_endpoint = token_endpoint
 
+    # TODO: Use marshmallow for (de)serialization
+    # TODO: https://github.com/SwissDataScienceCenter/renku-gateway/issues/231
     def to_json(self):
 
         SERIALIZER_ATTRIBUTES = [
