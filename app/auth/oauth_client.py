@@ -16,6 +16,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+This module contains the logic for obtaining, managing and refreshing
+ oauth tokens.
+"""
+
 import json
 import time
 

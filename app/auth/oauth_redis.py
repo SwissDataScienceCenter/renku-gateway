@@ -16,6 +16,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+This module handles the storing of user- and provider specific oauth
+client instances in redis.
+"""
+
 import base64
 from cryptography.fernet import Fernet
 import sys
