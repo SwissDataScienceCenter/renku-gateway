@@ -1,11 +1,7 @@
 {
     "_meta": {
         "hash": {
-<<<<<<< HEAD
-            "sha256": "6496732ef92460830fce09420c226b1e6014b39c7a59a37c20ea2bd1c5bb7f85"
-=======
-            "sha256": "2cc53fcdb0e2f45349da82024a9a2d580a7181f24a7d26c31aac6689ee1a89bc"
->>>>>>> 8da9f88... refactor: improve token handling
+            "sha256": "19cf075966b08aca0001e353dabe442519f649591e6e6815c585a2dc52f1becc"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -822,10 +818,10 @@
         },
         "sortedcontainers": {
             "hashes": [
-                "sha256:974e9a32f56b17c1bac2aebd9dcf197f3eb9cd30553c5852a3187ad162e1a03a",
-                "sha256:d9e96492dd51fae31e60837736b38fe42a187b5404c16606ff7ee7cd582d4c60"
+                "sha256:4e73a757831fc3ca4de2859c422564239a31d8213d09a2a666e375807034d2ba",
+                "sha256:c633ebde8580f241f274c1f8994a665c0e54a17724fecd0cae2f079e09c36d3f"
             ],
-            "version": "==2.1.0"
+            "version": "==2.2.2"
         },
         "toml": {
             "hashes": [
