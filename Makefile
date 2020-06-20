@@ -27,13 +27,13 @@ endif
 GIT_MASTER_HEAD_SHA:=$(shell git rev-parse --short=7 --verify HEAD)
 
 # Note that this is the default target executed when typing 'make'
-tag: build
-	@echo "Tagging image: docker tag ${DOCKER_REPOSITORY}${IMAGE}:${GIT_MASTER_HEAD_SHA} ${DOCKER_REPOSITORY}${IMAGE}:${DOCKER_LABEL}"
-	@docker tag ${DOCKER_REPOSITORY}${IMAGE}:${GIT_MASTER_HEAD_SHA} ${DOCKER_REPOSITORY}${IMAGE}:${DOCKER_LABEL}
-
 build:
 	@echo "Building image: docker build -t ${DOCKER_REPOSITORY}${IMAGE}:${GIT_MASTER_HEAD_SHA} ."
 	@docker build -t ${DOCKER_REPOSITORY}${IMAGE}:${GIT_MASTER_HEAD_SHA} .
+
+tag: build
+	@echo "Tagging image: docker tag ${DOCKER_REPOSITORY}${IMAGE}:${GIT_MASTER_HEAD_SHA} ${DOCKER_REPOSITORY}${IMAGE}:${DOCKER_LABEL}"
+	@docker tag ${DOCKER_REPOSITORY}${IMAGE}:${GIT_MASTER_HEAD_SHA} ${DOCKER_REPOSITORY}${IMAGE}:${DOCKER_LABEL}
 
 push: tag
 	@echo "Pushing image image: docker push ${DOCKER_REPOSITORY}${IMAGE}:${DOCKER_LABEL}"
