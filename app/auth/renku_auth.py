@@ -23,7 +23,6 @@ from flask import current_app
 
 from .utils import decode_keycloak_jwt, get_redis_key_from_token
 from .gitlab_auth import GL_SUFFIX
-from .web import KC_SUFFIX
 
 
 # TODO: We're using a class here only to have a uniform interface
@@ -36,24 +35,18 @@ class RenkuCoreAuthHeaders:
         )
         if m:
             access_token = m.group("token")
-            keycloak_oidc_client = current_app.store.get_oauth_client(
-                get_redis_key_from_token(access_token, key_suffix=KC_SUFFIX)
-            )
-            gitlab_oauth_client = current_app.store.get(
-                get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
-            )
-            id_dict = decode_keycloak_jwt(
-                keycloak_oidc_client.token["id_token"].encode()
-            )
 
-            headers["Renku-user-id"] = id_dict["sub"]
-            headers["Renku-user-email"] = id_dict["email"]
-            headers["Renku-user-fullname"] = "{} {}".format(
-                id_dict["given_name"], id_dict["family_name"]
+            gitlab_oauth_client = current_app.store.get_oauth_client(
+                get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
             )
             headers["Authorization"] = "Bearer {}".format(
                 gitlab_oauth_client.access_token
             )
+
+            access_token_dict = decode_keycloak_jwt(access_token.encode())
+            headers["Renku-user-id"] = access_token_dict["sub"]
+            headers["Renku-user-email"] = access_token_dict["email"]
+            headers["Renku-user-fullname"] = access_token_dict["name"]
 
         else:
             pass
