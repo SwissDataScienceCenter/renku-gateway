@@ -30,14 +30,13 @@ ssh-add github_deploy_key
 make login
 
 # build charts/images and push
-cd helm-chart
-helm dep update renku-gateway
+helm dep update helm-chart/renku-gateway
 chartpress --push --publish-chart
 
 # if it's a tag, push the tagged chart
 if [[ -n $TRAVIS_TAG ]]; then
     git clean -dff
-    helm dep update renku-gateway
+    helm dep update helm-chart/renku-gateway
     chartpress --tag $TRAVIS_TAG --push --publish-chart
 fi
 
