@@ -40,7 +40,7 @@ if [[ -n $TRAVIS_TAG ]]; then
     chartpress --tag $TRAVIS_TAG --push --publish-chart
 fi
 
-export CHART_VERSION=$(awk '/^version/{print $2}' renku-gateway/Chart.yaml)
+export CHART_VERSION=$(awk '/^version/{print $2}' helm-chart/renku-gateway/Chart.yaml)
 
 # push also images tagged with "latest"
 chartpress --tag latest --push
