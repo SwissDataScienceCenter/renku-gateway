@@ -93,13 +93,20 @@ data:
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}datasets`)"
           Service = "knowledgeGraph"
 
+        [http.routers.direct]
+          # This is to access undocumented APIs in GitLab
+          entryPoints = ["http"]
+          Middlewares = ["auth-gitlab", "direct", "gitlabOnly"]
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}direct/`)"
+          Service = "gitlab"
+
         [http.routers.gitlab]
           # Currently gitlab acts as fallback backend service, we
           # therefore fix the priority of this router to the lowest
           # possible value.
           priority = 1
           entryPoints = ["http"]
-          Middlewares = ["auth-gitlab", "common", "gitlab"]
+          Middlewares = ["auth-gitlab", "common", "gitlabApi", "gitlabOnly"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}`)"
           Service = "gitlab"
 
@@ -146,8 +153,11 @@ data:
         [http.middlewares.development.headers]
           isDevelopment = true
 
-        [http.middlewares.gitlab.AddPrefix]
-          prefix = "{{ .Values.global.gitlab.urlPrefix }}/api/v4"
+        [http.middlewares.gitlabOnly.AddPrefix]
+          prefix = "{{ .Values.global.gitlab.urlPrefix }}"
+
+        [http.middlewares.gitlabApi.AddPrefix]
+          prefix = "/api/v4"
 
         [http.middlewares.jupyterhub.ReplacePathRegex]
           regex = "^/jupyterhub/(.*)"
@@ -188,6 +198,10 @@ data:
 
         [http.middlewares.knowledgeGraph.AddPrefix]
           prefix = "/knowledge-graph"
+
+        [http.middlewares.direct.ReplacePathRegex]
+          regex = "^/api/direct/(.*)"
+          replacement = "/$1"
 
         [http.middlewares.general-ratelimit.ratelimit]
           extractorfunc = "{{ .Values.rateLimits.general.extractorfunc }}"
