@@ -17,8 +17,8 @@
 # limitations under the License.
 """Add the headers for the Renku core service."""
 
-import base64
 import re
+from base64 import b64encode
 
 from flask import current_app
 
@@ -28,6 +28,8 @@ from .gitlab_auth import GL_SUFFIX
 
 # TODO: We're using a class here only to have a uniform interface
 # with GitlabUserToken and JupyterhubUserToken. This should be refactored.
+
+
 class RenkuCoreAuthHeaders:
     def process(self, request, headers):
 
@@ -46,9 +48,9 @@ class RenkuCoreAuthHeaders:
 
             access_token_dict = decode_keycloak_jwt(access_token.encode())
             headers["Renku-user-id"] = access_token_dict["sub"]
-            headers["Renku-user-email"] = access_token_dict["email"]
-            headers["Renku-user-fullname"] = str(
-                base64.encodebytes(access_token_dict["name"].encode())
+            headers["Renku-user-email"] = b64encode(access_token_dict["email"].encode())
+            headers["Renku-user-fullname"] = b64encode(
+                access_token_dict["name"].encode()
             )
 
         else:
