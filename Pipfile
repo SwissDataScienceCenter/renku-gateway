@@ -22,7 +22,7 @@ gunicorn = {extras = ["gevent"],version = "*"}
 pytest = "*"
 nose = "*"
 responses = "*"
-ptvsd = "*"
+ptvsd = "==4.3.2"
 typing-extensions = "*"
 chartpress = "==0.3.2"
 pytoml = "*"
