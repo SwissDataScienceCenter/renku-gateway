@@ -30,6 +30,7 @@ ssh-add github_deploy_key
 make login
 
 # build charts/images and push
+helm repo add bitnami https://charts.bitnami.com/bitnami
 helm dep update helm-chart/renku-gateway
 chartpress --push --publish-chart
 
