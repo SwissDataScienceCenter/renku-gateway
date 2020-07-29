@@ -96,7 +96,7 @@ data:
         [http.routers.direct]
           # This is to access undocumented APIs in GitLab
           entryPoints = ["http"]
-          Middlewares = ["auth-gitlab", "direct", "gitlabOnly"]
+          Middlewares = ["direct", "gitlabOnly"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}direct/`)"
           Service = "gitlab"
 
