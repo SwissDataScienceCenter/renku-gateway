@@ -167,3 +167,9 @@ Processing the requests and responses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By implementing a class extending the base processor, you can pre-process the incomming request and/or the returning response. You can have a look at the :code:`gitlab_processor.py` as a starting example.
+
+Services Called by Gateway
+--------------------------
+- `Knowledge Graph <https://github.com/SwissDataScienceCenter/renku-graph>`_ : Tracks lineage of code and data. Creates lineage diagrams.
+- Webhook Service?????? 
+
