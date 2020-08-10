@@ -4,19 +4,20 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-werkzeug = "*"
-oic = "*"
-requests = "*"
-pyjwt = "*"
-redis = "*"
-flask-kvsession = "*"
-sparqlwrapper = "*"
-responses = "*"
 flask = "*"
 flask-cors = "*"
-requests-oauthlib = "*"
-oauthlib = "*"
+flask-kvsession = "*"
 gunicorn = {extras = ["gevent"],version = "*"}
+oauthlib = "*"
+oic = "*"
+pyjwt = "*"
+redis = "*"
+requests = "*"
+requests-oauthlib = "*"
+responses = "*"
+sentry-sdk = {extras = ["flask"], version = "*"}
+sparqlwrapper = "*"
+werkzeug = "*"
 
 [dev-packages]
 pytest = "*"

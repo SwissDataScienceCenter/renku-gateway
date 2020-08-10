@@ -25,11 +25,14 @@ import os
 
 import jwt
 import requests
+import sentry_sdk
 from flask_kvsession import KVSessionExtension
 from flask import Flask, Response, current_app, request
 from flask_cors import CORS
+from sentry_sdk.integrations.flask import FlaskIntegration
 from simplekv.decorator import PrefixDecorator
 from simplekv.memory.redisstore import RedisStore
+
 
 from . import config
 from .auth import gitlab_auth, jupyterhub_auth, web
@@ -46,6 +49,13 @@ if VSCODE_DEBUG:
     ptvsd.wait_for_attach()
     breakpoint()
 
+
+if os.environ.get("SENTRY_DSN"):
+    sentry_sdk.init(
+        dsn=os.environ.get("SENTRY_DSN"),
+        integrations=[FlaskIntegration()],
+        environment=os.environ.get("SENTRY_ENVIRONMENT"),
+    )
 
 app = Flask(__name__)
 
