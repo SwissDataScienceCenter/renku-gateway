@@ -1,6 +1,30 @@
 Changes
 =======
 
+`0.9.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.8.0...0.9.0>`__ (2020-08-11)
+------------------------------------------------------------------------------------------------------
+
+Features
+~~~~~~~~
+
+- enable kubernetes versions > 1.15
+   (`b226e47 <https://github.com/SwissDataScienceCenter/renku-gateway/commit/b226e4720dac52d031e5ebe991cb1c1749ee0e39>`__)
+
+Bug Fixes
+~~~~~~~~~
+
+-  avoid crash when invoking the core-service for a user with non-latin-1 characters in its name
+   (`#253 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/253>`__)
+   (`6894ca3 <https://github.com/SwissDataScienceCenter/renku-gateway/commit/6894ca368a9a166290e927260e3d92c34cb9acb9>`__)
+-  correct token swapping for core service
+   (`b9b1cd1 <https://github.com/SwissDataScienceCenter/renku-gateway/commit/b9b1cd11e1e3787a01c84c35363a617b8dc76c6b>`__)
+
+BREAKING CHANGES
+~~~~~~~~~~~~~~~~
+
+- kubernetes versions < 1.14 are not supported anymore
+
+
 `0.8.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.7.1...0.8.0>`__ (2020-05-26)
 ------------------------------------------------------------------------------------------------------
 
