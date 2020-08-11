@@ -12,3 +12,4 @@ telepresence.log
 run-telepresence.sh
 travis-deploy.sh
 github_deploy_key.enc
+*.pyc
