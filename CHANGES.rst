@@ -13,7 +13,7 @@ Features
 Bug Fixes
 ~~~~~~~~~
 
--  avoid crash when invoking the core-service for a user with non-latin-1 characters in its name
+-  avoid crash when invoking the core-service for a user with non-latin-1 characters in their name
    (`#253 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/253>`__)
    (`6894ca3 <https://github.com/SwissDataScienceCenter/renku-gateway/commit/6894ca368a9a166290e927260e3d92c34cb9acb9>`__)
 -  correct token swapping for core service
