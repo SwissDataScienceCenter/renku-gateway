@@ -171,3 +171,8 @@ core:
 # Set this to 'true' for versions < 12.7.0, leave it to
 # 'false' for versions >= 12.9.0.
 oldGitLabLogout: false
+
+# sentry configuration
+sentry:
+  dsn:
+  environment:
