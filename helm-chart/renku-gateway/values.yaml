@@ -37,6 +37,10 @@ global:
     ## sessions.
     enabled: false
 
+  keycloak:
+    ## Explicitly set another realm than "renku" here
+    realm:
+
 replicaCount: 1
 
 ## Set to true to enable the developement mode. This has negative security
@@ -176,3 +180,8 @@ oldGitLabLogout: false
 sentry:
   dsn:
   environment:
+
+# An ingress could be enabled here. Usually the gateway runs
+# without its own ingress.
+ingress:
+  enabled:
