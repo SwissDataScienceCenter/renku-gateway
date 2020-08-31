@@ -78,12 +78,6 @@ WEBHOOK_SERVICE_HOSTNAME = os.environ.get(
     "WEBHOOK_SERVICE_HOSTNAME", "http://renku-graph-webhooks-service"
 )
 
-SPARQL_ENDPOINT = os.environ.get(
-    "SPARQL_ENDPOINT", "http://localhost:3030/renku/sparql"
-)
-SPARQL_USERNAME = os.environ.get("SPARQL_USERNAME", "admin")
-SPARQL_PASSWORD = os.environ.get("SPARQL_PASSWORD", "admin")
-
 KEYCLOAK_URL = os.environ.get("KEYCLOAK_URL")
 if not KEYCLOAK_URL:
     warnings.warn(
