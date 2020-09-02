@@ -149,10 +149,6 @@ redis:
 
 ## Settings for the graph services
 graph:
-  sparql:
-    endpoint:
-    # username: admin
-    # password: 12345
   webhookService:
     ## Set the hostname under which the webhook service
     ## can be reached (internally). This will default to
