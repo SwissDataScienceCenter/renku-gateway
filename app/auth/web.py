@@ -43,7 +43,7 @@ from .utils import (
 blueprint = Blueprint("web_auth", __name__, url_prefix="/auth")
 
 KC_SUFFIX = "kc_oidc_client"
-SCOPES = ["openid"]
+SCOPE = ["openid"]
 
 
 def get_valid_token(headers):
@@ -134,7 +134,7 @@ def login():
         provider_app,
         urljoin(current_app.config["HOST_NAME"], url_for("web_auth.token")),
         KC_SUFFIX,
-        SCOPES,
+        SCOPE,
     )
 
 
