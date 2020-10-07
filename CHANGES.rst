@@ -1,6 +1,18 @@
 Changes
 =======
 
+`0.9.1 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.9.0...0.9.1>`__ (2020-10-06)
+------------------------------------------------------------------------------------------------------
+
+Bug Fixes
+~~~~~~~~~
+
+-  **charts:** fix a bug in the direct routing to gitlab
+   (`4fc0da6 <https://github.com/SwissDataScienceCenter/renku-gateway/commit/4fc0da62c96a9426aa8e85569e3678cd4f3540c0>`__)
+-  adjust the time buffer in the token expiration date check function
+   (`3048aee <https://github.com/SwissDataScienceCenter/renku-gateway/commit/3048aeebddc2e3319a39a74524a00ec8e32bac0d>`__)
+
+
 `0.9.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.8.0...0.9.0>`__ (2020-08-11)
 ------------------------------------------------------------------------------------------------------
 
