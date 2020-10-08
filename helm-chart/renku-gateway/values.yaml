@@ -166,6 +166,12 @@ core:
   ## http://<release-name>-core
   hostname:
 
+uiserver:
+  ## Set the hostname under which the uiserver service
+  ## can be reached (internally). This will default to
+  ## http://<release-name>-uiserver
+  hostname:
+
 # GitLab has introduced a new logout behavior in 12.7.0
 # which was initially broken and fixed in 12.9.0.
 # Set this to 'true' for versions < 12.7.0, leave it to
