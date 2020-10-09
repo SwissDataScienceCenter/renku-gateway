@@ -104,13 +104,13 @@ LOGIN_SEQUENCE = ["web_auth.login", "gitlab_auth.login", "jupyterhub_auth.login"
 
 @blueprint.route("/login/next")
 def login_next():
-    session["login_seq"] += 1
-    if session["login_seq"] < len(LOGIN_SEQUENCE):
+    session["login_current_seq"] += 1
+    if session["login_current_seq"] < len(session["login_sequence"]):
         return render_template(
             "redirect.html",
             redirect_url=urljoin(
                 current_app.config["HOST_NAME"],
-                url_for(LOGIN_SEQUENCE[session["login_seq"]]),
+                url_for(session["login_sequence"][session["login_current_seq"]]),
             ),
         )
     else:
@@ -123,7 +123,22 @@ def login():
     session.clear()
     session["ui_redirect_url"] = request.args.get("redirect_url")
     session["cli_token"] = request.args.get("cli_token")
-    session["login_seq"] = 0
+    session["login_current_seq"] = 0
+
+    # verify if the login should target a single service
+    target = request.args.get("target")
+    if target:
+        target_login = next(seq for seq in LOGIN_SEQUENCE[1:] if seq.startswith(target))
+        if not target_login:
+            raise ValueError(f"The target service is not available for login: {target}")
+        session["login_sequence"] = [LOGIN_SEQUENCE[0], target_login]
+    else:
+        session["login_sequence"] = LOGIN_SEQUENCE
+
+    # if a token refresh is required, first do it
+    refresh = request.args.get("refresh")
+    if refresh:
+        session["refresh"] = True
 
     provider_app = KeycloakProviderApp(
         client_id=current_app.config["OIDC_CLIENT_ID"],
@@ -152,6 +167,15 @@ def token():
     session["sub"] = decode_keycloak_jwt(keycloak_oidc_client.access_token)["sub"]
     new_redis_key = get_redis_key_from_session(key_suffix=KC_SUFFIX)
     current_app.store.set_oauth_client(new_redis_key, keycloak_oidc_client)
+
+    # cleanup services tokens when refreshing
+    refresh = session.pop("refresh", None)
+    if refresh:
+        suffixes = ["GL_SUFFIX", "JH_SUFFIX"]
+        for suffix in suffixes:
+            target = get_redis_key_from_session(key_suffix=suffix)
+            if target:
+                current_app.store.delete(target)
 
     return response
 
