@@ -148,27 +148,27 @@ def auth():
     except jwt.ExpiredSignatureError:
         current_app.logger.warning(
             f"Error while authenticating request, token expired. Target: {auth_arg}",
-            exc_info=True
+            exc_info=True,
         )
         message = {
             "error": "authentication",
             "message": "token expired",
-            "target": auth_arg
+            "target": auth_arg,
         }
         return Response(json.dumps(message), status=401)
     except AttributeError as error:
-        if ("access_token" in str(error)):
+        if "access_token" in str(error):
             current_app.logger.warning(
                 (
                     "Error while authenticating request, can't "
                     f"refresh access token. Target: {auth_arg}"
                 ),
-                exc_info=True
+                exc_info=True,
             )
             message = {
                 "error": "authentication",
                 "payload": "can't refresh access token",
-                "target": auth_arg
+                "target": auth_arg,
             }
             return Response(json.dumps(message), status=401)
         raise
@@ -177,16 +177,16 @@ def auth():
     except:  # noqa
         current_app.logger.warning(
             f"Error while authenticating request, unknown. Target: {auth_arg}",
-            exc_info=True
+            exc_info=True,
         )
-        message = {
-            "error": "authentication",
-            "payload": "unknown",
-            "target": auth_arg
-        }
+        message = {"error": "authentication", "payload": "unknown", "target": auth_arg}
         return Response(json.dumps(message), status=401)
 
-    return Response(json.dumps("Up and running"), headers=headers, status=200,)
+    return Response(
+        json.dumps("Up and running"),
+        headers=headers,
+        status=200,
+    )
 
 
 @app.route("/health", methods=["GET"])
@@ -203,7 +203,8 @@ def _join_url_prefix(*parts):
 
 for blueprint in blueprints:
     app.register_blueprint(
-        blueprint, url_prefix=_join_url_prefix(url_prefix, blueprint.url_prefix),
+        blueprint,
+        url_prefix=_join_url_prefix(url_prefix, blueprint.url_prefix),
     )
 
 
