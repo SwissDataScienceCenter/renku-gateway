@@ -102,7 +102,8 @@ def auth():
         "renku": RenkuCoreAuthHeaders,
     }
 
-    auth = auths[request.args.get("auth")]()
+    auth_arg = request.args.get("auth")
+    auth = auths[auth_arg]()
     headers = dict(request.headers)
 
     # Keycloak public key is not defined so error
@@ -145,13 +146,45 @@ def auth():
         # auth processors always assume a valid Authorization in header, if any
         headers = auth.process(request, headers)
     except jwt.ExpiredSignatureError:
-        current_app.logger.warning("Error while authenticating request", exc_info=True)
-        return Response(json.dumps({"error": "token_expired"}), status=401)
+        current_app.logger.warning(
+            f"Error while authenticating request, token expired. Target: {auth_arg}",
+            exc_info=True
+        )
+        message = {
+            "error": "authentication",
+            "message": "token expired",
+            "target": auth_arg
+        }
+        return Response(json.dumps(message), status=401)
+    except AttributeError as error:
+        if ("access_token" in str(error)):
+            current_app.logger.warning(
+                (
+                    "Error while authenticating request, can't "
+                    f"refresh access token. Target: {auth_arg}"
+                ),
+                exc_info=True
+            )
+            message = {
+                "error": "authentication",
+                "payload": "can't refresh access token",
+                "target": auth_arg
+            }
+            return Response(json.dumps(message), status=401)
+        raise
     # TODO: fix bare except
     # https://github.com/SwissDataScienceCenter/renku-gateway/issues/232
     except:  # noqa
-        current_app.logger.warning("Error while authenticating request", exc_info=True)
-        return Response(json.dumps({"error": "Error while authenticating"}), status=401)
+        current_app.logger.warning(
+            f"Error while authenticating request, unknown. Target: {auth_arg}",
+            exc_info=True
+        )
+        message = {
+            "error": "authentication",
+            "payload": "unknown",
+            "target": auth_arg
+        }
+        return Response(json.dumps(message), status=401)
 
     return Response(json.dumps("Up and running"), headers=headers, status=200,)
 
