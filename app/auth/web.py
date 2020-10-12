@@ -270,25 +270,14 @@ def logout():
         ),
     )
 
-    if request.args.get("gitlab_logout"):
-        if "logout_from" in session:
-            session.clear()
-            return render_template(
-                "redirect_logout.html",
-                redirect_url="/",
-                logout_page=urljoin(
-                    current_app.config["HOST_NAME"], url_for("jupyterhub_auth.logout")
-                ),
-            )
-        else:
-            return current_app.make_response(redirect(current_app.config["GITLAB_URL"]))
-
     if "sub" in session:
         current_app.store.delete(get_redis_key_from_session(key_suffix=GL_SUFFIX))
         current_app.store.delete(get_redis_key_from_session(key_suffix=JH_SUFFIX))
         current_app.store.delete(get_redis_key_from_session(key_suffix=KC_SUFFIX))
 
-    session.clear()
-    session["logout_from"] = "Renku"
+    # clear session
+    resp = current_app.make_response(redirect(logout_url))
+    resp.delete_cookie("session")
+    current_app.store.delete(f"sessions_{session.sid_s}")
 
-    return current_app.make_response(redirect(logout_url))
+    return resp
