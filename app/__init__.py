@@ -39,6 +39,7 @@ from .auth import gitlab_auth, jupyterhub_auth, web
 from .auth.oauth_redis import OAuthRedis
 
 # Wait for the VS Code debugger to attach if requested
+# TODO: try using debugpy instead of ptvsd to avoid noreload limitations
 VSCODE_DEBUG = os.environ.get("VSCODE_DEBUG") == "1"
 if VSCODE_DEBUG:
     import ptvsd
