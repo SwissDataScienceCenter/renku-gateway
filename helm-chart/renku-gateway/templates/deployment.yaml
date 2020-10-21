@@ -149,12 +149,6 @@ spec:
                   key: oidcClientSecret
             - name: OLD_GITLAB_LOGOUT
               value: {{ .Values.oldGitLabLogout | quote }}
-            - name: SPARQL_ENDPOINT
-              value: {{ .Values.graph.sparql.endpoint | default (printf "http://%s-jena:3030/%s/sparql" .Release.Name .Release.Namespace ) | quote }}
-            - name: SPARQL_USERNAME
-              value: {{ required "Please specify a username for the SPARQL endpoint." .Values.graph.sparql.username | quote }}
-            - name: SPARQL_PASSWORD
-              value: {{ required "Please specify a password for the SPARQL endpoint user." .Values.graph.sparql.password | quote }}
             - name: WEBHOOK_SERVICE_HOSTNAME
               value: {{ .Values.graph.webhookService.hostname | default (printf "http://%s-graph-webhook-service" .Release.Name ) | quote }}
             {{ if .Values.global.anonymousSessions.enabled }}
@@ -165,6 +159,10 @@ spec:
             # further up the processing chain.
             - name: OAUTHLIB_INSECURE_TRANSPORT
               value: "1"
+            - name: SENTRY_DSN
+              value: {{ .Values.sentry.dsn }}
+            - name: SENTRY_ENVIRONMENT
+              value: {{ .Values.sentry.environment }}
           livenessProbe:
             httpGet:
               path: /health

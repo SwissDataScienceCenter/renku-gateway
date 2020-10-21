@@ -37,6 +37,10 @@ global:
     ## sessions.
     enabled: false
 
+  keycloak:
+    ## Explicitly set another realm than "renku" here
+    realm:
+
 replicaCount: 1
 
 ## Set to true to enable the developement mode. This has negative security
@@ -145,10 +149,6 @@ redis:
 
 ## Settings for the graph services
 graph:
-  sparql:
-    endpoint:
-    # username: admin
-    # password: 12345
   webhookService:
     ## Set the hostname under which the webhook service
     ## can be reached (internally). This will default to
@@ -171,3 +171,13 @@ core:
 # Set this to 'true' for versions < 12.7.0, leave it to
 # 'false' for versions >= 12.9.0.
 oldGitLabLogout: false
+
+# sentry configuration
+sentry:
+  dsn:
+  environment:
+
+# An ingress could be enabled here. Usually the gateway runs
+# without its own ingress.
+ingress:
+  enabled:

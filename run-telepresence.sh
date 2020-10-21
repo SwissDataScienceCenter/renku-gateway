@@ -60,7 +60,7 @@ FLASK_APP=app:app \
 HOST_NAME=\$HOST_NAME \
 VSCODE_DEBUG=1 \
 OAUTHLIB_INSECURE_TRANSPORT=1 \
-${FLASK_EXECUTABLE} run"
+${FLASK_EXECUTABLE} run --no-reload"
 echo "================================================================================================================="
 
 

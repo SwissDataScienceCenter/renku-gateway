@@ -96,7 +96,14 @@ data:
         [http.routers.direct]
           # This is to access undocumented APIs in GitLab
           entryPoints = ["http"]
-          Middlewares = ["direct", "gitlabOnly"]
+          Middlewares = [
+            "direct"
+            {{- if .Values.global.gitlab.urlPrefix -}}
+            {{- if and (ne .Values.global.gitlab.urlPrefix "") (ne .Values.global.gitlab.urlPrefix "/") -}}
+            ,"gitlabOnly"
+            {{- end -}}
+            {{- end }}
+          ]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}direct/`)"
           Service = "gitlab"
 
@@ -106,7 +113,7 @@ data:
           # possible value.
           priority = 1
           entryPoints = ["http"]
-          Middlewares = ["auth-gitlab", "common", "gitlabApi", "gitlabOnly"]
+          Middlewares = ["auth-gitlab", "common", "gitlabApi"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}`)"
           Service = "gitlab"
 
@@ -157,7 +164,11 @@ data:
           prefix = "{{ .Values.global.gitlab.urlPrefix }}"
 
         [http.middlewares.gitlabApi.AddPrefix]
+          {{ if eq .Values.global.gitlab.urlPrefix "/" }}
           prefix = "/api/v4"
+          {{- else -}}
+          prefix = "{{ .Values.global.gitlab.urlPrefix }}/api/v4"
+          {{ end }}
 
         [http.middlewares.jupyterhub.ReplacePathRegex]
           regex = "^/jupyterhub/(.*)"
