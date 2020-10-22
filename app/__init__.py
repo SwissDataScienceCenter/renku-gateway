@@ -168,7 +168,7 @@ def auth():
             )
             message = {
                 "error": "authentication",
-                "payload": "can't refresh access token",
+                "message": "can't refresh access token",
                 "target": auth_arg,
             }
             return Response(json.dumps(message), status=401)
