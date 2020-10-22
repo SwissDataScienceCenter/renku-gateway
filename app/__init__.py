@@ -180,7 +180,7 @@ def auth():
             f"Error while authenticating request, unknown. Target: {auth_arg}",
             exc_info=True,
         )
-        message = {"error": "authentication", "payload": "unknown", "target": auth_arg}
+        message = {"error": "authentication", "message": "unknown", "target": auth_arg}
         return Response(json.dumps(message), status=401)
 
     return Response(json.dumps("Up and running"), headers=headers, status=200,)
