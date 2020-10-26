@@ -125,7 +125,7 @@ data:
 
         [http.routers.uiserver]
           entryPoints = ["http"]
-          Middlewares = ["auth-renku", "common"]
+          Middlewares = ["auth-renku", "common", "uiserver"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}ui`)"
           Service = "uiserver"
 
@@ -162,6 +162,9 @@ data:
 
         [http.middlewares.api.StripPrefix]
           prefixes = ["/api"]
+
+        [http.middlewares.uiserver.StripPrefix]
+          prefixes = ["/ui"]
 
         [http.middlewares.development.headers]
           isDevelopment = true
