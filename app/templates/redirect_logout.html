@@ -17,7 +17,6 @@
 #}
 <!DOCTYPE html>
 <html lang="en" >
-
     <head>
         <meta charset="UTF-8">
         <meta http-equiv="x-ua-compatible" content="ie=edge">
@@ -31,7 +30,9 @@
 
     <body>
         <p>If you are not redirected in 5 seconds, follow this <a href="{{redirect_url}}/">link.</a></p>
-        <iframe src="{{logout_page}}" style="display:none;"></iframe>
+        {%for i in range(0, len)%}
+            <iframe src="{{logout_pages[i]}}" style="display:none;"></iframe>
+        {%endfor%}
     </body>
 
 </html>
