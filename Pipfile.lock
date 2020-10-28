@@ -588,11 +588,11 @@
         },
         "fakeredis": {
             "hashes": [
-                "sha256:7ea0866ba5edb40fe2e9b1722535df0c7e6b91d518aa5f50d96c2fff3ea7f4c2",
-                "sha256:aad8836ffe0319ffbba66dcf872ac6e7e32d1f19790e31296ba58445efb0a5c7"
+                "sha256:8070b7fce16f828beaef2c757a4354af91698685d5232404f1aeeb233529c7a5",
+                "sha256:f8c8ea764d7b6fd801e7f5486e3edd32ca991d506186f1923a01fc072e33c271"
             ],
             "index": "pypi",
-            "version": "==1.4.3"
+            "version": "==1.4.4"
         },
         "filelock": {
             "hashes": [
@@ -759,10 +759,10 @@
         },
         "pytest-black": {
             "hashes": [
-                "sha256:595eb0e7908b8a858a8564a5c8f0eae853c3926a4ec7b2afdfcedfa6fec65dd6"
+                "sha256:1d339b004f764d6cd0f06e690f6dd748df3d62e6fe1a692d6a5500ac2c5b75a5"
             ],
             "index": "pypi",
-            "version": "==0.3.11"
+            "version": "==0.3.12"
         },
         "pytest-flake8": {
             "hashes": [
