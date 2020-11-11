@@ -17,7 +17,7 @@
 # limitations under the License.
 """Web auth routes."""
 
-from urllib.parse import urljoin, urlencode
+from urllib.parse import urljoin
 
 from flask import (
     Blueprint,
@@ -259,36 +259,21 @@ def user_profile():
 @blueprint.route("/logout")
 def logout():
 
-    logout_url = "{}/protocol/openid-connect/logout?{}".format(
-        current_app.config["OIDC_ISSUER"],
-        urlencode(
-            {
-                "redirect_uri": urljoin(
-                    current_app.config["HOST_NAME"], url_for("gitlab_auth.logout")
-                )
-            }
-        ),
-    )
-
-    if request.args.get("gitlab_logout"):
-        if "logout_from" in session:
-            session.clear()
-            return render_template(
-                "redirect_logout.html",
-                redirect_url="/",
-                logout_page=urljoin(
-                    current_app.config["HOST_NAME"], url_for("jupyterhub_auth.logout")
-                ),
-            )
-        else:
-            return current_app.make_response(redirect(current_app.config["GITLAB_URL"]))
-
     if "sub" in session:
         current_app.store.delete(get_redis_key_from_session(key_suffix=GL_SUFFIX))
         current_app.store.delete(get_redis_key_from_session(key_suffix=JH_SUFFIX))
         current_app.store.delete(get_redis_key_from_session(key_suffix=KC_SUFFIX))
-
     session.clear()
-    session["logout_from"] = "Renku"
 
-    return current_app.make_response(redirect(logout_url))
+    logout_pages = [
+        urljoin(current_app.config["HOST_NAME"], url_for("jupyterhub_auth.logout")),
+        urljoin(current_app.config["HOST_NAME"], url_for("gitlab_auth.logout")),
+        f"{current_app.config['OIDC_ISSUER']}/protocol/openid-connect/logout",
+    ]
+
+    return render_template(
+        "redirect_logout.html",
+        redirect_url=request.args.get("redirect_url"),
+        logout_pages=logout_pages,
+        len=len(logout_pages),
+    )
