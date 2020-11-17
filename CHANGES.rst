@@ -1,6 +1,16 @@
 Changes
 =======
 
+`0.9.2 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.9.1...0.9.2>`__ (2020-10-28)
+------------------------------------------------------------------------------------------------------
+
+Bug Fixes
+~~~~~~~~~
+
+-  **app:** fix JupyterHub logout and logout redirection
+   (`a7ffbed <https://github.com/SwissDataScienceCenter/renku-gateway/commit/a7ffbed>`__)
+
+
 `0.9.1 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.9.0...0.9.1>`__ (2020-10-06)
 ------------------------------------------------------------------------------------------------------
 
