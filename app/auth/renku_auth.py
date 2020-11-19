@@ -43,7 +43,7 @@ class RenkuCoreAuthHeaders:
             keycloak_oidc_client = current_app.store.get_oauth_client(
                 get_redis_key_from_token(access_token, key_suffix=KC_SUFFIX)
             )
-            headers["Renku-user-id-token"] = keycloak_oidc_client.token["id_token"]
+            headers["Renku-User"] = keycloak_oidc_client.token["id_token"]
 
             gitlab_oauth_client = current_app.store.get_oauth_client(
                 get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
