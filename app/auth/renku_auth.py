@@ -52,6 +52,9 @@ class RenkuCoreAuthHeaders:
                 gitlab_oauth_client.access_token
             )
 
+            # TODO: The subsequent information is now included in the JWT sent in the
+            # TODO: "Renku-User" header. It can be removed once the core-service
+            # TODO: relies on the new header.
             access_token_dict = decode_keycloak_jwt(access_token.encode())
             headers["Renku-user-id"] = access_token_dict["sub"]
             headers["Renku-user-email"] = b64encode(access_token_dict["email"].encode())
