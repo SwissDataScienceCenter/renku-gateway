@@ -66,12 +66,12 @@ def get_redis_key_from_token(token, key_suffix=""):
     return _get_redis_key(decoded_token["sub"], key_suffix=key_suffix)
 
 
-def handle_login_request(provider_app, redirect_path, key_suffix, scopes):
+def handle_login_request(provider_app, redirect_path, key_suffix, scope):
     """Logic to handle the login requests, avoids duplication"""
     oauth_client = RenkuWebApplicationClient(
         provider_app=provider_app,
         redirect_url=urljoin(current_app.config["HOST_NAME"], redirect_path),
-        scopes=scopes,
+        scope=scope,
         max_lifetime=current_app.config["MAX_ACCESS_TOKEN_LIFETIME"],
     )
     authorization_url = oauth_client.get_authorization_url()
