@@ -82,7 +82,7 @@ class GitlabUserToken:
         return headers
 
 
-SCOPES = ["openid", "api", "read_user", "read_repository"]
+SCOPE = ["openid", "api", "read_user", "read_repository"]
 
 
 @blueprint.route("/login")
@@ -96,7 +96,7 @@ def login():
         provider_app,
         urljoin(current_app.config["HOST_NAME"], url_for("gitlab_auth.token")),
         GL_SUFFIX,
-        SCOPES,
+        SCOPE,
     )
 
 

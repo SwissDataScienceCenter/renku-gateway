@@ -24,6 +24,7 @@ from flask import current_app
 
 from .utils import decode_keycloak_jwt, get_redis_key_from_token
 from .gitlab_auth import GL_SUFFIX
+from .web import KC_SUFFIX
 
 
 # TODO: We're using a class here only to have a uniform interface
@@ -39,6 +40,11 @@ class RenkuCoreAuthHeaders:
         if m:
             access_token = m.group("token")
 
+            keycloak_oidc_client = current_app.store.get_oauth_client(
+                get_redis_key_from_token(access_token, key_suffix=KC_SUFFIX)
+            )
+            headers["Renku-User"] = keycloak_oidc_client.token["id_token"]
+
             gitlab_oauth_client = current_app.store.get_oauth_client(
                 get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
             )
@@ -46,6 +52,9 @@ class RenkuCoreAuthHeaders:
                 gitlab_oauth_client.access_token
             )
 
+            # TODO: The subsequent information is now included in the JWT sent in the
+            # TODO: "Renku-User" header. It can be removed once the core-service
+            # TODO: relies on the new header.
             access_token_dict = decode_keycloak_jwt(access_token.encode())
             headers["Renku-user-id"] = access_token_dict["sub"]
             headers["Renku-user-email"] = b64encode(access_token_dict["email"].encode())

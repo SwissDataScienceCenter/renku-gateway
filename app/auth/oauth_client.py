@@ -38,7 +38,7 @@ class RenkuWebApplicationClient(WebApplicationClient):
         self,
         *args,
         provider_app=None,
-        scopes=None,
+        scope=None,
         max_lifetime=None,
         _expires_at=None,
         **kwargs
@@ -48,7 +48,7 @@ class RenkuWebApplicationClient(WebApplicationClient):
             provider_app, OAuthProviderApp
         ), "provider_app property must be instance of OAuthProviderApp class"
         self.provider_app = provider_app
-        self.scopes = scopes
+        self.scope = scope
         self.max_lifetime = max_lifetime
         self._expires_at = _expires_at
 
@@ -67,7 +67,6 @@ class RenkuWebApplicationClient(WebApplicationClient):
             authorization_response=authorization_response,
             client_secret=self.provider_app.client_secret,
             client_id=self.provider_app.client_id,
-            scopes=self.scopes,
             include_client_id=True,
             **kwargs
         )
@@ -101,7 +100,7 @@ class RenkuWebApplicationClient(WebApplicationClient):
             "access_token",
             "refresh_token",
             "token",
-            "scopes",
+            "scope",
             "state",
             "code",
             "redirect_url",
