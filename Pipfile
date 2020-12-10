@@ -9,7 +9,6 @@ flask-cors = "*"
 flask-kvsession = "*"
 gunicorn = {extras = ["gevent"],version = "*"}
 oauthlib = "*"
-oic = "*"
 pyjwt = "*"
 redis = "*"
 requests = "*"
@@ -18,6 +17,7 @@ responses = "*"
 sentry-sdk = {extras = ["flask"], version = "*"}
 sparqlwrapper = "*"
 werkzeug = "*"
+cryptography = "*"
 
 [dev-packages]
 pytest = "*"
