@@ -1,6 +1,17 @@
 Changes
 =======
 
+`0.9.3 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.9.2...0.9.3>`__ (2020-11-30)
+------------------------------------------------------------------------------------------------------
+
+Features
+~~~~~~~~
+
+-  **auth:** pass on KC id token to core service
+   (`#299 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/299>`__)
+   (`3d34d26 <https://github.com/SwissDataScienceCenter/renku-gateway/commit/3d34d26b38a87ec7cc5e5125286144b7c212f1b8>`__)
+
+
 `0.9.2 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.9.1...0.9.2>`__ (2020-10-28)
 ------------------------------------------------------------------------------------------------------
 
