@@ -15,6 +15,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+import hashlib
 import random
 import string
 from urllib.parse import urljoin
@@ -64,6 +66,12 @@ def get_redis_key_from_token(token, key_suffix=""):
     """Get the redis store from a keycloak access_token."""
     decoded_token = decode_keycloak_jwt(token)
     return _get_redis_key(decoded_token["sub"], key_suffix=key_suffix)
+
+
+def get_redis_key_from_cli_token(cli_token):
+    """Get the redis store from a CLI token."""
+    token_hash = hashlib.sha256(cli_token.encode()).hexdigest()
+    return f"cli_{token_hash}"
 
 
 def handle_login_request(provider_app, redirect_path, key_suffix, scope):

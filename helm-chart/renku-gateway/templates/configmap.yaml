@@ -55,6 +55,12 @@ data:
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}auth`)"
           Service = "gateway"
 
+        [http.routers.gitlab]
+          entryPoints = ["http"]
+          Middlewares = ["auth-gitlab", "common", "redirectGitlab"]
+          Rule = "PathPrefix(`{{ .Values.global.gitlab.urlPrefix | default "/gitlab/" }}`)"
+          Service = "gitlab"
+
         [http.routers.jupyterhub]
           entryPoints = ["http"]
           Middlewares = ["auth-jupyterhub", "common", "jupyterhub" ]
@@ -107,7 +113,7 @@ data:
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}direct/`)"
           Service = "gitlab"
 
-        [http.routers.gitlab]
+        [http.routers.fallback]
           # Currently gitlab acts as fallback backend service, we
           # therefore fix the priority of this router to the lowest
           # possible value.
@@ -145,6 +151,10 @@ data:
         [http.middlewares.uiRedirect.redirectRegex]
           regex = "http://(.*)/entities/(.*)"
           replacement = "{{(include "gateway.protocol" .)}}://${1}/${2}"
+
+        [http.middlewares.redirectGitlab.redirectRegex]
+          regex = "http://.*/gitlab/(.*)"
+          replacement = "https://dev.renku.ch/gitlab/${1}"
 
         [http.middlewares.commonWithCookie.chain]
           {{- if .Values.development }}

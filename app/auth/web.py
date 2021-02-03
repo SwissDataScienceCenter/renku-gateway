@@ -17,6 +17,7 @@
 # limitations under the License.
 """Web auth routes."""
 
+import re
 from urllib.parse import urljoin
 
 from flask import (
@@ -34,7 +35,9 @@ from .gitlab_auth import GL_SUFFIX
 from .jupyterhub_auth import JH_SUFFIX
 from .utils import (
     decode_keycloak_jwt,
+    get_redis_key_from_cli_token,
     get_redis_key_from_session,
+    get_redis_key_from_token,
     handle_login_request,
     TEMP_SESSION_KEY,
     handle_token_request,
@@ -52,47 +55,18 @@ def get_valid_token(headers):
 
     If a refresh token is available, it can be swapped for an access token.
     """
+    redis_key = None
 
-    # TODO: uncomment (and fix) when enabling CLI login.
-    # m = re.search(
-    #     r"bearer (?P<token>.+)", headers.get("Authorization", ""), re.IGNORECASE
-    # )
+    authorization = headers.get("Authorization", "")
 
-    # if m:
-    #     if jwt.decode(m.group("token"), verify=False).get("typ") in [
-    #         "Offline",
-    #         "Refresh",
-    #     ]:
-    #         current_app.logger.debug("Swapping the token")
-    #         to = Token(resp={"refresh_token": m.group("token")})
-
-    #         if "access_token" in token_response:
-    #             try:
-    #                 a = jwt.decode(
-    #                     token_response["access_token"],
-    #                     current_app.config["OIDC_PUBLIC_KEY"],
-    #                     algorithms=JWT_ALGORITHM,
-    #                     audience=current_app.config["OIDC_CLIENT_ID"],
-    #                 )
-    #                 return token_response
-    #             except:
-    #                 return None
-    #     else:
-    #         try:
-    #             jwt.decode(
-    #                 m.group("token"),
-    #                 current_app.config["OIDC_PUBLIC_KEY"],
-    #                 algorithms=JWT_ALGORITHM,
-    #                 audience=current_app.config["OIDC_CLIENT_ID"],
-    #             )
-
-    #             return {"access_token": m.group("token")}
-
-    #         except:
-    #             return None
-    # else:
-    if headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:
+    match = re.search(r"bearer\s+(?P<token>.+)", authorization, re.IGNORECASE)
+    if match:
+        access_token = match.group("token")
+        redis_key = get_redis_key_from_token(access_token, key_suffix=KC_SUFFIX)
+    elif headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:
         redis_key = get_redis_key_from_session(key_suffix=KC_SUFFIX)
+
+    if redis_key:
         keycloak_oidc_client = current_app.store.get_oauth_client(redis_key)
         return {"access_token": keycloak_oidc_client.access_token}
 
@@ -121,7 +95,9 @@ def login_next():
 def login():
     """Log in with Keycloak."""
     session.clear()
-    session["ui_redirect_url"] = request.args.get("redirect_url")
+    session["ui_redirect_url"] = (
+        request.args.get("redirect_url") or current_app.config["HOST_NAME"]
+    )
     session["cli_token"] = request.args.get("cli_token")
     session["login_seq"] = 0
 
@@ -153,68 +129,29 @@ def token():
     new_redis_key = get_redis_key_from_session(key_suffix=KC_SUFFIX)
     current_app.store.set_oauth_client(new_redis_key, keycloak_oidc_client)
 
+    cli_token = session.get("cli_token")
+    if cli_token:
+        cli_redis_key = get_redis_key_from_cli_token(cli_token)
+        current_app.store.set_oauth_client(cli_redis_key, keycloak_oidc_client)
+
     return response
 
 
-# TODO: Uncomment and fix when implementing CLI login
-# @blueprint.route("/info")
-# async def info():
-#     from .. import store
+@blueprint.route("/info")
+def info():
+    cli_token = request.args.get("cli_token")
+    if not cli_token:
+        return {"error": "CLI token is missing."}, 400
 
-#     t = request.args.get("cli_token")
-#     if t:
-#         timeout = 120
-#         key = "cli_{}".format(hashlib.sha256(t.encode()).hexdigest())
-#         current_app.logger.debug(
-#             "Waiting for Keycloak callback for request {}".format(t)
-#         )
-#         val = current_app.store.get(key)
-#         while not val and timeout > 0:
-#             time.sleep(3)
-#             timeout -= 3
-#             val = current_app.store.get(key)
-#         if val:
-#             current_app.store.delete(key)
-#             return val
-#         else:
-#             current_app.logger.debug("Timeout while waiting for request {}".format(t))
-#             return '{"error": "timeout"}'
-#     else:
+    cli_redis_key = get_redis_key_from_cli_token(cli_token)
+    current_app.logger.debug(f"Looking up Keycloak for request {cli_token}")
+    keycloak_oidc_client = current_app.store.get_oauth_client(cli_redis_key)
 
-#         if "token" not in session:
-#             return await current_app.make_response(
-#                 redirect(
-#                     "{}?redirect_url={}".format(
-# noqa                         url_for("web_auth.login"), quote_plus(url_for("web_auth.info"))
-#                     )
-#                 )
-#             )
-
-#         try:
-#             a = jwt.decode(
-#                 session["token"],
-#                 current_app.config["OIDC_PUBLIC_KEY"],
-#                 algorithms=JWT_ALGORITHM,
-#                 audience=current_app.config["OIDC_CLIENT_ID"],
-#             )  # TODO: logout and redirect if fails because of expired
-
-#             return (
-#                 "You can copy/paste the following tokens if needed "
-#                 "and close this page: "
-#                 "<br> Access Token: {}<br>Refresh Token: {}".format(
-# noqa                    current_app.store.get(get_redis_key(a, "kc_access_token")).decode(),
-# noqa                    current_app.store.get(get_redis_key(a, "kc_refresh_token")).decode(),
-#                 )
-#             )
-
-#         except jwt.ExpiredSignatureError:
-#             return await current_app.make_response(
-#                 redirect(
-#                     "{}?redirect_url={}".format(
-# noqa                        url_for("web_auth.login"), quote_plus(url_for("web_auth.info"))
-#                     )
-#                 )
-#             )
+    if keycloak_oidc_client:
+        current_app.store.delete(cli_redis_key)
+        return {"access_token": keycloak_oidc_client.access_token}
+    else:
+        return {"error": "Access token not found"}, 404
 
 
 # @blueprint.route("/user")
