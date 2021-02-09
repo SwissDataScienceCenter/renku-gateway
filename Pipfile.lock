@@ -87,16 +87,16 @@
         },
         "cryptography": {
             "hashes": [
-                "sha256:007edf78a0b96513b94c1c7cc515286aec72f787bdcd11892edcdec9e27e936d",
-                "sha256:423c12d04df7ed3323e74745cba91056a411bd8f57609a6a64562845ccc5541a",
-                "sha256:4d8df1f5b6b172fe53a465d8fc32134a07ccd4dc677f19af85562bcbc7e97504",
-                "sha256:85c7d84beacf32bf629767f06c78af0350eb869e2830e4ebe05b239c695eca38",
-                "sha256:be70bdaa29bcacf70896dae3a6f3eef91daf51bfba8a49dbfb9c23bb2cc914ba",
-                "sha256:cd1d14b6c52d9372a7f4682576fa7d9c9d256afa6cc50828b337dbb8a9596066",
-                "sha256:e63b8da1d77ff60a73d72db68cb72e8ffbe9f7319e5ffa23f6bfe2757d6871e3"
+                "sha256:180baf51ad689b3b86bce7c2bf0cfff491fdea16fa2fe640a77e316ee26bad1e",
+                "sha256:1a37179da6d3a67db8e324d60d9e421b3cfd5ca6467b6861d9b1ce86dd191be3",
+                "sha256:3cce61b179ff415ccc67393c6d6fa577aedb23d776779527c79ebf2438d4d25b",
+                "sha256:965fd6905f188876a49f1b9edadad0847ef8d056cd4995e82b9a4f03ac049bd0",
+                "sha256:bbce8faaaee586d5c84c5eacf77f227710b3bf24f229f6ced6f9fe3e7a662223",
+                "sha256:c58467c96f3b79cf9eb4628371c235427db2c1ece210c2c539d38d23338875e4",
+                "sha256:d70065c42de45e15776a53216000283a2a183ae37379badb37f527a2bdfd6221"
             ],
             "index": "pypi",
-            "version": "==3.4.1"
+            "version": "==3.4.3"
         },
         "flask": {
             "hashes": [
@@ -338,13 +338,6 @@
             "index": "pypi",
             "version": "==0.12.1"
         },
-        "semantic-version": {
-            "hashes": [
-                "sha256:45e4b32ee9d6d70ba5f440ec8cc5221074c7f4b0e8918bdab748cc37912440a9",
-                "sha256:d2cb2de0558762934679b9a104e82eca7af448c9f4974d1f3eeccff651df8a54"
-            ],
-            "version": "==2.8.5"
-        },
         "sentry-sdk": {
             "extras": [
                 "flask"
@@ -355,13 +348,6 @@
             ],
             "index": "pypi",
             "version": "==0.19.5"
-        },
-        "setuptools-rust": {
-            "hashes": [
-                "sha256:5acf8cd8e89d57f0cd3cc942f60fa2ccfdede4c7a0b0d4b28eb7ab756df30347",
-                "sha256:a5b5954909cbc5d66b914ee6763f81fa2610916041c7266105a469f504a7c4ca"
-            ],
-            "version": "==0.11.6"
         },
         "simplekv": {
             "hashes": [
@@ -386,13 +372,6 @@
             ],
             "index": "pypi",
             "version": "==1.8.5"
-        },
-        "toml": {
-            "hashes": [
-                "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b",
-                "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f"
-            ],
-            "version": "==0.10.2"
         },
         "urllib3": {
             "hashes": [
