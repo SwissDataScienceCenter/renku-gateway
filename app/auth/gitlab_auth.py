@@ -17,6 +17,7 @@
 # limitations under the License.
 """Implement GitLab authentication workflow."""
 
+import base64
 import re
 from urllib.parse import urljoin
 
@@ -54,6 +55,19 @@ class GitlabUserToken:
 
     def process(self, request, headers):
 
+        renku_token = headers.pop("Renku-Token", None)
+        if renku_token:
+            redis_key = get_redis_key_from_token(renku_token, key_suffix=GL_SUFFIX)
+            gitlab_oauth_client = current_app.store.get_oauth_client(redis_key)
+            if gitlab_oauth_client:
+
+                basic_auth = f"oauth2:{gitlab_oauth_client.access_token}"
+                current_app.logger.debug(f"GITLAB BASIC AUTH {basic_auth}")
+                basic_auth = base64.b64encode(basic_auth.encode("utf-8")).decode("ascii")
+                headers["Authorization"] = f"Basic {basic_auth}"
+                current_app.logger.debug(f"GITLAB AUTHORIZATION {basic_auth}")
+                return headers
+
         m = re.search(
             r"bearer (?P<token>.+)", headers.get("Authorization", ""), re.IGNORECASE
         )
@@ -65,6 +79,7 @@ class GitlabUserToken:
             gitlab_oauth_client = current_app.store.get_oauth_client(
                 get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
             )
+            current_app.logger.debug(f"GITLAB OAUTH {bool(gitlab_oauth_client)}")
             if gitlab_oauth_client:
                 headers[self.header_field] = "{}{}".format(
                     self.header_prefix, gitlab_oauth_client.access_token
@@ -73,9 +88,11 @@ class GitlabUserToken:
                     "Renku-Token"
                 ] = access_token  # can be needed later in the request processing
 
+                current_app.logger.debug(f"GITLAB OAUTH HEADERS {headers}")
+
         else:
             current_app.logger.debug(
-                "No authorization header, returning empty auth headers"
+                f"No authorization header, returning empty auth headers"
             )
             pass
 

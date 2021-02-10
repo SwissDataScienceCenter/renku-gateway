@@ -20,6 +20,7 @@
 import re
 from urllib.parse import urljoin
 
+import jwt
 from flask import (
     Blueprint,
     current_app,
@@ -57,18 +58,47 @@ def get_valid_token(headers):
     """
     redis_key = None
 
-    authorization = headers.get("Authorization", "")
-
-    match = re.search(r"bearer\s+(?P<token>.+)", authorization, re.IGNORECASE)
-    if match:
-        access_token = match.group("token")
-        redis_key = get_redis_key_from_token(access_token, key_suffix=KC_SUFFIX)
-    elif headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:
+    if headers.get("Renku-Token"):
+        current_app.logger.debug("----- FOUND RENKU TOKEN -----")
+    if not headers.get("Renku-Token") and headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:
         redis_key = get_redis_key_from_session(key_suffix=KC_SUFFIX)
-
-    if redis_key:
         keycloak_oidc_client = current_app.store.get_oauth_client(redis_key)
         return {"access_token": keycloak_oidc_client.access_token}
+
+    '''
+    m = re.search(
+        r"bearer (?P<token>.+)", headers.get("Authorization", ""), re.IGNORECASE
+    )
+    if m:
+        if jwt.decode(m.group("token"), verify=False).get("typ") in [
+            "Offline",
+            "Refresh",
+        ]:
+            current_app.logger.debug("Swapping the token")
+            to = Token(resp={"refresh_token": m.group("token")})
+            if "access_token" in token_response:
+                try:
+                    a = jwt.decode(
+                        token_response["access_token"],
+                        current_app.config["OIDC_PUBLIC_KEY"],
+                        algorithms=JWT_ALGORITHM,
+                        audience=current_app.config["OIDC_CLIENT_ID"],
+                    )
+                    return token_response
+                except:
+                    return None
+        else:
+            try:
+                jwt.decode(
+                    m.group("token"),
+                    current_app.config["OIDC_PUBLIC_KEY"],
+                    algorithms=JWT_ALGORITHM,
+                    audience=current_app.config["OIDC_CLIENT_ID"],
+                )
+                return {"access_token": m.group("token")}
+            except:
+                return None
+    '''
 
     return None
 
@@ -149,7 +179,10 @@ def info():
 
     if keycloak_oidc_client:
         current_app.store.delete(cli_redis_key)
-        return {"access_token": keycloak_oidc_client.access_token}
+        import json
+        resp = json.loads(keycloak_oidc_client.to_json())
+        return resp
+        # return {"access_token": keycloak_oidc_client.access_token, "refresh_token": keycloak_oidc_client.refresh_token}
     else:
         return {"error": "Access token not found"}, 404
 
