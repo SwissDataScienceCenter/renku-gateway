@@ -49,25 +49,7 @@ blueprint = Blueprint("gitlab_auth", __name__, url_prefix="/auth/gitlab")
 
 
 class GitlabUserToken:
-    def __init__(self, header_field="Authorization", header_prefix="Bearer "):
-        self.header_field = header_field
-        self.header_prefix = header_prefix
-
     def process(self, request, headers):
-
-        renku_token = headers.pop("Renku-Token", None)
-        if renku_token:
-            redis_key = get_redis_key_from_token(renku_token, key_suffix=GL_SUFFIX)
-            gitlab_oauth_client = current_app.store.get_oauth_client(redis_key)
-            if gitlab_oauth_client:
-
-                basic_auth = f"oauth2:{gitlab_oauth_client.access_token}"
-                current_app.logger.debug(f"GITLAB BASIC AUTH {basic_auth}")
-                basic_auth = base64.b64encode(basic_auth.encode("utf-8")).decode("ascii")
-                headers["Authorization"] = f"Basic {basic_auth}"
-                current_app.logger.debug(f"GITLAB AUTHORIZATION {basic_auth}")
-                return headers
-
         m = re.search(
             r"bearer (?P<token>.+)", headers.get("Authorization", ""), re.IGNORECASE
         )
@@ -76,25 +58,23 @@ class GitlabUserToken:
             #    'outgoing headers: {}'.format(json.dumps(headers)
             # )
             access_token = m.group("token")
-            gitlab_oauth_client = current_app.store.get_oauth_client(
-                get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
-            )
-            current_app.logger.debug(f"GITLAB OAUTH {bool(gitlab_oauth_client)}")
+            redis_key = get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
+            gitlab_oauth_client = current_app.store.get_oauth_client(redis_key)
+
             if gitlab_oauth_client:
-                headers[self.header_field] = "{}{}".format(
-                    self.header_prefix, gitlab_oauth_client.access_token
-                )
-                headers[
-                    "Renku-Token"
-                ] = access_token  # can be needed later in the request processing
+                renku_token = headers.pop("Renku-Token", None)
+                gitlab_access_token = gitlab_oauth_client.access_token
 
-                current_app.logger.debug(f"GITLAB OAUTH HEADERS {headers}")
-
+                if renku_token:  # Request comes from git CLI; create basic auth header
+                    user_pass = f"oauth2:{gitlab_access_token}".encode("utf-8")
+                    basic_auth = base64.b64encode(user_pass).decode("ascii")
+                    headers["Authorization"] = f"Basic {basic_auth}"
+                else:
+                    headers["Authorization"] = f"Bearer {gitlab_access_token}"
         else:
             current_app.logger.debug(
-                f"No authorization header, returning empty auth headers"
+                "No authorization header, returning empty auth headers"
             )
-            pass
 
         return headers
 

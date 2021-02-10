@@ -115,12 +115,9 @@ def auth():
     try:
         # validate incoming authentication
         # it can either be in session-cookie or Authorization header
-        new_tokens = web.get_valid_token(headers)
-        current_app.logger.debug(f"MY AUTH {auth_arg}")
-        if new_tokens:
-            headers["Authorization"] = "Bearer {}".format(
-                new_tokens.get("access_token")
-            )
+        new_token = web.get_valid_token(headers)
+        if new_token:
+            headers["Authorization"] = f"Bearer {new_token}"
         if "Authorization" in headers and "Referer" in headers:
             allowed = False
             origins = jwt.decode(
@@ -147,7 +144,6 @@ def auth():
 
         # auth processors always assume a valid Authorization in header, if any
         headers = auth.process(request, headers)
-        current_app.logger.debug("PROCESSED: " + str(headers))
     except jwt.ExpiredSignatureError:
         current_app.logger.warning(
             f"Error while authenticating request, token expired. Target: {auth_arg}",

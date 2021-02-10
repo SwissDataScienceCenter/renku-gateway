@@ -20,7 +20,6 @@
 import re
 from urllib.parse import urljoin
 
-import jwt
 from flask import (
     Blueprint,
     current_app,
@@ -38,10 +37,11 @@ from .utils import (
     decode_keycloak_jwt,
     get_redis_key_from_cli_token,
     get_redis_key_from_session,
-    get_redis_key_from_token,
     handle_login_request,
     TEMP_SESSION_KEY,
     handle_token_request,
+    get_redis_key_from_refresh_token,
+    verify_refresh_token,
 )
 
 blueprint = Blueprint("web_auth", __name__, url_prefix="/auth")
@@ -56,51 +56,33 @@ def get_valid_token(headers):
 
     If a refresh token is available, it can be swapped for an access token.
     """
-    redis_key = None
 
-    if headers.get("Renku-Token"):
-        current_app.logger.debug("----- FOUND RENKU TOKEN -----")
-    if not headers.get("Renku-Token") and headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:
+    def get_access_token_from_refresh_token(refresh_token):
+        redis_key = get_redis_key_from_refresh_token(
+            refresh_token, key_suffix=KC_SUFFIX
+        )
+        oauth_client = current_app.store.get_oauth_client(redis_key)
+        if verify_refresh_token(refresh_token, oauth_client):
+            return oauth_client.access_token
+
+    renku_token = headers.get("Renku-Token")
+    authorization = headers.get("Authorization")
+    authorization_match = (
+        re.search(r"bearer\s+(?P<token>.+)", authorization, re.IGNORECASE)
+        if authorization
+        else None
+    )
+
+    # If Renku-Token exists it comes from git in CLI and it is a refresh token
+    if renku_token:
+        return get_access_token_from_refresh_token(renku_token)
+    elif authorization_match:  # If token bearer exists it's a refresh token too
+        refresh_token = authorization_match.group("token")
+        return get_access_token_from_refresh_token(refresh_token)
+    elif headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:
         redis_key = get_redis_key_from_session(key_suffix=KC_SUFFIX)
         keycloak_oidc_client = current_app.store.get_oauth_client(redis_key)
-        return {"access_token": keycloak_oidc_client.access_token}
-
-    '''
-    m = re.search(
-        r"bearer (?P<token>.+)", headers.get("Authorization", ""), re.IGNORECASE
-    )
-    if m:
-        if jwt.decode(m.group("token"), verify=False).get("typ") in [
-            "Offline",
-            "Refresh",
-        ]:
-            current_app.logger.debug("Swapping the token")
-            to = Token(resp={"refresh_token": m.group("token")})
-            if "access_token" in token_response:
-                try:
-                    a = jwt.decode(
-                        token_response["access_token"],
-                        current_app.config["OIDC_PUBLIC_KEY"],
-                        algorithms=JWT_ALGORITHM,
-                        audience=current_app.config["OIDC_CLIENT_ID"],
-                    )
-                    return token_response
-                except:
-                    return None
-        else:
-            try:
-                jwt.decode(
-                    m.group("token"),
-                    current_app.config["OIDC_PUBLIC_KEY"],
-                    algorithms=JWT_ALGORITHM,
-                    audience=current_app.config["OIDC_CLIENT_ID"],
-                )
-                return {"access_token": m.group("token")}
-            except:
-                return None
-    '''
-
-    return None
+        return keycloak_oidc_client.access_token
 
 
 LOGIN_SEQUENCE = ["web_auth.login", "gitlab_auth.login", "jupyterhub_auth.login"]
@@ -175,14 +157,14 @@ def info():
 
     cli_redis_key = get_redis_key_from_cli_token(cli_token)
     current_app.logger.debug(f"Looking up Keycloak for request {cli_token}")
-    keycloak_oidc_client = current_app.store.get_oauth_client(cli_redis_key)
+    keycloak_oidc_client = current_app.store.get_oauth_client(
+        cli_redis_key, no_refresh=True
+    )
 
     if keycloak_oidc_client:
         current_app.store.delete(cli_redis_key)
-        import json
-        resp = json.loads(keycloak_oidc_client.to_json())
-        return resp
-        # return {"access_token": keycloak_oidc_client.access_token, "refresh_token": keycloak_oidc_client.refresh_token}
+        # Note: Send refresh token to CLI
+        return {"access_token": keycloak_oidc_client.refresh_token}
     else:
         return {"error": "Access token not found"}, 404
 

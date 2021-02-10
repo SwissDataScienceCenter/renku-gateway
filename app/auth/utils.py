@@ -68,6 +68,14 @@ def get_redis_key_from_token(token, key_suffix=""):
     return _get_redis_key(decoded_token["sub"], key_suffix=key_suffix)
 
 
+def get_redis_key_from_refresh_token(refresh_token, key_suffix=""):
+    """Get the redis store from a keycloak refresh_token."""
+    # TODO: Verifying refresh token does not work similar to access_token
+    # NOTE: We verify refresh token later once we got the OAuth Client
+    decoded_token = jwt.decode(refresh_token, verify=False)
+    return _get_redis_key(decoded_token["sub"], key_suffix=key_suffix)
+
+
 def get_redis_key_from_cli_token(cli_token):
     """Get the redis store from a CLI token."""
     token_hash = hashlib.sha256(cli_token.encode()).hexdigest()
@@ -100,3 +108,8 @@ def handle_token_request(request, key_suffix):
         )
     )
     return response, oauth_client
+
+
+def verify_refresh_token(refresh_token, oauth_client):
+    """Check if refresh token is the same as the one in OAuth Client."""
+    return oauth_client and refresh_token == oauth_client.refresh_token
