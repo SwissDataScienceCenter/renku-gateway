@@ -57,8 +57,15 @@ data:
 
         [http.routers.gitlab]
           entryPoints = ["http"]
-          Middlewares = ["auth-gitlab", "common", "redirectGitlab"]
           Rule = "PathPrefix(`{{ .Values.global.gitlab.urlPrefix | default "/gitlab/" }}`)"
+          Service = "gitlab"
+
+        [http.routers.gitlabRenkuToken]
+          # Set a high priority for this rule to take over the normal gitlab forwarding
+          priority = 10000
+          entryPoints = ["http"]
+          Middlewares = ["auth-gitlab", "common"]
+          Rule = "PathPrefix(`{{ .Values.global.gitlab.urlPrefix | default "/gitlab/" }}`) && HeadersRegexp(`Renku-Token`, `.*`)"
           Service = "gitlab"
 
         [http.routers.jupyterhub]
@@ -151,10 +158,6 @@ data:
         [http.middlewares.uiRedirect.redirectRegex]
           regex = "http://(.*)/entities/(.*)"
           replacement = "{{(include "gateway.protocol" .)}}://${1}/${2}"
-
-        [http.middlewares.redirectGitlab.redirectRegex]
-          regex = "http://.*/gitlab/(.*)"
-          replacement = "https://dev.renku.ch/gitlab/${1}"
 
         [http.middlewares.commonWithCookie.chain]
           {{- if .Values.development }}
