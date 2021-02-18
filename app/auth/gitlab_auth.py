@@ -17,7 +17,6 @@
 # limitations under the License.
 """Implement GitLab authentication workflow."""
 
-import base64
 import re
 from urllib.parse import urljoin
 
@@ -62,15 +61,8 @@ class GitlabUserToken:
             gitlab_oauth_client = current_app.store.get_oauth_client(redis_key)
 
             if gitlab_oauth_client:
-                renku_token = headers.pop("Renku-Token", None)
                 gitlab_access_token = gitlab_oauth_client.access_token
-
-                if renku_token:  # Request comes from git CLI; create basic auth header
-                    user_pass = f"oauth2:{gitlab_access_token}".encode("utf-8")
-                    basic_auth = base64.b64encode(user_pass).decode("ascii")
-                    headers["Authorization"] = f"Basic {basic_auth}"
-                else:
-                    headers["Authorization"] = f"Bearer {gitlab_access_token}"
+                headers["Authorization"] = f"Bearer {gitlab_access_token}"
         else:
             current_app.logger.debug(
                 "No authorization header, returning empty auth headers"

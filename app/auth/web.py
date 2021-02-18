@@ -65,7 +65,6 @@ def get_valid_token(headers):
         if verify_refresh_token(refresh_token, oauth_client):
             return oauth_client.access_token
 
-    renku_token = headers.get("Renku-Token")
     authorization = headers.get("Authorization")
     authorization_match = (
         re.search(r"bearer\s+(?P<token>.+)", authorization, re.IGNORECASE)
@@ -73,10 +72,7 @@ def get_valid_token(headers):
         else None
     )
 
-    # If Renku-Token exists it comes from git in CLI and it is a refresh token
-    if renku_token:
-        return get_access_token_from_refresh_token(renku_token)
-    elif authorization_match:  # If token bearer exists it's a refresh token too
+    if authorization_match:  # If token bearer exists it's a refresh token
         refresh_token = authorization_match.group("token")
         return get_access_token_from_refresh_token(refresh_token)
     elif headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:

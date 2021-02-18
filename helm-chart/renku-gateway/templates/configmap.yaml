@@ -55,19 +55,6 @@ data:
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}auth`)"
           Service = "gateway"
 
-        [http.routers.gitlab]
-          entryPoints = ["http"]
-          Rule = "PathPrefix(`{{ .Values.global.gitlab.urlPrefix | default "/gitlab/" }}`)"
-          Service = "gitlab"
-
-        [http.routers.gitlabRenkuToken]
-          # Set a high priority for this rule to take over the normal gitlab forwarding
-          priority = 10000
-          entryPoints = ["http"]
-          Middlewares = ["auth-gitlab", "common"]
-          Rule = "PathPrefix(`{{ .Values.global.gitlab.urlPrefix | default "/gitlab/" }}`) && HeadersRegexp(`Renku-Token`, `.*`)"
-          Service = "gitlab"
-
         [http.routers.jupyterhub]
           entryPoints = ["http"]
           Middlewares = ["auth-jupyterhub", "common", "jupyterhub" ]
@@ -120,7 +107,7 @@ data:
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}direct/`)"
           Service = "gitlab"
 
-        [http.routers.fallback]
+        [http.routers.gitlab]
           # Currently gitlab acts as fallback backend service, we
           # therefore fix the priority of this router to the lowest
           # possible value.
