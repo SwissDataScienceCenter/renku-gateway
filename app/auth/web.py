@@ -96,6 +96,9 @@ def login_next():
             ),
         )
     else:
+        if session["cli_token"]:
+            return render_template("renku_login.html")
+
         return redirect(session["ui_redirect_url"])
 
 
@@ -103,9 +106,7 @@ def login_next():
 def login():
     """Log in with Keycloak."""
     session.clear()
-    session["ui_redirect_url"] = (
-        request.args.get("redirect_url") or current_app.config["HOST_NAME"]
-    )
+    session["ui_redirect_url"] = request.args.get("redirect_url")
     session["cli_token"] = request.args.get("cli_token")
     session["login_seq"] = 0
 
