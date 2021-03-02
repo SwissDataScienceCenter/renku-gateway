@@ -123,6 +123,12 @@ data:
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}renku`)"
           Service = "core"
 
+        [http.routers.kg]
+          entryPoints = ["http"]
+          Middlewares = ["auth-gitlab-with-id", "common", "kg", "knowledgeGraph"]
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}kg`)"
+          Service = "knowledgeGraph"
+
       [http.middlewares]
 
         # We assume entity IDs which are URL-safe except <namespace>/<project-name>
@@ -185,6 +191,11 @@ data:
           trustForwardHeader = true
           authResponseHeaders = ["Authorization"]
 
+        [http.middlewares.auth-gitlab-with-id.forwardauth]
+          address = "http://{{ template "gateway.fullname" . }}-auth/?auth=gitlab&details=userId"
+          trustForwardHeader = true
+          authResponseHeaders = ["Authorization", "x-gitlab-user-id"]
+
         [http.middlewares.auth-jupyterhub.forwardauth]
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=jupyterhub"
           trustForwardHeader = true
@@ -220,6 +231,9 @@ data:
             period = "{{ .Values.rateLimits.general.period }}"
             average = {{ .Values.rateLimits.general.average }}
             burst = {{ .Values.rateLimits.general.burst }}
+
+        [http.middlewares.kg.StripPrefix]
+          prefixes = ["/kg"]
 
       [http.services]
         [http.services.gateway.LoadBalancer]
