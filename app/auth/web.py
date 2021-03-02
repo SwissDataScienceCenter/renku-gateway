@@ -35,13 +35,13 @@ from .gitlab_auth import GL_SUFFIX
 from .jupyterhub_auth import JH_SUFFIX
 from .utils import (
     decode_keycloak_jwt,
-    get_redis_key_from_cli_token,
+    get_redis_key_for_cli,
     get_redis_key_from_session,
     handle_login_request,
     TEMP_SESSION_KEY,
     handle_token_request,
     get_redis_key_from_refresh_token,
-    verify_refresh_token,
+    verify_refresh_token, generate_user_code,
 )
 
 blueprint = Blueprint("web_auth", __name__, url_prefix="/auth")
@@ -96,8 +96,9 @@ def login_next():
             ),
         )
     else:
-        if session["cli_token"]:
-            return render_template("renku_login.html")
+        if session.get("cli_token"):
+            user_code = session["cli_user_code"]
+            return render_template("renku_login.html", user_code=user_code)
 
         return redirect(session["ui_redirect_url"])
 
@@ -107,8 +108,12 @@ def login():
     """Log in with Keycloak."""
     session.clear()
     session["ui_redirect_url"] = request.args.get("redirect_url")
-    session["cli_token"] = request.args.get("cli_token")
     session["login_seq"] = 0
+
+    cli_token = request.args.get("cli_token")
+    if cli_token:
+        session["cli_token"] = cli_token
+        session["cli_user_code"] = generate_user_code()
 
     provider_app = KeycloakProviderApp(
         client_id=current_app.config["OIDC_CLIENT_ID"],
@@ -140,7 +145,7 @@ def token():
 
     cli_token = session.get("cli_token")
     if cli_token:
-        cli_redis_key = get_redis_key_from_cli_token(cli_token)
+        cli_redis_key = get_redis_key_for_cli(cli_token, session["cli_user_code"])
         current_app.store.set_oauth_client(cli_redis_key, keycloak_oidc_client)
 
     return response
@@ -149,10 +154,11 @@ def token():
 @blueprint.route("/info")
 def info():
     cli_token = request.args.get("cli_token")
-    if not cli_token:
-        return {"error": "CLI token is missing."}, 400
+    user_code = request.args.get("user_code")
+    if not cli_token or not user_code:
+        return {"error": "Required arguments are missing."}, 400
 
-    cli_redis_key = get_redis_key_from_cli_token(cli_token)
+    cli_redis_key = get_redis_key_for_cli(cli_token, user_code)
     current_app.logger.debug(f"Looking up Keycloak for request {cli_token}")
     keycloak_oidc_client = current_app.store.get_oauth_client(
         cli_redis_key, no_refresh=True

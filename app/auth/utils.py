@@ -18,6 +18,7 @@
 
 import hashlib
 import random
+import secrets
 import string
 from urllib.parse import urljoin
 
@@ -76,10 +77,10 @@ def get_redis_key_from_refresh_token(refresh_token, key_suffix=""):
     return _get_redis_key(decoded_token["sub"], key_suffix=key_suffix)
 
 
-def get_redis_key_from_cli_token(cli_token):
-    """Get the redis store from a CLI token."""
+def get_redis_key_for_cli(cli_token, user_code):
+    """Get the redis store from CLI token and user code."""
     token_hash = hashlib.sha256(cli_token.encode()).hexdigest()
-    return f"cli_{token_hash}"
+    return f"cli_{token_hash}_{user_code}"
 
 
 def handle_login_request(provider_app, redirect_path, key_suffix, scope):
@@ -113,3 +114,9 @@ def handle_token_request(request, key_suffix):
 def verify_refresh_token(refresh_token, oauth_client):
     """Check if refresh token is the same as the one in OAuth Client."""
     return oauth_client and refresh_token == oauth_client.refresh_token
+
+
+def generate_user_code():
+    """Generate a 256-bit secure key to be used by users in CLI login."""
+    n_bytes = 256 // 8
+    return secrets.token_hex(n_bytes)
