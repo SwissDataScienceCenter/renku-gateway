@@ -72,9 +72,6 @@ class GitlabUserToken:
                 headers[
                     "Renku-Token"
                 ] = access_token  # can be needed later in the request processing
-            if "details" in request.args:
-                if request.args.get("details") == "userId":
-                    headers["x-gitlab-user-id"] = "TBA"
 
         else:
             current_app.logger.debug(
