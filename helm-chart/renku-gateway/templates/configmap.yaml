@@ -81,18 +81,6 @@ data:
           Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph/status{endpoint:(.*)}`)"
           Service = "webhooks"
 
-        [http.routers.graphql]
-          entryPoints = ["http"]
-          Middlewares = ["common", "graphql"]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}graphql`)"
-          Service = "graphql"
-
-        [http.routers.datasets]
-          entryPoints = ["http"]
-          Middlewares = ["common", "knowledgeGraph"]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}datasets`)"
-          Service = "knowledgeGraph"
-
         [http.routers.direct]
           # This is to access undocumented APIs in GitLab
           entryPoints = ["http"]
@@ -125,7 +113,7 @@ data:
 
         [http.routers.kg]
           entryPoints = ["http"]
-          Middlewares = ["auth-gitlab", "common", "kg", "knowledgeGraph"]
+          Middlewares = ["auth-gitlab", "common", "knowledgeGraph"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}kg`)"
           Service = "knowledgeGraph"
 
@@ -209,12 +197,9 @@ data:
           regex = "^/projects/([^/]*)/graph(.*)"
           replacement = "/projects/$1/events$2"
 
-        [http.middlewares.graphql.ReplacePathRegex]
-          regex = "/graphql"
-          replacement = "/knowledge-graph/graphql"
-
-        [http.middlewares.knowledgeGraph.AddPrefix]
-          prefix = "/knowledge-graph"
+        [http.middlewares.knowledgeGraph.ReplacePathRegex]
+          regex = "^/kg/(.*)"
+          replacement = "/knowledge-graph/$1"
 
         [http.middlewares.direct.ReplacePathRegex]
           regex = "^/api/direct/(.*)"
@@ -226,9 +211,6 @@ data:
             period = "{{ .Values.rateLimits.general.period }}"
             average = {{ .Values.rateLimits.general.average }}
             burst = {{ .Values.rateLimits.general.burst }}
-
-        [http.middlewares.kg.StripPrefix]
-          prefixes = ["/kg"]
 
       [http.services]
         [http.services.gateway.LoadBalancer]
@@ -257,13 +239,6 @@ data:
           passHostHeader = false
           [[http.services.webhooks.LoadBalancer.servers]]
             url = {{ .Values.graph.webhookService.hostname | default (printf "http://%s-webhook-service" .Release.Name ) | quote }}
-            weight = 1
-
-        [http.services.graphql.LoadBalancer]
-          method = "drr"
-          passHostHeader = false
-          [[http.services.graphql.LoadBalancer.servers]]
-          url = {{ .Values.graph.knowledgeGraph.hostname | default (printf "http://%s-knowledge-graph" .Release.Name ) | quote }}
             weight = 1
 
         [http.services.knowledgeGraph.LoadBalancer]
