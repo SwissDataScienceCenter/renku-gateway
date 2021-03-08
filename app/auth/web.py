@@ -41,7 +41,8 @@ from .utils import (
     TEMP_SESSION_KEY,
     handle_token_request,
     get_redis_key_from_refresh_token,
-    verify_refresh_token, generate_user_code,
+    verify_refresh_token,
+    generate_user_code,
 )
 
 blueprint = Blueprint("web_auth", __name__, url_prefix="/auth")
