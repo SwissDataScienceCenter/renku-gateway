@@ -42,7 +42,7 @@ from .utils import (
     handle_token_request,
     get_redis_key_from_refresh_token,
     verify_refresh_token,
-    generate_user_code,
+    generate_nonce,
 )
 
 blueprint = Blueprint("web_auth", __name__, url_prefix="/auth")
@@ -97,9 +97,9 @@ def login_next():
             ),
         )
     else:
-        if session.get("cli_token"):
-            user_code = session["cli_user_code"]
-            return render_template("renku_login.html", user_code=user_code)
+        if session.get("cli_nonce"):
+            server_nonce = session["server_nonce"]
+            return render_template("cli_login.html", server_nonce=server_nonce)
 
         return redirect(session["ui_redirect_url"])
 
@@ -111,10 +111,10 @@ def login():
     session["ui_redirect_url"] = request.args.get("redirect_url")
     session["login_seq"] = 0
 
-    cli_token = request.args.get("cli_token")
-    if cli_token:
-        session["cli_token"] = cli_token
-        session["cli_user_code"] = generate_user_code()
+    cli_nonce = request.args.get("cli_nonce")
+    if cli_nonce:
+        session["cli_nonce"] = cli_nonce
+        session["server_nonce"] = generate_nonce()
 
     provider_app = KeycloakProviderApp(
         client_id=current_app.config["OIDC_CLIENT_ID"],
@@ -144,9 +144,10 @@ def token():
     new_redis_key = get_redis_key_from_session(key_suffix=KC_SUFFIX)
     current_app.store.set_oauth_client(new_redis_key, keycloak_oidc_client)
 
-    cli_token = session.get("cli_token")
-    if cli_token:
-        cli_redis_key = get_redis_key_for_cli(cli_token, session["cli_user_code"])
+    cli_nonce = session.pop("cli_nonce", None)
+    if cli_nonce:
+        server_nonce = session.pop("server_nonce", None)
+        cli_redis_key = get_redis_key_for_cli(cli_nonce, server_nonce)
         current_app.store.set_oauth_client(cli_redis_key, keycloak_oidc_client)
 
     return response
@@ -154,13 +155,13 @@ def token():
 
 @blueprint.route("/info")
 def info():
-    cli_token = request.args.get("cli_token")
-    user_code = request.args.get("user_code")
-    if not cli_token or not user_code:
+    cli_nonce = request.args.get("cli_nonce")
+    server_nonce = request.args.get("server_nonce")
+    if not cli_nonce or not server_nonce:
         return {"error": "Required arguments are missing."}, 400
 
-    cli_redis_key = get_redis_key_for_cli(cli_token, user_code)
-    current_app.logger.debug(f"Looking up Keycloak for request {cli_token}")
+    cli_redis_key = get_redis_key_for_cli(cli_nonce, server_nonce)
+    current_app.logger.debug(f"Looking up Keycloak for request {cli_nonce}")
     keycloak_oidc_client = current_app.store.get_oauth_client(
         cli_redis_key, no_refresh=True
     )

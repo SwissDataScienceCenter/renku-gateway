@@ -77,10 +77,10 @@ def get_redis_key_from_refresh_token(refresh_token, key_suffix=""):
     return _get_redis_key(decoded_token["sub"], key_suffix=key_suffix)
 
 
-def get_redis_key_for_cli(cli_token, user_code):
+def get_redis_key_for_cli(cli_nonce, server_nonce):
     """Get the redis store from CLI token and user code."""
-    token_hash = hashlib.sha256(cli_token.encode()).hexdigest()
-    return f"cli_{token_hash}_{user_code}"
+    cli_nonce_hash = hashlib.sha256(cli_nonce.encode()).hexdigest()
+    return f"cli_{cli_nonce_hash}_{server_nonce}"
 
 
 def handle_login_request(provider_app, redirect_path, key_suffix, scope):
@@ -116,7 +116,7 @@ def verify_refresh_token(refresh_token, oauth_client):
     return oauth_client and refresh_token == oauth_client.refresh_token
 
 
-def generate_user_code():
-    """Generate a 256-bit secure key to be used by users in CLI login."""
-    n_bytes = 256 // 8
+def generate_nonce(n_bits=256):
+    """Generate a one-time secure key."""
+    n_bytes = int(n_bits) // 8
     return secrets.token_hex(n_bytes)
