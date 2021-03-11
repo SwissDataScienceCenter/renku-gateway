@@ -1,6 +1,16 @@
 Changes
 =======
 
+`0.9.4 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.9.3...0.9.4>`__ (2021-03-10)
+------------------------------------------------------------------------------------------------------
+
+Features
+~~~~~~~~
+
+-  add routing for GitLab authenticated Knowledge Graph requests
+   (`#382 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/382>`__)
+   (`eed159f <https://github.com/SwissDataScienceCenter/renku-gateway/commit/eed159fac4e104adb7bdf6551c9ee82acf5aefba>`__)
+
 `0.9.3 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.9.2...0.9.3>`__ (2020-11-30)
 ------------------------------------------------------------------------------------------------------
 
