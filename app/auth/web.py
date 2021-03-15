@@ -30,6 +30,7 @@ from flask import (
     url_for,
 )
 
+from .cli_auth import handle_cli_token_request
 from .oauth_provider_app import KeycloakProviderApp
 from .gitlab_auth import GL_SUFFIX
 from .jupyterhub_auth import JH_SUFFIX
@@ -75,6 +76,7 @@ def get_valid_token(headers):
 
     if authorization_match:  # If token bearer exists it's a refresh token
         refresh_token = authorization_match.group("token")
+        current_app.logger.debug(f"LOG: HAS CLI TOKEN {refresh_token}")
         return get_access_token_from_refresh_token(refresh_token)
     elif headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:
         redis_key = get_redis_key_from_session(key_suffix=KC_SUFFIX)
@@ -82,23 +84,26 @@ def get_valid_token(headers):
         return keycloak_oidc_client.access_token
 
 
-LOGIN_SEQUENCE = ["web_auth.login", "gitlab_auth.login", "jupyterhub_auth.login"]
+LOGIN_SEQUENCE = ("web_auth.login", "cli_auth.login", "gitlab_auth.login", "jupyterhub_auth.login")
 
 
 @blueprint.route("/login/next")
 def login_next():
     session["login_seq"] += 1
     if session["login_seq"] < len(LOGIN_SEQUENCE):
+        next_login = LOGIN_SEQUENCE[session["login_seq"]]
+        current_app.logger.warn(f"================ LOG: LOGIN NEXT {next_login}")
         return render_template(
             "redirect.html",
             redirect_url=urljoin(
-                current_app.config["HOST_NAME"],
-                url_for(LOGIN_SEQUENCE[session["login_seq"]]),
+                current_app.config["HOST_NAME"], url_for(next_login)
             ),
         )
     else:
-        if session.get("cli_nonce"):
-            server_nonce = session["server_nonce"]
+        cli_nonce = session.pop("cli_nonce", None)
+        current_app.logger.warn(f"================ LOG: LOGIN ENDS {cli_nonce}")
+        if cli_nonce:
+            server_nonce = session.pop("server_nonce", None)
             return render_template("cli_login.html", server_nonce=server_nonce)
 
         return redirect(session["ui_redirect_url"])
@@ -108,13 +113,17 @@ def login_next():
 def login():
     """Log in with Keycloak."""
     session.clear()
-    session["ui_redirect_url"] = request.args.get("redirect_url")
-    session["login_seq"] = 0
 
     cli_nonce = request.args.get("cli_nonce")
+    current_app.logger.warn(f"================ LOG: LOGIN STARTS {cli_nonce}")
     if cli_nonce:
         session["cli_nonce"] = cli_nonce
         session["server_nonce"] = generate_nonce()
+        session["login_seq"] = 0
+    else:
+        session["login_seq"] = 1
+
+    session["ui_redirect_url"] = request.args.get("redirect_url")
 
     provider_app = KeycloakProviderApp(
         client_id=current_app.config["OIDC_CLIENT_ID"],
@@ -144,34 +153,12 @@ def token():
     new_redis_key = get_redis_key_from_session(key_suffix=KC_SUFFIX)
     current_app.store.set_oauth_client(new_redis_key, keycloak_oidc_client)
 
-    cli_nonce = session.pop("cli_nonce", None)
-    if cli_nonce:
-        server_nonce = session.pop("server_nonce", None)
-        cli_redis_key = get_redis_key_for_cli(cli_nonce, server_nonce)
-        current_app.store.set_oauth_client(cli_redis_key, keycloak_oidc_client)
-
     return response
 
 
-@blueprint.route("/info")
+@blueprint.route("/cli-token")
 def info():
-    cli_nonce = request.args.get("cli_nonce")
-    server_nonce = request.args.get("server_nonce")
-    if not cli_nonce or not server_nonce:
-        return {"error": "Required arguments are missing."}, 400
-
-    cli_redis_key = get_redis_key_for_cli(cli_nonce, server_nonce)
-    current_app.logger.debug(f"Looking up Keycloak for request {cli_nonce}")
-    keycloak_oidc_client = current_app.store.get_oauth_client(
-        cli_redis_key, no_refresh=True
-    )
-
-    if keycloak_oidc_client:
-        current_app.store.delete(cli_redis_key)
-        # Note: Send refresh token to CLI
-        return {"access_token": keycloak_oidc_client.refresh_token}
-    else:
-        return {"error": "Access token not found"}, 404
+    return handle_cli_token_request(request)
 
 
 # @blueprint.route("/user")

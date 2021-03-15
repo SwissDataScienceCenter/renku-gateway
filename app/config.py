@@ -54,6 +54,17 @@ ALLOW_ORIGIN = os.environ.get("GATEWAY_ALLOW_ORIGIN", "").split(",")
 
 REDIS_HOST = os.environ.get("GATEWAY_REDIS_HOST", "renku-gw-redis")
 
+CLI_CLIENT_ID = os.environ.get("CLI_CLIENT_ID", "renku-cli")
+# TODO remove this default password
+CLI_CLIENT_SECRET = os.environ.get("CLI_CLIENT_SECRET", "1734b83a-1c90-4757-b53d-2954f1db9699")
+if not CLI_CLIENT_SECRET:
+    warnings.warn(
+        "The environment variable CLI_CLIENT_SECRET is not set."
+        "It is mandatory for CLI login."
+    )
+
+CLI_LOGIN_TIMEOUT = int(os.environ.get("CLI_LOGIN_TIMEOUT", 300))
+
 GITLAB_URL = os.environ.get("GITLAB_URL", "http://gitlab.renku.build")
 GITLAB_CLIENT_ID = os.environ.get("GITLAB_CLIENT_ID", "renku-ui")
 GITLAB_CLIENT_SECRET = os.environ.get("GITLAB_CLIENT_SECRET")

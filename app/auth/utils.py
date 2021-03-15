@@ -45,7 +45,7 @@ def _get_redis_key(sub_claim, key_suffix=""):
     return "cache_{}_{}".format(sub_claim, key_suffix)
 
 
-def get_redis_key_from_session(key_suffix=""):
+def get_redis_key_from_session(key_suffix):
     """Create a key for the redis store.
     - use 'sub' claim if already present in session
     - otherwise use temporary cache key if already present in session
@@ -89,11 +89,13 @@ def handle_login_request(provider_app, redirect_path, key_suffix, scope):
         provider_app=provider_app,
         redirect_url=urljoin(current_app.config["HOST_NAME"], redirect_path),
         scope=scope,
-        max_lifetime=current_app.config["MAX_ACCESS_TOKEN_LIFETIME"],
+        max_lifetime=None,
     )
     authorization_url = oauth_client.get_authorization_url()
     redis_key = get_redis_key_from_session(key_suffix=key_suffix)
     current_app.store.set_oauth_client(redis_key, oauth_client)
+    current_app.logger.warn(f"LOG: HANDLING LOGIN {redirect_path} {authorization_url}")
+
     return current_app.make_response(redirect(authorization_url))
 
 
@@ -111,7 +113,7 @@ def handle_token_request(request, key_suffix):
     return response, oauth_client
 
 
-def verify_refresh_token(refresh_token, oauth_client):
+def verify_refresh_token(refresh_token, oauth_client):  # TODO: delete-me
     """Check if refresh token is the same as the one in OAuth Client."""
     return oauth_client and refresh_token == oauth_client.refresh_token
 

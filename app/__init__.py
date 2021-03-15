@@ -35,7 +35,7 @@ from simplekv.memory.redisstore import RedisStore
 
 
 from . import config
-from .auth import gitlab_auth, jupyterhub_auth, web
+from .auth import gitlab_auth, jupyterhub_auth, web, cli_auth
 from .auth.oauth_redis import OAuthRedis
 
 # Wait for the VS Code debugger to attach if requested
@@ -82,6 +82,7 @@ if "pytest" not in sys.modules:
 
 url_prefix = app.config["SERVICE_PREFIX"]
 blueprints = (
+    cli_auth.blueprint,
     gitlab_auth.blueprint,
     jupyterhub_auth.blueprint,
     web.blueprint,
@@ -91,8 +92,10 @@ blueprints = (
 @app.route("/", methods=["GET"])
 def auth():
     if "auth" not in request.args:
+        current_app.logger.debug("LOG: NO AUTH")
         return Response("", status=200)
 
+    from .auth.cli_auth import RenkuCoreCLIAuthHeaders
     from .auth.gitlab_auth import GitlabUserToken
     from .auth.jupyterhub_auth import JupyterhubUserToken
     from .auth.renku_auth import RenkuCoreAuthHeaders
@@ -101,11 +104,14 @@ def auth():
         "gitlab": GitlabUserToken,
         "jupyterhub": JupyterhubUserToken,
         "renku": RenkuCoreAuthHeaders,
+        "renku-cli": RenkuCoreCLIAuthHeaders,
     }
 
     auth_arg = request.args.get("auth")
     auth = auths[auth_arg]()
     headers = dict(request.headers)
+
+    current_app.logger.debug(f"LOG: AUTH with auth={auth_arg}")
 
     # Keycloak public key is not defined so error
     if current_app.config["OIDC_PUBLIC_KEY"] is None:
@@ -117,8 +123,11 @@ def auth():
         # it can either be in session-cookie or Authorization header
         new_token = web.get_valid_token(headers)
         if new_token:
+            current_app.logger.debug(f"LOG: GOT NEW TOKEN: {new_token}")
             headers["Authorization"] = f"Bearer {new_token}"
         if "Authorization" in headers and "Referer" in headers:
+            current_app.logger.debug("CHECKING REFERER")
+
             allowed = False
             origins = jwt.decode(
                 headers["Authorization"][7:],
@@ -145,6 +154,7 @@ def auth():
         # auth processors always assume a valid Authorization in header, if any
         headers = auth.process(request, headers)
     except jwt.ExpiredSignatureError:
+        current_app.logger.debug("LOG: EXPIRED")
         current_app.logger.warning(
             f"Error while authenticating request, token expired. Target: {auth_arg}",
             exc_info=True,
