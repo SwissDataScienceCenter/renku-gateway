@@ -67,7 +67,6 @@ def get_valid_token(headers):
         redis_key = get_redis_key_from_token(
             token, key_suffix=CLI_SUFFIX, audience=audience
         )
-        current_app.logger.debug(f"LOG: HAS CLI TOKEN {token} {redis_key}")
     elif headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:
         redis_key = get_redis_key_from_session(key_suffix=KC_SUFFIX)
     else:
@@ -90,14 +89,12 @@ def login_next():
     session["login_seq"] += 1
     if session["login_seq"] < len(LOGIN_SEQUENCE):
         next_login = LOGIN_SEQUENCE[session["login_seq"]]
-        current_app.logger.warn(f"================ LOG: LOGIN NEXT {next_login}")
         return render_template(
             "redirect.html",
             redirect_url=urljoin(current_app.config["HOST_NAME"], url_for(next_login)),
         )
     else:
         cli_nonce = session.pop("cli_nonce", None)
-        current_app.logger.warn(f"================ LOG: LOGIN ENDS {cli_nonce}")
         if cli_nonce:
             server_nonce = session.pop("server_nonce", None)
             return render_template("cli_login.html", server_nonce=server_nonce)
@@ -109,17 +106,15 @@ def login_next():
 def login():
     """Log in with Keycloak."""
     session.clear()
+    session["ui_redirect_url"] = request.args.get("redirect_url")
 
     cli_nonce = request.args.get("cli_nonce")
-    current_app.logger.warn(f"================ LOG: LOGIN STARTS {cli_nonce}")
     if cli_nonce:
         session["cli_nonce"] = cli_nonce
         session["server_nonce"] = generate_nonce()
         session["login_seq"] = 0
     else:
         session["login_seq"] = 1
-
-    session["ui_redirect_url"] = request.args.get("redirect_url")
 
     provider_app = KeycloakProviderApp(
         client_id=current_app.config["OIDC_CLIENT_ID"],

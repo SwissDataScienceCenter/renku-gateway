@@ -93,7 +93,6 @@ blueprints = (
 @app.route("/", methods=["GET"])
 def auth():
     if "auth" not in request.args:
-        current_app.logger.debug("LOG: NO AUTH")
         return Response("", status=200)
 
     auths = {
@@ -111,8 +110,6 @@ def auth():
     auth_arg = request.args.get("auth")
     headers = dict(request.headers)
 
-    current_app.logger.debug(f"LOG: AUTH with auth={auth_arg}")
-
     try:
         auth = auths[auth_arg]()
 
@@ -120,11 +117,9 @@ def auth():
         # it can either be in session-cookie or Authorization header
         new_token, audience = web.get_valid_token(headers)
         if new_token:
-            current_app.logger.debug(f"LOG: GOT NEW TOKEN: {new_token}")
             headers["Authorization"] = f"Bearer {new_token}"
 
         if "Authorization" in headers and "Referer" in headers:
-            current_app.logger.debug(f"""LOG: CHECKING REFERER headers["Referer"]""")
             allowed = False
             origins = decode_keycloak_jwt(
                 token=headers["Authorization"][7:], audience=audience
@@ -148,7 +143,6 @@ def auth():
         # auth processors always assume a valid Authorization in header, if any
         headers = auth.process(request, headers)
     except jwt.ExpiredSignatureError:
-        current_app.logger.debug("LOG: EXPIRED")
         current_app.logger.warning(
             f"Error while authenticating request, token expired. Target: {auth_arg}",
             exc_info=True,

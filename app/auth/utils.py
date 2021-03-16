@@ -94,7 +94,6 @@ def handle_login_request(provider_app, redirect_path, key_suffix, scope):
     authorization_url = oauth_client.get_authorization_url()
     redis_key = get_redis_key_from_session(key_suffix=key_suffix)
     current_app.store.set_oauth_client(redis_key, oauth_client)
-    current_app.logger.warn(f"LOG: HANDLING LOGIN {redirect_path} {authorization_url}")
 
     return current_app.make_response(redirect(authorization_url))
 

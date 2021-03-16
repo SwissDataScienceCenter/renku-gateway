@@ -83,16 +83,11 @@ class RenkuCoreCLIAuthHeaders:
                 access_token_dict["name"].encode()
             )
 
-            current_app.logger.debug(f"LOG: CLI AUTHED {gitlab_oauth_client.access_token}")
-        else:
-            current_app.logger.debug("LOG: CLI NOT AUTHED")
-
         return headers
 
 
 @blueprint.route("/login")
 def login():
-    current_app.logger.warn("LOG: cli_auth.login called")
     provider_app = KeycloakProviderApp(
         client_id=current_app.config["CLI_CLIENT_ID"],
         client_secret=current_app.config["CLI_CLIENT_SECRET"],
@@ -108,7 +103,6 @@ def login():
 
 @blueprint.route("/token")
 def token():
-    current_app.logger.warn("LOG: cli_auth.token called")
     response, _ = handle_token_request(request, CLI_SUFFIX)
 
     client_redis_key = get_redis_key_from_session(key_suffix=CLI_SUFFIX)
