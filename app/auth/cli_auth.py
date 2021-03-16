@@ -33,8 +33,8 @@ from flask import (
     url_for,
 )
 
-from .gitlab_auth import GL_SUFFIX, SCOPE
-from .oauth_provider_app import GitLabProviderApp
+from .gitlab_auth import GL_SUFFIX
+from .oauth_provider_app import KeycloakProviderApp
 from .utils import (
     get_redis_key_from_token,
     handle_login_request,
@@ -44,6 +44,9 @@ from .utils import (
 CLI_SUFFIX = "cli_oauth_client"
 
 blueprint = Blueprint("cli_auth", __name__, url_prefix="/auth/cli")
+
+
+SCOPE = ["openid"]
 
 
 class RenkuCoreCLIAuthHeaders:
@@ -86,32 +89,23 @@ class RenkuCoreCLIAuthHeaders:
 @blueprint.route("/login")
 def login():
     current_app.logger.warn("LOG: cli_auth.login called")
-    # provider_app = GitLabProviderApp(
-    #     client_id=current_app.config["GITLAB_CLIENT_ID"],
-    #     client_secret=current_app.config["GITLAB_CLIENT_SECRET"],
-    #     base_url=current_app.config["GITLAB_URL"],
-    # )
-    # return handle_login_request(
-    #     provider_app,
-    #     urljoin(current_app.config["HOST_NAME"], url_for("cli_auth.token")),
-    #     CLI_SUFFIX,
-    #     SCOPE,
-    # )
-    gitlab_redis_key = get_redis_key_from_session(key_suffix=GL_SUFFIX)
-    gitlab_oauth_client = current_app.store.get_oauth_client(gitlab_redis_key)
-
-    redis_key = get_redis_key_from_session(key_suffix=CLI_SUFFIX)
-    current_app.store.set_oauth_client(redis_key, gitlab_oauth_client)
-    # current_app.logger.warn(f"LOG: HANDLING LOGIN {redirect_path} {authorization_url}")
-    token_url = urljoin(current_app.config["HOST_NAME"], url_for("cli_auth.token"))
-
-    return current_app.make_response(redirect(token_url))
+    provider_app = KeycloakProviderApp(
+        client_id=current_app.config["CLI_CLIENT_ID"],
+        client_secret=current_app.config["CLI_CLIENT_SECRET"],
+        base_url=current_app.config["OIDC_ISSUER"],
+    )
+    return handle_login_request(
+        provider_app,
+        urljoin(current_app.config["HOST_NAME"], url_for("cli_auth.token")),
+        CLI_SUFFIX,
+        SCOPE,
+    )
 
 
 @blueprint.route("/token")
 def token():
     current_app.logger.warn("LOG: cli_auth.token called")
-    # response, _ = handle_token_request(request, CLI_SUFFIX)
+    response, _ = handle_token_request(request, CLI_SUFFIX)
 
     client_redis_key = get_redis_key_from_session(key_suffix=CLI_SUFFIX)
     cli_nonce = session.get("cli_nonce")
@@ -123,11 +117,6 @@ def token():
     else:
         current_app.logger.warn("cli_auth.token called without cli_nonce")
 
-    response = current_app.make_response(
-        redirect(
-            urljoin(current_app.config["HOST_NAME"], url_for("web_auth.login_next"))
-        )
-    )
     return response
 
 

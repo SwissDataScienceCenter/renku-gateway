@@ -84,13 +84,13 @@ def get_valid_token(headers):
         return keycloak_oidc_client.access_token
 
 
-LOGIN_SEQUENCE = ("web_auth.login", "gitlab_auth.login", "jupyterhub_auth.login", "cli_auth.login")
+LOGIN_SEQUENCE = ("web_auth.login", "cli_auth.login", "gitlab_auth.login", "jupyterhub_auth.login")
 
 
 @blueprint.route("/login/next")
 def login_next():
     session["login_seq"] += 1
-    if session["login_seq"] < session["login_seq_end"]:
+    if session["login_seq"] < len(LOGIN_SEQUENCE):
         next_login = LOGIN_SEQUENCE[session["login_seq"]]
         current_app.logger.warn(f"================ LOG: LOGIN NEXT {next_login}")
         return render_template(
@@ -113,17 +113,17 @@ def login_next():
 def login():
     """Log in with Keycloak."""
     session.clear()
-    session["login_seq"] = 0
-    session["ui_redirect_url"] = request.args.get("redirect_url")
 
     cli_nonce = request.args.get("cli_nonce")
     current_app.logger.warn(f"================ LOG: LOGIN STARTS {cli_nonce}")
     if cli_nonce:
         session["cli_nonce"] = cli_nonce
         session["server_nonce"] = generate_nonce()
-        session["login_seq_end"] = 4
+        session["login_seq"] = 0
     else:
-        session["login_seq_end"] = 3
+        session["login_seq"] = 1
+
+    session["ui_redirect_url"] = request.args.get("redirect_url")
 
     provider_app = KeycloakProviderApp(
         client_id=current_app.config["OIDC_CLIENT_ID"],
