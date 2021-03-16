@@ -211,7 +211,7 @@ data:
         [http.middlewares.auth-renkuCli.forwardauth]
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=renku-cli"
           trustForwardHeader = true
-          authResponseHeaders = ["Authorization", "Renku-user-id", "Renku-user-fullname", "Renku-user-email"]
+          authResponseHeaders = ["Authorization"]
 
         [http.middlewares.webhooks.ReplacePathRegex]
           regex = "^/projects/([^/]*)/graph/webhooks(.*)"

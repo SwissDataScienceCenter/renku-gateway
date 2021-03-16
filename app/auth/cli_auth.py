@@ -20,21 +20,13 @@
 import json
 import re
 import time
-from base64 import b64encode
 from urllib.parse import urljoin
 
-from flask import (
-    Blueprint,
-    current_app,
-    request,
-    session,
-    url_for,
-)
+from flask import Blueprint, current_app, request, session, url_for
 
 from .gitlab_auth import GL_SUFFIX
 from .oauth_provider_app import KeycloakProviderApp
 from .utils import (
-    decode_keycloak_jwt,
     get_redis_key_for_cli,
     get_redis_key_from_session,
     get_redis_key_from_token,
@@ -49,7 +41,6 @@ SCOPE = ["openid"]
 
 
 class RenkuCoreCLIAuthHeaders:
-
     def process(self, request, headers):
         authorization = headers.get("Authorization")
         authorization_match = (
@@ -60,28 +51,11 @@ class RenkuCoreCLIAuthHeaders:
         if authorization_match:
             token = authorization_match.group("token")
             audience = current_app.config["CLI_CLIENT_ID"]
-
-            redis_key = get_redis_key_from_token(
-                token, key_suffix=CLI_SUFFIX, audience=audience
-            )
-            oauth_client = current_app.store.get_oauth_client(redis_key)
-            headers["Renku-User"] = oauth_client.token["id_token"]
-
             redis_key = get_redis_key_from_token(
                 token, key_suffix=GL_SUFFIX, audience=audience
             )
             gitlab_oauth_client = current_app.store.get_oauth_client(redis_key)
             headers["Authorization"] = f"Bearer {gitlab_oauth_client.access_token}"
-
-            # TODO: The subsequent information is now included in the JWT sent in the
-            # TODO: "Renku-User" header. It can be removed once the core-service
-            # TODO: relies on the new header.
-            access_token_dict = decode_keycloak_jwt(token.encode(), audience=audience)
-            headers["Renku-user-id"] = access_token_dict["sub"]
-            headers["Renku-user-email"] = b64encode(access_token_dict["email"].encode())
-            headers["Renku-user-fullname"] = b64encode(
-                access_token_dict["name"].encode()
-            )
 
         return headers
 
