@@ -22,9 +22,9 @@ client instances in redis.
 """
 
 import base64
-from cryptography.fernet import Fernet
 import sys
 
+from cryptography.fernet import Fernet
 from flask import current_app
 from oauthlib.oauth2.rfc6749.errors import OAuth2Error
 

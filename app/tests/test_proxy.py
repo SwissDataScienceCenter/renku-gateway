@@ -23,19 +23,18 @@ import requests
 import responses
 
 from .. import app
-from ..auth.oauth_redis import OAuthRedis
+from ..auth.gitlab_auth import GL_SUFFIX
 from ..auth.oauth_client import RenkuWebApplicationClient
 from ..auth.oauth_provider_app import OAuthProviderApp
+from ..auth.oauth_redis import OAuthRedis
 from ..auth.utils import get_redis_key_from_token
-from ..auth.gitlab_auth import GL_SUFFIX
 from .test_data import (
     PRIVATE_KEY,
-    PUBLIC_KEY,
-    TOKEN_PAYLOAD,
-    SECRET_KEY,
     PROVIDER_APP_DICT,
+    PUBLIC_KEY,
+    SECRET_KEY,
+    TOKEN_PAYLOAD,
 )
-
 
 # TODO: Completely refactor all tests, massively improve test coverage.
 # TODO: https://github.com/swissdatasciencecenter/renku-gateway/issues/92

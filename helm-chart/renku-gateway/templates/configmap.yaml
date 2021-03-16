@@ -129,13 +129,12 @@ data:
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}kg`)"
           Service = "knowledgeGraph"
 
-        [http.routers.renkuCli]
-          # Set a high priority for this rule to take over the normal renku forwarding
-          priority = 10000
+        [http.routers.knowledgeGraphCli]
+          # Access to knowledge-graph from CLI
           entryPoints = ["http"]
           Middlewares = ["auth-renkuCli", "common"]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}renku`) && HeadersRegexp(`Renku-Token`, `.*`)"
-          Service = "core"
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}knowledge-graph`)"
+          Service = "knowledgeGraph"
 
       [http.middlewares]
 

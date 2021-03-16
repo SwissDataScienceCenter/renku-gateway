@@ -30,20 +30,18 @@ from flask import (
     url_for,
 )
 
-from .cli_auth import handle_cli_token_request
-from .oauth_provider_app import KeycloakProviderApp
+from .cli_auth import CLI_SUFFIX, handle_cli_token_request
 from .gitlab_auth import GL_SUFFIX
 from .jupyterhub_auth import JH_SUFFIX
+from .oauth_provider_app import KeycloakProviderApp
 from .utils import (
-    decode_keycloak_jwt,
-    get_redis_key_for_cli,
-    get_redis_key_from_session,
-    handle_login_request,
     TEMP_SESSION_KEY,
-    handle_token_request,
-    get_redis_key_from_refresh_token,
-    verify_refresh_token,
+    decode_keycloak_jwt,
     generate_nonce,
+    get_redis_key_from_session,
+    get_redis_key_from_token,
+    handle_login_request,
+    handle_token_request,
 )
 
 blueprint = Blueprint("web_auth", __name__, url_prefix="/auth")
@@ -53,20 +51,7 @@ SCOPE = ["openid"]
 
 
 def get_valid_token(headers):
-    """
-    Look for a fresh and valid token, first in headers, then in the session.
-
-    If a refresh token is available, it can be swapped for an access token.
-    """
-
-    def get_access_token_from_refresh_token(refresh_token):
-        redis_key = get_redis_key_from_refresh_token(
-            refresh_token, key_suffix=KC_SUFFIX
-        )
-        oauth_client = current_app.store.get_oauth_client(redis_key)
-        if verify_refresh_token(refresh_token, oauth_client):
-            return oauth_client.access_token
-
+    """Look for a fresh and valid token, first in headers, then in the session."""
     authorization = headers.get("Authorization")
     authorization_match = (
         re.search(r"bearer\s+(?P<token>.+)", authorization, re.IGNORECASE)
@@ -74,17 +59,30 @@ def get_valid_token(headers):
         else None
     )
 
-    if authorization_match:  # If token bearer exists it's a refresh token
-        refresh_token = authorization_match.group("token")
-        current_app.logger.debug(f"LOG: HAS CLI TOKEN {refresh_token}")
-        return get_access_token_from_refresh_token(refresh_token)
+    audience = None
+
+    if authorization_match:  # If token bearer exists it's a CLI token
+        audience = current_app.config["CLI_CLIENT_ID"]
+        token = authorization_match.group("token")
+        redis_key = get_redis_key_from_token(
+            token, key_suffix=CLI_SUFFIX, audience=audience
+        )
+        current_app.logger.debug(f"LOG: HAS CLI TOKEN {token} {redis_key}")
     elif headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:
         redis_key = get_redis_key_from_session(key_suffix=KC_SUFFIX)
-        keycloak_oidc_client = current_app.store.get_oauth_client(redis_key)
-        return keycloak_oidc_client.access_token
+    else:
+        return None, audience
+
+    keycloak_oidc_client = current_app.store.get_oauth_client(redis_key)
+    return keycloak_oidc_client.access_token, audience
 
 
-LOGIN_SEQUENCE = ("web_auth.login", "cli_auth.login", "gitlab_auth.login", "jupyterhub_auth.login")
+LOGIN_SEQUENCE = (
+    "web_auth.login",
+    "cli_auth.login",
+    "gitlab_auth.login",
+    "jupyterhub_auth.login",
+)
 
 
 @blueprint.route("/login/next")
@@ -95,9 +93,7 @@ def login_next():
         current_app.logger.warn(f"================ LOG: LOGIN NEXT {next_login}")
         return render_template(
             "redirect.html",
-            redirect_url=urljoin(
-                current_app.config["HOST_NAME"], url_for(next_login)
-            ),
+            redirect_url=urljoin(current_app.config["HOST_NAME"], url_for(next_login)),
         )
     else:
         cli_nonce = session.pop("cli_nonce", None)

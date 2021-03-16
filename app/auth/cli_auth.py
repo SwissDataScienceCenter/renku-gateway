@@ -26,8 +26,6 @@ from urllib.parse import urljoin
 from flask import (
     Blueprint,
     current_app,
-    redirect,
-    render_template,
     request,
     session,
     url_for,
@@ -36,52 +34,58 @@ from flask import (
 from .gitlab_auth import GL_SUFFIX
 from .oauth_provider_app import KeycloakProviderApp
 from .utils import (
+    decode_keycloak_jwt,
+    get_redis_key_for_cli,
+    get_redis_key_from_session,
     get_redis_key_from_token,
     handle_login_request,
-    handle_token_request, get_redis_key_for_cli, decode_keycloak_jwt, get_redis_key_from_session,
+    handle_token_request,
 )
-
-CLI_SUFFIX = "cli_oauth_client"
 
 blueprint = Blueprint("cli_auth", __name__, url_prefix="/auth/cli")
 
-
+CLI_SUFFIX = "cli_oauth_client"
 SCOPE = ["openid"]
 
 
 class RenkuCoreCLIAuthHeaders:
+
     def process(self, request, headers):
-
-        m = re.search(
-            r"bearer (?P<token>.+)", headers.get("Authorization", ""), re.IGNORECASE
+        authorization = headers.get("Authorization")
+        authorization_match = (
+            re.search(r"bearer\s+(?P<token>.+)", authorization, re.IGNORECASE)
+            if authorization
+            else None
         )
-        if m:
-            access_token = m.group("token")
+        if authorization_match:
+            token = authorization_match.group("token")
+            audience = current_app.config["CLI_CLIENT_ID"]
 
-            keycloak_oidc_client = current_app.store.get_oauth_client(
-                get_redis_key_from_token(access_token, key_suffix=CLI_SUFFIX)
+            redis_key = get_redis_key_from_token(
+                token, key_suffix=CLI_SUFFIX, audience=audience
             )
-            headers["Renku-User"] = keycloak_oidc_client.token["id_token"]
+            oauth_client = current_app.store.get_oauth_client(redis_key)
+            headers["Renku-User"] = oauth_client.token["id_token"]
 
-            gitlab_oauth_client = current_app.store.get_oauth_client(
-                get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
+            redis_key = get_redis_key_from_token(
+                token, key_suffix=GL_SUFFIX, audience=audience
             )
-            headers["Authorization"] = "Bearer {}".format(
-                gitlab_oauth_client.access_token
-            )
+            gitlab_oauth_client = current_app.store.get_oauth_client(redis_key)
+            headers["Authorization"] = f"Bearer {gitlab_oauth_client.access_token}"
 
             # TODO: The subsequent information is now included in the JWT sent in the
             # TODO: "Renku-User" header. It can be removed once the core-service
             # TODO: relies on the new header.
-            access_token_dict = decode_keycloak_jwt(access_token.encode())
+            access_token_dict = decode_keycloak_jwt(token.encode(), audience=audience)
             headers["Renku-user-id"] = access_token_dict["sub"]
             headers["Renku-user-email"] = b64encode(access_token_dict["email"].encode())
             headers["Renku-user-fullname"] = b64encode(
                 access_token_dict["name"].encode()
             )
 
+            current_app.logger.debug(f"LOG: CLI AUTHED {gitlab_oauth_client.access_token}")
         else:
-            pass
+            current_app.logger.debug("LOG: CLI NOT AUTHED")
 
         return headers
 
@@ -141,7 +145,8 @@ class CLILoginInfo:
     def to_json(self):
         """Serialize an instance to json string."""
         data = {
-            "client_redis_key": self.client_redis_key, "login_start": self.login_start
+            "client_redis_key": self.client_redis_key,
+            "login_start": self.login_start,
         }
         return json.dumps(data)
 

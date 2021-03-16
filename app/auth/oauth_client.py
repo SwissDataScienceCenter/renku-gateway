@@ -27,7 +27,7 @@ import time
 from oauthlib.oauth2 import WebApplicationClient
 from requests_oauthlib import OAuth2Session
 
-from .oauth_provider_app import OAuthProviderApp, JupyterHubProviderApp
+from .oauth_provider_app import JupyterHubProviderApp, OAuthProviderApp
 
 
 class RenkuWebApplicationClient(WebApplicationClient):

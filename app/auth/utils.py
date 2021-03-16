@@ -31,13 +31,13 @@ JWT_ALGORITHM = "RS256"
 TEMP_SESSION_KEY = "temp_cache_key"
 
 
-def decode_keycloak_jwt(token):
+def decode_keycloak_jwt(token, audience=None):
     """Decode a keycloak access token (JWT) and check the signature"""
     return jwt.decode(
         token,
         current_app.config["OIDC_PUBLIC_KEY"],
         algorithms=JWT_ALGORITHM,
-        audience=current_app.config["OIDC_CLIENT_ID"],
+        audience=audience or current_app.config["OIDC_CLIENT_ID"],
     )
 
 
@@ -63,9 +63,9 @@ def get_redis_key_from_session(key_suffix):
     return random_key
 
 
-def get_redis_key_from_token(token, key_suffix=""):
+def get_redis_key_from_token(token, key_suffix="", audience=None):
     """Get the redis store from a keycloak access_token."""
-    decoded_token = decode_keycloak_jwt(token)
+    decoded_token = decode_keycloak_jwt(token, audience=audience)
     return _get_redis_key(decoded_token["sub"], key_suffix=key_suffix)
 
 
@@ -111,11 +111,6 @@ def handle_token_request(request, key_suffix):
         )
     )
     return response, oauth_client
-
-
-def verify_refresh_token(refresh_token, oauth_client):  # TODO: delete-me
-    """Check if refresh token is the same as the one in OAuth Client."""
-    return oauth_client and refresh_token == oauth_client.refresh_token
 
 
 def generate_nonce(n_bits=256):
