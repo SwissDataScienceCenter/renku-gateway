@@ -50,7 +50,7 @@ KC_SUFFIX = "kc_oidc_client"
 SCOPE = ["openid"]
 
 
-def get_valid_token(headers):
+def get_valid_token(headers, is_cli_request):
     """Look for a fresh and valid token, first in headers, then in the session."""
     authorization = headers.get("Authorization")
     authorization_match = (
@@ -61,7 +61,7 @@ def get_valid_token(headers):
 
     audience = None
 
-    if authorization_match:  # If token bearer exists it's a CLI token
+    if is_cli_request and authorization_match:
         audience = current_app.config["CLI_CLIENT_ID"]
         token = authorization_match.group("token")
         redis_key = get_redis_key_from_token(

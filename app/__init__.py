@@ -115,7 +115,8 @@ def auth():
 
         # validate incoming authentication
         # it can either be in session-cookie or Authorization header
-        new_token, audience = web.get_valid_token(headers)
+        is_cli_request = auth_arg == "renku-cli"
+        new_token, audience = web.get_valid_token(headers, is_cli_request)
         if new_token:
             headers["Authorization"] = f"Bearer {new_token}"
 
