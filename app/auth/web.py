@@ -189,16 +189,19 @@ def user_profile():
 @blueprint.route("/logout")
 def logout():
 
-    if "sub" in session:
-        current_app.store.delete(get_redis_key_from_session(key_suffix=GL_SUFFIX))
-        current_app.store.delete(get_redis_key_from_session(key_suffix=JH_SUFFIX))
-        current_app.store.delete(get_redis_key_from_session(key_suffix=KC_SUFFIX))
+    # NOTE: Don't delete clients and don't logout because CLI login won't work
+    # TODO: Logout once we moved to session-based auth
+
+    # if "sub" in session:
+    #     current_app.store.delete(get_redis_key_from_session(key_suffix=GL_SUFFIX))
+    #     current_app.store.delete(get_redis_key_from_session(key_suffix=JH_SUFFIX))
+    #     current_app.store.delete(get_redis_key_from_session(key_suffix=KC_SUFFIX))
     session.clear()
 
     logout_pages = [
-        urljoin(current_app.config["HOST_NAME"], url_for("jupyterhub_auth.logout")),
-        urljoin(current_app.config["HOST_NAME"], url_for("gitlab_auth.logout")),
-        f"{current_app.config['OIDC_ISSUER']}/protocol/openid-connect/logout",
+        # urljoin(current_app.config["HOST_NAME"], url_for("jupyterhub_auth.logout")),
+        # urljoin(current_app.config["HOST_NAME"], url_for("gitlab_auth.logout")),
+        # f"{current_app.config['OIDC_ISSUER']}/protocol/openid-connect/logout",
     ]
 
     return render_template(
