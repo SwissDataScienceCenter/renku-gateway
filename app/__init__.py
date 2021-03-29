@@ -99,7 +99,6 @@ def auth():
         "gitlab": gitlab_auth.GitlabUserToken,
         "jupyterhub": jupyterhub_auth.JupyterhubUserToken,
         "renku": renku_auth.RenkuCoreAuthHeaders,
-        "renku-cli": cli_auth.RenkuCoreCLIAuthHeaders,
     }
 
     # Keycloak public key is not defined so error
@@ -115,15 +114,14 @@ def auth():
 
         # validate incoming authentication
         # it can either be in session-cookie or Authorization header
-        is_cli_request = auth_arg == "renku-cli"
-        new_token, audience = web.get_valid_token(headers, is_cli_request)
+        new_token = web.get_valid_token(headers)
         if new_token:
             headers["Authorization"] = f"Bearer {new_token}"
 
         if "Authorization" in headers and "Referer" in headers:
             allowed = False
             origins = decode_keycloak_jwt(
-                token=headers["Authorization"][7:], audience=audience
+                token=headers["Authorization"][7:]
             ).get("allowed-origins")
             for o in origins:
                 if re.match(o.replace("*", ".*"), headers["Referer"]):

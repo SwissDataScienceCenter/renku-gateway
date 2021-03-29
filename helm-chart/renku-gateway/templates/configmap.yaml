@@ -129,13 +129,6 @@ data:
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}kg`)"
           Service = "knowledgeGraph"
 
-        [http.routers.knowledgeGraphCli]
-          # Access to knowledge-graph from CLI
-          entryPoints = ["http"]
-          Middlewares = ["auth-renkuCli", "common"]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}knowledge-graph`)"
-          Service = "knowledgeGraph"
-
       [http.middlewares]
 
         # We assume entity IDs which are URL-safe except <namespace>/<project-name>
@@ -207,11 +200,6 @@ data:
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=renku"
           trustForwardHeader = true
           authResponseHeaders = ["Authorization", "Renku-user-id", "Renku-user-fullname", "Renku-user-email"]
-
-        [http.middlewares.auth-renkuCli.forwardauth]
-          address = "http://{{ template "gateway.fullname" . }}-auth/?auth=renku-cli"
-          trustForwardHeader = true
-          authResponseHeaders = ["Authorization"]
 
         [http.middlewares.webhooks.ReplacePathRegex]
           regex = "^/projects/([^/]*)/graph/webhooks(.*)"

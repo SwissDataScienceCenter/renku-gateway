@@ -50,7 +50,7 @@ KC_SUFFIX = "kc_oidc_client"
 SCOPE = ["openid"]
 
 
-def get_valid_token(headers, is_cli_request):
+def get_valid_token(headers):
     """Look for a fresh and valid token, first in headers, then in the session."""
     authorization = headers.get("Authorization")
     authorization_match = (
@@ -59,21 +59,16 @@ def get_valid_token(headers, is_cli_request):
         else None
     )
 
-    audience = None
-
-    if is_cli_request and authorization_match:
-        audience = current_app.config["CLI_CLIENT_ID"]
+    if authorization_match:
         token = authorization_match.group("token")
-        redis_key = get_redis_key_from_token(
-            token, key_suffix=CLI_SUFFIX, audience=audience
-        )
+        redis_key = get_redis_key_from_token(token, key_suffix=CLI_SUFFIX)
     elif headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:
         redis_key = get_redis_key_from_session(key_suffix=KC_SUFFIX)
     else:
-        return None, audience
+        return None
 
     keycloak_oidc_client = current_app.store.get_oauth_client(redis_key)
-    return keycloak_oidc_client.access_token, audience
+    return keycloak_oidc_client.access_token
 
 
 LOGIN_SEQUENCE = (

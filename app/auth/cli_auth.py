@@ -40,26 +40,6 @@ CLI_SUFFIX = "cli_oauth_client"
 SCOPE = ["openid"]
 
 
-class RenkuCoreCLIAuthHeaders:
-    def process(self, request, headers):
-        authorization = headers.get("Authorization")
-        authorization_match = (
-            re.search(r"bearer\s+(?P<token>.+)", authorization, re.IGNORECASE)
-            if authorization
-            else None
-        )
-        if authorization_match:
-            token = authorization_match.group("token")
-            audience = current_app.config["CLI_CLIENT_ID"]
-            redis_key = get_redis_key_from_token(
-                token, key_suffix=GL_SUFFIX, audience=audience
-            )
-            gitlab_oauth_client = current_app.store.get_oauth_client(redis_key)
-            headers["Authorization"] = f"Bearer {gitlab_oauth_client.access_token}"
-
-        return headers
-
-
 @blueprint.route("/login")
 def login():
     provider_app = KeycloakProviderApp(

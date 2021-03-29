@@ -31,13 +31,13 @@ JWT_ALGORITHM = "RS256"
 TEMP_SESSION_KEY = "temp_cache_key"
 
 
-def decode_keycloak_jwt(token, audience=None):
+def decode_keycloak_jwt(token):
     """Decode a keycloak access token (JWT) and check the signature"""
     return jwt.decode(
         token,
         current_app.config["OIDC_PUBLIC_KEY"],
         algorithms=JWT_ALGORITHM,
-        audience=audience or current_app.config["OIDC_CLIENT_ID"],
+        audience=current_app.config["OIDC_CLIENT_ID"],
     )
 
 
@@ -63,17 +63,9 @@ def get_redis_key_from_session(key_suffix):
     return random_key
 
 
-def get_redis_key_from_token(token, key_suffix="", audience=None):
+def get_redis_key_from_token(token, key_suffix=""):
     """Get the redis store from a keycloak access_token."""
-    decoded_token = decode_keycloak_jwt(token, audience=audience)
-    return _get_redis_key(decoded_token["sub"], key_suffix=key_suffix)
-
-
-def get_redis_key_from_refresh_token(refresh_token, key_suffix=""):
-    """Get the redis store from a keycloak refresh_token."""
-    # TODO: Verifying refresh token does not work similar to access_token
-    # NOTE: We verify refresh token later once we got the OAuth Client
-    decoded_token = jwt.decode(refresh_token, verify=False)
+    decoded_token = decode_keycloak_jwt(token)
     return _get_redis_key(decoded_token["sub"], key_suffix=key_suffix)
 
 
