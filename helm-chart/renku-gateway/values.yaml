@@ -7,17 +7,21 @@
 global:
   ## Set to true if using https
   useHTTPS: false
-  ## The URL path prefix under which gitlab is running.
+  ## This section is used to store common GitLab-related values referred in Renku components
   gitlab:
-    urlPrefix: /gitlab
+    ## To do: deprecate this and its usage in configmap
+    urlPrefix: /
+    ## The URL path prefix under which gitlab is running.
+    ## If GitLab is deployed along side with Renku, it should be equal to 'https://gitlab.'<global.renku.domain>
+    gitlabURL:
+    ## The gitlab application ID and secret for Renku
+    renkuAppSecret:
+    renkuAppId:
+
   gateway:
     ## Client secret of the renku client application registered in
     ## keycloak.
     clientSecret:
-    ## Client id and client secret of the renku gateway client application
-    ## which is registered in GitLab.
-    # gitlabClientId:
-    # gitlabClientSecret:
   renku:
     ## Domain name for the deployed instance of Renku. Most likely
     ## set by parent chart.
@@ -59,17 +63,6 @@ rateLimits:
     period: 10s
     average: 20
     burst: 100
-
-## Set to a custom GitLab URL if deployed manually
-# gitlabUrl:
-
-## Configure application ID from "{{ gitlabUrl }}/oauth/application"
-## by setting redirect URL to "{{ baseUrl }}/login/redirect/gitlab"
-## and set the application ID as the "gitlabClientId" chart value.
-## The client ID for authentication against gitlab
-# gitlabClientId: renku-ui
-## The client secret for authentication against gitlab
-# gitlabClientSecret: no-secret
 
 ## You can restrict here the allowed origins for CORS.
 ## This can be a single value, a comma-separeted list or *.
