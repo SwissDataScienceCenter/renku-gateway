@@ -98,10 +98,8 @@ data:
           entryPoints = ["http"]
           Middlewares = [
             "direct"
-            {{- if .Values.global.gitlab.urlPrefix -}}
-            {{- if and (ne .Values.global.gitlab.urlPrefix "") (ne .Values.global.gitlab.urlPrefix "/") -}}
+            {{- if .Values.global.gitlab.enabled -}}
             ,"gitlabOnly"
-            {{- end -}}
             {{- end }}
           ]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}direct/`)"
@@ -167,14 +165,10 @@ data:
           isDevelopment = true
 
         [http.middlewares.gitlabOnly.AddPrefix]
-          prefix = "{{ .Values.global.gitlab.urlPrefix }}"
+          prefix = "/"
 
         [http.middlewares.gitlabApi.AddPrefix]
-          {{ if eq .Values.global.gitlab.urlPrefix "/" }}
           prefix = "/api/v4"
-          {{- else -}}
-          prefix = "{{ .Values.global.gitlab.urlPrefix }}/api/v4"
-          {{ end }}
 
         [http.middlewares.jupyterhub.ReplacePathRegex]
           regex = "^/jupyterhub/(.*)"
@@ -242,7 +236,7 @@ data:
           method = "drr"
           passHostHeader = false
           [[http.services.gitlab.LoadBalancer.servers]]
-            url = {{ .Values.gitlabUrl | default (printf "%s://%s/gitlab" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+            url = {{ .Values.global.gitlab.url | default (printf "%s://gitlab.%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             weight = 1
 
         [http.services.jupyterhub.LoadBalancer]

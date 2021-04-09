@@ -7,16 +7,15 @@
 global:
   ## Set to true if using https
   useHTTPS: false
-  ## This section is used to store common GitLab-related values referred in Renku components
+  ## This section stores common GitLab-related values referred in Renku components
   gitlab:
-    ## To do: deprecate this and its usage in configmap
-    urlPrefix: /
+    enabled: true
     ## The URL path prefix under which gitlab is running.
     ## If GitLab is deployed along side with Renku, it should be equal to 'https://gitlab.'<global.renku.domain>
-    gitlabURL:
+    url:
     ## The gitlab application ID and secret for Renku
-    renkuAppSecret:
-    renkuAppId:
+    appSecret:
+    appId:
 
   gateway:
     ## Client secret of the renku client application registered in
