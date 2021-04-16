@@ -120,9 +120,9 @@ def auth():
 
         if "Authorization" in headers and "Referer" in headers:
             allowed = False
-            origins = decode_keycloak_jwt(
-                token=headers["Authorization"][7:]
-            ).get("allowed-origins")
+            origins = decode_keycloak_jwt(token=headers["Authorization"][7:]).get(
+                "allowed-origins"
+            )
             for o in origins:
                 if re.match(o.replace("*", ".*"), headers["Referer"]):
                     allowed = True

@@ -31,8 +31,6 @@ from flask import (
 )
 
 from .cli_auth import CLI_SUFFIX, handle_cli_token_request
-from .gitlab_auth import GL_SUFFIX
-from .jupyterhub_auth import JH_SUFFIX
 from .oauth_provider_app import KeycloakProviderApp
 from .utils import (
     TEMP_SESSION_KEY,
@@ -188,20 +186,19 @@ def user_profile():
 
 @blueprint.route("/logout")
 def logout():
+    # NOTE: Only delete and logout KC client because CLI login won't work otherwise
+    # TODO: Logout properly once we moved to session-based auth
 
-    # NOTE: Don't delete clients and don't logout because CLI login won't work
-    # TODO: Logout once we moved to session-based auth
-
-    # if "sub" in session:
-    #     current_app.store.delete(get_redis_key_from_session(key_suffix=GL_SUFFIX))
-    #     current_app.store.delete(get_redis_key_from_session(key_suffix=JH_SUFFIX))
-    #     current_app.store.delete(get_redis_key_from_session(key_suffix=KC_SUFFIX))
+    if "sub" in session:
+        # current_app.store.delete(get_redis_key_from_session(key_suffix=GL_SUFFIX))
+        # current_app.store.delete(get_redis_key_from_session(key_suffix=JH_SUFFIX))
+        current_app.store.delete(get_redis_key_from_session(key_suffix=KC_SUFFIX))
     session.clear()
 
     logout_pages = [
         # urljoin(current_app.config["HOST_NAME"], url_for("jupyterhub_auth.logout")),
         # urljoin(current_app.config["HOST_NAME"], url_for("gitlab_auth.logout")),
-        # f"{current_app.config['OIDC_ISSUER']}/protocol/openid-connect/logout",
+        f"{current_app.config['OIDC_ISSUER']}/protocol/openid-connect/logout",
     ]
 
     return render_template(

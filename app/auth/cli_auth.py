@@ -18,18 +18,15 @@
 """Implement Keycloak authentication workflow for CLI."""
 
 import json
-import re
 import time
 from urllib.parse import urljoin
 
 from flask import Blueprint, current_app, request, session, url_for
 
-from .gitlab_auth import GL_SUFFIX
 from .oauth_provider_app import KeycloakProviderApp
 from .utils import (
     get_redis_key_for_cli,
     get_redis_key_from_session,
-    get_redis_key_from_token,
     handle_login_request,
     handle_token_request,
 )
