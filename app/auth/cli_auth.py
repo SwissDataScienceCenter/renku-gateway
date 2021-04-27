@@ -16,17 +16,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Implement Keycloak authentication workflow for CLI."""
-
+import base64
 import json
+import re
 import time
 from urllib.parse import urljoin
 
 from flask import Blueprint, current_app, request, session, url_for
 
+from .gitlab_auth import GL_SUFFIX
 from .oauth_provider_app import KeycloakProviderApp
 from .utils import (
     get_redis_key_for_cli,
     get_redis_key_from_session,
+    get_redis_key_from_token,
     handle_login_request,
     handle_token_request,
 )
@@ -35,6 +38,27 @@ blueprint = Blueprint("cli_auth", __name__, url_prefix="/auth/cli")
 
 CLI_SUFFIX = "cli_oauth_client"
 SCOPE = ["openid"]
+
+
+class RenkuCLIGitlabAuthHeaders:
+    def process(self, request, headers):
+        authorization = headers.get("Authorization")
+        authorization_match = (
+            re.search(r"bearer\s+(?P<token>.+)", authorization, re.IGNORECASE)
+            if authorization
+            else None
+        )
+        if authorization_match:
+            access_token = authorization_match.group("token")
+            redis_key = get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
+            gitlab_oauth_client = current_app.store.get_oauth_client(redis_key)
+            if gitlab_oauth_client:
+                gitlab_access_token = gitlab_oauth_client.access_token
+                user_pass = f"oauth2:{gitlab_access_token}".encode("utf-8")
+                basic_auth = base64.b64encode(user_pass).decode("ascii")
+                headers["Authorization"] = f"Basic {basic_auth}"
+
+        return headers
 
 
 @blueprint.route("/login")
