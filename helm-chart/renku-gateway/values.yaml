@@ -14,6 +14,8 @@ global:
     ## Client secret of the renku client application registered in
     ## keycloak.
     clientSecret:
+    ## Client secret of the renku-cli client application registered in keycloak.
+    cliClientSecret:
     ## Client id and client secret of the renku gateway client application
     ## which is registered in GitLab.
     # gitlabClientId:
