@@ -48,12 +48,7 @@ blueprint = Blueprint("gitlab_auth", __name__, url_prefix="/auth/gitlab")
 
 
 class GitlabUserToken:
-    def __init__(self, header_field="Authorization", header_prefix="Bearer "):
-        self.header_field = header_field
-        self.header_prefix = header_prefix
-
     def process(self, request, headers):
-
         m = re.search(
             r"bearer (?P<token>.+)", headers.get("Authorization", ""), re.IGNORECASE
         )
@@ -62,22 +57,16 @@ class GitlabUserToken:
             #    'outgoing headers: {}'.format(json.dumps(headers)
             # )
             access_token = m.group("token")
-            gitlab_oauth_client = current_app.store.get_oauth_client(
-                get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
-            )
-            if gitlab_oauth_client:
-                headers[self.header_field] = "{}{}".format(
-                    self.header_prefix, gitlab_oauth_client.access_token
-                )
-                headers[
-                    "Renku-Token"
-                ] = access_token  # can be needed later in the request processing
+            redis_key = get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
+            gitlab_oauth_client = current_app.store.get_oauth_client(redis_key)
 
+            if gitlab_oauth_client:
+                gitlab_access_token = gitlab_oauth_client.access_token
+                headers["Authorization"] = f"Bearer {gitlab_access_token}"
         else:
             current_app.logger.debug(
                 "No authorization header, returning empty auth headers"
             )
-            pass
 
         return headers
 

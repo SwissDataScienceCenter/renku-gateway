@@ -15,7 +15,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+import hashlib
 import random
+import secrets
 import string
 from urllib.parse import urljoin
 
@@ -42,7 +45,7 @@ def _get_redis_key(sub_claim, key_suffix=""):
     return "cache_{}_{}".format(sub_claim, key_suffix)
 
 
-def get_redis_key_from_session(key_suffix=""):
+def get_redis_key_from_session(key_suffix):
     """Create a key for the redis store.
     - use 'sub' claim if already present in session
     - otherwise use temporary cache key if already present in session
@@ -66,17 +69,24 @@ def get_redis_key_from_token(token, key_suffix=""):
     return _get_redis_key(decoded_token["sub"], key_suffix=key_suffix)
 
 
+def get_redis_key_for_cli(cli_nonce, server_nonce):
+    """Get the redis store from CLI token and user code."""
+    cli_nonce_hash = hashlib.sha256(cli_nonce.encode()).hexdigest()
+    return f"cli_{cli_nonce_hash}_{server_nonce}"
+
+
 def handle_login_request(provider_app, redirect_path, key_suffix, scope):
     """Logic to handle the login requests, avoids duplication"""
     oauth_client = RenkuWebApplicationClient(
         provider_app=provider_app,
         redirect_url=urljoin(current_app.config["HOST_NAME"], redirect_path),
         scope=scope,
-        max_lifetime=current_app.config["MAX_ACCESS_TOKEN_LIFETIME"],
+        max_lifetime=None,
     )
     authorization_url = oauth_client.get_authorization_url()
     redis_key = get_redis_key_from_session(key_suffix=key_suffix)
     current_app.store.set_oauth_client(redis_key, oauth_client)
+
     return current_app.make_response(redirect(authorization_url))
 
 
@@ -92,3 +102,9 @@ def handle_token_request(request, key_suffix):
         )
     )
     return response, oauth_client
+
+
+def generate_nonce(n_bits=256):
+    """Generate a one-time secure key."""
+    n_bytes = int(n_bits) // 8
+    return secrets.token_hex(n_bytes)

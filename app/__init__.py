@@ -19,27 +19,28 @@
 
 import json
 import logging
+import os
 import re
 import sys
-import os
 
 import jwt
 import requests
 import sentry_sdk
-from flask_kvsession import KVSessionExtension
 from flask import Flask, Response, current_app, request
 from flask_cors import CORS
+from flask_kvsession import KVSessionExtension
 from sentry_sdk.integrations.flask import FlaskIntegration
 from simplekv.decorator import PrefixDecorator
 from simplekv.memory.redisstore import RedisStore
 
-
 from . import config
-from .auth import gitlab_auth, jupyterhub_auth, web
+from .auth import cli_auth, gitlab_auth, jupyterhub_auth, renku_auth, web
 from .auth.oauth_redis import OAuthRedis
+from .auth.utils import decode_keycloak_jwt
 
 # Wait for the VS Code debugger to attach if requested
 # TODO: try using debugpy instead of ptvsd to avoid noreload limitations
+
 VSCODE_DEBUG = os.environ.get("VSCODE_DEBUG") == "1"
 if VSCODE_DEBUG:
     import ptvsd
@@ -82,6 +83,7 @@ if "pytest" not in sys.modules:
 
 url_prefix = app.config["SERVICE_PREFIX"]
 blueprints = (
+    cli_auth.blueprint,
     gitlab_auth.blueprint,
     jupyterhub_auth.blueprint,
     web.blueprint,
@@ -93,41 +95,34 @@ def auth():
     if "auth" not in request.args:
         return Response("", status=200)
 
-    from .auth.gitlab_auth import GitlabUserToken
-    from .auth.jupyterhub_auth import JupyterhubUserToken
-    from .auth.renku_auth import RenkuCoreAuthHeaders
-
     auths = {
-        "gitlab": GitlabUserToken,
-        "jupyterhub": JupyterhubUserToken,
-        "renku": RenkuCoreAuthHeaders,
+        "gitlab": gitlab_auth.GitlabUserToken,
+        "jupyterhub": jupyterhub_auth.JupyterhubUserToken,
+        "renku": renku_auth.RenkuCoreAuthHeaders,
     }
-
-    auth_arg = request.args.get("auth")
-    auth = auths[auth_arg]()
-    headers = dict(request.headers)
 
     # Keycloak public key is not defined so error
     if current_app.config["OIDC_PUBLIC_KEY"] is None:
         response = json.dumps("Ooops, something went wrong internally.")
         return Response(response, status=500)
 
+    auth_arg = request.args.get("auth")
+    headers = dict(request.headers)
+
     try:
+        auth = auths[auth_arg]()
+
         # validate incoming authentication
         # it can either be in session-cookie or Authorization header
-        new_tokens = web.get_valid_token(headers)
-        if new_tokens:
-            headers["Authorization"] = "Bearer {}".format(
-                new_tokens.get("access_token")
-            )
+        new_token = web.get_valid_token(headers)
+        if new_token:
+            headers["Authorization"] = f"Bearer {new_token}"
+
         if "Authorization" in headers and "Referer" in headers:
             allowed = False
-            origins = jwt.decode(
-                headers["Authorization"][7:],
-                current_app.config["OIDC_PUBLIC_KEY"],
-                algorithms="RS256",
-                audience=current_app.config["OIDC_CLIENT_ID"],
-            ).get("allowed-origins")
+            origins = decode_keycloak_jwt(token=headers["Authorization"][7:]).get(
+                "allowed-origins"
+            )
             for o in origins:
                 if re.match(o.replace("*", ".*"), headers["Referer"]):
                     allowed = True

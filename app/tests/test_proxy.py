@@ -23,19 +23,19 @@ import requests
 import responses
 
 from .. import app
-from ..auth.oauth_redis import OAuthRedis
+from ..auth.cli_auth import CLI_SUFFIX
+from ..auth.gitlab_auth import GL_SUFFIX
 from ..auth.oauth_client import RenkuWebApplicationClient
 from ..auth.oauth_provider_app import OAuthProviderApp
+from ..auth.oauth_redis import OAuthRedis
 from ..auth.utils import get_redis_key_from_token
-from ..auth.gitlab_auth import GL_SUFFIX
 from .test_data import (
     PRIVATE_KEY,
-    PUBLIC_KEY,
-    TOKEN_PAYLOAD,
-    SECRET_KEY,
     PROVIDER_APP_DICT,
+    PUBLIC_KEY,
+    SECRET_KEY,
+    TOKEN_PAYLOAD,
 )
-
 
 # TODO: Completely refactor all tests, massively improve test coverage.
 # TODO: https://github.com/swissdatasciencecenter/renku-gateway/issues/92
@@ -85,19 +85,26 @@ def test_health_endpoint(client):
 
 
 def test_gitlab_happyflow(client):
-    # If a request does has the required headers, it should be able to pass through
+    """If a request has the required headers, it should be able to pass through."""
+
+    def set_dummy_oauth_client(token, key_suffix):
+        provider_app = OAuthProviderApp(**PROVIDER_APP_DICT)
+        redis_key = get_redis_key_from_token(access_token, key_suffix=key_suffix)
+        oauth_client = RenkuWebApplicationClient(
+            access_token=token, provider_app=provider_app
+        )
+        app.store.set_oauth_client(redis_key, oauth_client)
+
     access_token = jwt.encode(
         payload=TOKEN_PAYLOAD, key=PRIVATE_KEY, algorithm="RS256"
     ).decode("utf-8")
     headers = {"Authorization": "Bearer {}".format(access_token)}
 
     app.store = OAuthRedis(hex_key=app.config["SECRET_KEY"])
-    redis_key = get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
-    provider_app = OAuthProviderApp(**PROVIDER_APP_DICT)
-    oauth_client = RenkuWebApplicationClient(
-        access_token="some_token", provider_app=provider_app
-    )
-    app.store.set_oauth_client(redis_key, oauth_client)
+
+    set_dummy_oauth_client(access_token, CLI_SUFFIX)
+
+    set_dummy_oauth_client("some_token", GL_SUFFIX)
 
     rv = client.get("/?auth=gitlab", headers=headers)
 
