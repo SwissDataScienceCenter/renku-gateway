@@ -22,9 +22,9 @@ client instances in redis.
 """
 
 import base64
-from cryptography.fernet import Fernet
 import sys
 
+from cryptography.fernet import Fernet
 from flask import current_app
 from oauthlib.oauth2.rfc6749.errors import OAuth2Error
 
@@ -69,15 +69,20 @@ class OAuthRedis(StrictRedis):
 
     def get_enc(self, name):
         """Get method with decryption."""
-        return self.fernet.decrypt(super().get(name))
+        value = super().get(name)
+        return None if value is None else self.fernet.decrypt(value)
 
-    def set_oauth_client(self, name, oauth_client, **kwargs):
+    def set_oauth_client(self, name, oauth_client):
         """Put a client object into the store."""
         return self.set_enc(name, oauth_client.to_json().encode())
 
-    def get_oauth_client(self, name, no_refresh=False, **kwargs):
+    def get_oauth_client(self, name, no_refresh=False):
         """Get a client object from the store, refresh if necessary."""
-        oauth_client = RenkuWebApplicationClient.from_json(self.get_enc(name).decode())
+        value = self.get_enc(name)
+        if value is None:
+            return
+
+        oauth_client = RenkuWebApplicationClient.from_json(value.decode())
 
         # We refresh 5 seconds before the token/client actually expires
         # to avoid unlucky edge cases.
@@ -87,7 +92,7 @@ class OAuthRedis(StrictRedis):
                 # https://github.com/SwissDataScienceCenter/renku-gateway/issues/113
                 current_app.logger.info("Refreshing {}".format(name))
                 oauth_client.refresh_access_token()
-                self.set_enc(name, oauth_client.to_json().encode(), **kwargs)
+                self.set_enc(name, oauth_client.to_json().encode())
             except OAuth2Error as e:
                 current_app.logger.warn(
                     "Error refreshing tokens: {} "
