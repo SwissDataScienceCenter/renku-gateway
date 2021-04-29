@@ -17,6 +17,7 @@
 # limitations under the License.
 """Web auth routes."""
 
+import re
 from urllib.parse import urljoin
 
 from flask import (
@@ -29,14 +30,15 @@ from flask import (
     url_for,
 )
 
+from .cli_auth import CLI_SUFFIX, handle_cli_token_request
 from .oauth_provider_app import KeycloakProviderApp
-from .gitlab_auth import GL_SUFFIX
-from .jupyterhub_auth import JH_SUFFIX
 from .utils import (
-    decode_keycloak_jwt,
-    get_redis_key_from_session,
-    handle_login_request,
     TEMP_SESSION_KEY,
+    decode_keycloak_jwt,
+    generate_nonce,
+    get_redis_key_from_session,
+    get_redis_key_from_token,
+    handle_login_request,
     handle_token_request,
 )
 
@@ -47,73 +49,49 @@ SCOPE = ["openid"]
 
 
 def get_valid_token(headers):
-    """
-    Look for a fresh and valid token, first in headers, then in the session.
+    """Look for a fresh and valid token, first in headers, then in the session."""
+    authorization = headers.get("Authorization")
+    authorization_match = (
+        re.search(r"bearer\s+(?P<token>.+)", authorization, re.IGNORECASE)
+        if authorization
+        else None
+    )
 
-    If a refresh token is available, it can be swapped for an access token.
-    """
-
-    # TODO: uncomment (and fix) when enabling CLI login.
-    # m = re.search(
-    #     r"bearer (?P<token>.+)", headers.get("Authorization", ""), re.IGNORECASE
-    # )
-
-    # if m:
-    #     if jwt.decode(m.group("token"), verify=False).get("typ") in [
-    #         "Offline",
-    #         "Refresh",
-    #     ]:
-    #         current_app.logger.debug("Swapping the token")
-    #         to = Token(resp={"refresh_token": m.group("token")})
-
-    #         if "access_token" in token_response:
-    #             try:
-    #                 a = jwt.decode(
-    #                     token_response["access_token"],
-    #                     current_app.config["OIDC_PUBLIC_KEY"],
-    #                     algorithms=JWT_ALGORITHM,
-    #                     audience=current_app.config["OIDC_CLIENT_ID"],
-    #                 )
-    #                 return token_response
-    #             except:
-    #                 return None
-    #     else:
-    #         try:
-    #             jwt.decode(
-    #                 m.group("token"),
-    #                 current_app.config["OIDC_PUBLIC_KEY"],
-    #                 algorithms=JWT_ALGORITHM,
-    #                 audience=current_app.config["OIDC_CLIENT_ID"],
-    #             )
-
-    #             return {"access_token": m.group("token")}
-
-    #         except:
-    #             return None
-    # else:
-    if headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:
+    if authorization_match:
+        token = authorization_match.group("token")
+        redis_key = get_redis_key_from_token(token, key_suffix=CLI_SUFFIX)
+    elif headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:
         redis_key = get_redis_key_from_session(key_suffix=KC_SUFFIX)
-        keycloak_oidc_client = current_app.store.get_oauth_client(redis_key)
-        return {"access_token": keycloak_oidc_client.access_token}
+    else:
+        return None
 
-    return None
+    keycloak_oidc_client = current_app.store.get_oauth_client(redis_key)
+    return keycloak_oidc_client.access_token
 
 
-LOGIN_SEQUENCE = ["web_auth.login", "gitlab_auth.login", "jupyterhub_auth.login"]
+LOGIN_SEQUENCE = (
+    "web_auth.login",
+    "cli_auth.login",
+    "gitlab_auth.login",
+    "jupyterhub_auth.login",
+)
 
 
 @blueprint.route("/login/next")
 def login_next():
     session["login_seq"] += 1
     if session["login_seq"] < len(LOGIN_SEQUENCE):
+        next_login = LOGIN_SEQUENCE[session["login_seq"]]
         return render_template(
             "redirect.html",
-            redirect_url=urljoin(
-                current_app.config["HOST_NAME"],
-                url_for(LOGIN_SEQUENCE[session["login_seq"]]),
-            ),
+            redirect_url=urljoin(current_app.config["HOST_NAME"], url_for(next_login)),
         )
     else:
+        cli_nonce = session.pop("cli_nonce", None)
+        if cli_nonce:
+            server_nonce = session.pop("server_nonce", None)
+            return render_template("cli_login.html", server_nonce=server_nonce)
+
         return redirect(session["ui_redirect_url"])
 
 
@@ -122,8 +100,14 @@ def login():
     """Log in with Keycloak."""
     session.clear()
     session["ui_redirect_url"] = request.args.get("redirect_url")
-    session["cli_token"] = request.args.get("cli_token")
-    session["login_seq"] = 0
+
+    cli_nonce = request.args.get("cli_nonce")
+    if cli_nonce:
+        session["cli_nonce"] = cli_nonce
+        session["server_nonce"] = generate_nonce()
+        session["login_seq"] = 0
+    else:
+        session["login_seq"] = 1
 
     provider_app = KeycloakProviderApp(
         client_id=current_app.config["OIDC_CLIENT_ID"],
@@ -156,65 +140,9 @@ def token():
     return response
 
 
-# TODO: Uncomment and fix when implementing CLI login
-# @blueprint.route("/info")
-# async def info():
-#     from .. import store
-
-#     t = request.args.get("cli_token")
-#     if t:
-#         timeout = 120
-#         key = "cli_{}".format(hashlib.sha256(t.encode()).hexdigest())
-#         current_app.logger.debug(
-#             "Waiting for Keycloak callback for request {}".format(t)
-#         )
-#         val = current_app.store.get(key)
-#         while not val and timeout > 0:
-#             time.sleep(3)
-#             timeout -= 3
-#             val = current_app.store.get(key)
-#         if val:
-#             current_app.store.delete(key)
-#             return val
-#         else:
-#             current_app.logger.debug("Timeout while waiting for request {}".format(t))
-#             return '{"error": "timeout"}'
-#     else:
-
-#         if "token" not in session:
-#             return await current_app.make_response(
-#                 redirect(
-#                     "{}?redirect_url={}".format(
-# noqa                         url_for("web_auth.login"), quote_plus(url_for("web_auth.info"))
-#                     )
-#                 )
-#             )
-
-#         try:
-#             a = jwt.decode(
-#                 session["token"],
-#                 current_app.config["OIDC_PUBLIC_KEY"],
-#                 algorithms=JWT_ALGORITHM,
-#                 audience=current_app.config["OIDC_CLIENT_ID"],
-#             )  # TODO: logout and redirect if fails because of expired
-
-#             return (
-#                 "You can copy/paste the following tokens if needed "
-#                 "and close this page: "
-#                 "<br> Access Token: {}<br>Refresh Token: {}".format(
-# noqa                    current_app.store.get(get_redis_key(a, "kc_access_token")).decode(),
-# noqa                    current_app.store.get(get_redis_key(a, "kc_refresh_token")).decode(),
-#                 )
-#             )
-
-#         except jwt.ExpiredSignatureError:
-#             return await current_app.make_response(
-#                 redirect(
-#                     "{}?redirect_url={}".format(
-# noqa                        url_for("web_auth.login"), quote_plus(url_for("web_auth.info"))
-#                     )
-#                 )
-#             )
+@blueprint.route("/cli-token")
+def info():
+    return handle_cli_token_request(request)
 
 
 # @blueprint.route("/user")
@@ -258,16 +186,18 @@ def user_profile():
 
 @blueprint.route("/logout")
 def logout():
+    # NOTE: Only delete and logout KC client because CLI login won't work otherwise
+    # TODO: Logout properly once we moved to session-based auth
 
     if "sub" in session:
-        current_app.store.delete(get_redis_key_from_session(key_suffix=GL_SUFFIX))
-        current_app.store.delete(get_redis_key_from_session(key_suffix=JH_SUFFIX))
+        # current_app.store.delete(get_redis_key_from_session(key_suffix=GL_SUFFIX))
+        # current_app.store.delete(get_redis_key_from_session(key_suffix=JH_SUFFIX))
         current_app.store.delete(get_redis_key_from_session(key_suffix=KC_SUFFIX))
     session.clear()
 
     logout_pages = [
-        urljoin(current_app.config["HOST_NAME"], url_for("jupyterhub_auth.logout")),
-        urljoin(current_app.config["HOST_NAME"], url_for("gitlab_auth.logout")),
+        # urljoin(current_app.config["HOST_NAME"], url_for("jupyterhub_auth.logout")),
+        # urljoin(current_app.config["HOST_NAME"], url_for("gitlab_auth.logout")),
         f"{current_app.config['OIDC_ISSUER']}/protocol/openid-connect/logout",
     ]
 

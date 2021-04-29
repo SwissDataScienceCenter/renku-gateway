@@ -19,7 +19,7 @@
 import re
 from urllib.parse import urlencode, urljoin
 
-from flask import Blueprint, current_app, redirect, request, Response, url_for
+from flask import Blueprint, Response, current_app, redirect, request, url_for
 
 from .oauth_provider_app import JupyterHubProviderApp
 from .utils import (
