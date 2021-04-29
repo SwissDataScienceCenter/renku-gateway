@@ -515,11 +515,11 @@
         },
         "chartpress": {
             "hashes": [
-                "sha256:803d025bc3d25909553300d946c9e6df8b6bf0176e0b41345b5e607f9f2eeb72",
-                "sha256:ba44ae6b490c085ff5515ac5c8af304d8f6e2ac628ad3339f0fdb389f619b5d4"
+                "sha256:31e6b92489330e3e819f79a80bac4eccb287519e62264e079537ccb2091a4e21",
+                "sha256:8f975b08349bc7cb7c58d4c24baab306df0240795e5a8a53ab39c35ad7932abb"
             ],
             "index": "pypi",
-            "version": "==1.0.4"
+            "version": "==1.1.0"
         },
         "click": {
             "hashes": [
