@@ -21,8 +21,9 @@ This module contains the logic to model a client application registered
 with an oauth provider.
 """
 
-import requests
 import json
+
+import requests
 
 PROVIDER_KINDS = {
     "JUPYTERHUB": "jupyterhub",

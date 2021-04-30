@@ -21,6 +21,8 @@ global:
     ## Client secret of the renku client application registered in
     ## keycloak.
     clientSecret:
+    ## Client secret of the renku-cli client application registered in keycloak.
+    cliClientSecret:
   renku:
     ## Domain name for the deployed instance of Renku. Most likely
     ## set by parent chart.
