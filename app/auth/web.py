@@ -50,7 +50,7 @@ SCOPE = ["openid"]
 
 def get_valid_token(headers):
     """Look for a fresh and valid token, first in headers, then in the session."""
-    renku_token = headers.pop("Renku-Token", None)
+    renku_token = headers.pop("Renku-Auth-Access-Token", None)
 
     authorization = headers.get("Authorization")
     authorization_match = (
