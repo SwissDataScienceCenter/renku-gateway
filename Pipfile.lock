@@ -486,6 +486,7 @@
         "attrs": {
             "hashes": [
 <<<<<<< HEAD
+<<<<<<< HEAD
                 "sha256:149e90d6d8ac20db7a955ad60cf0e6881a3f20d37096140088356da6c716b0b1",
                 "sha256:ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"
             ],
@@ -496,6 +497,12 @@
             ],
             "version": "==21.1.0"
 >>>>>>> 921ec21 (build(deps-dev): bump typing-extensions from 3.7.4.3 to 3.10.0.0)
+=======
+                "sha256:149e90d6d8ac20db7a955ad60cf0e6881a3f20d37096140088356da6c716b0b1",
+                "sha256:ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"
+            ],
+            "version": "==21.2.0"
+>>>>>>> febfef7 (build(deps-dev): bump flake8 from 3.9.1 to 3.9.2)
         },
         "black": {
             "hashes": [
