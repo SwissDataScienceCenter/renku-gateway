@@ -11,9 +11,6 @@ metadata:
 data:
   traefik.toml: |
     {{ if .Values.development }}
-    [api]
-      debug = true
-
     [log]
       level = "debug"
     {{ else }}
