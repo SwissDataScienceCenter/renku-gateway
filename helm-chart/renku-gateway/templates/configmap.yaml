@@ -241,7 +241,7 @@ data:
           method = "drr"
           passHostHeader = false
           [[http.services.notebooks.LoadBalancer.servers]]
-            url = {{ .Values.notebooks.url | default (printf "%s://%s/notebooks" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+            url = {{ .Values.notebooks.hostname | default (printf "http://%s-notebooks" .Release.Name )  | quote }}
             weight = 1
 
         [http.services.webhooks.LoadBalancer]
