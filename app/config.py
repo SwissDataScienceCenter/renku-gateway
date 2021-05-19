@@ -72,17 +72,6 @@ if not GITLAB_CLIENT_SECRET:
         "It is mandatory for Gitlab login."
     )
 
-JUPYTERHUB_URL = os.environ.get("JUPYTERHUB_URL", "{}/jupyterhub".format(HOST_NAME))
-JUPYTERHUB_CLIENT_ID = os.environ.get("JUPYTERHUB_CLIENT_ID", "gateway")
-JUPYTERHUB_CLIENT_SECRET = os.environ.get("JUPYTERHUB_CLIENT_SECRET")
-if not JUPYTERHUB_CLIENT_SECRET:
-    warnings.warn(
-        "The environment variable JUPYTERHUB_CLIENT_SECRET is not set. "
-        "It is mandatory for JupyterHub login."
-    )
-if ANONYMOUS_SESSIONS_ENABLED:
-    JUPYTERHUB_TMP_URL = "{}-tmp".format(JUPYTERHUB_URL)
-
 WEBHOOK_SERVICE_HOSTNAME = os.environ.get(
     "WEBHOOK_SERVICE_HOSTNAME", "http://renku-graph-webhooks-service"
 )
