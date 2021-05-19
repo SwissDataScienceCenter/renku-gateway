@@ -153,6 +153,9 @@ core:
   ## http://<release-name>-core
   hostname:
 
+notebooks:
+  hostname:
+
 # GitLab has introduced a new logout behavior in 12.7.0
 # which was initially broken and fixed in 12.9.0.
 # Set this to 'true' for versions < 12.7.0, leave it to

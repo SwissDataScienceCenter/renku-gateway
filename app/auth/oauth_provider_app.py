@@ -26,7 +26,6 @@ import json
 import requests
 
 PROVIDER_KINDS = {
-    "JUPYTERHUB": "jupyterhub",
     "GITLAB": "gitlab",
     "KEYCLOAK": "keycloak",
 }
@@ -88,18 +87,6 @@ class GitLabProviderApp(OAuthProviderApp):
         )
 
 
-class JupyterHubProviderApp(OAuthProviderApp):
-    def __init__(self, base_url=None, client_id=None, client_secret=None):
-        super().__init__(
-            kind=PROVIDER_KINDS["JUPYTERHUB"],
-            base_url=base_url,
-            client_id=client_id,
-            client_secret=client_secret,
-            authorization_endpoint="{}/hub/api/oauth2/authorize".format(base_url),
-            token_endpoint="{}/hub/api/oauth2/token".format(base_url),
-        )
-
-
 class KeycloakProviderApp(OAuthProviderApp):
     def __init__(self, base_url=None, client_id=None, client_secret=None):
         super().__init__(
@@ -125,7 +112,6 @@ class KeycloakProviderApp(OAuthProviderApp):
 PROVIDERS = {
     "gitlab": GitLabProviderApp,
     "keycloak": KeycloakProviderApp,
-    "jupyterhub": JupyterHubProviderApp,
 }
 
 
