@@ -73,7 +73,6 @@ LOGIN_SEQUENCE = (
     "web_auth.login",
     "cli_auth.login",
     "gitlab_auth.login",
-    "jupyterhub_auth.login",
 )
 
 
