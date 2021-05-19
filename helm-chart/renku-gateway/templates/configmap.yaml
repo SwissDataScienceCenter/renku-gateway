@@ -58,11 +58,11 @@ data:
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}notebooks`)"
           Service = "notebooks"
         
-        [http.routers.jupyterhub-compat]
-          entryPoints = ["http"]
-          Middlewares = ["auth-notebook", "common", "jupyterhub-compat"]
-          Rule = "PathPrefix(`/jupyterhub/services/notebooks`)"
-          Service = "notebooks"
+        # [http.routers.jupyterhub-compat]
+        #   entryPoints = ["http"]
+        #   Middlewares = ["auth-notebook", "common", "jupyterhub-compat"]
+        #   Rule = "PathPrefix(`/jupyterhub/services/notebooks`)"
+        #   Service = "notebooks"
 
         [http.routers.webhooks]
           entryPoints = ["http"]
@@ -194,9 +194,9 @@ data:
           regex = "^/projects/([^/]*)/graph(.*)"
           replacement = "/projects/$1/events$2"
         
-        [http.middlewares.jupyterhub-compat.ReplacePathRegex]
-          regex = "^/jupyterhub/services/notebooks(.*)"
-          replacement = "{{ .Values.gatewayServicePrefix | default "/api/" }}notebooks/$1"
+        # [http.middlewares.jupyterhub-compat.ReplacePathRegex]
+        #   regex = "^/jupyterhub/services/notebooks(.*)"
+        #   replacement = "{{ .Values.gatewayServicePrefix | default "/api/" }}notebooks/$1"
 
         [http.middlewares.graphql.ReplacePathRegex]
           regex = "/graphql"
