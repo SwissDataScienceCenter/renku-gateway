@@ -59,7 +59,7 @@ def get_valid_token(headers):
 
     if authorization_match:
         token = authorization_match.group("token")
-        redis_key = get_redis_key_from_token(token, key_suffix=CLI_SUFFIX)
+        redis_key = get_redis_key_from_token(token, key_suffix=KC_SUFFIX)
     elif headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:
         redis_key = get_redis_key_from_session(key_suffix=KC_SUFFIX)
     else:
