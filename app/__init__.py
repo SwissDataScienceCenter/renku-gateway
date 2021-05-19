@@ -178,6 +178,7 @@ def auth():
         message = {"error": "authentication", "message": "unknown", "target": auth_arg}
         return Response(json.dumps(message), status=401)
 
+    current_app.logger.debug(f"Returning headers {headers}")
     return Response(json.dumps("Up and running"), headers=headers, status=200,)
 
 
