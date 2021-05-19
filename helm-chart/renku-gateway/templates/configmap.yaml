@@ -11,7 +11,7 @@ metadata:
 data:
   traefik.toml: |
     {{ if .Values.development }}
-    [Global]
+    [api]
       debug = true
 
     [log]
