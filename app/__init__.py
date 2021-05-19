@@ -34,7 +34,7 @@ from simplekv.decorator import PrefixDecorator
 from simplekv.memory.redisstore import RedisStore
 
 from . import config
-from .auth import cli_auth, gitlab_auth, jupyterhub_auth, renku_auth, web, notebook_auth
+from .auth import cli_auth, gitlab_auth, renku_auth, web, notebook_auth
 from .auth.oauth_redis import OAuthRedis
 from .auth.utils import decode_keycloak_jwt
 
@@ -87,7 +87,6 @@ url_prefix = app.config["SERVICE_PREFIX"]
 blueprints = (
     cli_auth.blueprint,
     gitlab_auth.blueprint,
-    jupyterhub_auth.blueprint,
     web.blueprint,
 )
 
@@ -99,7 +98,6 @@ def auth():
 
     auths = {
         "gitlab": gitlab_auth.GitlabUserToken,
-        "jupyterhub": jupyterhub_auth.JupyterhubUserToken,
         "renku": renku_auth.RenkuCoreAuthHeaders,
         "notebook": notebook_auth.NotebookAuthHeaders,
         "cli-gitlab": cli_auth.RenkuCLIGitlabAuthHeaders,
