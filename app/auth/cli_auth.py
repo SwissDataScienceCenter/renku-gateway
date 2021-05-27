@@ -18,7 +18,6 @@
 """Implement Keycloak authentication workflow for CLI."""
 import base64
 import json
-import re
 import time
 from urllib.parse import urljoin
 
@@ -42,14 +41,11 @@ SCOPE = ["openid"]
 
 class RenkuCLIGitlabAuthHeaders:
     def process(self, request, headers):
-        authorization = headers.get("Authorization")
-        authorization_match = (
-            re.search(r"bearer\s+(?P<token>.+)", authorization, re.IGNORECASE)
-            if authorization
-            else None
-        )
-        if authorization_match:
-            access_token = authorization_match.group("token")
+        if not request.authorization:
+            return headers
+
+        access_token = request.authorization.password
+        if access_token:
             redis_key = get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
             gitlab_oauth_client = current_app.store.get_oauth_client(redis_key)
             if gitlab_oauth_client:

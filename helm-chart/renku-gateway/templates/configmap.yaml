@@ -121,7 +121,7 @@ data:
           # Access to gitlab server from a git repo with CLI token
           entryPoints = ["http"]
           Middlewares = ["auth-cliGitlab", "common", "cliGitlab"]
-          Rule = "PathPrefix(`{{ .Values.global.gitlab.cliUrlPrefix | default "/repo/" }}`)"
+          Rule = "PathPrefix(`{{ .Values.global.gitlab.cliUrlPrefix | default "/repos/" }}`)"
           Service = "gitlab"
 
         [http.routers.renku]
@@ -194,7 +194,7 @@ data:
 {{ end }}
 
         [http.middlewares.cliGitlab.ReplacePathRegex]
-          regex = "^/repo/(.*)"
+          regex = "^/repos/(.*)"
           {{ if eq .Values.global.gitlab.urlPrefix "/" }}
           replacement = "/$1"
           {{- else -}}

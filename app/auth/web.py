@@ -50,8 +50,6 @@ SCOPE = ["openid"]
 
 def get_valid_token(headers):
     """Look for a fresh and valid token, first in headers, then in the session."""
-    renku_token = headers.pop("Renku-Auth-Access-Token", None)
-
     authorization = headers.get("Authorization")
     authorization_match = (
         re.search(r"bearer\s+(?P<token>.+)", authorization, re.IGNORECASE)
@@ -59,9 +57,7 @@ def get_valid_token(headers):
         else None
     )
 
-    if renku_token:
-        redis_key = get_redis_key_from_token(renku_token, key_suffix=CLI_SUFFIX)
-    elif authorization_match:
+    if authorization_match:
         renku_token = authorization_match.group("token")
         redis_key = get_redis_key_from_token(renku_token, key_suffix=CLI_SUFFIX)
     elif headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:
