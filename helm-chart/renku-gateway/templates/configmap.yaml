@@ -117,6 +117,13 @@ data:
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}`)"
           Service = "gitlab"
 
+        [http.routers.gitlabRenkuCli]
+          # Access to gitlab server from a git repo with CLI token
+          entryPoints = ["http"]
+          Middlewares = ["auth-cliGitlab", "common", "cliGitlab"]
+          Rule = "PathPrefix(`{{ .Values.global.gitlab.cliUrlPrefix | default "/repos/" }}`)"
+          Service = "gitlab"
+
         [http.routers.renku]
           entryPoints = ["http"]
           Middlewares = ["auth-renku", "common"]
@@ -186,8 +193,21 @@ data:
           replacement = "/jupyterhub/services/notebooks/$1"
 {{ end }}
 
+        [http.middlewares.cliGitlab.ReplacePathRegex]
+          regex = "^/repos/(.*)"
+          {{ if eq .Values.global.gitlab.urlPrefix "/" }}
+          replacement = "/$1"
+          {{- else -}}
+          replacement = "{{ .Values.global.gitlab.urlPrefix }}/$1"
+          {{ end }}
+
         [http.middlewares.auth-gitlab.forwardauth]
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=gitlab"
+          trustForwardHeader = true
+          authResponseHeaders = ["Authorization"]
+
+        [http.middlewares.auth-cliGitlab.forwardauth]
+          address = "http://{{ template "gateway.fullname" . }}-auth/?auth=cli-gitlab"
           trustForwardHeader = true
           authResponseHeaders = ["Authorization"]
 

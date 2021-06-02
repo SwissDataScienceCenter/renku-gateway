@@ -99,6 +99,7 @@ def auth():
         "gitlab": gitlab_auth.GitlabUserToken,
         "jupyterhub": jupyterhub_auth.JupyterhubUserToken,
         "renku": renku_auth.RenkuCoreAuthHeaders,
+        "cli-gitlab": cli_auth.RenkuCLIGitlabAuthHeaders,
     }
 
     # Keycloak public key is not defined so error
