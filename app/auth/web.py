@@ -45,7 +45,7 @@ from .utils import (
 blueprint = Blueprint("web_auth", __name__, url_prefix="/auth")
 
 KC_SUFFIX = "kc_oidc_client"
-SCOPE = ["openid"]
+SCOPE = ["profile", "email", "openid"]
 
 
 def get_valid_token(headers):
