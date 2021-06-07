@@ -29,6 +29,7 @@ from .utils import (
 )
 
 JH_SUFFIX = "jh_oauth_client"
+SCOPE = ["identify"]
 
 blueprint = Blueprint("jupyterhub_auth", __name__, url_prefix="/auth/jupyterhub")
 
@@ -72,7 +73,7 @@ def login():
         provider_app,
         urljoin(current_app.config["HOST_NAME"], url_for("jupyterhub_auth.token")),
         JH_SUFFIX,
-        [],
+        SCOPE,
     )
 
 

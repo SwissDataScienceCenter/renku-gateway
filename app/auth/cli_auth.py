@@ -36,7 +36,7 @@ from .utils import (
 blueprint = Blueprint("cli_auth", __name__, url_prefix="/auth/cli")
 
 CLI_SUFFIX = "cli_oauth_client"
-SCOPE = ["openid"]
+SCOPE = ["profile", "email", "openid"]
 
 
 class RenkuCLIGitlabAuthHeaders:
