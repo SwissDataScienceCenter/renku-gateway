@@ -21,6 +21,7 @@ import json
 import logging
 import os
 import re
+import secrets
 import sys
 
 import jwt
@@ -92,6 +93,7 @@ blueprints = (
 @app.route("/", methods=["GET"])
 def auth():
     current_app.logger.debug(f"Hitting gateway auth with args: {request.args}")
+
     if "auth" not in request.args:
         return Response("", status=200)
 
@@ -180,6 +182,22 @@ def auth():
         return Response(json.dumps(message), status=401)
 
     current_app.logger.debug(f"Returning headers {headers}")
+
+    if (
+        "anon-id" not in request.cookies
+        and request.headers.get("X-Requested-With", "") == "XMLHttpRequest"
+        and request.headers["X-Forwarded-Uri"] == "/api/user"
+        and "Authorization" not in headers
+    ):
+        resp = Response(
+            json.dumps({"message": "401 Unauthorized"}),
+            content_type="application/json",
+            status=401,
+        )
+        resp.set_cookie("anon-id", secrets.token_hex(64), path="/api/")
+        current_app.logger.debug("Setting anonymous id")
+        return resp
+
     return Response(json.dumps("Up and running"), headers=headers, status=200,)
 
 
