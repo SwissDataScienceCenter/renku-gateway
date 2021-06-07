@@ -34,7 +34,7 @@ from simplekv.decorator import PrefixDecorator
 from simplekv.memory.redisstore import RedisStore
 
 from . import config
-from .auth import cli_auth, gitlab_auth, jupyterhub_auth, renku_auth, web
+from .auth import cli_auth, gitlab_auth, jupyterhub_auth, renku_auth, web, notebook_auth
 from .auth.oauth_redis import OAuthRedis
 from .auth.utils import decode_keycloak_jwt
 
@@ -99,6 +99,7 @@ def auth():
         "gitlab": gitlab_auth.GitlabUserToken,
         "jupyterhub": jupyterhub_auth.JupyterhubUserToken,
         "renku": renku_auth.RenkuCoreAuthHeaders,
+        "notebook": notebook_auth.NotebookAuthHeaders,
         "cli-gitlab": cli_auth.RenkuCLIGitlabAuthHeaders,
     }
 
