@@ -21,6 +21,7 @@ import json
 import logging
 import os
 import re
+import secrets
 import sys
 
 import jwt
@@ -92,6 +93,15 @@ blueprints = (
 @app.route("/", methods=["GET"])
 def auth():
     current_app.logger.debug(f"Hitting gateway auth with args: {request.args}")
+
+    if (
+        "anon-id" not in request.cookies
+        and request.headers.get("X-Requested-With", "") == "XMLHttpRequest"
+    ):
+        resp = Response({"error": "anonymous ID missing, set new one."}, status=401)
+        resp.set_cookie("anon-id", secrets.token_hex(64), path="/api/")
+        return resp
+
     if "auth" not in request.args:
         return Response("", status=200)
 

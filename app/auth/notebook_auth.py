@@ -52,6 +52,9 @@ def get_git_credentials_header(git_oauth_clients):
 class NotebookAuthHeaders:
     def process(self, request, headers):
 
+        headers["Renku-Auth-Anon-Id"] = request.cookies.get("anon-id", "")
+        print(headers)
+
         m = re.search(
             r"bearer (?P<token>.+)", headers.get("Authorization", ""), re.IGNORECASE
         )
