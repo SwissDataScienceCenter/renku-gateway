@@ -45,7 +45,7 @@ from .utils import (
 blueprint = Blueprint("web_auth", __name__, url_prefix="/auth")
 
 KC_SUFFIX = "kc_oidc_client"
-SCOPE = ["openid"]
+SCOPE = ["profile", "email", "openid"]
 
 
 def get_valid_token(headers):
@@ -58,8 +58,8 @@ def get_valid_token(headers):
     )
 
     if authorization_match:
-        token = authorization_match.group("token")
-        redis_key = get_redis_key_from_token(token, key_suffix=CLI_SUFFIX)
+        renku_token = authorization_match.group("token")
+        redis_key = get_redis_key_from_token(renku_token, key_suffix=CLI_SUFFIX)
     elif headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:
         redis_key = get_redis_key_from_session(key_suffix=KC_SUFFIX)
     else:
