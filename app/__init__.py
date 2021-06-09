@@ -91,7 +91,6 @@ blueprints = (
 
 @app.route("/", methods=["GET"])
 def auth():
-    current_app.logger.debug(f"Hitting gateway auth with args: {request.args}")
     if "auth" not in request.args:
         return Response("", status=200)
 
@@ -178,7 +177,6 @@ def auth():
         message = {"error": "authentication", "message": "unknown", "target": auth_arg}
         return Response(json.dumps(message), status=401)
 
-    current_app.logger.debug(f"Returning headers {headers}")
     return Response(json.dumps("Up and running"), headers=headers, status=200,)
 
 
