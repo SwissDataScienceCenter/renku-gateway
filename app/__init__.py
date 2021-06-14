@@ -194,7 +194,7 @@ def auth():
             content_type="application/json",
             status=401,
         )
-        resp.set_cookie("anon-id", secrets.token_hex(64), path="/api/")
+        resp.set_cookie("anon-id", secrets.token_urlsafe(40), path="/api/")
         current_app.logger.debug("Setting anonymous id")
         return resp
 

@@ -204,7 +204,11 @@ data:
         [http.middlewares.auth-notebook.forwardauth]
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=notebook"
           trustForwardHeader = true
+    {{ if .Values.global.anonymousSessions.enabled }}
+          authResponseHeaders = ["Renku-Auth-Access-Token", "Renku-Auth-Id-Token", "Renku-Auth-Git-Credentials", "Renku-Auth-Anon-Id"]
+    {{ else }}
           authResponseHeaders = ["Renku-Auth-Access-Token", "Renku-Auth-Id-Token", "Renku-Auth-Git-Credentials"]
+    {{ end }}
 
         [http.middlewares.webhooks.ReplacePathRegex]
           regex = "^/projects/([^/]*)/graph/webhooks(.*)"
