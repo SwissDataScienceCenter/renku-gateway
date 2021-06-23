@@ -64,7 +64,7 @@ data:
 {{ if eq .Values.global.anonymousSessions.enabled false }}
         [http.routers.notebooks]
           entryPoints = ["http"]
-          Middlewares = ["auth-jupyterhub", "common", "notebooks"]
+          Middlewares = ["auth-jupyterhub", "auth-notebook", "common", "notebooks"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}notebooks`)"
           Service = "jupyterhub"
 {{ end }}
@@ -113,6 +113,13 @@ data:
           entryPoints = ["http"]
           Middlewares = ["auth-gitlab", "common", "gitlabApi"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}`)"
+          Service = "gitlab"
+
+        [http.routers.gitlabRenkuCli]
+          # Access to gitlab server from a git repo with CLI token
+          entryPoints = ["http"]
+          Middlewares = ["auth-cliGitlab", "common", "cliGitlab"]
+          Rule = "PathPrefix(`{{ .Values.global.gitlab.cliUrlPrefix | default "/repos/" }}`)"
           Service = "gitlab"
 
         [http.routers.renku]
@@ -180,8 +187,21 @@ data:
           replacement = "/jupyterhub/services/notebooks/$1"
 {{ end }}
 
+        [http.middlewares.cliGitlab.ReplacePathRegex]
+          regex = "^/repos/(.*)"
+          {{ if eq .Values.global.gitlab.urlPrefix "/" }}
+          replacement = "/$1"
+          {{- else -}}
+          replacement = "{{ .Values.global.gitlab.urlPrefix }}/$1"
+          {{ end }}
+
         [http.middlewares.auth-gitlab.forwardauth]
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=gitlab"
+          trustForwardHeader = true
+          authResponseHeaders = ["Authorization"]
+
+        [http.middlewares.auth-cliGitlab.forwardauth]
+          address = "http://{{ template "gateway.fullname" . }}-auth/?auth=cli-gitlab"
           trustForwardHeader = true
           authResponseHeaders = ["Authorization"]
 
@@ -194,6 +214,11 @@ data:
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=renku"
           trustForwardHeader = true
           authResponseHeaders = ["Authorization", "Renku-user-id", "Renku-user-fullname", "Renku-user-email"]
+
+        [http.middlewares.auth-notebook.forwardauth]
+          address = "http://{{ template "gateway.fullname" . }}-auth/?auth=notebook"
+          trustForwardHeader = true
+          authResponseHeaders = ["Renku-Auth-Access-Token", "Renku-Auth-Id-Token", "Renku-Auth-Git-Credentials"]
 
         [http.middlewares.webhooks.ReplacePathRegex]
           regex = "^/projects/([^/]*)/graph/webhooks(.*)"
@@ -314,7 +339,7 @@ data:
         [http.routers.notebooksSecondPassRegular]
           priority=1003
           entryPoints = ["http"]
-          Middlewares = ["common", "notebooks"]
+          Middlewares = ["auth-notebook", "common", "notebooks"]
           Rule = "PathPrefix(`/notebooks-second-pass`) && HeadersRegexp(`Authorization`, `token`)"
           Service = "jupyterhub"
 
