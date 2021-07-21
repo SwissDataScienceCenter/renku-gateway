@@ -6,26 +6,26 @@ jobs:
   cleanup-runs:
     runs-on: ubuntu-latest
     steps:
-    - uses: rokroskar/workflow-run-cleanup-action@v0.3.3
-      env:
-        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - uses: rokroskar/workflow-run-cleanup-action@v0.3.3
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
     if: "!startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/heads/master'"
 
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
-      with:
-        python-version: '3.7'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip pipenv
-        pipenv install --deploy --system --dev
-    - name: Test with pytest
-      run: |
-        pytest
+      - uses: actions/checkout@master
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: "3.7"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip pipenv
+          pipenv install --deploy --system --dev
+      - name: Test with pytest
+        run: |
+          pytest
 
   test-chart:
     needs: test
@@ -57,23 +57,23 @@ jobs:
     needs: test-chart
     if: "startsWith(github.ref, 'refs/tags/')"
     steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - name: set up environment variables
-      run: |
-        echo "GIT_USER=Renku Bot" >> $GITHUB_ENV
-        echo "GIT_EMAIL=renku@datascience.ch" >> $GITHUB_ENV
-    - name: Push chart and images
-      uses: SwissDataScienceCenter/renku/actions/publish-chart@master
-      env:
-        GITHUB_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-    - name: Wait for chart to get published
-      run: sleep 120
-    - name: Update component version
-      uses: SwissDataScienceCenter/renku/actions/update-component-version@master
-      env:
-        CHART_NAME: renku-gateway
-        GITHUB_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: set up environment variables
+        run: |
+          echo "GIT_USER=Renku Bot" >> $GITHUB_ENV
+          echo "GIT_EMAIL=renku@datascience.ch" >> $GITHUB_ENV
+      - name: Push chart and images
+        uses: SwissDataScienceCenter/renku-actions/publish-chart@v0.2.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Wait for chart to get published
+        run: sleep 120
+      - name: Update component version
+        uses: SwissDataScienceCenter/renku-actions/update-component-version@v0.2.0
+        env:
+          CHART_NAME: renku-gateway
+          GITHUB_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
