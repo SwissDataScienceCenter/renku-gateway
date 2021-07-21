@@ -68,7 +68,9 @@ app.logger.propagate = False
 app.config.from_object(config)
 
 CORS(
-    app, allow_headers=["X-Requested-With"], allow_origin=app.config["ALLOW_ORIGIN"],
+    app,
+    allow_headers=["X-Requested-With"],
+    allow_origin=app.config["ALLOW_ORIGIN"],
 )
 
 if "pytest" not in sys.modules:
@@ -180,7 +182,11 @@ def auth():
         message = {"error": "authentication", "message": "unknown", "target": auth_arg}
         return Response(json.dumps(message), status=401)
 
-    return Response(json.dumps("Up and running"), headers=headers, status=200,)
+    return Response(
+        json.dumps("Up and running"),
+        headers=headers,
+        status=200,
+    )
 
 
 @app.route("/health", methods=["GET"])
@@ -197,7 +203,8 @@ def _join_url_prefix(*parts):
 
 for blueprint in blueprints:
     app.register_blueprint(
-        blueprint, url_prefix=_join_url_prefix(url_prefix, blueprint.url_prefix),
+        blueprint,
+        url_prefix=_join_url_prefix(url_prefix, blueprint.url_prefix),
     )
 
 
