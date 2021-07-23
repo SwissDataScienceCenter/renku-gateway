@@ -580,11 +580,11 @@
         },
         "chartpress": {
             "hashes": [
-                "sha256:2eaebba1c8eeb8f3acc2ff45c5df3a15231d4f66a4af5e0d808eeb53360fd833",
-                "sha256:caa95390f04b866133f6e57446d2735dff8fe247e78efebce21b8ae483594685"
+                "sha256:af5c547c29403b55b525c34b51c9e4b1e6341dbcfe946300d0822fde5abfeb40",
+                "sha256:d3efb9b89a8044b89fb9a672cc830f14b2f7322f1197192f518cb09202267e7a"
             ],
             "index": "pypi",
-            "version": "==1.2.0"
+            "version": "==1.2.2"
         },
         "click": {
             "hashes": [
@@ -991,11 +991,11 @@
         },
         "tomli": {
             "hashes": [
-                "sha256:0713b16ff91df8638a6a694e295c8159ab35ba93e3424a626dd5226d386057be",
-                "sha256:be670d0d8d7570fd0ea0113bd7bb1ba3ac6706b4de062cc4c952769355c9c268"
+                "sha256:33d7984738f8bb699c9b0a816eb646a8178a69eaa792d258486776a5d21b8ca5",
+                "sha256:f4a182048010e89cbec0ae4686b21f550a7f2903f665e34a6de58ec15424f919"
             ],
             "markers": "python_version >= '3.6'",
-            "version": "==1.0.4"
+            "version": "==1.1.0"
         },
         "typed-ast": {
             "hashes": [
