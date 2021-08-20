@@ -1,6 +1,22 @@
 Changes
 =======
 
+`0.9.5 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.9.4...0.9.5>`__ (2021-07-21)
+------------------------------------------------------------------------------------------------------
+
+Features
+~~~~~~~~
+
+-  add renku headers to nb service requests
+   (`754a97f <https://github.com/SwissDataScienceCenter/renku-gateway/commit/754a97fe9a82effc9544c10f034aa815e35a8a3a>`__)
+-  authenticate gitlab requests
+   (`#419 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/419>`__)
+   (`efd39bb <https://github.com/SwissDataScienceCenter/renku-gateway/commit/efd39bbcbe51f87984735fd0c15b51acfb56ac7c>`__)
+-  support for CLI login
+   (`#367 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/367>`__)
+   (`8d97690 <https://github.com/SwissDataScienceCenter/renku-gateway/commit/8d97690f879a7def6dd8310324616f3eabdb62d0>`__)
+
+
 `0.9.4 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.9.3...0.9.4>`__ (2021-03-10)
 ------------------------------------------------------------------------------------------------------
 
