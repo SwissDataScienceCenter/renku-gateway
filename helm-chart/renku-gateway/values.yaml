@@ -34,9 +34,7 @@ global:
     #   realm: Renku
 
   anonymousSessions:
-    ## Set this to true (probably in the parent chart) when deploying
-    ## a second notebook service (incl. Jupyterhub) for anonymous notebook
-    ## sessions.
+    ## Set this to true for anonymous notebook sessions.
     enabled: false
 
   keycloak:
@@ -81,19 +79,6 @@ rateLimits:
 ## This is a random string, used for cryptographic operations on cookies
 ## use `openssl rand -hex 32`
 secretKey:
-
-jupyterhub:
-  ## the url of the jupyterhub deployment
-  # url:
-  ## Client ID, this should match the jupyter hub config of services: oauth_client_id
-  clientId: gateway
-  ## Client secret, this should match the api_token
-  ## use `openssl rand -hex 32`
-  clientSecret:
-
-  ## the url of a potential secondary jupyterhub
-  ## deployment for anonymous sessions
-  # tmpUrl:
 
 image:
   name: traefik
@@ -166,6 +151,9 @@ core:
   ## Set the hostname under which the core service
   ## can be reached (internally). This will default to
   ## http://<release-name>-core
+  hostname:
+
+notebooks:
   hostname:
 
 # GitLab has introduced a new logout behavior in 12.7.0

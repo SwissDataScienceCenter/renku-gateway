@@ -121,15 +121,6 @@ spec:
                   key: gitlabClientSecret
             - name: GITLAB_CLIENT_ID
               value: {{ .Values.gitlabClientId | default .Values.global.gateway.gitlabClientId | quote }}
-            - name: JUPYTERHUB_URL
-              value: {{ .Values.jupyterhub.url | default (printf "%s://%s/jupyterhub" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
-            - name: JUPYTERHUB_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ template "gateway.fullname" . }}
-                  key: jupyterhubClientSecret
-            - name: JUPYTERHUB_CLIENT_ID
-              value: {{ .Values.jupyterhub.clientId | quote }}
             - name: KEYCLOAK_URL
               value: {{ .Values.keycloakUrl | default (printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
               {{ if .Values.global.keycloak.realm }}
