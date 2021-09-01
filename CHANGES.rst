@@ -1,6 +1,21 @@
 Changes
 =======
 
+`0.10.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.9.5...0.10.0>`__ (2021-09-01)
+========================================================================================================
+
+Features
+~~~~~~~~
+
+-  enable Amalthea-based sessions
+   (`ec87dc6 <https://github.com/SwissDataScienceCenter/renku-gateway/commit/ec87dc6f679d17d7504729478fd0c18dc9d12c91>`__)
+
+BREAKING CHANGES
+~~~~~~~~~~~~~~~~
+
+- This version will not work with older versions of renku-notebooks, the intended combinations of component versions can be found in the main Renku chart.
+
+
 `0.9.5 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.9.4...0.9.5>`__ (2021-07-21)
 ------------------------------------------------------------------------------------------------------
 
