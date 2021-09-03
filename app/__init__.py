@@ -21,6 +21,7 @@ import json
 import logging
 import os
 import re
+import secrets
 import sys
 
 import jwt
@@ -34,7 +35,7 @@ from simplekv.decorator import PrefixDecorator
 from simplekv.memory.redisstore import RedisStore
 
 from . import config
-from .auth import cli_auth, gitlab_auth, jupyterhub_auth, renku_auth, web, notebook_auth
+from .auth import cli_auth, gitlab_auth, renku_auth, web, notebook_auth
 from .auth.oauth_redis import OAuthRedis
 from .auth.utils import decode_keycloak_jwt
 
@@ -87,19 +88,19 @@ url_prefix = app.config["SERVICE_PREFIX"]
 blueprints = (
     cli_auth.blueprint,
     gitlab_auth.blueprint,
-    jupyterhub_auth.blueprint,
     web.blueprint,
 )
 
 
 @app.route("/", methods=["GET"])
 def auth():
+    current_app.logger.debug(f"Hitting gateway auth with args: {request.args}")
+
     if "auth" not in request.args:
         return Response("", status=200)
 
     auths = {
         "gitlab": gitlab_auth.GitlabUserToken,
-        "jupyterhub": jupyterhub_auth.JupyterhubUserToken,
         "renku": renku_auth.RenkuCoreAuthHeaders,
         "notebook": notebook_auth.NotebookAuthHeaders,
         "cli-gitlab": cli_auth.RenkuCLIGitlabAuthHeaders,
@@ -181,6 +182,23 @@ def auth():
         )
         message = {"error": "authentication", "message": "unknown", "target": auth_arg}
         return Response(json.dumps(message), status=401)
+
+    if (
+        "anon-id" not in request.cookies
+        and request.headers.get("X-Requested-With", "") == "XMLHttpRequest"
+        and request.headers["X-Forwarded-Uri"] == "/api/user"
+        and "Authorization" not in headers
+    ):
+        resp = Response(
+            json.dumps({"message": "401 Unauthorized"}),
+            content_type="application/json",
+            status=401,
+        )
+        # We make sure the anonymous ID starts with an alphabetic character
+        # such that it can be used directly to form k8s resource names.
+        resp.set_cookie("anon-id", f"anon-{secrets.token_urlsafe(32)}", path="/api/")
+        current_app.logger.debug("Setting anonymous id")
+        return resp
 
     return Response(
         json.dumps("Up and running"),

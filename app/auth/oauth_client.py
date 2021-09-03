@@ -27,7 +27,7 @@ import time
 from oauthlib.oauth2 import WebApplicationClient
 from requests_oauthlib import OAuth2Session
 
-from .oauth_provider_app import JupyterHubProviderApp, OAuthProviderApp
+from .oauth_provider_app import OAuthProviderApp
 
 
 class RenkuWebApplicationClient(WebApplicationClient):
@@ -70,13 +70,6 @@ class RenkuWebApplicationClient(WebApplicationClient):
             include_client_id=True,
             **kwargs
         )
-        # TODO: Once Jupyterhub actually expires access tokens and implements
-        # TODO: usable refresh tokens, this subclass can be removed
-        # TODO: https://github.com/SwissDataScienceCenter/renku-gateway/issues/229
-        # Could use a factory method instead, but seems like an overkill...
-        if isinstance(self.provider_app, JupyterHubProviderApp):
-            self.refresh_token = None
-            self.expires_in = None
         self._fix_expiration_time()
 
     def refresh_access_token(self):
