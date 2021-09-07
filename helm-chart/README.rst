@@ -6,7 +6,7 @@ Provide a basic chart for deploying the Renku Gateway application.
 Configuration
 -------------
 
-- `gitlabUrl` define the URL of a running GitLab instance
+- `gitlab.url` define the URL of a running GitLab instance
   (default: `http://gitlab.renku.build`)
 - `keycloakUrl` define the URL of a running JupyterHub instance
   (default: `http://keycloak.renku.build:8080`)
