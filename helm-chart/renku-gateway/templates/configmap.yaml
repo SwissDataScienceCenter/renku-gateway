@@ -174,11 +174,7 @@ data:
 
         [http.middlewares.cliGitlab.ReplacePathRegex]
           regex = "^/repos/(.*)"
-          {{ if eq .Values.global.gitlab.urlPrefix "/" }}
           replacement = "/$1"
-          {{- else -}}
-          replacement = "{{ .Values.global.gitlab.urlPrefix }}/$1"
-          {{ end }}
 
         [http.middlewares.auth-gitlab.forwardauth]
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=gitlab"
