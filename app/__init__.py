@@ -170,17 +170,23 @@ def auth():
                 "error": "authentication",
                 "message": "can't refresh access token",
                 "target": auth_arg,
+                "exception": str(error),
             }
             return Response(json.dumps(message), status=401)
         raise
     # TODO: fix bare except
     # https://github.com/SwissDataScienceCenter/renku-gateway/issues/232
-    except:  # noqa
+    except Exception as error:  # noqa
         current_app.logger.warning(
             f"Error while authenticating request, unknown. Target: {auth_arg}",
             exc_info=True,
         )
-        message = {"error": "authentication", "message": "unknown", "target": auth_arg}
+        message = {
+            "error": "authentication",
+            "message": "unknown",
+            "target": auth_arg,
+            "exception": str(error),
+        }
         return Response(json.dumps(message), status=401)
 
     if (
