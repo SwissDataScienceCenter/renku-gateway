@@ -162,6 +162,12 @@ notebooks:
 # 'false' for versions >= 12.9.0.
 oldGitLabLogout: false
 
+# For deployments with an external GitLab instance, we don't want to terminate
+# a GitLab session when users log out from Renku. By default, we assume that a
+# dedicated GitLab instance is deployed, so, logging out from Renku should
+# trigger a logout from GitLab.
+logoutGitLabUponRenkuLogout: true
+
 # sentry configuration
 sentry:
   dsn:

@@ -147,6 +147,8 @@ spec:
                   key: oidcClientSecret
             - name: OLD_GITLAB_LOGOUT
               value: {{ .Values.oldGitLabLogout | quote }}
+            - name: LOGOUT_GITLAB_UPON_RENKU_LOGOUT
+              value: {{ .Values.logoutGitLabUponRenkuLogout | quote }}
             - name: WEBHOOK_SERVICE_HOSTNAME
               value: {{ .Values.graph.webhookService.hostname | default (printf "http://%s-graph-webhook-service" .Release.Name ) | quote }}
             {{ if .Values.global.anonymousSessions.enabled }}
