@@ -66,7 +66,13 @@ def get_valid_token(headers):
         return None
 
     keycloak_oidc_client = current_app.store.get_oauth_client(redis_key)
-    return keycloak_oidc_client.access_token
+    if hasattr(keycloak_oidc_client, "access_token"):
+        return keycloak_oidc_client.access_token
+    current_app.logger.warning(
+        "The user does not have backend access tokens.",
+        exc_info=True,
+    )
+    return None
 
 
 LOGIN_SEQUENCE = (
