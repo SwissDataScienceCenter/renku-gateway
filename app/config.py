@@ -95,3 +95,7 @@ if not OIDC_CLIENT_SECRET:
 SERVICE_PREFIX = os.environ.get("GATEWAY_SERVICE_PREFIX", "/")
 
 OLD_GITLAB_LOGOUT = os.environ.get("OLD_GITLAB_LOGOUT", "") == "true"
+
+LOGOUT_GITLAB_UPON_RENKU_LOGOUT = (
+    os.environ.get("LOGOUT_GITLAB_UPON_RENKU_LOGOUT", "") == "true"
+)
