@@ -1,8 +1,20 @@
 Changes
 =======
 
+`0.10.1 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.10.0...0.10.1>`__ (2021-10-14)
+=========================================================================================================
+
+Bug Fixes
+~~~~~~~~~
+
+-  **auth:** prevent exception when using Keycloak access tokens
+   (`2abd0cb <https://github.com/SwissDataScienceCenter/renku-gateway/commit/2abd0cba3f3e4b3426c7744dd9ecceca43e01454>`__)
+-  **auth:** log out from GitLab upon Renku logout
+   (`da0897d <https://github.com/SwissDataScienceCenter/renku-gateway/commit/da0897d42d26e38abbf6fcb288dbf06efc2bca33>`__)
+
+
 `0.10.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.9.5...0.10.0>`__ (2021-09-01)
-========================================================================================================
+--------------------------------------------------------------------------------------------------------
 
 Features
 ~~~~~~~~
