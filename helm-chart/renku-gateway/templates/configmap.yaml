@@ -12,10 +12,10 @@ data:
   traefik.toml: |
     {{ if .Values.development }}
     [log]
-      level = "debug"
+      level = "DEBUG"
     {{ else }}
     [log]
-      level = "error"
+      level = "ERROR"
     {{ end }}
 
     [api]
