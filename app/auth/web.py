@@ -191,20 +191,20 @@ def user_profile():
 
 @blueprint.route("/logout")
 def logout():
-    # NOTE: Only delete and logout KC client because CLI login won't work otherwise
-    # TODO: Logout properly once we moved to session-based auth
-
     if "sub" in session:
+        # NOTE: Do not delete GL client because CLI login uses it for authentication
         # current_app.store.delete(get_redis_key_from_session(key_suffix=GL_SUFFIX))
-        # current_app.store.delete(get_redis_key_from_session(key_suffix=JH_SUFFIX))
         current_app.store.delete(get_redis_key_from_session(key_suffix=KC_SUFFIX))
     session.clear()
 
-    logout_pages = [
-        # urljoin(current_app.config["HOST_NAME"], url_for("jupyterhub_auth.logout")),
-        # urljoin(current_app.config["HOST_NAME"], url_for("gitlab_auth.logout")),
-        f"{current_app.config['OIDC_ISSUER']}/protocol/openid-connect/logout",
-    ]
+    logout_pages = []
+    if current_app.config["LOGOUT_GITLAB_UPON_RENKU_LOGOUT"]:
+        logout_pages = [
+            urljoin(current_app.config["HOST_NAME"], url_for("gitlab_auth.logout"))
+        ]
+    logout_pages.append(
+        f"{current_app.config['OIDC_ISSUER']}/protocol/openid-connect/logout"
+    )
 
     return render_template(
         "redirect_logout.html",
