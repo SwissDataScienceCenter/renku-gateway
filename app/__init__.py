@@ -91,13 +91,16 @@ def setup_redis_client():
 
         if current_app.config["REDIS_IS_SENTINEL"]:
             sentinel = Sentinel(
-                [(current_app.config["REDIS_HOST"], 26379)],
+                [(current_app.config["REDIS_HOST"], current_app.config["REDIS_PORT"])],
                 sentinel_kwargs={"password": current_app.config["REDIS_PASSWORD"]},
             )
             host, port = sentinel.discover_master("mymaster")
             current_app.logger.debug(f"Discovered redis master at {host}:{port}")
         else:
-            (host, port) = (current_app.config["REDIS_HOST"], 6379)
+            (host, port) = (
+                current_app.config["REDIS_HOST"],
+                current_app.config["REDIS_PORT"],
+            )
 
         # Set up the redis store for tokens
         current_app.store = OAuthRedis(

@@ -53,6 +53,7 @@ ALLOW_ORIGIN = os.environ.get("GATEWAY_ALLOW_ORIGIN", "").split(",")
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "renku-redis")
 REDIS_IS_SENTINEL = os.environ.get("REDIS_IS_SENTINEL", "") == "true"
+REDIS_PORT = os.environ.get("REDIS_PORT", 26379 if REDIS_IS_SENTINEL else 6379)
 try:
     REDIS_PASSWORD = os.environ["REDIS_PASSWORD"]
 except KeyError:
