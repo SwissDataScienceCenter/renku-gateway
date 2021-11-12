@@ -86,8 +86,7 @@ data:
           # This is to access undocumented APIs in GitLab
           entryPoints = ["http"]
           Middlewares = [
-            "auth-gitlab",
-            "direct",
+            "auth-gitlab","direct"
             {{- if .Values.global.gitlab.urlPrefix -}}
             {{- if and (ne .Values.global.gitlab.urlPrefix "") (ne .Values.global.gitlab.urlPrefix "/") -}}
             ,"gitlabOnly"
