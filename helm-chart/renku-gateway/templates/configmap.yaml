@@ -86,7 +86,7 @@ data:
           # This is to access undocumented APIs in GitLab
           entryPoints = ["http"]
           Middlewares = [
-            "auth-gitlab","direct"
+            "direct"
             {{- if .Values.global.gitlab.urlPrefix -}}
             {{- if and (ne .Values.global.gitlab.urlPrefix "") (ne .Values.global.gitlab.urlPrefix "/") -}}
             ,"gitlabOnly"
@@ -94,6 +94,20 @@ data:
             {{- end }}
           ]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}direct/`)"
+          Service = "gitlab"
+        
+        [http.routers.gitlabGraphql]
+          entryPoints = ["http"]
+          Middlewares = [
+            "auth-gitlab","general-ratelimit","api"
+            {{- if .Values.global.gitlab.urlPrefix -}}
+            {{- if and (ne .Values.global.gitlab.urlPrefix "") (ne .Values.global.gitlab.urlPrefix "/") -}}
+            ,"gitlabOnly"
+            {{- end -}}
+            {{- end }}
+            ,"gitlabGraphql"
+          ]
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}graphql`)"
           Service = "gitlab"
 
         [http.routers.gitlab]
@@ -225,6 +239,10 @@ data:
         [http.middlewares.direct.ReplacePathRegex]
           regex = "^/api/direct/(.*)"
           replacement = "/$1"
+
+        [http.middlewares.gitlabGraphql.ReplacePathRegex]
+          regex = "(.*)/graphql(.*)"
+          replacement = "/$1/api/graphql$2"
 
         [http.middlewares.general-ratelimit.ratelimit]
           extractorfunc = "{{ .Values.rateLimits.general.extractorfunc }}"
