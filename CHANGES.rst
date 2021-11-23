@@ -1,8 +1,20 @@
 Changes
 =======
 
-`0.10.1 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.10.0...0.10.1>`__ (2021-10-14)
+`0.10.2 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.10.1...0.10.2>`__ (2021-11-23)
 =========================================================================================================
+
+Features
+~~~~~~~~
+
+-  add gitlab graphql as a separate route
+   (`#491 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/491>`__)
+   (`7cd80f3 <https://github.com/SwissDataScienceCenter/renku-gateway/commit/7cd80f38d9e674787a5f88588f5b3ff605fbaca9>`__)
+
+
+
+`0.10.1 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.10.0...0.10.1>`__ (2021-10-14)
+---------------------------------------------------------------------------------------------------------
 
 Bug Fixes
 ~~~~~~~~~
