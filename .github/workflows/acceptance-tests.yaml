@@ -41,7 +41,7 @@ jobs:
       name: renku-ci-gw-${{ github.event.number }}
     steps:
       - name: deploy-pr
-        uses: SwissDataScienceCenter/renku-actions/deploy-renku@v0.3.0
+        uses: SwissDataScienceCenter/renku-actions/deploy-renku@add-certificates-chart
         env:
           DOCKER_PASSWORD: ${{ secrets.RENKU_DOCKER_PASSWORD }}
           DOCKER_USERNAME: ${{ secrets.RENKU_DOCKER_USERNAME }}
