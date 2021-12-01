@@ -85,28 +85,13 @@ data:
         [http.routers.direct]
           # This is to access undocumented APIs in GitLab
           entryPoints = ["http"]
-          Middlewares = [
-            "direct"
-            {{- if .Values.global.gitlab.urlPrefix -}}
-            {{- if and (ne .Values.global.gitlab.urlPrefix "") (ne .Values.global.gitlab.urlPrefix "/") -}}
-            ,"gitlabOnly"
-            {{- end -}}
-            {{- end }}
-          ]
+          Middlewares = ["direct", "NG_gitlabPrefix"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}direct/`)"
           Service = "gitlab"
         
         [http.routers.gitlabGraphql]
           entryPoints = ["http"]
-          Middlewares = [
-            "auth-gitlab","general-ratelimit","api"
-            {{- if .Values.global.gitlab.urlPrefix -}}
-            {{- if and (ne .Values.global.gitlab.urlPrefix "") (ne .Values.global.gitlab.urlPrefix "/") -}}
-            ,"gitlabOnly"
-            {{- end -}}
-            {{- end }}
-            ,"gitlabGraphql"
-          ]
+          Middlewares = ["auth-gitlab", "general-ratelimit", "api", "NG_gitlabPrefix", "gitlabGraphql"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}graphql`)"
           Service = "gitlab"
 
@@ -116,14 +101,14 @@ data:
           # possible value.
           priority = 1
           entryPoints = ["http"]
-          Middlewares = ["auth-gitlab", "common", "gitlabApi"]
+          Middlewares = ["auth-gitlab", "common", "NG_gitlabPrefix", "NG_gitlabApi"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}`)"
           Service = "gitlab"
 
         [http.routers.gitlabRenkuCli]
           # Access to gitlab server from a git repo with CLI token
           entryPoints = ["http"]
-          Middlewares = ["auth-cliGitlab", "common", "cliGitlab"]
+          Middlewares = ["auth-cliGitlab", "common", "NG_gitlabPrefix", "NG_gitlabCli"]
           Rule = "PathPrefix(`{{ .Values.global.gitlab.cliUrlPrefix | default "/repos/" }}`)"
           Service = "gitlab"
 
@@ -176,9 +161,29 @@ data:
         [http.middlewares.development.headers]
           isDevelopment = true
 
+        [http.middlewares.NG_gitlabPrefix.AddPrefix]
+          prefix = "/{{ trimSuffix `/` (trimPrefix `/` .Values.global.gitlab.urlPrefix | default "") }}"
+        
+        [http.middlewares.NG_gitlabApi.AddPrefix]
+          prefix = "api/v4/"
+
+        [http.middlewares.NG_gitlabCli.ReplacePathRegex]
+          regex = "^/repos/(.*)"
+          replacement = "$1"
+
+        [http.middlewares.gitlabGraphql.ReplacePathRegex]
+          regex = "(.*)/graphql(.*)"
+          replacement = "/$1/api/graphql$2"
+
+        [http.middlewares.direct.ReplacePathRegex]
+          regex = "^/api/direct/(.*)"
+          replacement = "/$1"
+
+        # REMOVE
         [http.middlewares.gitlabOnly.AddPrefix]
           prefix = "{{ .Values.global.gitlab.urlPrefix }}"
 
+        # REMOVE
         [http.middlewares.gitlabApi.AddPrefix]
           {{ if eq .Values.global.gitlab.urlPrefix "/" }}
           prefix = "/api/v4"
@@ -186,6 +191,7 @@ data:
           prefix = "{{ .Values.global.gitlab.urlPrefix }}/api/v4"
           {{ end }}
 
+        # REMOVE
         [http.middlewares.cliGitlab.ReplacePathRegex]
           regex = "^/repos/(.*)"
           {{ if eq .Values.global.gitlab.urlPrefix "/" }}
@@ -235,14 +241,6 @@ data:
 
         [http.middlewares.knowledgeGraph.AddPrefix]
           prefix = "/knowledge-graph"
-
-        [http.middlewares.direct.ReplacePathRegex]
-          regex = "^/api/direct/(.*)"
-          replacement = "/$1"
-
-        [http.middlewares.gitlabGraphql.ReplacePathRegex]
-          regex = "(.*)/graphql(.*)"
-          replacement = "/$1/api/graphql$2"
 
         [http.middlewares.general-ratelimit.ratelimit]
           extractorfunc = "{{ .Values.rateLimits.general.extractorfunc }}"
