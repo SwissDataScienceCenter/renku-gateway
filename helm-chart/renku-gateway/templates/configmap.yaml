@@ -161,8 +161,9 @@ data:
         [http.middlewares.development.headers]
           isDevelopment = true
 
-        [http.middlewares.gitlabPrefix.AddPrefix]
-          prefix = "{{ (printf "%s/" (trimSuffix `/` (printf "/%s" ( trimPrefix `/` .Values.global.gitlab.urlPrefix | default "" )))) }}"
+        [http.middlewares.gitlabPrefix.ReplacePathRegex]
+          regex = "^/(.*)"
+          replacement = "{{ (printf "%s/" (trimSuffix `/` (printf "/%s" ( trimPrefix `/` .Values.global.gitlab.urlPrefix | default "" )))) }}$1"
         
         [http.middlewares.gitlabApi.AddPrefix]
           prefix = "api/v4"
