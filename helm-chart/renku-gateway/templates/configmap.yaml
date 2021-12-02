@@ -162,10 +162,10 @@ data:
           isDevelopment = true
 
         [http.middlewares.gitlabPrefix.AddPrefix]
-          prefix = "{{ trimSuffix `/` (printf "/%s" ( trimPrefix `/` .Values.global.gitlab.urlPrefix | default "" )) }}"
+          prefix = "{{ (printf "%s/" (trimSuffix `/` (printf "/%s" ( trimPrefix `/` .Values.global.gitlab.urlPrefix | default "" )))) }}"
         
         [http.middlewares.gitlabApi.AddPrefix]
-          prefix = "/api/v4"
+          prefix = "api/v4"
 
         [http.middlewares.gitlabCli.ReplacePathRegex]
           regex = "^/repos/(.*)"
