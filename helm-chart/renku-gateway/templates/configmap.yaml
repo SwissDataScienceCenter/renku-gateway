@@ -76,23 +76,42 @@ data:
           Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph/status{endpoint:(.*)}`)"
           Service = "webhooks"
 
+        [http.routers.kg]
+          entryPoints = ["http"]
+          Middlewares = ["auth-gitlab", "common", "kg", "knowledgeGraph"]
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}kg`)"
+          Service = "knowledgeGraph"
+
         [http.routers.datasets]
           entryPoints = ["http"]
           Middlewares = ["common", "knowledgeGraph"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}datasets`)"
           Service = "knowledgeGraph"
 
+        [http.routers.renku]
+          entryPoints = ["http"]
+          Middlewares = ["auth-renku", "common"]
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}renku`)"
+          Service = "core"
+
         [http.routers.direct]
           # This is to access undocumented APIs in GitLab
           entryPoints = ["http"]
-          Middlewares = ["direct", "NG_gitlabPrefix"]
+          Middlewares = ["direct", "gitlabPrefix"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}direct/`)"
           Service = "gitlab"
         
         [http.routers.gitlabGraphql]
           entryPoints = ["http"]
-          Middlewares = ["auth-gitlab", "general-ratelimit", "api", "NG_gitlabPrefix", "gitlabGraphql"]
+          Middlewares = ["auth-gitlab", "general-ratelimit", "api", "gitlabGraphql", "gitlabPrefix"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}graphql`)"
+          Service = "gitlab"
+
+        [http.routers.gitlabRenkuCli]
+          # Access to gitlab server from a git repo with CLI token
+          entryPoints = ["http"]
+          Middlewares = ["auth-cliGitlab", "common", "gitlabCli", "gitlabPrefix"]
+          Rule = "PathPrefix(`{{ .Values.global.gitlab.cliUrlPrefix | default "/repos/" }}`)"
           Service = "gitlab"
 
         [http.routers.gitlab]
@@ -101,28 +120,9 @@ data:
           # possible value.
           priority = 1
           entryPoints = ["http"]
-          Middlewares = ["auth-gitlab", "common", "NG_gitlabPrefix", "NG_gitlabApi"]
+          Middlewares = ["auth-gitlab", "common", "gitlabApi", "gitlabPrefix"]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}`)"
           Service = "gitlab"
-
-        [http.routers.gitlabRenkuCli]
-          # Access to gitlab server from a git repo with CLI token
-          entryPoints = ["http"]
-          Middlewares = ["auth-cliGitlab", "common", "NG_gitlabPrefix", "NG_gitlabCli"]
-          Rule = "PathPrefix(`{{ .Values.global.gitlab.cliUrlPrefix | default "/repos/" }}`)"
-          Service = "gitlab"
-
-        [http.routers.renku]
-          entryPoints = ["http"]
-          Middlewares = ["auth-renku", "common"]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}renku`)"
-          Service = "core"
-
-        [http.routers.kg]
-          entryPoints = ["http"]
-          Middlewares = ["auth-gitlab", "common", "kg", "knowledgeGraph"]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}kg`)"
-          Service = "knowledgeGraph"
 
       [http.middlewares]
 
@@ -161,13 +161,13 @@ data:
         [http.middlewares.development.headers]
           isDevelopment = true
 
-        [http.middlewares.NG_gitlabPrefix.AddPrefix]
-          prefix = "/{{ trimSuffix `/` (trimPrefix `/` .Values.global.gitlab.urlPrefix | default "") }}"
+        [http.middlewares.gitlabPrefix.AddPrefix]
+          prefix = "{{ trimSuffix `/` (printf "/%s" ( trimPrefix `/` .Values.global.gitlab.urlPrefix | default "" )) }}"
         
-        [http.middlewares.NG_gitlabApi.AddPrefix]
+        [http.middlewares.gitlabApi.AddPrefix]
           prefix = "/api/v4"
 
-        [http.middlewares.NG_gitlabCli.ReplacePathRegex]
+        [http.middlewares.gitlabCli.ReplacePathRegex]
           regex = "^/repos/(.*)"
           replacement = "/$1"
 
@@ -178,27 +178,6 @@ data:
         [http.middlewares.direct.ReplacePathRegex]
           regex = "^/api/direct/(.*)"
           replacement = "/$1"
-
-        # REMOVE
-        [http.middlewares.gitlabOnly.AddPrefix]
-          prefix = "{{ .Values.global.gitlab.urlPrefix }}"
-
-        # REMOVE
-        [http.middlewares.gitlabApi.AddPrefix]
-          {{ if eq .Values.global.gitlab.urlPrefix "/" }}
-          prefix = "/api/v4"
-          {{- else -}}
-          prefix = "{{ .Values.global.gitlab.urlPrefix }}/api/v4"
-          {{ end }}
-
-        # REMOVE
-        [http.middlewares.cliGitlab.ReplacePathRegex]
-          regex = "^/repos/(.*)"
-          {{ if eq .Values.global.gitlab.urlPrefix "/" }}
-          replacement = "/$1"
-          {{- else -}}
-          replacement = "{{ .Values.global.gitlab.urlPrefix }}/$1"
-          {{ end }}
 
         [http.middlewares.auth-gitlab.forwardauth]
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=gitlab"
