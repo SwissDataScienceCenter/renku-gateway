@@ -173,7 +173,7 @@ data:
 
         [http.middlewares.gitlabGraphql.ReplacePathRegex]
           regex = "(.*)/graphql(.*)"
-          replacement = "/$1/api/graphql$2"
+          replacement = "$1/api/graphql$2"
 
         [http.middlewares.direct.ReplacePathRegex]
           regex = "^/api/direct/(.*)"
