@@ -165,11 +165,11 @@ data:
           prefix = "/{{ trimSuffix `/` (trimPrefix `/` .Values.global.gitlab.urlPrefix | default "") }}"
         
         [http.middlewares.NG_gitlabApi.AddPrefix]
-          prefix = "api/v4/"
+          prefix = "/api/v4"
 
         [http.middlewares.NG_gitlabCli.ReplacePathRegex]
           regex = "^/repos/(.*)"
-          replacement = "$1"
+          replacement = "/$1"
 
         [http.middlewares.gitlabGraphql.ReplacePathRegex]
           regex = "(.*)/graphql(.*)"
