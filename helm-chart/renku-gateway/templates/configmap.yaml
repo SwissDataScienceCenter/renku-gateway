@@ -76,12 +76,6 @@ data:
           Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph/status{endpoint:(.*)}`)"
           Service = "webhooks"
 
-        [http.routers.graphql]
-          entryPoints = ["http"]
-          Middlewares = ["common", "graphql"]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}graphql`)"
-          Service = "graphql"
-
         [http.routers.datasets]
           entryPoints = ["http"]
           Middlewares = ["common", "knowledgeGraph"]
@@ -98,6 +92,20 @@ data:
             {{- end }}
           ]
           Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}direct/`)"
+          Service = "gitlab"
+        
+        [http.routers.gitlabGraphql]
+          entryPoints = ["http"]
+          Middlewares = [
+            "auth-gitlab","general-ratelimit","api"
+            {{- if .Values.global.gitlab.urlPrefix -}}
+            {{- if and (ne .Values.global.gitlab.urlPrefix "") (ne .Values.global.gitlab.urlPrefix "/") -}}
+            ,"gitlabOnly"
+            {{- end -}}
+            {{- end }}
+            ,"gitlabGraphql"
+          ]
+          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}graphql`)"
           Service = "gitlab"
 
         [http.routers.gitlab]
@@ -212,9 +220,8 @@ data:
           regex = "^/jupyterhub/services/notebooks/(.*)"
           replacement = "{{ .Values.gatewayServicePrefix | default "/api/" }}notebooks/$1"
 
-        [http.middlewares.graphql.ReplacePathRegex]
-          regex = "/graphql"
-          replacement = "/knowledge-graph/graphql"
+        [http.middlewares.kg.StripPrefix]
+          prefixes = ["/kg"]
 
         [http.middlewares.knowledgeGraph.AddPrefix]
           prefix = "/knowledge-graph"
@@ -223,15 +230,16 @@ data:
           regex = "^/api/direct/(.*)"
           replacement = "/$1"
 
+        [http.middlewares.gitlabGraphql.ReplacePathRegex]
+          regex = "(.*)/graphql(.*)"
+          replacement = "/$1/api/graphql$2"
+
         [http.middlewares.general-ratelimit.ratelimit]
           extractorfunc = "{{ .Values.rateLimits.general.extractorfunc }}"
           [http.middlewares.general-ratelimit.ratelimit.rateset.rate0]
             period = "{{ .Values.rateLimits.general.period }}"
             average = {{ .Values.rateLimits.general.average }}
             burst = {{ .Values.rateLimits.general.burst }}
-
-        [http.middlewares.kg.StripPrefix]
-          prefixes = ["/kg"]
 
       [http.services]
         [http.services.gateway.LoadBalancer]
@@ -262,15 +270,9 @@ data:
             url = {{ .Values.graph.webhookService.hostname | default (printf "http://%s-webhook-service" .Release.Name ) | quote }}
             weight = 1
 
-        [http.services.graphql.LoadBalancer]
-          method = "drr"
-          passHostHeader = false
-          [[http.services.graphql.LoadBalancer.servers]]
-          url = {{ .Values.graph.knowledgeGraph.hostname | default (printf "http://%s-knowledge-graph" .Release.Name ) | quote }}
-            weight = 1
-
         [http.services.knowledgeGraph.LoadBalancer]
           method = "drr"
+          passHostHeader = false
           [[http.services.knowledgeGraph.LoadBalancer.servers]]
           url = {{ .Values.graph.knowledgeGraph.hostname | default (printf "http://%s-knowledge-graph" .Release.Name ) | quote }}
             weight = 1
