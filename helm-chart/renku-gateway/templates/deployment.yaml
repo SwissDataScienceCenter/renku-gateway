@@ -118,9 +118,9 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ template "gateway.fullname" . }}
-                  key: gitlabAppSecret
+                  key: gitlabApplicationSecret
             - name: GITLAB_CLIENT_ID
-              value: {{ .Values.global.gitlab.appId | quote }}
+              value: {{ .Values.global.gitlab.applicationId | quote }}
             - name: KEYCLOAK_URL
               value: {{ .Values.keycloakUrl | default (printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
               {{ if .Values.global.keycloak.realm }}

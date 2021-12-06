@@ -13,9 +13,9 @@ global:
     ## The URL path prefix under which gitlab is running.
     ## If GitLab is deployed along side with Renku, it should be equal to 'https://gitlab.'<global.renku.domain>
     url:
-    ## The gitlab application ID and secret for Renku
-    appSecret:
-    appId:
+    ## The gitlab application ID and secret for Renku gateway
+    applicationSecret:
+    applicationId:
 
   gateway:
     ## Client secret of the renku client application registered in

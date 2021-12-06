@@ -45,7 +45,7 @@ jobs:
       - name: Test chart
         run: |
           PATH=${{ runner.temp }}/linux-amd64/:$PATH
-          helm lint helm-chart/renku-gateway --set oidcClientSecret=oidc-secret,gitlabAppSecret=gitlab-secret,cliClientSecret=cli-secret
+          helm lint helm-chart/renku-gateway --set oidcClientSecret=oidc-secret,gitlabApplicationSecret=gitlab-secret,cliClientSecret=cli-secret
       - name: Build chart and images
         run: |
           python -m pip install --upgrade pip pipenv
