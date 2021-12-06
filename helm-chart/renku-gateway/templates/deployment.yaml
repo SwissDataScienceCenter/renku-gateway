@@ -113,7 +113,7 @@ spec:
                   name: {{ template "gateway.fullname" . }}
                   key: cliClientSecret
             - name: GITLAB_URL
-              value: {{ .Values.gitlab.url | default (printf "%s://gitlab.%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+              value: {{ .Values.global.gitlab.url | default (printf "%s://gitlab.%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: GITLAB_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
