@@ -200,7 +200,7 @@ def auth():
         )
         # We make sure the anonymous ID starts with an alphabetic character
         # such that it can be used directly to form k8s resource names.
-        resp.set_cookie("anon-id", f"anon-{secrets.token_urlsafe(32)}", path="/api/")
+        resp.set_cookie("anon-id", f"anon-{secrets.token_urlsafe(32)}")
         current_app.logger.debug("Setting anonymous id")
         return resp
 
