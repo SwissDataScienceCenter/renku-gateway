@@ -51,7 +51,16 @@ SESSION_COOKIE_SECURE = HOST_NAME.startswith("https")
 
 ALLOW_ORIGIN = os.environ.get("GATEWAY_ALLOW_ORIGIN", "").split(",")
 
-REDIS_HOST = os.environ.get("GATEWAY_REDIS_HOST", "renku-gw-redis")
+REDIS_HOST = os.environ.get("REDIS_HOST", "renku-redis")
+REDIS_IS_SENTINEL = os.environ.get("REDIS_IS_SENTINEL", "") == "true"
+REDIS_PORT = os.environ.get("REDIS_PORT", 26379 if REDIS_IS_SENTINEL else 6379)
+try:
+    REDIS_PASSWORD = os.environ["REDIS_PASSWORD"]
+except KeyError:
+    warnings.warn(
+        "No redis password found. Are you sure you don't need one to access redis?"
+    )
+REDIS_DB = os.environ.get("REDIS_DB", "0")
 
 CLI_CLIENT_ID = os.environ.get("CLI_CLIENT_ID", "renku-cli")
 CLI_CLIENT_SECRET = os.environ.get("CLI_CLIENT_SECRET", "")

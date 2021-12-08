@@ -35,6 +35,7 @@ from .test_data import (
     PUBLIC_KEY,
     SECRET_KEY,
     TOKEN_PAYLOAD,
+    REDIS_PASSWORD,
 )
 
 # TODO: Completely refactor all tests, massively improve test coverage.
@@ -47,6 +48,7 @@ def client():
     app.config["TESTING"] = True
     app.config["OIDC_PUBLIC_KEY"] = PUBLIC_KEY
     app.config["SECRET_KEY"] = SECRET_KEY
+    app.config["REDIS_PASSWORD"] = REDIS_PASSWORD
     client = app.test_client()
     yield client
 
