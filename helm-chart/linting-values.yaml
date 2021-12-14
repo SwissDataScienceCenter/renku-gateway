@@ -4,5 +4,4 @@ global:
     dbIndex:
       gateway: 0
 
-oidcClientSecret: oidc-secret
-cliClientSecret: cli-secret
+secretKey: secret-key
