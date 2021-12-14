@@ -30,7 +30,6 @@ jobs:
   test-chart:
     needs: test
     runs-on: ubuntu-latest
-    if: "startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master'"
     steps:
       - uses: actions/checkout@master
       - uses: actions/setup-python@v1

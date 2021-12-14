@@ -1,14 +1,8 @@
 Changes
 =======
 
-`0.11.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.10.2...0.11.0>`__ (2021-12-08)
+`0.10.3 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.10.2...0.10.3>`__ (2021-12-14)
 =========================================================================================================
-
-Features
-~~~~~~~~
-
--  use global redis instance
-   (`42c8e9e <https://github.com/SwissDataScienceCenter/renku-gateway/commit/42c8e9edc5ea1ae85e2455268b5d274e25f0f214>`__)
 
 Bug Fixes
 ~~~~~~~~~
