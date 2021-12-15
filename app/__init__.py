@@ -30,6 +30,7 @@ import sentry_sdk
 from flask import Flask, Response, current_app, request
 from flask_cors import CORS
 from flask_kvsession import KVSessionExtension
+from redis.sentinel import Sentinel
 from sentry_sdk.integrations.flask import FlaskIntegration
 from simplekv.decorator import PrefixDecorator
 from simplekv.memory.redisstore import RedisStore
@@ -74,22 +75,43 @@ CORS(
     allow_origin=app.config["ALLOW_ORIGIN"],
 )
 
-if "pytest" not in sys.modules:
-    # Set up the redis store for tokens
-    app.store = OAuthRedis(
-        hex_key=app.config["SECRET_KEY"], host=app.config["REDIS_HOST"]
-    )
-    # We use the same store for sessions.
-    session_store = PrefixDecorator("sessions_", RedisStore(app.store))
-    KVSessionExtension(session_store, app)
-
-
 url_prefix = app.config["SERVICE_PREFIX"]
 blueprints = (
     cli_auth.blueprint,
     gitlab_auth.blueprint,
     web.blueprint,
 )
+
+
+@app.before_request
+def setup_redis_client():
+    """Set up a redis connection to the master by querying sentinel."""
+
+    if "pytest" not in sys.modules:
+
+        if current_app.config["REDIS_IS_SENTINEL"]:
+            sentinel = Sentinel(
+                [(current_app.config["REDIS_HOST"], current_app.config["REDIS_PORT"])],
+                sentinel_kwargs={"password": current_app.config["REDIS_PASSWORD"]},
+            )
+            host, port = sentinel.discover_master("mymaster")
+            current_app.logger.debug(f"Discovered redis master at {host}:{port}")
+        else:
+            (host, port) = (
+                current_app.config["REDIS_HOST"],
+                current_app.config["REDIS_PORT"],
+            )
+
+        # Set up the redis store for tokens
+        current_app.store = OAuthRedis(
+            hex_key=current_app.config["SECRET_KEY"],
+            host=host,
+            password=current_app.config["REDIS_PASSWORD"],
+            db=current_app.config["REDIS_DB"],
+        )
+        # We use the same store for sessions.
+        session_store = PrefixDecorator("sessions_", RedisStore(current_app.store))
+        KVSessionExtension(session_store, app)
 
 
 @app.route("/", methods=["GET"])

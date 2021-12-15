@@ -23,7 +23,6 @@ Features
    (`7cd80f3 <https://github.com/SwissDataScienceCenter/renku-gateway/commit/7cd80f38d9e674787a5f88588f5b3ff605fbaca9>`__)
 
 
-
 `0.10.1 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.10.0...0.10.1>`__ (2021-10-14)
 ---------------------------------------------------------------------------------------------------------
 
