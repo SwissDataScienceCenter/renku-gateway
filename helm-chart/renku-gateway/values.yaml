@@ -50,8 +50,8 @@ global:
     image:
       repository: renku/certificates
       tag: '0.0.1'
-    customCAs:
-      - secret:
+    customCAs: []
+      # - secret:
 
 replicaCount: 1
 
