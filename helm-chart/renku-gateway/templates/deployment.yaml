@@ -135,8 +135,17 @@ spec:
               {{ end }}
             - name: GATEWAY_SERVICE_PREFIX
               value: {{ .Values.gatewayServicePrefix | default "/api/" | quote }}
-            - name: GATEWAY_REDIS_HOST
-              value: {{ include "call-nested" (list . "redis" "redis.fullname") }}-master
+            - name: REDIS_HOST
+              value: {{ .Values.global.redis.host | default (include "call-nested" (list . "redis" "redis.fullname")) }}
+            - name: REDIS_IS_SENTINEL
+              value: {{ .Values.global.redis.isSentinel | quote }}
+            - name: REDIS_DB
+              value: {{ .Values.global.redis.dbIndex.gateway | quote }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.global.redis.existingSecret }}
+                  key: {{ .Values.global.redis.existingSecretPasswordKey }}
             - name: GATEWAY_SECRET_KEY
               valueFrom:
                 secretKeyRef:
@@ -178,12 +187,14 @@ spec:
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
+            failureThreshold: 6
           readinessProbe:
             httpGet:
               path: /health
               port: http
             initialDelaySeconds: 10
-            periodSeconds: 10
+            periodSeconds: 2
+            failureThreshold: 2
           resources:
 {{ toYaml .Values.resources | indent 12 }}
     {{- with .Values.nodeSelector }}

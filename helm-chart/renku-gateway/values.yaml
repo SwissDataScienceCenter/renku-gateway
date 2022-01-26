@@ -127,25 +127,6 @@ tolerations: []
 
 affinity: {}
 
-## The gateway deploys its own redis as a dependency. These values
-## do probably not need to be changed.
-redis:
-
-  nameOverride: gw-redis
-
-  cluster:
-    enabled: false
-
-  usePassword: false
-
-  master:
-    persistence:
-      enabled: false
-
-  networkPolicy:
-    enabled: true
-    allowExternal: false
-
 ## Settings for the graph services
 graph:
   webhookService:

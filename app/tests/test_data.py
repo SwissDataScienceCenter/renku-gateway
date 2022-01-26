@@ -277,3 +277,5 @@ PROVIDER_APP_DICT = {
     "client_secret": "someSecret",
     "base_url": "someUrl",
 }
+
+REDIS_PASSWORD = "bf4c75968fb7e23575b9b78fa0b375407d2c1e477782335bc764146cd2965d9c"
