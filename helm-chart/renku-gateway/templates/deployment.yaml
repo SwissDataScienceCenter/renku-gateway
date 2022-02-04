@@ -168,6 +168,8 @@ spec:
             # further up the processing chain.
             - name: OAUTHLIB_INSECURE_TRANSPORT
               value: "1"
+            - name: SENTRY_ENABLED
+              value: {{ .Values.sentry.enabled }}
             - name: SENTRY_DSN
               value: {{ .Values.sentry.dsn }}
             - name: SENTRY_ENVIRONMENT

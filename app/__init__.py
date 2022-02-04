@@ -53,19 +53,22 @@ if VSCODE_DEBUG:
     debugpy.wait_for_client()
     breakpoint()
 
-
-if os.environ.get("SENTRY_DSN"):
-    sentry_sdk.init(
-        dsn=os.environ.get("SENTRY_DSN"),
-        integrations=[FlaskIntegration()],
-        environment=os.environ.get("SENTRY_ENVIRONMENT"),
-    )
-
 app = Flask(__name__)
 
 # We activate all log levels and prevent logs from showing twice.
 app.logger.setLevel(logging.DEBUG)
 app.logger.propagate = False
+
+# Initialize Sentry when required
+if os.environ.get("SENTRY_ENABLED"):
+    try:
+        sentry_sdk.init(
+            dsn=os.environ.get("SENTRY_DSN"),
+            integrations=[FlaskIntegration()],
+            environment=os.environ.get("SENTRY_ENVIRONMENT"),
+        )
+    except Exception:
+        app.logger.warning("Error while trying to initialize Sentry", exc_info=True)
 
 app.config.from_object(config)
 

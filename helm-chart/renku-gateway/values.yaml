@@ -151,6 +151,7 @@ logoutGitLabUponRenkuLogout: true
 
 # sentry configuration
 sentry:
+  enabled: false
   dsn:
   environment:
 
