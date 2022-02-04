@@ -60,7 +60,7 @@ app.logger.setLevel(logging.DEBUG)
 app.logger.propagate = False
 
 # Initialize Sentry when required
-if os.environ.get("SENTRY_ENABLED").lower() == "true":
+if os.environ.get("SENTRY_ENABLED", "").lower() == "true":
     try:
         sentry_sdk.init(
             dsn=os.environ.get("SENTRY_DSN"),
