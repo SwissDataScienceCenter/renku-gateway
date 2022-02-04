@@ -169,7 +169,7 @@ spec:
             - name: OAUTHLIB_INSECURE_TRANSPORT
               value: "1"
             - name: SENTRY_ENABLED
-              value: {{ .Values.sentry.enabled }}
+              value: {{ .Values.sentry.enabled | quote }}
             - name: SENTRY_DSN
               value: {{ .Values.sentry.dsn }}
             - name: SENTRY_ENVIRONMENT
