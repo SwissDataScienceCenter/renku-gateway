@@ -23,7 +23,7 @@
 ==================
  Renku API gateway
 ==================
-
+wip
 **The Renku platform is under very active development and should be considered highly
 volatile.**
 
