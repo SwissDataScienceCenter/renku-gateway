@@ -1,6 +1,17 @@
 Changes
 =======
 
+`0.12.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.11.0...0.12.0>`__ (2022-02-08)
+=========================================================================================================
+
+Features
+~~~~~~~~
+
+-  modify for custom CA certificates
+   (`#486 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/486>`__)
+   (`c6774a4 <(https://github.com/SwissDataScienceCenter/renku-gateway/commit/c6774a421753e15bf2aabe73a66518c08240c7b4>`__)
+
+
 `0.11.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.10.2...0.11.0>`__ (2021-12-08)
 =========================================================================================================
 
