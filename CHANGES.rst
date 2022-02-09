@@ -1,6 +1,17 @@
 Changes
 =======
 
+`0.12.1 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.12.0...0.12.1>`__ (2022-02-09)
+=========================================================================================================
+
+Bug Fixes
+~~~~~~~~~
+
+-  **chart:**  fully adapt to global redis
+   (`#537 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/537>`__)
+   (`9003029 <(https://github.com/SwissDataScienceCenter/renku-gateway/commit/90030292fda4e65787cbfd3f1e600f625d1b11f5>`__)
+
+
 `0.12.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.11.0...0.12.0>`__ (2022-02-08)
 =========================================================================================================
 
