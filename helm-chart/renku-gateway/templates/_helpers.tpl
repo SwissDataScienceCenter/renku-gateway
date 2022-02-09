@@ -42,17 +42,25 @@ http
 {{- end -}}
 {{- end -}}
 
+{{/*
+Hack for calling templates in a fake scope (until this is solved https://github.com/helm/helm/issues/3920)
+*/}}
+{{- define "call-nested" }}
+{{- $dot := index . 0 }}
+{{- $subchart := index . 1 }}
+{{- $template := index . 2 }}
+{{- include $template (dict "Chart" (dict "Name" $subchart) "Values" (index $dot.Values $subchart) "Release" $dot.Release "Capabilities" $dot.Capabilities) }}
+{{- end }}
+
+{{/*
+Define the redis hostname either from global values section or from a subchart.
+*/}}
 {{- define "redis.host" -}}
 {{- if .Values.global.redis.host -}}
 # If global hostname for redis is found use that
 {{- .Values.global.redis.host -}}
 {{- else -}}
-{{- if hasKey .Subcharts "redis" -}}
 # If global hostname for redis is not found, then check for redis subchart and then use that
-{{- required "If a subchart for redis is used then redis.fullname should be defined." .Subcharts.redis.fullname -}}
-{{- else -}}
-# There is no redis subchart with fullname AND there is no hostname for redis in the global section - show error message
-{{- required "Either global.redis.host should be defined or a subchart for redis should be used where redis.fullname is available." .Values.global.redis.host -}}
-{{- end -}}
+{{- required "Either global.redis.host should be defined or a subchart for redis should be used where redis.fullname is available." (include "call-nested" (list . "redis" "redis.fullname")) -}}
 {{- end -}}
 {{- end -}}
