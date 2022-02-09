@@ -11,15 +11,20 @@ global:
   gitlab:
     urlPrefix: /gitlab
   gateway:
-    ## Client secret of the renku client application registered in
-    ## keycloak.
+    ## Client secret of the renku client application registered in keycloak.
+    ## Should be set to a proper value (i.e. by using openssl rand -hex 32) for production.
+    ## Can be set here or as .clientSecret outside of .global, the values set ouside of global (if defined) take precedence.
     clientSecret:
     ## Client secret of the renku-cli client application registered in keycloak.
+    ## Should be set to a proper value (i.e. by using openssl rand -hex 32) for production.
+    ## Can be set here or as .cliClientSecret outside of .global, the values set ouside of global (if defined) take precedence.
     cliClientSecret:
-    ## Client id and client secret of the renku gateway client application
-    ## which is registered in GitLab.
-    # gitlabClientId:
-    # gitlabClientSecret:
+    ## Client id and client secret of the renku gateway client application which is registered in GitLab.
+    ## Can be set here or as .gitlabClientId outside of .global, the values set ouside of global (if defined) take precedence.
+    gitlabClientId: #renku
+    ## Should be set to a proper value (i.e. by using openssl rand -hex 32) for production.
+    ## Can be set here or as .gitlabClientSecret outside of .global, the values set ouside of global (if defined) take precedence.
+    gitlabClientSecret:
   renku:
     ## Domain name for the deployed instance of Renku. Most likely
     ## set by parent chart.
@@ -53,6 +58,15 @@ global:
     customCAs: []
       # - secret:
 
+  ## Specify the information required to connect to a redis instance.
+  ## All the values below are required.
+  redis:
+    ## host is optional - defaults to {{ .Release.Name }}-redis
+    # host: 
+    isSentinel:
+    dbIndex:
+      gateway:
+
 replicaCount: 1
 
 ## Set to true to enable the developement mode. This has negative security
@@ -75,21 +89,13 @@ rateLimits:
 ## Set to a custom GitLab URL if deployed manually
 # gitlabUrl:
 
-## Configure application ID from "{{ gitlabUrl }}/oauth/application"
-## by setting redirect URL to "{{ baseUrl }}/login/redirect/gitlab"
-## and set the application ID as the "gitlabClientId" chart value.
-## The client ID for authentication against gitlab
-# gitlabClientId: renku-ui
-## The client secret for authentication against gitlab
-# gitlabClientSecret: no-secret
-
 ## You can restrict here the allowed origins for CORS.
 ## This can be a single value, a comma-separeted list or *.
 # allowOrigin: "*"
 
-## For production deployment, you will need to define the secret key
-## This is a random string, used for cryptographic operations on cookies
-## use `openssl rand -hex 32`
+## For production deployment, you will need to define the secret key.
+## This is a random string, used for cryptographic operations on cookies.
+## Use `openssl rand -hex 32`.
 secretKey:
 
 image:
