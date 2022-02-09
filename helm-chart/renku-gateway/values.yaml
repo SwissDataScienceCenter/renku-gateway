@@ -61,8 +61,11 @@ global:
   ## Specify the information required to connect to a redis instance.
   ## All the values below are required.
   redis:
-    ## host is optional - defaults to {{ .Release.Name }}-redis
+    ## Host is optional if a subchart for redis is used, otherwise it needs to be provided below.
     # host: 
+    ## The label used to enable the network policy that allows the gateway to connect to redis.
+    ## If not defined below, it will default to <redis hostname>-client.
+    # clientLabel:
     isSentinel:
     dbIndex:
       gateway:
