@@ -30,22 +30,20 @@ jobs:
   test-chart:
     needs: test
     runs-on: ubuntu-latest
-    if: "startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master'"
     steps:
       - uses: actions/checkout@master
       - uses: actions/setup-python@v1
         with:
           python-version: 3.7
       - name: Install helm
-        env:
-          HELM_URL: https://storage.googleapis.com/kubernetes-helm
-          HELM_TGZ: helm-v2.17.0-linux-amd64.tar.gz
-          TEMP_DIR: ${{ runner.temp }}
-        run: ./install_helm.sh
+        uses: azure/setup-helm@v1
+        with:
+          version: '3.8.0'
       - name: Test chart
         run: |
-          PATH=${{ runner.temp }}/linux-amd64/:$PATH
-          helm lint helm-chart/renku-gateway --set oidcClientSecret=oidc-secret,gitlabClientSecret=gitlab-secret,cliClientSecret=cli-secret
+          helm repo add renku https://swissdatasciencecenter.github.io/helm-charts/
+          helm dep update helm-chart/renku-gateway
+          helm lint helm-chart/renku-gateway --set oidcClientSecret=foo,gitlabClientSecret=bar,secretKey=foobar,cliClientSecret=barfoo,global.redis.host=test
       - name: Build chart and images
         run: |
           python -m pip install --upgrade pip pipenv
