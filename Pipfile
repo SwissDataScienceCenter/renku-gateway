@@ -9,7 +9,7 @@ flask-cors = "*"
 flask-kvsession = "*"
 gunicorn = {extras = ["gevent"],version = "*"}
 oauthlib = "*"
-pyjwt = "~=1.7.1"
+pyjwt = "~=2.3.0"
 redis = "*"
 requests = "*"
 requests-oauthlib = "*"
