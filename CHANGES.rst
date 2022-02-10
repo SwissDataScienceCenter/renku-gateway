@@ -1,6 +1,17 @@
 Changes
 =======
 
+`0.12.2 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.12.1...0.12.2>`__ (2022-02-10)
+=========================================================================================================
+
+Bug Fixes
+~~~~~~~~~
+
+-  **chart:**  errors in helm templating for redis instance
+   (`#544 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/544>`__)
+   (`7a23a2f <(https://github.com/SwissDataScienceCenter/renku-gateway/commit/7a23a2fc8920ad5f39771c6961ec8bc428515d08>`__)
+
+
 `0.12.1 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.12.0...0.12.1>`__ (2022-02-09)
 =========================================================================================================
 
