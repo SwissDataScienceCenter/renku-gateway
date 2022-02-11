@@ -277,11 +277,11 @@
         },
         "importlib-metadata": {
             "hashes": [
-                "sha256:899e2a40a8c4a1aec681feef45733de8a6c58f3f6a0dbed2eb6574b4387a77b6",
-                "sha256:951f0d8a5b7260e9db5e41d429285b5f451e928479f19d80818878527d36e95e"
+                "sha256:6affcdb3aec542dd98df8211e730bba6c5f2bec8288d47bacacde898f548c9ad",
+                "sha256:9e5e553bbba1843cb4a00823014b907616be46ee503d2b9ba001d214a8da218f"
             ],
             "markers": "python_version < '3.8'",
-            "version": "==4.10.1"
+            "version": "==4.11.0"
         },
         "isodate": {
             "hashes": [
@@ -456,11 +456,11 @@
         },
         "responses": {
             "hashes": [
-                "sha256:a2e3aca2a8277e61257cd3b1c154b1dd0d782b1ae3d38b7fa37cbe3feb531791",
-                "sha256:f358ef75e8bf431b0aa203cc62625c3a1c80a600dbe9de91b944bf4e9c600b92"
+                "sha256:15c63ad16de13ee8e7182d99c9334f64fd81f1ee79f90748d527c28f7ca9dd51",
+                "sha256:380cad4c1c1dc942e5e8a8eaae0b4d4edf708f4f010db8b7bcfafad1fcd254ff"
             ],
             "index": "pypi",
-            "version": "==0.16.0"
+            "version": "==0.18.0"
         },
         "sentry-sdk": {
             "extras": [
@@ -831,11 +831,11 @@
         },
         "importlib-metadata": {
             "hashes": [
-                "sha256:899e2a40a8c4a1aec681feef45733de8a6c58f3f6a0dbed2eb6574b4387a77b6",
-                "sha256:951f0d8a5b7260e9db5e41d429285b5f451e928479f19d80818878527d36e95e"
+                "sha256:6affcdb3aec542dd98df8211e730bba6c5f2bec8288d47bacacde898f548c9ad",
+                "sha256:9e5e553bbba1843cb4a00823014b907616be46ee503d2b9ba001d214a8da218f"
             ],
             "markers": "python_version < '3.8'",
-            "version": "==4.10.1"
+            "version": "==4.11.0"
         },
         "iniconfig": {
             "hashes": [
@@ -1033,11 +1033,11 @@
         },
         "responses": {
             "hashes": [
-                "sha256:a2e3aca2a8277e61257cd3b1c154b1dd0d782b1ae3d38b7fa37cbe3feb531791",
-                "sha256:f358ef75e8bf431b0aa203cc62625c3a1c80a600dbe9de91b944bf4e9c600b92"
+                "sha256:15c63ad16de13ee8e7182d99c9334f64fd81f1ee79f90748d527c28f7ca9dd51",
+                "sha256:380cad4c1c1dc942e5e8a8eaae0b4d4edf708f4f010db8b7bcfafad1fcd254ff"
             ],
             "index": "pypi",
-            "version": "==0.16.0"
+            "version": "==0.18.0"
         },
         "ruamel.yaml": {
             "hashes": [
