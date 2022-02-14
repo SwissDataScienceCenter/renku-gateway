@@ -96,7 +96,8 @@ spec:
       labels:
         app: {{ template "gateway.name" . }}-auth
         release: {{ .Release.Name }}
-        {{ include "call-nested" (list . "redis" "redis.fullname") }}-client: "true"
+        # The label below enables the gateway to connect to redis
+        {{ .Values.global.redis.clientLabel | default (printf "%s-%s" (include "redis.host" .) "client") | nindent 8 }}: "true"
     spec:
       initContainers:
         {{- include "certificates.initContainer" . | nindent 8 }}
@@ -136,7 +137,7 @@ spec:
             - name: GATEWAY_SERVICE_PREFIX
               value: {{ .Values.gatewayServicePrefix | default "/api/" | quote }}
             - name: REDIS_HOST
-              value: {{ .Values.global.redis.host | default (include "call-nested" (list . "redis" "redis.fullname")) }}
+              value: {{ template "redis.host" . }}
             - name: REDIS_IS_SENTINEL
               value: {{ .Values.global.redis.isSentinel | quote }}
             - name: REDIS_DB

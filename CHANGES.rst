@@ -1,6 +1,39 @@
 Changes
 =======
 
+`0.12.2 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.12.1...0.12.2>`__ (2022-02-10)
+=========================================================================================================
+
+Bug Fixes
+~~~~~~~~~
+
+-  **chart:**  errors in helm templating for redis instance
+   (`#544 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/544>`__)
+   (`7a23a2f <(https://github.com/SwissDataScienceCenter/renku-gateway/commit/7a23a2fc8920ad5f39771c6961ec8bc428515d08>`__)
+
+
+`0.12.1 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.12.0...0.12.1>`__ (2022-02-09)
+=========================================================================================================
+
+Bug Fixes
+~~~~~~~~~
+
+-  **chart:**  fully adapt to global redis
+   (`#537 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/537>`__)
+   (`9003029 <(https://github.com/SwissDataScienceCenter/renku-gateway/commit/90030292fda4e65787cbfd3f1e600f625d1b11f5>`__)
+
+
+`0.12.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.11.0...0.12.0>`__ (2022-02-08)
+=========================================================================================================
+
+Features
+~~~~~~~~
+
+-  modify for custom CA certificates
+   (`#486 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/486>`__)
+   (`c6774a4 <(https://github.com/SwissDataScienceCenter/renku-gateway/commit/c6774a421753e15bf2aabe73a66518c08240c7b4>`__)
+
+
 `0.11.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.10.2...0.11.0>`__ (2021-12-08)
 =========================================================================================================
 

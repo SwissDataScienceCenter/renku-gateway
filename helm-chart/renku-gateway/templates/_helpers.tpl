@@ -51,3 +51,17 @@ Hack for calling templates in a fake scope (until this is solved https://github.
 {{- $template := index . 2 }}
 {{- include $template (dict "Chart" (dict "Name" $subchart) "Values" (index $dot.Values $subchart) "Release" $dot.Release "Capabilities" $dot.Capabilities) }}
 {{- end }}
+
+{{/*
+Define the redis hostname either from global values section or from a subchart.
+Logic:
+1. If global hostname for redis is found use that
+2. If global hostname for redis is not found, then check for redis subchart and then use that
+*/}}
+{{- define "redis.host" -}}
+{{- if .Values.global.redis.host -}}
+{{ .Values.global.redis.host -}}
+{{- else -}}
+{{ required "Either global.redis.host should be defined or a subchart for redis should be used where redis.fullname is available." (include "call-nested" (list . "redis" "redis.fullname")) -}}
+{{- end -}}
+{{- end -}}
