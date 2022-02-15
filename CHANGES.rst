@@ -1,6 +1,17 @@
 Changes
 =======
 
+`0.12.3 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.12.2...0.12.3>`__ (2022-02-15)
+=========================================================================================================
+
+Bug Fixes
+~~~~~~~~~
+
+-  update sentry values
+   (`#533 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/533>`__)
+   (`0734e8e <https://github.com/SwissDataScienceCenter/renku-gateway/commit/0734e8ef82b913d0744e0a5915433eaa27791607>`__)
+
+
 `0.12.2 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.12.1...0.12.2>`__ (2022-02-10)
 =========================================================================================================
 
