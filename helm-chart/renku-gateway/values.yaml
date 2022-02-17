@@ -61,14 +61,18 @@ global:
   ## Specify the information required to connect to a redis instance.
   ## All the values below are required.
   redis:
-    ## Host is optional if a subchart for redis is used, otherwise it needs to be provided below.
-    # host: 
-    ## The label used to enable the network policy that allows the gateway to connect to redis.
-    ## If not defined below, it will default to <redis hostname>-client.
-    # clientLabel:
-    isSentinel:
+    sentinel:
+      ## Set to true if redis host/port point to a redis sentinel.
+      enabled: true
+      masterSet: mymaster
     dbIndex:
-      gateway:
+      gateway: "0"
+    host: renku-redis
+    port: 26379
+    clientLabel: 
+      renku-redis-host: "true"
+    existingSecret: redis-secret
+    existingSecretPasswordKey: redis-password
 
 replicaCount: 1
 
