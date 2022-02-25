@@ -60,6 +60,11 @@ global:
 
   ## Specify the information required to connect to a redis instance.
   ## All the values below are required.
+  ## Note that in almost all real-world use cases Redis is provided
+  ## with the Renku helm chart not with every component of Renku.
+  ## Therefore in most cases these values do not need to be modified.
+  ## But in the rare cases where the values need to be modified, then this should be
+  ## done in the global section for the renku helm chart, not in every component.
   redis:
     sentinel:
       ## Set to true if redis host/port point to a redis sentinel.
