@@ -49,65 +49,44 @@ data:
 
         [http.routers.gateway]
           entryPoints = ["http"]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}auth`)"
+          Rule = "PathPrefix(`{{ printf "/%s/auth" .Values.gatewayServicePrefix | clean }}`)"
           Service = "gateway"
 
         [http.routers.notebooks]
           entryPoints = ["http"]
           Middlewares = ["auth-notebook", "common"]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}notebooks`)"
-          Service = "notebooks"
-
-        [http.routers.jupyterhub-compat]
-          entryPoints = ["http"]
-          Middlewares = ["jupyterhub-compat", "auth-notebook", "common"]
-          Rule = "PathPrefix(`/jupyterhub/services/notebooks`)"
+          Rule = "PathPrefix(`{{ printf "/%s/notebooks" .Values.gatewayServicePrefix | clean }}`)"
           Service = "notebooks"
 
         [http.routers.webhooks]
           entryPoints = ["http"]
           Middlewares = ["auth-gitlab", "common", "webhooks"]
-          Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph/webhooks{endpoint:(.*)}`)"
+          Rule = "Path(`{{ printf "/%s/projects/{project-id}/graph/webhooks{endpoint:(.*)}" .Values.gatewayServicePrefix | clean }}`)"
           Service = "webhooks"
 
         [http.routers.graphstatus]
           entryPoints = ["http"]
           Middlewares = ["auth-gitlab", "common", "graphstatus"]
-          Rule = "Path(`{{ .Values.gatewayServicePrefix | default "/api/" }}projects/{project-id}/graph/status{endpoint:(.*)}`)"
+          Rule = "Path(`{{ printf "/%s/projects/{project-id}/graph/status{endpoint:(.*)}" .Values.gatewayServicePrefix | clean }}`)"
           Service = "webhooks"
 
         [http.routers.datasets]
           entryPoints = ["http"]
           Middlewares = ["common", "knowledgeGraph"]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}datasets`)"
+          Rule = "PathPrefix(`{{ printf "/%s/datasets" .Values.gatewayServicePrefix | clean }}`)"
           Service = "knowledgeGraph"
 
         [http.routers.direct]
           # This is to access undocumented APIs in GitLab
           entryPoints = ["http"]
-          Middlewares = [
-            "direct"
-            {{- if .Values.global.gitlab.urlPrefix -}}
-            {{- if and (ne .Values.global.gitlab.urlPrefix "") (ne .Values.global.gitlab.urlPrefix "/") -}}
-            ,"gitlabOnly"
-            {{- end -}}
-            {{- end }}
-          ]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}direct/`)"
+          Middlewares = ["direct","gitlabOnly"]
+          Rule = "PathPrefix(`{{ printf "/%s/direct" .Values.gatewayServicePrefix | clean }}`)"
           Service = "gitlab"
         
         [http.routers.gitlabGraphql]
           entryPoints = ["http"]
-          Middlewares = [
-            "auth-gitlab","general-ratelimit","api"
-            {{- if .Values.global.gitlab.urlPrefix -}}
-            {{- if and (ne .Values.global.gitlab.urlPrefix "") (ne .Values.global.gitlab.urlPrefix "/") -}}
-            ,"gitlabOnly"
-            {{- end -}}
-            {{- end }}
-            ,"gitlabGraphql"
-          ]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}graphql`)"
+          Middlewares = ["auth-gitlab","general-ratelimit","api","gitlabOnly","gitlabGraphql"]
+          Rule = "PathPrefix(`{{ printf "/%s/graphql" .Values.gatewayServicePrefix | clean }}`)"
           Service = "gitlab"
 
         [http.routers.gitlab]
@@ -117,26 +96,26 @@ data:
           priority = 1
           entryPoints = ["http"]
           Middlewares = ["auth-gitlab", "common", "gitlabApi"]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}`)"
+          Rule = "PathPrefix(`{{ printf "/%s/" .Values.gatewayServicePrefix | clean }}`)"
           Service = "gitlab"
 
         [http.routers.gitlabRenkuCli]
           # Access to gitlab server from a git repo with CLI token
           entryPoints = ["http"]
           Middlewares = ["auth-cliGitlab", "common", "cliGitlab"]
-          Rule = "PathPrefix(`{{ .Values.global.gitlab.cliUrlPrefix | default "/repos/" }}`)"
+          Rule = "PathPrefix(`/repos`)"
           Service = "gitlab"
 
         [http.routers.renku]
           entryPoints = ["http"]
           Middlewares = ["auth-renku", "common"]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}renku`)"
+          Rule = "PathPrefix(`{{ printf "/%s/renku" .Values.gatewayServicePrefix | clean }}`)"
           Service = "core"
 
         [http.routers.kg]
           entryPoints = ["http"]
           Middlewares = ["auth-gitlab", "common", "kg", "knowledgeGraph"]
-          Rule = "PathPrefix(`{{ .Values.gatewayServicePrefix | default "/api/" }}kg`)"
+          Rule = "PathPrefix(`{{ printf "/%s/kg" .Values.gatewayServicePrefix | clean }}`)"
           Service = "knowledgeGraph"
 
       [http.middlewares]
@@ -177,22 +156,15 @@ data:
           isDevelopment = true
 
         [http.middlewares.gitlabOnly.AddPrefix]
-          prefix = "{{ .Values.global.gitlab.urlPrefix }}"
+          prefix = "{{ printf "/%s/" .Values.global.gitlab.urlPrefix | clean }}"
 
         [http.middlewares.gitlabApi.AddPrefix]
-          {{ if eq .Values.global.gitlab.urlPrefix "/" }}
-          prefix = "/api/v4"
-          {{- else -}}
-          prefix = "{{ .Values.global.gitlab.urlPrefix }}/api/v4"
-          {{ end }}
+          prefix = "{{ printf "/%s/api/v4" .Values.global.gitlab.urlPrefix | clean }}"
 
         [http.middlewares.cliGitlab.ReplacePathRegex]
           regex = "^/repos/(.*)"
-          {{ if eq .Values.global.gitlab.urlPrefix "/" }}
-          replacement = "/$1"
-          {{- else -}}
-          replacement = "{{ .Values.global.gitlab.urlPrefix }}/$1"
-          {{ end }}
+          replacement = "{{ printf "/%s/$1" .Values.global.gitlab.urlPrefix | clean }}"
+
 
         [http.middlewares.auth-gitlab.forwardauth]
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=gitlab"
@@ -212,11 +184,8 @@ data:
         [http.middlewares.auth-notebook.forwardauth]
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=notebook"
           trustForwardHeader = true
-    {{ if .Values.global.anonymousSessions.enabled }}
           authResponseHeaders = ["Renku-Auth-Access-Token", "Renku-Auth-Id-Token", "Renku-Auth-Git-Credentials", "Renku-Auth-Anon-Id"]
-    {{ else }}
-          authResponseHeaders = ["Renku-Auth-Access-Token", "Renku-Auth-Id-Token", "Renku-Auth-Git-Credentials"]
-    {{ end }}
+
 
         [http.middlewares.webhooks.ReplacePathRegex]
           regex = "^/projects/([^/]*)/graph/webhooks(.*)"
@@ -225,10 +194,6 @@ data:
         [http.middlewares.graphstatus.ReplacePathRegex]
           regex = "^/projects/([^/]*)/graph(.*)"
           replacement = "/projects/$1/events$2"
-
-        [http.middlewares.jupyterhub-compat.ReplacePathRegex]
-          regex = "^/jupyterhub/services/notebooks/(.*)"
-          replacement = "{{ .Values.gatewayServicePrefix | default "/api/" }}notebooks/$1"
 
         [http.middlewares.kg.StripPrefix]
           prefixes = ["/kg"]
@@ -263,40 +228,40 @@ data:
           method = "drr"
           passHostHeader = false
           [[http.services.gitlab.LoadBalancer.servers]]
-            url = {{ .Values.gitlabUrl | default (printf "%s://%s/gitlab" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+            url = "{{ .Values.gitlabUrl | default (printf "%s://%s/gitlab" (include "gateway.protocol" .) .Values.global.renku.domain) }}"
             weight = 1
 
         [http.services.notebooks.LoadBalancer]
           method = "drr"
           passHostHeader = false
           [[http.services.notebooks.LoadBalancer.servers]]
-            url = {{ .Values.notebooks.hostname | default (printf "http://%s-notebooks" .Release.Name )  | quote }}
+            url = "{{ printf "http://%s-notebooks" .Release.Name }}"
             weight = 1
 
         [http.services.webhooks.LoadBalancer]
           method = "drr"
           passHostHeader = false
           [[http.services.webhooks.LoadBalancer.servers]]
-            url = {{ .Values.graph.webhookService.hostname | default (printf "http://%s-webhook-service" .Release.Name ) | quote }}
+            url = "{{ printf "http://%s-webhook-service" .Release.Name }}"
             weight = 1
 
         [http.services.knowledgeGraph.LoadBalancer]
           method = "drr"
           passHostHeader = false
           [[http.services.knowledgeGraph.LoadBalancer.servers]]
-          url = {{ .Values.graph.knowledgeGraph.hostname | default (printf "http://%s-knowledge-graph" .Release.Name ) | quote }}
+          url = "{{ printf "http://%s-knowledge-graph" .Release.Name }}"
             weight = 1
 
         [http.services.core.LoadBalancer]
           method = "drr"
           passHostHeader = false
           [[http.services.core.LoadBalancer.servers]]
-          url = {{ .Values.core.hostname | default (printf "http://%s-core" .Release.Name ) | quote }}
+          url = "{{ printf "http://%s-core" .Release.Name }}"
             weight = 1
 
         # We need a default backend, should never be hit
         [http.services.default.LoadBalancer]
           method = "drr"
           [[http.services.default.LoadBalancer.servers]]
-          url = {{ printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain | quote }}
+          url = "{{ printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain }}"
             weight = 1
