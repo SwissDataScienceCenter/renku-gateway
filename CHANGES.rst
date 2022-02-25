@@ -1,6 +1,25 @@
 Changes
 =======
 
+`0.13.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.12.3...0.13.0>`__ (2022-02-25)
+=========================================================================================================
+
+Bug Fixes
+~~~~~~~~~
+
+-  **chart:** modify values for global redis
+   (`#552 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/552>`__)
+   (`3b5fdff <https://github.com/SwissDataScienceCenter/renku-gateway/commit/3b5fdffcd883cbe5af4566558b32593b68f9fb2e>`__)
+
+BREAKING CHANGES
+~~~~~~~~~~~~~~~~
+
+- This version does not come with its own Redis instance. Instead it relies on a global instance provided elsewhere.
+When the gateway is deployed as part of Renku by default this global Redis is provided by the Renku Helm chart.
+However, due to similar changes made in the global Renku chart, this version of the gateway is only compatible 
+with Renku versions after Renku 0.12.1 (excluding 0.12.1 itself). The breaking changes are in the organization 
+and fields under `global.redis` in the `values.yaml` file for the Helm chart.
+
 `0.12.3 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.12.2...0.12.3>`__ (2022-02-15)
 =========================================================================================================
 
