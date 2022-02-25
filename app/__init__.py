@@ -97,7 +97,9 @@ def setup_redis_client():
                 [(current_app.config["REDIS_HOST"], current_app.config["REDIS_PORT"])],
                 sentinel_kwargs={"password": current_app.config["REDIS_PASSWORD"]},
             )
-            host, port = sentinel.discover_master("mymaster")
+            host, port = sentinel.discover_master(
+                current_app.config["REDIS_MASTER_SET"]
+            )
             current_app.logger.debug(f"Discovered redis master at {host}:{port}")
         else:
             (host, port) = (

@@ -61,6 +61,7 @@ except KeyError:
         "No redis password found. Are you sure you don't need one to access redis?"
     )
 REDIS_DB = os.environ.get("REDIS_DB", "0")
+REDIS_MASTER_SET = os.environ.get("REDIS_MASTER_SET", "mymaster")
 
 CLI_CLIENT_ID = os.environ.get("CLI_CLIENT_ID", "renku-cli")
 CLI_CLIENT_SECRET = os.environ.get("CLI_CLIENT_SECRET", "")
