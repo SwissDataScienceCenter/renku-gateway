@@ -70,7 +70,7 @@ global:
     host: renku-redis
     port: 26379
     clientLabel: 
-      renku-redis-host: "true"
+      renku-redis-client: "true"
     existingSecret: redis-secret
     existingSecretPasswordKey: redis-password
 
