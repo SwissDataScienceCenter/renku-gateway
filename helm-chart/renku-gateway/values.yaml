@@ -2,12 +2,16 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+## Usually this service is reachable under https://<renku-host>/api/
+gatewayServicePrefix: /api
+
 ## Global variables
 ## Shared values/secrets
 global:
   ## Set to true if using https
   useHTTPS: false
   ## The URL path prefix under which gitlab is running.
+  ## Must contain a leading slash, use "/" for root path.
   gitlab:
     urlPrefix: /gitlab
   gateway:
