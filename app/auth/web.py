@@ -17,7 +17,6 @@
 # limitations under the License.
 """Web auth routes."""
 
-import re
 from urllib.parse import urljoin
 
 from flask import (
@@ -30,14 +29,11 @@ from flask import (
     url_for,
 )
 
-from .cli_auth import CLI_SUFFIX, handle_cli_token_request
 from .oauth_provider_app import KeycloakProviderApp
 from .utils import (
     TEMP_SESSION_KEY,
     decode_keycloak_jwt,
-    generate_nonce,
     get_redis_key_from_session,
-    get_redis_key_from_token,
     handle_login_request,
     handle_token_request,
 )
@@ -49,37 +45,23 @@ SCOPE = ["profile", "email", "openid"]
 
 
 def get_valid_token(headers):
-    """Look for a fresh and valid token, first in headers, then in the session."""
-    authorization = headers.get("Authorization")
-    authorization_match = (
-        re.search(r"bearer\s+(?P<token>.+)", authorization, re.IGNORECASE)
-        if authorization
-        else None
-    )
-
-    if authorization_match:
-        renku_token = authorization_match.group("token")
-        redis_key = get_redis_key_from_token(renku_token, key_suffix=CLI_SUFFIX)
-    elif headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:
+    """Look for a fresh and valid token in the session."""
+    if headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:
         redis_key = get_redis_key_from_session(key_suffix=KC_SUFFIX)
-    else:
-        return None
 
-    keycloak_oidc_client = current_app.store.get_oauth_client(redis_key)
-    if hasattr(keycloak_oidc_client, "access_token"):
-        return keycloak_oidc_client.access_token
-    current_app.logger.warning(
-        "The user does not have backend access tokens.",
-        exc_info=True,
-    )
+        keycloak_oidc_client = current_app.store.get_oauth_client(redis_key)
+        if hasattr(keycloak_oidc_client, "access_token"):
+            return keycloak_oidc_client.access_token
+
+        current_app.logger.warning(
+            "The user does not have backend access tokens.",
+            exc_info=True,
+        )
+
     return None
 
 
-LOGIN_SEQUENCE = (
-    "web_auth.login",
-    "cli_auth.login",
-    "gitlab_auth.login",
-)
+LOGIN_SEQUENCE = ("web_auth.login", "gitlab_auth.login")
 
 
 @blueprint.route("/login/next")
@@ -92,11 +74,6 @@ def login_next():
             redirect_url=urljoin(current_app.config["HOST_NAME"], url_for(next_login)),
         )
     else:
-        cli_nonce = session.pop("cli_nonce", None)
-        if cli_nonce:
-            server_nonce = session.pop("server_nonce", None)
-            return render_template("cli_login.html", server_nonce=server_nonce)
-
         return redirect(session["ui_redirect_url"])
 
 
@@ -105,14 +82,7 @@ def login():
     """Log in with Keycloak."""
     session.clear()
     session["ui_redirect_url"] = request.args.get("redirect_url")
-
-    cli_nonce = request.args.get("cli_nonce")
-    if cli_nonce:
-        session["cli_nonce"] = cli_nonce
-        session["server_nonce"] = generate_nonce()
-        session["login_seq"] = 0
-    else:
-        session["login_seq"] = 1
+    session["login_seq"] = 0
 
     provider_app = KeycloakProviderApp(
         client_id=current_app.config["OIDC_CLIENT_ID"],
@@ -143,11 +113,6 @@ def token():
     current_app.store.set_oauth_client(new_redis_key, keycloak_oidc_client)
 
     return response
-
-
-@blueprint.route("/cli-token")
-def info():
-    return handle_cli_token_request(request)
 
 
 # @blueprint.route("/user")

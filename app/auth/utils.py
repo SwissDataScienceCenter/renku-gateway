@@ -16,9 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import hashlib
 import random
-import secrets
 import string
 from urllib.parse import urljoin
 
@@ -69,12 +67,6 @@ def get_redis_key_from_token(token, key_suffix=""):
     return _get_redis_key(decoded_token["sub"], key_suffix=key_suffix)
 
 
-def get_redis_key_for_cli(cli_nonce, server_nonce):
-    """Get the redis store from CLI token and user code."""
-    cli_nonce_hash = hashlib.sha256(cli_nonce.encode()).hexdigest()
-    return f"cli_{cli_nonce_hash}_{server_nonce}"
-
-
 def handle_login_request(provider_app, redirect_path, key_suffix, scope):
     """Logic to handle the login requests, avoids duplication"""
     oauth_client = RenkuWebApplicationClient(
@@ -102,9 +94,3 @@ def handle_token_request(request, key_suffix):
         )
     )
     return response, oauth_client
-
-
-def generate_nonce(n_bits=256):
-    """Generate a one-time secure key."""
-    n_bytes = int(n_bits) // 8
-    return secrets.token_hex(n_bytes)
