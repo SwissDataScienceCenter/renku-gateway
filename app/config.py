@@ -71,8 +71,6 @@ if not CLI_CLIENT_SECRET:
         "It is mandatory for CLI login."
     )
 
-CLI_LOGIN_TIMEOUT = int(os.environ.get("CLI_LOGIN_TIMEOUT", 300))
-
 GITLAB_URL = os.environ.get("GITLAB_URL", "http://gitlab.renku.build")
 GITLAB_CLIENT_ID = os.environ.get("GITLAB_CLIENT_ID", "renku-ui")
 GITLAB_CLIENT_SECRET = os.environ.get("GITLAB_CLIENT_SECRET")

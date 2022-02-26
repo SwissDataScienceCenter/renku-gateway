@@ -79,11 +79,7 @@ CORS(
 )
 
 url_prefix = app.config["SERVICE_PREFIX"]
-blueprints = (
-    cli_auth.blueprint,
-    gitlab_auth.blueprint,
-    web.blueprint,
-)
+blueprints = (gitlab_auth.blueprint, web.blueprint)
 
 
 @app.before_request
