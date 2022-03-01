@@ -15,11 +15,6 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-.. image:: https://pullreminders.com/badge.svg
-    :target: https://pullreminders.com?ref=badge
-    :alt: Pull reminders
-    :align: right
-
 ==================
  Renku API gateway
 ==================
@@ -28,51 +23,38 @@
 volatile.**
 
 The Renku API gateway connects the different Renku clients to the various Renku backend
-services (GitLab, Jupyterhub, etc). Currently, it mainly acts on the communication between
-the Renku web UI and GitLab.
+services (GitLab, Renku components etc). It consists of two parts: a traefik reverse-proxy
+(gateway) and a flask application acting predominantly as traefik forward-auth middleware 
+(gateway-auth).
 
 
-Quickstart
-----------
-
-In order to get an instance of Renku up and running, clone the main Renku
+Developing the gateway-auth component
+-------------------------------------
+The renku gateway-auth component is best developped in the context of a full renku 
+deployment. In order to get an instance of Renku up and running, clone the main Renku
 repository and follow these instructions_.
 
 .. _instructions: https://renku.readthedocs.io/en/latest/developer/setup.html
 
-Developing the gateway
-----------------------
-Once you have an instance of Renku running locally, you could modify the gateway code
-and restart the platform through the :code:`make minikube-deploy` command to see the
-changes. However, this will make for a very poor development experience as the deployment
-process is optimized for production.
+Once you have an instance of Renku running, you could modify the gateway code, build the 
+image, re-build the chart, redeploy, etc... This will make for a poor development experience
+with very long feedback cycles.
 
-Instead we recommend connecting to your minikube (or any other kubernetes cluster) through
-telepresence_. Once telepresence is installed, create a python environment and install
-the necessary python dependencies by running :code:`pipenv install`. Then, start a
-telepresence shell through :code:`make dev` and launch a development server by executing
-the prompted command inside the telepresence shell.
+Instead we recommend intercepting traffic to the gateway-auth component and routing it to
+your local machine through telepresence_ (note that currently you MUST use version 2.4.X, 
+mac users see in particular tele-troubleshooting_). Once telepresence is installed, create a 
+python environment and install the necessary python dependencies by running 
+:code:`pipenv install --dev`. Then, create a telepresence intercept using the dedicated 
+:code:`./telepresence-intercept.sh` script and follow the instructions. This will forward 
+all requests to the gateway-auth service deployed in the cluster to a flask development 
+server running on your local machine (with hot reloading, etc). You can now use your 
+favourite IDE and develop the component completely locally. Stopping the development server
+through :code:`ctrl-C` and then stopping the shell process invoked with the intercept by 
+typing :code:`exit` will terminate the intercept.
 
-.. _telepresence: https://www.telepresence.io/reference/install
+.. _telepresence: https://www.telepresence.io/docs/v2.4/quick-start/
+.. _tele-troubleshooting: https://www.telepresence.io/docs/latest/troubleshooting/
 
-The gateway in development setting is now available under the ip-address of your
-minikube cluster (:code:`${minikube ip}/api`) and you should see requests from the
-Renku UI appear in the logs.
-
-So what is happening here? The command :code:`make dev` launches telepresence which
-swaps the renku-gateway service in your minikube deployment for a locally running version of
-the gateway served by a flask development server. This gives you live updates on code change
-in a minikube deployment!
-
-Running in a debugger
-~~~~~~~~~~~~~~~~~~~~~
-
-To run the gateway in the VS Code debugger, it is possible to use the *Python: Remote Attach*
-launch configuration. The :code:`run-telepresence.sh` script prints the command to be used
-for this purpose.
-
-The prerequisite is that the :code:`ptvsd` module is installed in your Python environment.
-This should be the case if you use the pipenv environment to run the gateway.
 
 Tests
 -----
@@ -152,24 +134,3 @@ To allow server-side sessions, the gateway relies on Redis.
 | cache_{{id sub}}_{{backend}}_{{token type}}                | The corresponding token                                                                                                   | Id sub is taken from the Keycloak access token in the session or Authorizazion header (after validation of the token). Current backends are Keycloak (kc), Gitlab (gl) and JupyterHub (jh). Token types can be access_token, refresh_token or id_token.     |
 +------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-Extending the gateway
----------------------
-
-If you want to add more services behind the gateway, you can easily configure the mapping in :code:`endpoints.json` (or point to another configuration file).
-
-Adding a service backend handling authentication
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This part is still work in progress to make it plug and play. But the idea is to add the necessary http endpoints for the login/redirect/tokens for the external service and start the process by redirecting from the last service. (At the moment Keycloak -> Gitlab -> JupyterHub).
-You can take as an example the :code:`gitlab_auth.py` or :code:`jupyterhub_auth.py` files and implement the :code:`/auth/<your service>/login`, :code:`/auth/<your service>/token` and :code:`/auth/<your service>/logout` endpoints.
-You can then populate the Redis cache with the collected tokens that identify the user and can be used for authorization towards some API.
-
-Adding an authorization method
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If your backend API needs a specific authentication/authorization method you can write an auth processor, like the :code:`GitlabUserToken`, :code:`JupyterhubUserToken` or :code:`KeycloakAccessToken`.
-
-Processing the requests and responses
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-By implementing a class extending the base processor, you can pre-process the incomming request and/or the returning response. You can have a look at the :code:`gitlab_processor.py` as a starting example.
