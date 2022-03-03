@@ -49,7 +49,6 @@ global:
   keycloak:
     ## Explicitly set another realm than "renku" here
     realm:
-  
   ## Specify a secret that containes the certificate
   ## if you would like to use a custom CA. The key for the secret
   ## should have the .crt extension otherwise it is ignored. The
@@ -78,7 +77,7 @@ global:
       gateway: "0"
     host: renku-redis
     port: 26379
-    clientLabel: 
+    clientLabel:
       renku-redis-client: "true"
     existingSecret: redis-secret
     existingSecretPasswordKey: redis-password
@@ -97,7 +96,6 @@ development: false
 rateLimits:
   ## General rate limit, applies to all /api calls combined.
   general:
-    extractorfunc: request.header.cookie
     period: 10s
     average: 20
     burst: 100
