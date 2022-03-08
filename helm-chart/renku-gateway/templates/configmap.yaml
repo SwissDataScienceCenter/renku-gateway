@@ -2,89 +2,66 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ template "gateway.fullname" . }}
+  name: renku-traefik-config
   labels:
     app: {{ template "gateway.name" . }}
     chart: {{ template "gateway.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 data:
-  traefik.toml: |
-    {{- if .Values.development }}
-    [log]
-      level = "DEBUG"
-    {{ else }}
-    [log]
-      level = "ERROR"
-    {{ end -}}
-
-    [api]
-      dashboard = true
-
-    [providers]
-      [providers.file]
-        directory = "/config"
-
-    [entrypoints]
-      [entrypoints.http]
-        address = ":{{ .Values.service.port }}"
-
-    [accessLog]
-      bufferingSize = 10
-
   routers.toml: |
     [http]
       [http.routers]
         [http.routers.apiRedirect]
-          entryPoints = ["http"]
+          entryPoints = ["web"]
           Middlewares = ["apiRediredctEncodeSlash", "apiRedirect"]
           Rule = "PathPrefix(`/entities`) && HeadersRegexp(`Accept`,`application/json`)"
           Service = "default"
 
         [http.routers.uiRedirect]
-          entryPoints = ["http"]
+          entryPoints = ["web"]
           Middlewares = ["uiRedirect"]
           Rule = "PathPrefix(`/entities`) && HeadersRegexp(`Accept`,`text/html`)"
           Service = "default"
 
         [http.routers.gateway]
-          entryPoints = ["http"]
+          entryPoints = ["web"]
           Rule = "PathPrefix(`{{ printf "/%s/auth" .Values.gatewayServicePrefix | clean }}`)"
           Service = "gateway"
 
         [http.routers.notebooks]
-          entryPoints = ["http"]
+          entryPoints = ["web"]
           Middlewares = ["auth-notebook", "common"]
           Rule = "PathPrefix(`{{ printf "/%s/notebooks" .Values.gatewayServicePrefix | clean }}`)"
           Service = "notebooks"
 
         [http.routers.webhooks]
-          entryPoints = ["http"]
+          entryPoints = ["web"]
           Middlewares = ["auth-gitlab", "common", "webhooks"]
           Rule = "Path(`{{ printf "/%s/projects/{project-id}/graph/webhooks{endpoint:(.*)}" .Values.gatewayServicePrefix | clean }}`)"
           Service = "webhooks"
 
         [http.routers.graphstatus]
-          entryPoints = ["http"]
+          entryPoints = ["web"]
           Middlewares = ["auth-gitlab", "common", "graphstatus"]
           Rule = "Path(`{{ printf "/%s/projects/{project-id}/graph/status{endpoint:(.*)}" .Values.gatewayServicePrefix | clean }}`)"
           Service = "webhooks"
 
         [http.routers.datasets]
-          entryPoints = ["http"]
+          entryPoints = ["web"]
           Middlewares = ["common", "knowledgeGraph"]
           Rule = "PathPrefix(`{{ printf "/%s/datasets" .Values.gatewayServicePrefix | clean }}`)"
           Service = "knowledgeGraph"
 
         [http.routers.direct]
           # This is to access undocumented APIs in GitLab
-          entryPoints = ["http"]
+          entryPoints = ["web"]
           Middlewares = ["direct","gitlabOnly"]
           Rule = "PathPrefix(`{{ printf "/%s/direct" .Values.gatewayServicePrefix | clean }}`)"
           Service = "gitlab"
         
         [http.routers.gitlabGraphql]
-          entryPoints = ["http"]
+          entryPoints = ["web"]
           Middlewares = ["auth-gitlab","api","gitlabOnly","gitlabGraphql"]
           Rule = "PathPrefix(`{{ printf "/%s/graphql" .Values.gatewayServicePrefix | clean }}`)"
           Service = "gitlab"
@@ -94,26 +71,26 @@ data:
           # therefore fix the priority of this router to the lowest
           # possible value.
           priority = 1
-          entryPoints = ["http"]
+          entryPoints = ["web"]
           Middlewares = ["auth-gitlab", "common", "gitlabApi"]
           Rule = "PathPrefix(`{{ printf "/%s/" .Values.gatewayServicePrefix | clean }}`)"
           Service = "gitlab"
 
         [http.routers.gitlabRenkuCli]
           # Access to gitlab server from a git repo with CLI token
-          entryPoints = ["http"]
+          entryPoints = ["web"]
           Middlewares = ["auth-cliGitlab", "common", "cliGitlab"]
           Rule = "PathPrefix(`/repos`)"
           Service = "gitlab"
 
         [http.routers.renku]
-          entryPoints = ["http"]
+          entryPoints = ["web"]
           Middlewares = ["auth-renku", "common"]
           Rule = "PathPrefix(`{{ printf "/%s/renku" .Values.gatewayServicePrefix | clean }}`)"
           Service = "core"
 
         [http.routers.kg]
-          entryPoints = ["http"]
+          entryPoints = ["web"]
           Middlewares = ["auth-gitlab", "common", "kg", "knowledgeGraph"]
           Rule = "PathPrefix(`{{ printf "/%s/kg" .Values.gatewayServicePrefix | clean }}`)"
           Service = "knowledgeGraph"
@@ -161,7 +138,6 @@ data:
           regex = "^/repos/(.*)"
           replacement = "{{ printf "/%s/$1" .Values.global.gitlab.urlPrefix | clean }}"
 
-
         [http.middlewares.auth-gitlab.forwardAuth]
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=gitlab"
           trustForwardHeader = true
@@ -181,7 +157,6 @@ data:
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=notebook"
           trustForwardHeader = true
           authResponseHeaders = ["Renku-Auth-Access-Token", "Renku-Auth-Id-Token", "Renku-Auth-Git-Credentials", "Renku-Auth-Anon-Id"]
-
 
         [http.middlewares.webhooks.replacePathRegex]
           regex = "^/projects/([^/]*)/graph/webhooks(.*)"
