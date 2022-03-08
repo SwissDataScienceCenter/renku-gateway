@@ -115,7 +115,7 @@ secretKey:
 image:
   name: traefik
   repository: traefik
-  tag: 2.1.4
+  tag: 2.6.1
   pullPolicy: IfNotPresent
 
   ## Define the image for the auth middleware
