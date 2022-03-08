@@ -196,3 +196,89 @@ sentry:
 # without its own ingress.
 ingress:
   enabled:
+
+traefik:
+  anchors:
+    nameOverride: &nameOverride renku-traefik
+  affinity:
+  # This pod anti-affinity tries tp schedule traefik pods on different nodes.
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  # Note that currently this will not distinguish between renku-traefik instances in different namepsaces. This 
+                  # could be changed: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#namespace-selector
+                  values:
+                    - *nameOverride
+            topologyKey: kubernetes.io/hostname
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: 60
+    - type: Resource
+      resource:
+        name: memory
+        targetAverageUtilization: 60
+  additionalArguments:
+    - "--providers.file.directory=/config"
+  fullnameOverride: *nameOverride
+  globalArguments:
+    - "--global.checknewversion"
+  logs:
+    access:
+    # To enable access logs
+      enabled: true
+      format: json
+      bufferingSize: 10
+      fields:
+        general:
+          defaultmode: keep
+        headers:
+          defaultmode: keep
+          names: 
+            Authorization: redact
+            Cookie: redact
+            Renku-Auth-Access-Token: redact
+            Renku-Auth-Git-Credentials: redact
+    general:
+      format: json
+      # By default, the level is set to ERROR. Alternative logging levels are DEBUG, PANIC, FATAL, ERROR, WARN, and INFO.
+      level: ERROR
+  nameOverride: *nameOverride
+  ingressRoute:
+    dashboard:
+      enabled: false
+  podDisruptionBudget:
+    enabled: true
+    maxUnavailable: 50%
+  ports:
+    websecure:
+      expose: false
+  providers:
+    kubernetesCRD:
+      enabled: false
+    kubernetesIngress:
+      enabled: false
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "100Mi"
+    limits:
+      cpu: "300m"
+      memory: "200Mi"
+  service:
+    enabled: true
+    type: ClusterIP
+  volumes: 
+    - name: renku-traefik-config
+      mountPath: "/config"
+      type: configMap
