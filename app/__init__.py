@@ -28,7 +28,6 @@ import jwt
 import requests
 import sentry_sdk
 from flask import Flask, Response, current_app, request
-from flask_cors import CORS
 from flask_kvsession import KVSessionExtension
 from redis.sentinel import Sentinel
 from sentry_sdk.integrations.flask import FlaskIntegration
@@ -71,12 +70,6 @@ if os.environ.get("SENTRY_ENABLED", "").lower() == "true":
         app.logger.warning("Error while trying to initialize Sentry", exc_info=True)
 
 app.config.from_object(config)
-
-CORS(
-    app,
-    allow_headers=["X-Requested-With"],
-    allow_origin=app.config["ALLOW_ORIGIN"],
-)
 
 url_prefix = app.config["SERVICE_PREFIX"]
 blueprints = (

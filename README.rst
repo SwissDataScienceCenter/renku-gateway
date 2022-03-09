@@ -79,8 +79,6 @@ But if you prefer to run directly the docker image here is the list of all envir
 +---------------------------------+-----------------------------------------------------------------------------------------------------------------+----------------------------------+
 | GATEWAY_SECRET_KEY              | Must be exactly 64 hex characters! Used to encrypt session cookies and redis content. Must be set, no default!  | -                                |
 +---------------------------------+-----------------------------------------------------------------------------------------------------------------+----------------------------------+
-| GATEWAY_ALLOW_ORIGIN            | CORS configuration listing all domains allowed to use the gateway. Use "*" to allow all.                        | ""                               |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------+----------------------------------+
 | GATEWAY_REDIS_HOST              | The hostname/ip of the Redis instance used for persisting sessions.                                             | renku-gw-redis                   |
 +---------------------------------+-----------------------------------------------------------------------------------------------------------------+----------------------------------+
 | GITLAB_URL                      | The URL of the Gitlab instance to proxy.                                                                        | http://gitlab.renku.build        |

@@ -143,7 +143,11 @@ data:
           {{- end }}
 
         [http.middlewares.common.chain]
-          middlewares = ["noCookies", "commonWithCookie"]
+          middlewares = ["noCookies", "commonWithCookie", "commonCors"]
+
+        [http.middlewares.commonCors.headers]
+          accessControlAllowOrigin  = "{{ .Values.global.gateway.allowOrigin }}"
+          addVaryHeader = true
 
         [http.middlewares.noCookies.headers]
           [http.middlewares.noCookies.headers.CustomRequestHeaders]
