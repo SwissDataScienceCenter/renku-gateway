@@ -10,13 +10,13 @@ metadata:
     heritage: {{ .Release.Service }}
 data:
   traefik.toml: |
-    {{ if .Values.development }}
+    {{- if .Values.development }}
     [log]
       level = "DEBUG"
     {{ else }}
     [log]
       level = "ERROR"
-    {{ end }}
+    {{ end -}}
 
     [api]
       dashboard = true
@@ -32,7 +32,7 @@ data:
     [accessLog]
       bufferingSize = 10
 
-  rules.toml: |
+  routers.toml: |
     [http]
       [http.routers]
         [http.routers.apiRedirect]
@@ -85,7 +85,7 @@ data:
         
         [http.routers.gitlabGraphql]
           entryPoints = ["http"]
-          Middlewares = ["auth-gitlab","general-ratelimit","api","gitlabOnly","gitlabGraphql"]
+          Middlewares = ["auth-gitlab","api","gitlabOnly","gitlabGraphql"]
           Rule = "PathPrefix(`{{ printf "/%s/graphql" .Values.gatewayServicePrefix | clean }}`)"
           Service = "gitlab"
 
@@ -118,6 +118,8 @@ data:
           Rule = "PathPrefix(`{{ printf "/%s/kg" .Values.gatewayServicePrefix | clean }}`)"
           Service = "knowledgeGraph"
 
+  middlewares.toml: |
+    [http]
       [http.middlewares]
 
         # We assume entity IDs which are URL-safe except <namespace>/<project-name>
@@ -135,133 +137,104 @@ data:
           regex = "http://(.*)/entities/(.*)"
           replacement = "{{(include "gateway.protocol" .)}}://${1}/${2}"
 
-        [http.middlewares.commonWithCookie.chain]
-          {{- if .Values.development }}
-          middlewares = ["general-ratelimit", "api", "development"]
-          {{- else }}
-          middlewares = ["general-ratelimit", "api"]
-          {{- end }}
-
         [http.middlewares.common.chain]
-          middlewares = ["noCookies", "commonWithCookie"]
+          middlewares = ["noCookies", "api"]
 
         [http.middlewares.noCookies.headers]
-          [http.middlewares.noCookies.headers.CustomRequestHeaders]
+          [http.middlewares.noCookies.headers.customRequestHeaders]
             Cookie = ""
 
-        [http.middlewares.api.StripPrefix]
+        [http.middlewares.api.stripPrefix]
           prefixes = ["/api"]
 
-        [http.middlewares.development.headers]
-          isDevelopment = true
-
-        [http.middlewares.gitlabOnly.AddPrefix]
+        [http.middlewares.gitlabOnly.addPrefix]
           prefix = "{{ printf "/%s/" .Values.global.gitlab.urlPrefix | clean }}"
 
-        [http.middlewares.gitlabApi.AddPrefix]
+        [http.middlewares.gitlabApi.addPrefix]
           prefix = "{{ printf "/%s/api/v4" .Values.global.gitlab.urlPrefix | clean }}"
 
-        [http.middlewares.cliGitlab.ReplacePathRegex]
+        [http.middlewares.cliGitlab.replacePathRegex]
           regex = "^/repos/(.*)"
           replacement = "{{ printf "/%s/$1" .Values.global.gitlab.urlPrefix | clean }}"
 
 
-        [http.middlewares.auth-gitlab.forwardauth]
+        [http.middlewares.auth-gitlab.forwardAuth]
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=gitlab"
           trustForwardHeader = true
           authResponseHeaders = ["Authorization"]
 
-        [http.middlewares.auth-cliGitlab.forwardauth]
+        [http.middlewares.auth-cliGitlab.forwardAuth]
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=cli-gitlab"
           trustForwardHeader = true
           authResponseHeaders = ["Authorization"]
 
-        [http.middlewares.auth-renku.forwardauth]
+        [http.middlewares.auth-renku.forwardAuth]
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=renku"
           trustForwardHeader = true
           authResponseHeaders = ["Authorization", "Renku-user-id", "Renku-user-fullname", "Renku-user-email"]
 
-        [http.middlewares.auth-notebook.forwardauth]
+        [http.middlewares.auth-notebook.forwardAuth]
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=notebook"
           trustForwardHeader = true
           authResponseHeaders = ["Renku-Auth-Access-Token", "Renku-Auth-Id-Token", "Renku-Auth-Git-Credentials", "Renku-Auth-Anon-Id"]
 
 
-        [http.middlewares.webhooks.ReplacePathRegex]
+        [http.middlewares.webhooks.replacePathRegex]
           regex = "^/projects/([^/]*)/graph/webhooks(.*)"
           replacement = "/projects/$1/webhooks$2"
 
-        [http.middlewares.graphstatus.ReplacePathRegex]
+        [http.middlewares.graphstatus.replacePathRegex]
           regex = "^/projects/([^/]*)/graph(.*)"
           replacement = "/projects/$1/events$2"
 
-        [http.middlewares.kg.StripPrefix]
+        [http.middlewares.kg.stripPrefix]
           prefixes = ["/kg"]
 
-        [http.middlewares.knowledgeGraph.AddPrefix]
+        [http.middlewares.knowledgeGraph.addPrefix]
           prefix = "/knowledge-graph"
 
-        [http.middlewares.direct.ReplacePathRegex]
+        [http.middlewares.direct.replacePathRegex]
           regex = "^/api/direct/(.*)"
           replacement = "/$1"
 
-        [http.middlewares.gitlabGraphql.ReplacePathRegex]
+        [http.middlewares.gitlabGraphql.replacePathRegex]
           regex = "(.*)/graphql(.*)"
           replacement = "/$1/api/graphql$2"
 
-        [http.middlewares.general-ratelimit.ratelimit]
-          extractorfunc = "{{ .Values.rateLimits.general.extractorfunc }}"
-          [http.middlewares.general-ratelimit.ratelimit.rateset.rate0]
-            period = "{{ .Values.rateLimits.general.period }}"
-            average = {{ .Values.rateLimits.general.average }}
-            burst = {{ .Values.rateLimits.general.burst }}
-
+  services.toml: | 
+    [http]
       [http.services]
-        [http.services.gateway.LoadBalancer]
-          method = "drr"
+        [http.services.gateway.loadBalancer]
           passHostHeader = false
-          [[http.services.gateway.LoadBalancer.servers]]
+          [[http.services.gateway.loadBalancer.servers]]
             url = "http://{{ template "gateway.fullname" . }}-auth/"
-            weight = 1
 
-        [http.services.gitlab.LoadBalancer]
-          method = "drr"
+        [http.services.gitlab.loadBalancer]
           passHostHeader = false
-          [[http.services.gitlab.LoadBalancer.servers]]
+          [[http.services.gitlab.loadBalancer.servers]]
             url = "{{ .Values.gitlabUrl | default (printf "%s://%s/gitlab" (include "gateway.protocol" .) .Values.global.renku.domain) }}"
-            weight = 1
 
-        [http.services.notebooks.LoadBalancer]
-          method = "drr"
+        [http.services.notebooks.loadBalancer]
           passHostHeader = false
-          [[http.services.notebooks.LoadBalancer.servers]]
+          [[http.services.notebooks.loadBalancer.servers]]
             url = "{{ printf "http://%s-notebooks" .Release.Name }}"
-            weight = 1
 
-        [http.services.webhooks.LoadBalancer]
-          method = "drr"
+        [http.services.webhooks.loadBalancer]
           passHostHeader = false
-          [[http.services.webhooks.LoadBalancer.servers]]
+          [[http.services.webhooks.loadBalancer.servers]]
             url = "{{ printf "http://%s-webhook-service" .Release.Name }}"
-            weight = 1
 
-        [http.services.knowledgeGraph.LoadBalancer]
-          method = "drr"
+        [http.services.knowledgeGraph.loadBalancer]
           passHostHeader = false
-          [[http.services.knowledgeGraph.LoadBalancer.servers]]
+          [[http.services.knowledgeGraph.loadBalancer.servers]]
           url = "{{ printf "http://%s-knowledge-graph" .Release.Name }}"
-            weight = 1
 
-        [http.services.core.LoadBalancer]
-          method = "drr"
+        [http.services.core.loadBalancer]
           passHostHeader = false
-          [[http.services.core.LoadBalancer.servers]]
+          [[http.services.core.loadBalancer.servers]]
           url = "{{ printf "http://%s-core" .Release.Name }}"
-            weight = 1
 
         # We need a default backend, should never be hit
-        [http.services.default.LoadBalancer]
-          method = "drr"
-          [[http.services.default.LoadBalancer.servers]]
+        [http.services.default.loadBalancer]
+          [[http.services.default.loadBalancer.servers]]
           url = "{{ printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain }}"
-            weight = 1
