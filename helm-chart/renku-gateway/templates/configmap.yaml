@@ -138,8 +138,12 @@ data:
           replacement = "{{(include "gateway.protocol" .)}}://${1}/${2}"
 
         [http.middlewares.common.chain]
-          middlewares = ["noCookies", "api"]
-
+          middlewares = ["noCookies", "api"{{if .Values.gateway.allowOrigin }}{{", \"cors\""}}{{- end}}]
+        {{ if .Values.gateway.allowOrigin }}
+        [http.middlewares.cors.headers]
+          accessControlAllowOriginList  = [{{- range .Values.gateway.allowOrigin}} {{- . | quote }},{{end}}]
+          addVaryHeader = true
+        {{ end }}
         [http.middlewares.noCookies.headers]
           [http.middlewares.noCookies.headers.customRequestHeaders]
             Cookie = ""
