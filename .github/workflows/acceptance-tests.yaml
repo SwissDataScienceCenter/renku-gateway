@@ -28,6 +28,7 @@ jobs:
       renku-ui: ${{ steps.deploy-comment.outputs.renku-ui}}
       test-enabled: ${{ steps.deploy-comment.outputs.test-enabled}}
       persist: ${{ steps.deploy-comment.outputs.persist}}
+      extra-values: ${{ steps.deploy-comment.outputs.extra-values}}
     steps:
       - id: deploy-comment
         uses: SwissDataScienceCenter/renku-actions/check-pr-description@v0.5.0
@@ -65,6 +66,7 @@ jobs:
           renku_graph: "${{ needs.check-deploy.outputs.renku-graph }}"
           renku_notebooks: "${{ needs.check-deploy.outputs.renku-notebooks }}"
           renku_ui: "${{ needs.check-deploy.outputs.renku-ui }}"
+          extra_values: "${{ needs.check-deploy.outputs.extra-values }}"
       - name: Check existing renkubot comment
         uses: peter-evans/find-comment@v1
         id: findcomment
