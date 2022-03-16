@@ -1,6 +1,16 @@
 Changes
 =======
 
+`0.13.1 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.13.0...0.13.1>`__ (2022-03-16)
+=========================================================================================================
+
+Bug Fixes
+~~~~~~~~~
+
+-  **chart:** Fix Cross-Origin Resource Sharing allowed origin list. The parameter is now under `gateway.allowOrigin`.
+   (`#554 <https://github.com/SwissDataScienceCenter/renku-gateway/issues/554>`__)
+   (`527877c <https://github.com/SwissDataScienceCenter/renku-gateway/commit/527877c309d535f50df97cf83963bb63549ff0fc>`__)
+
 `0.13.0 <https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.12.3...0.13.0>`__ (2022-02-25)
 =========================================================================================================
 
