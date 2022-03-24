@@ -15,30 +15,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Quart initialization."""
-
+from datetime import timedelta
 import json
 import logging
 import os
-import re
-import secrets
 import sys
 
-import jwt
-import requests
 import sentry_sdk
-from flask import Flask, Response, current_app, request
-from flask_cors import CORS
-from flask_kvsession import KVSessionExtension
+from flask import Flask, Response, current_app, session
 from redis.sentinel import Sentinel
 from sentry_sdk.integrations.flask import FlaskIntegration
-from simplekv.decorator import PrefixDecorator
-from simplekv.memory.redisstore import RedisStore
 
 from . import config
-from .auth import cli_auth, gitlab_auth, renku_auth, web, notebook_auth
-from .auth.oauth_redis import OAuthRedis
-from .auth.utils import decode_keycloak_jwt
+from .forward_auth import forward_auth
+from .web import gitlab, keycloak
+from .common.oauth_redis import OAuthRedis
+from .common.utils import load_public_key
 
 # Wait for the VS Code debugger to attach if requested
 # TODO: try using debugpy instead of ptvsd to avoid noreload limitations
@@ -71,15 +63,20 @@ if os.environ.get("SENTRY_ENABLED", "").lower() == "true":
         app.logger.warning("Error while trying to initialize Sentry", exc_info=True)
 
 app.config.from_object(config)
-
-CORS(
-    app,
-    allow_headers=["X-Requested-With"],
-    allow_origin=app.config["ALLOW_ORIGIN"],
-)
-
 url_prefix = app.config["SERVICE_PREFIX"]
-blueprints = (gitlab_auth.blueprint, web.blueprint)
+
+app.register_blueprint(
+    keycloak.blueprint,
+    url_prefix=os.path.join(url_prefix, keycloak.blueprint.url_prefix),
+)
+app.register_blueprint(
+    gitlab.blueprint,
+    url_prefix=os.path.join(url_prefix, gitlab.blueprint.url_prefix),
+)
+app.register_blueprint(
+    forward_auth.blueprint,
+    url_prefix=forward_auth.blueprint.url_prefix,
+)
 
 
 @app.before_request
@@ -110,128 +107,11 @@ def setup_redis_client():
             password=current_app.config["REDIS_PASSWORD"],
             db=current_app.config["REDIS_DB"],
         )
-        # We use the same store for sessions.
-        session_store = PrefixDecorator("sessions_", RedisStore(current_app.store))
-        KVSessionExtension(session_store, app)
 
 
-@app.route("/", methods=["GET"])
-def auth():
-    current_app.logger.debug(f"Hitting gateway auth with args: {request.args}")
-
-    if "auth" not in request.args:
-        return Response("", status=200)
-
-    auths = {
-        "gitlab": gitlab_auth.GitlabUserToken,
-        "renku": renku_auth.RenkuCoreAuthHeaders,
-        "notebook": notebook_auth.NotebookAuthHeaders,
-        "cli-gitlab": cli_auth.RenkuCLIGitlabAuthHeaders,
-    }
-
-    # Keycloak public key is not defined so error
-    if current_app.config["OIDC_PUBLIC_KEY"] is None:
-        response = json.dumps("Ooops, something went wrong internally.")
-        return Response(response, status=500)
-
-    auth_arg = request.args.get("auth")
-    headers = dict(request.headers)
-
-    try:
-        auth = auths[auth_arg]()
-
-        # validate incoming authentication
-        # it can either be in session-cookie or Authorization header
-        new_token = web.get_valid_token(headers)
-        if new_token:
-            headers["Authorization"] = f"Bearer {new_token}"
-
-        if "Authorization" in headers and "Referer" in headers:
-            allowed = False
-            origins = decode_keycloak_jwt(token=headers["Authorization"][7:]).get(
-                "allowed-origins"
-            )
-            for o in origins:
-                if re.match(o.replace("*", ".*"), headers["Referer"]):
-                    allowed = True
-                    break
-            if not allowed:
-                return Response(
-                    json.dumps(
-                        {
-                            "error": "origin not allowed: {} not matching {}".format(
-                                headers["Referer"], origins
-                            )
-                        }
-                    ),
-                    status=403,
-                )
-
-        # auth processors always assume a valid Authorization in header, if any
-        headers = auth.process(request, headers)
-    except jwt.ExpiredSignatureError:
-        current_app.logger.warning(
-            f"Error while authenticating request, token expired. Target: {auth_arg}",
-            exc_info=True,
-        )
-        message = {
-            "error": "authentication",
-            "message": "token expired",
-            "target": auth_arg,
-        }
-        return Response(json.dumps(message), status=401)
-    except AttributeError as error:
-        if "access_token" in str(error):
-            current_app.logger.warning(
-                (
-                    "Error while authenticating request, can't "
-                    f"refresh access token. Target: {auth_arg}"
-                ),
-                exc_info=True,
-            )
-            message = {
-                "error": "authentication",
-                "message": "can't refresh access token",
-                "target": auth_arg,
-                "exception": str(error),
-            }
-            return Response(json.dumps(message), status=401)
-        raise
-    except Exception as error:
-        current_app.logger.warning(
-            f"Error while authenticating request, unknown. Target: {auth_arg}",
-            exc_info=True,
-        )
-        message = {
-            "error": "authentication",
-            "message": "unknown",
-            "target": auth_arg,
-            "exception": str(error),
-        }
-        return Response(json.dumps(message), status=401)
-
-    if (
-        "anon-id" not in request.cookies
-        and request.headers.get("X-Requested-With", "") == "XMLHttpRequest"
-        and request.headers["X-Forwarded-Uri"] == "/api/user"
-        and "Authorization" not in headers
-    ):
-        resp = Response(
-            json.dumps({"message": "401 Unauthorized"}),
-            content_type="application/json",
-            status=401,
-        )
-        # We make sure the anonymous ID starts with an alphabetic character
-        # such that it can be used directly to form k8s resource names.
-        resp.set_cookie("anon-id", f"anon-{secrets.token_urlsafe(32)}")
-        current_app.logger.debug("Setting anonymous id")
-        return resp
-
-    return Response(
-        json.dumps("Up and running"),
-        headers=headers,
-        status=200,
-    )
+@app.before_request
+def get_public_key():
+    load_public_key(timedelta(hours=1))
 
 
 @app.route("/health", methods=["GET"])
@@ -239,32 +119,6 @@ def healthcheck():
     return Response(json.dumps("Up and running"), status=200)
 
 
-def _join_url_prefix(*parts):
-    """Join prefixes."""
-    parts = [part.strip("/") for part in parts if part and part.strip("/")]
-    if parts:
-        return "/" + "/".join(parts)
-
-
-for blueprint in blueprints:
-    app.register_blueprint(
-        blueprint,
-        url_prefix=_join_url_prefix(url_prefix, blueprint.url_prefix),
-    )
-
-
 @app.before_request
-def load_public_key():
-    if current_app.config.get("OIDC_PUBLIC_KEY"):
-        return
-
-    current_app.logger.info(
-        "Obtaining public key from {}".format(current_app.config["OIDC_ISSUER"])
-    )
-
-    raw_key = requests.get(current_app.config["OIDC_ISSUER"]).json()["public_key"]
-    current_app.config[
-        "OIDC_PUBLIC_KEY"
-    ] = "-----BEGIN PUBLIC KEY-----\n{}\n-----END PUBLIC KEY-----".format(raw_key)
-
-    current_app.logger.info(current_app.config["OIDC_PUBLIC_KEY"])
+def make_session_permanent():
+    session.permanent = True

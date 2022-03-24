@@ -26,10 +26,6 @@ global:
     ## Should be set to a proper value (i.e. by using openssl rand -hex 32) for production.
     ## Can be set here or as .clientSecret outside of .global, the values set ouside of global (if defined) take precedence.
     clientSecret:
-    ## Client secret of the renku-cli client application registered in keycloak.
-    ## Should be set to a proper value (i.e. by using openssl rand -hex 32) for production.
-    ## Can be set here or as .cliClientSecret outside of .global, the values set ouside of global (if defined) take precedence.
-    cliClientSecret:
     ## Client id and client secret of the renku gateway client application which is registered in GitLab.
     ## Can be set here or as .gitlabClientId outside of .global, the values set ouside of global (if defined) take precedence.
     gitlabClientId: #renku
@@ -65,8 +61,7 @@ global:
     image:
       repository: renku/certificates
       tag: "0.0.1"
-    customCAs:
-      []
+    customCAs: []
       # - secret:
 
   ## Specify the information required to connect to a redis instance.
@@ -96,18 +91,6 @@ replicaCount: 1
 ## implications and should never be done in a production setting.
 development: false
 
-## To protect the backend services from an excessive amount of API calls
-## issued by one client, one can enforce rate limits here. The limits apply
-## per UI client session (identified by the cookies). For an explanation of
-## the different values check out the rate limiting documentation of traefik
-## v2.0.
-rateLimits:
-  ## General rate limit, applies to all /api calls combined.
-  general:
-    period: 10s
-    average: 20
-    burst: 100
-
 ## Set to a custom GitLab URL if deployed manually
 # gitlabUrl:
 
@@ -116,13 +99,8 @@ rateLimits:
 ## Use `openssl rand -hex 32`.
 secretKey:
 
+## Define the image for the forward-auth component
 image:
-  name: traefik
-  repository: traefik
-  tag: 2.6.1
-  pullPolicy: IfNotPresent
-
-  ## Define the image for the auth middleware
   auth:
     name: renku/renku-gateway
     repository: renku/renku-gateway
@@ -133,8 +111,7 @@ service:
   type: ClusterIP
   port: 80
 
-resources:
-  {}
+resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -152,27 +129,6 @@ tolerations: []
 
 affinity: {}
 
-## Settings for the graph services
-graph:
-  webhookService:
-    ## Set the hostname under which the webhook service
-    ## can be reached (internally). This will default to
-    ## http://<release-name>-webhook-service
-    hostname:
-  knowledgeGraph:
-    ## Set the hostname under which the webhook service
-    ## can be reached (internally). This will default to
-    ## http://<release-name>-knowledge-graph
-    hostname:
-
-core:
-  ## Set the hostname under which the core service
-  ## can be reached (internally). This will default to
-  ## http://<release-name>-core
-  hostname:
-
-notebooks:
-  hostname:
 
 # GitLab has introduced a new logout behavior in 12.7.0
 # which was initially broken and fixed in 12.9.0.
@@ -197,6 +153,8 @@ sentry:
 ingress:
   enabled:
 
+# For a description of all values and defaults see 
+# https://github.com/traefik/traefik-helm-chart/blob/master/traefik/values.yaml
 traefik:
   anchors:
     nameOverride: &nameOverride renku-traefik
@@ -220,14 +178,14 @@ traefik:
     minReplicas: 2
     maxReplicas: 10
     metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        targetAverageUtilization: 60
-    - type: Resource
-      resource:
-        name: memory
-        targetAverageUtilization: 60
+      - type: Resource
+        resource:
+          name: cpu
+          targetAverageUtilization: 60
+      - type: Resource
+        resource:
+          name: memory
+          targetAverageUtilization: 60
   additionalArguments:
     - "--providers.file.directory=/config"
   fullnameOverride: *nameOverride
@@ -244,7 +202,7 @@ traefik:
           defaultmode: keep
         headers:
           defaultmode: keep
-          names: 
+          names:
             Authorization: redact
             Cookie: redact
             Renku-Auth-Access-Token: redact
@@ -278,7 +236,7 @@ traefik:
   service:
     enabled: true
     type: ClusterIP
-  volumes: 
+  volumes:
     - name: renku-traefik-config
       mountPath: "/config"
       type: configMap

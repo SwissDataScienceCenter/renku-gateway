@@ -17,23 +17,20 @@
 # limitations under the License.
 """ Test for the proxy """
 
-import jwt
+
 import pytest
 import requests
 import responses
 
 from .. import app
-from ..auth.gitlab_auth import GL_SUFFIX
-from ..auth.oauth_client import RenkuWebApplicationClient
-from ..auth.oauth_provider_app import OAuthProviderApp
-from ..auth.oauth_redis import OAuthRedis
-from ..auth.utils import get_redis_key_from_token
+
 from .test_data import (
-    PRIVATE_KEY,
-    PROVIDER_APP_DICT,
+    # PRIVATE_KEY,
+    # PROVIDER_APP_DICT,
     PUBLIC_KEY,
+    PUBLIC_KEY_DATETIME,
     SECRET_KEY,
-    TOKEN_PAYLOAD,
+    #    TOKEN_PAYLOAD,
     REDIS_PASSWORD,
 )
 
@@ -46,6 +43,7 @@ def client():
     app.app_context().push()
     app.config["TESTING"] = True
     app.config["OIDC_PUBLIC_KEY"] = PUBLIC_KEY
+    app.config["PUBLIC_KEY_DATETIME"] = PUBLIC_KEY_DATETIME
     app.config["SECRET_KEY"] = SECRET_KEY
     app.config["REDIS_PASSWORD"] = REDIS_PASSWORD
     client = app.test_client()
@@ -83,29 +81,3 @@ def test_health_endpoint(client):
 
 # TODO: currently the project mapper is not used, but we keep the other response
 # TODO: for future use.
-
-
-def test_gitlab_happyflow(client):
-    """If a request has the required headers, it should be able to pass through."""
-
-    def set_dummy_oauth_client(token, key_suffix):
-        provider_app = OAuthProviderApp(**PROVIDER_APP_DICT)
-        redis_key = get_redis_key_from_token(access_token, key_suffix=key_suffix)
-        oauth_client = RenkuWebApplicationClient(
-            access_token=token, provider_app=provider_app
-        )
-        app.store.set_oauth_client(redis_key, oauth_client)
-
-    access_token = jwt.encode(
-        payload=TOKEN_PAYLOAD, key=PRIVATE_KEY, algorithm="RS256"
-    ).decode("utf-8")
-    headers = {"Authorization": "Bearer {}".format(access_token)}
-
-    app.store = OAuthRedis(hex_key=app.config["SECRET_KEY"])
-
-    set_dummy_oauth_client("some_token", GL_SUFFIX)
-
-    rv = client.get("/?auth=gitlab", headers=headers)
-
-    assert rv.status_code == 200
-    assert "Bearer some_token" == rv.headers["Authorization"]

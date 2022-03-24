@@ -17,28 +17,26 @@
 # limitations under the License.
 """Implement GitLab authentication workflow."""
 
-import re
 from urllib.parse import urljoin
 
 from flask import (
     Blueprint,
     current_app,
-    redirect,
     render_template,
     request,
     url_for,
 )
 
-from .oauth_provider_app import GitLabProviderApp
-from .utils import (
-    get_redis_key_from_token,
+from ..common.oauth_provider_app import GitLabProviderApp
+from ..common.utils import (
+    build_redis_key,
     handle_login_request,
     handle_token_request,
 )
 
 GL_SUFFIX = "gl_oauth_client"
 
-blueprint = Blueprint("gitlab_auth", __name__, url_prefix="/auth/gitlab")
+blueprint = Blueprint("gitlab_auth", __name__, url_prefix="auth/gitlab")
 
 
 # Note: GitLab oauth tokens do NOT expire per default
@@ -47,28 +45,14 @@ blueprint = Blueprint("gitlab_auth", __name__, url_prefix="/auth/gitlab")
 # (https://docs.gitlab.com/ce/api/oauth2.html#web-application-flow)
 
 
-class GitlabUserToken:
-    def process(self, request, headers):
-        m = re.search(
-            r"bearer (?P<token>.+)", headers.get("Authorization", ""), re.IGNORECASE
-        )
-        if m:
-            # current_app.logger.debug(
-            #    'outgoing headers: {}'.format(json.dumps(headers)
-            # )
-            access_token = m.group("token")
-            redis_key = get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
-            gitlab_oauth_client = current_app.store.get_oauth_client(redis_key)
+def add_auth_headers(sub, headers):
+    redis_key = build_redis_key(sub, key_suffix=GL_SUFFIX)
+    gitlab_oauth_client = current_app.store.get_oauth_client(redis_key)
 
-            if gitlab_oauth_client:
-                gitlab_access_token = gitlab_oauth_client.access_token
-                headers["Authorization"] = f"Bearer {gitlab_access_token}"
-        else:
-            current_app.logger.debug(
-                "No authorization header, returning empty auth headers"
-            )
-
-        return headers
+    if gitlab_oauth_client:
+        gitlab_access_token = gitlab_oauth_client.access_token
+        headers["Authorization"] = f"Bearer {gitlab_access_token}"
+    return headers
 
 
 SCOPE = ["openid", "api", "read_user", "read_repository"]
@@ -91,20 +75,12 @@ def login():
 
 @blueprint.route("/token")
 def token():
-    response, _ = handle_token_request(request, GL_SUFFIX)
-    return response
+    return handle_token_request(request, GL_SUFFIX)
 
 
 @blueprint.route("/logout")
 def logout():
-    logout_url = current_app.config["GITLAB_URL"] + "/users/sign_out"
-
-    # For gitlab versions previous to 12.7.0 we need to redirect the
-    # browser to the logout url. For versions 12.9.0 and newer the
-    # browser has to POST a form to the logout url.
-    if current_app.config["OLD_GITLAB_LOGOUT"]:
-        response = current_app.make_response(redirect(logout_url))
-    else:
-        response = render_template("gitlab_logout.html", logout_url=logout_url)
-
-    return response
+    return render_template(
+        "gitlab_logout.html",
+        logout_url=current_app.config["GITLAB_URL"] + "/users/sign_out",
+    )

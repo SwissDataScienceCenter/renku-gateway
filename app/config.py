@@ -16,7 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Global settings."""
-
+from datetime import timedelta
 import os
 import sys
 import warnings
@@ -27,8 +27,7 @@ import warnings
 
 # Note that for a clean "client side token expiration" we will
 # need https://gitlab.com/gitlab-org/gitlab/-/issues/17259 to be
-# fixed and the implementation of JupyterHub as an OAuth2 provider
-# completed.
+# fixed.
 MAX_ACCESS_TOKEN_LIFETIME = os.environ.get("MAX_ACCESS_TOKEN_LIFETIME", 3600 * 24)
 
 ANONYMOUS_SESSIONS_ENABLED = (
@@ -46,10 +45,13 @@ if "GATEWAY_SECRET_KEY" not in os.environ and "pytest" not in sys.modules:
     sys.exit(2)
 SECRET_KEY = os.environ.get("GATEWAY_SECRET_KEY")
 
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = HOST_NAME.startswith("https")
 
-ALLOW_ORIGIN = os.environ.get("GATEWAY_ALLOW_ORIGIN", "").split(",")
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_PATH = os.environ.get("GATEWAY_SERVICE_PREFIX", "/")
+SESSION_COOKIE_SECURE = HOST_NAME.startswith("https")
+SESSION_COOKIE_NAME = "api-login-session"
+# Login sessions time out after very little inactivity
+PERMANENT_SESSION_LIFETIME = timedelta(minutes=1)
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "renku-redis")
 REDIS_IS_SENTINEL = os.environ.get("REDIS_IS_SENTINEL", "") == "true"
@@ -63,14 +65,6 @@ except KeyError:
 REDIS_DB = os.environ.get("REDIS_DB", "0")
 REDIS_MASTER_SET = os.environ.get("REDIS_MASTER_SET", "mymaster")
 
-CLI_CLIENT_ID = os.environ.get("CLI_CLIENT_ID", "renku-cli")
-CLI_CLIENT_SECRET = os.environ.get("CLI_CLIENT_SECRET", "")
-if not CLI_CLIENT_SECRET:
-    warnings.warn(
-        "The environment variable CLI_CLIENT_SECRET is not set."
-        "It is mandatory for CLI login."
-    )
-
 GITLAB_URL = os.environ.get("GITLAB_URL", "http://gitlab.renku.build")
 GITLAB_CLIENT_ID = os.environ.get("GITLAB_CLIENT_ID", "renku-ui")
 GITLAB_CLIENT_SECRET = os.environ.get("GITLAB_CLIENT_SECRET")
@@ -80,9 +74,6 @@ if not GITLAB_CLIENT_SECRET:
         "It is mandatory for Gitlab login."
     )
 
-WEBHOOK_SERVICE_HOSTNAME = os.environ.get(
-    "WEBHOOK_SERVICE_HOSTNAME", "http://renku-graph-webhooks-service"
-)
 
 KEYCLOAK_URL = os.environ.get("KEYCLOAK_URL")
 if not KEYCLOAK_URL:
@@ -91,6 +82,9 @@ if not KEYCLOAK_URL:
         "It is necessary because Keycloak acts as identity provider for Renku."
     )
 KEYCLOAK_REALM = os.environ.get("KEYCLOAK_REALM", "Renku")
+KEYCLOAK_WELL_KNOWN_URL = (
+    f"{KEYCLOAK_URL}/auth/realms/{KEYCLOAK_REALM}/.well-known/openid-configuration"
+)
 OIDC_ISSUER = "{}/auth/realms/{}".format(KEYCLOAK_URL, KEYCLOAK_REALM)
 OIDC_CLIENT_ID = os.environ.get("OIDC_CLIENT_ID", "renku")
 OIDC_CLIENT_SECRET = os.environ.get("OIDC_CLIENT_SECRET")

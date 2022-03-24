@@ -15,8 +15,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Implement Keycloak authentication workflow for CLI."""
+
+import base64
+
+from flask import current_app
+
+from ..common.utils import GL_SUFFIX, build_redis_key
 
 
-class KeycloakAccessToken:
-    def process(self, request, headers):
-        return headers
+def add_auth_headers(sub, headers):
+
+    redis_key = build_redis_key(sub, key_suffix=GL_SUFFIX)
+    gitlab_oauth_client = current_app.store.get_oauth_client(redis_key)
+    if gitlab_oauth_client:
+        gitlab_access_token = gitlab_oauth_client.access_token
+        user_pass = f"oauth2:{gitlab_access_token}".encode("utf-8")
+        basic_auth = base64.b64encode(user_pass).decode("ascii")
+        headers["Authorization"] = f"Basic {basic_auth}"
+
+    return headers
