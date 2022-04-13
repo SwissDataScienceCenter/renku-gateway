@@ -152,6 +152,14 @@ tolerations: []
 
 affinity: {}
 
+podSecurityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 100
+
+securityContext:
+  allowPrivilegeEscalation: false
+
 ## Settings for the graph services
 graph:
   webhookService:
