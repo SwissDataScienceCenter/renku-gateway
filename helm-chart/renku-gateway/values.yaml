@@ -276,6 +276,9 @@ traefik:
       enabled: false
     kubernetesIngress:
       enabled: false
+  rbac:
+    # If set to false (i.e. default) then you get a ClusterRole, this way you get a Role
+    namespaced: true
   resources:
     requests:
       cpu: "100m"
