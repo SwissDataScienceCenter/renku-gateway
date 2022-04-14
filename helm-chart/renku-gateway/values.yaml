@@ -155,10 +155,11 @@ affinity: {}
 podSecurityContext:
   runAsUser: 1000
   runAsGroup: 1000
-  fsGroup: 100
+  fsGroup: 1000
 
 securityContext:
   allowPrivilegeEscalation: false
+  runAsNonRoot: true
 
 ## Settings for the graph services
 graph:
