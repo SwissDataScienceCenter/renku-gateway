@@ -152,14 +152,13 @@ tolerations: []
 
 affinity: {}
 
-podSecurityContext:
-  runAsUser: 1000
-  runAsGroup: 1000
-  fsGroup: 1000
+podSecurityContext: {}
 
 securityContext:
-  allowPrivilegeEscalation: false
+  runAsUser: 1000
+  runAsGroup: 1000
   runAsNonRoot: true
+  allowPrivilegeEscalation: false
 
 ## Settings for the graph services
 graph:
