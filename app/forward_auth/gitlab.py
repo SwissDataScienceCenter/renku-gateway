@@ -15,4 +15,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""auth module."""
+"""Implement GitLab authentication workflow."""
+
+from flask import (
+    current_app,
+)
+
+from ..common.utils import build_redis_key, GL_SUFFIX
+
+
+# Note: GitLab oauth tokens do NOT expire per default
+# See https://gitlab.com/gitlab-org/gitlab/-/issues/21745
+# The documentation about this is wrong
+# (https://docs.gitlab.com/ce/api/oauth2.html#web-application-flow)
+
+
+def add_auth_headers(sub, headers):
+    redis_key = build_redis_key(sub, key_suffix=GL_SUFFIX)
+    gitlab_oauth_client = current_app.store.get_oauth_client(redis_key)
+
+    if gitlab_oauth_client:
+        gitlab_access_token = gitlab_oauth_client.access_token
+        headers["Authorization"] = f"Bearer {gitlab_access_token}"
+    return headers

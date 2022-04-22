@@ -139,22 +139,22 @@ data:
           replacement = "{{ printf "/%s/$1" .Values.global.gitlab.urlPrefix | clean }}"
 
         [http.middlewares.auth-gitlab.forwardAuth]
-          address = "http://{{ template "gateway.fullname" . }}-auth/?auth=gitlab"
+          address = "http://{{ template "gateway.fullname" . }}-auth/forward-auth/?auth=gitlab"
           trustForwardHeader = true
           authResponseHeaders = ["Authorization"]
 
         [http.middlewares.auth-cliGitlab.forwardAuth]
-          address = "http://{{ template "gateway.fullname" . }}-auth/?auth=cli-gitlab"
+          address = "http://{{ template "gateway.fullname" . }}-auth/forward-auth/?auth=cli-gitlab"
           trustForwardHeader = true
           authResponseHeaders = ["Authorization"]
 
         [http.middlewares.auth-renku.forwardAuth]
-          address = "http://{{ template "gateway.fullname" . }}-auth/?auth=renku"
+          address = "http://{{ template "gateway.fullname" . }}-auth/forward-auth/?auth=renku"
           trustForwardHeader = true
           authResponseHeaders = ["Authorization", "Renku-user-id", "Renku-user-fullname", "Renku-user-email"]
 
         [http.middlewares.auth-notebook.forwardAuth]
-          address = "http://{{ template "gateway.fullname" . }}-auth/?auth=notebook"
+          address = "http://{{ template "gateway.fullname" . }}-auth/forward-auth/?auth=notebook"
           trustForwardHeader = true
           authResponseHeaders = ["Renku-Auth-Access-Token", "Renku-Auth-Id-Token", "Renku-Auth-Git-Credentials", "Renku-Auth-Anon-Id"]
 
@@ -186,7 +186,7 @@ data:
         [http.services.gateway.loadBalancer]
           passHostHeader = false
           [[http.services.gateway.loadBalancer.servers]]
-            url = "http://{{ template "gateway.fullname" . }}-auth/"
+            url = "http://{{ template "gateway.fullname" . }}-auth/forward-auth/"
 
         [http.services.gitlab.loadBalancer]
           passHostHeader = false

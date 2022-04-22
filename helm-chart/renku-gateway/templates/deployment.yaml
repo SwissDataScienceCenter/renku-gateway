@@ -34,13 +34,6 @@ spec:
           env:
             - name: HOST_NAME
               value: {{ .Values.hostName | default (printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
-            - name: CLI_CLIENT_ID
-              value: {{ .Values.cliClientId | default "renku-cli" | quote }}
-            - name: CLI_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ template "gateway.fullname" . }}
-                  key: cliClientSecret
             - name: GITLAB_URL
               value: {{ .Values.gitlabUrl | default (printf "%s://%s/gitlab" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
             - name: GITLAB_CLIENT_SECRET
@@ -78,8 +71,6 @@ spec:
                 secretKeyRef:
                   name: {{ template "gateway.fullname" . }}
                   key: gatewaySecret
-            - name: GATEWAY_ALLOW_ORIGIN
-              value: {{ .Values.allowOrigin | quote }}
             - name: OIDC_CLIENT_ID
               value: {{ .Values.oidcClientId | default "renku" | quote }}
             - name: OIDC_CLIENT_SECRET
@@ -91,8 +82,6 @@ spec:
               value: {{ .Values.oldGitLabLogout | quote }}
             - name: LOGOUT_GITLAB_UPON_RENKU_LOGOUT
               value: {{ .Values.logoutGitLabUponRenkuLogout | quote }}
-            - name: WEBHOOK_SERVICE_HOSTNAME
-              value: {{ .Values.graph.webhookService.hostname | default (printf "http://%s-graph-webhook-service" .Release.Name ) | quote }}
             {{ if .Values.global.anonymousSessions.enabled }}
             - name: ANONYMOUS_SESSIONS_ENABLED
               value: "true"

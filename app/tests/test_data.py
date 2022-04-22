@@ -1,4 +1,5 @@
 # flake8: noqa
+from datetime import datetime
 
 TOKEN_PAYLOAD = {
     "jti": "ebb2b1cb-6176-483c-9671-88ced95f9a2f",
@@ -95,6 +96,7 @@ PUBLIC_KEY = (
     "bkr/hHS8VK7rmF9rCD2gQM0CAwEAAQ==\n"
     "-----END PUBLIC KEY-----"
 )
+PUBLIC_KEY_DATETIME = datetime.now()
 
 GITLAB_PROJECTS = [
     {

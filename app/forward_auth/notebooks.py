@@ -17,14 +17,11 @@
 # limitations under the License.
 """Add the headers for the Renku notebooks service."""
 import json
-import re
 from base64 import b64encode
 
 from flask import current_app
 
-from .gitlab_auth import GL_SUFFIX
-from .utils import get_redis_key_from_token
-from .web import KC_SUFFIX
+from ..common.utils import GL_SUFFIX, KC_SUFFIX, build_redis_key
 
 # TODO: This is a temporary implementation of the header interface defined in #404
 # TODO: that allowes first clients to transition.
@@ -49,28 +46,18 @@ def get_git_credentials_header(git_oauth_clients):
     return b64encode(git_credentials_json.encode()).decode("ascii")
 
 
-class NotebookAuthHeaders:
-    def process(self, request, headers):
+def add_auth_headers(sub, headers):
+    """Swap headers for requests to the notebooks service."""
+    keycloak_oidc_client = current_app.store.get_oauth_client(
+        build_redis_key(sub, key_suffix=KC_SUFFIX)
+    )
+    gitlab_oauth_client = current_app.store.get_oauth_client(
+        build_redis_key(sub, key_suffix=GL_SUFFIX)
+    )
 
-        headers["Renku-Auth-Anon-Id"] = request.cookies.get("anon-id", "")
-
-        m = re.search(
-            r"bearer (?P<token>.+)", headers.get("Authorization", ""), re.IGNORECASE
-        )
-        if m:
-            access_token = m.group("token")
-
-            keycloak_oidc_client = current_app.store.get_oauth_client(
-                get_redis_key_from_token(access_token, key_suffix=KC_SUFFIX)
-            )
-            gitlab_oauth_client = current_app.store.get_oauth_client(
-                get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
-            )
-
-            headers["Renku-Auth-Access-Token"] = access_token
-            headers["Renku-Auth-Id-Token"] = keycloak_oidc_client.token["id_token"]
-            headers["Renku-Auth-Git-Credentials"] = get_git_credentials_header(
-                [gitlab_oauth_client]
-            )
-
-        return headers
+    headers["Renku-Auth-Access-Token"] = keycloak_oidc_client.access_token
+    headers["Renku-Auth-Id-Token"] = keycloak_oidc_client.token["id_token"]
+    headers["Renku-Auth-Git-Credentials"] = get_git_credentials_header(
+        [gitlab_oauth_client]
+    )
+    return headers

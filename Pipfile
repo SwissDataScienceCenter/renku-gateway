@@ -5,34 +5,30 @@ name = "pypi"
 
 [packages]
 flask = "*"
-flask-cors = "*"
-flask-kvsession = "*"
 gunicorn = {extras = ["gevent"],version = "*"}
 oauthlib = "*"
 pyjwt = "~=1.7.1"
 redis = "*"
 requests = "*"
 requests-oauthlib = "*"
-responses = "*"
 sentry-sdk = {extras = ["flask"], version = "*"}
-sparqlwrapper = "*"
 werkzeug = "*"
 cryptography = "*"
 
 [dev-packages]
 pytest = "*"
 nose = "*"
-responses = "*"
 debugpy = "*"
 typing-extensions = "*"
 chartpress = "*"
 pytoml = "*"
-black = "==21.11b1"
+black = "*"
 pytest-black = "*"
 fakeredis = "*"
 flake8 = "*"
 pytest-flake8 = "*"
 pre-commit = "*"
+responses = "*"
 
 [requires]
 python_version = "3.7"
