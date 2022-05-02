@@ -152,6 +152,14 @@ tolerations: []
 
 affinity: {}
 
+podSecurityContext: {}
+
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+
 ## Settings for the graph services
 graph:
   webhookService:
@@ -268,6 +276,9 @@ traefik:
       enabled: false
     kubernetesIngress:
       enabled: false
+  rbac:
+    # If set to false (i.e. default) then you get a ClusterRole, this way you get a Role
+    namespaced: true
   resources:
     requests:
       cpu: "100m"

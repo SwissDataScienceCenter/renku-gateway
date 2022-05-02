@@ -21,12 +21,16 @@ spec:
         # The label below enables the gateway to connect to redis
         {{ .Values.global.redis.clientLabel | toYaml | nindent 8 }}
     spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
         {{- include "certificates.initContainer" . | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.auth.repository }}:{{ .Values.image.auth.tag }}"
           imagePullPolicy: {{ .Values.image.auth.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
           ports:
             - name: http
               containerPort: 5000
