@@ -97,9 +97,7 @@ def test_gitlab_happyflow(client):
         )
         app.store.set_oauth_client(redis_key, oauth_client)
 
-    access_token = jwt.encode(
-        payload=TOKEN_PAYLOAD, key=PRIVATE_KEY, algorithm="RS256"
-    ).decode("utf-8")
+    access_token = jwt.encode(payload=TOKEN_PAYLOAD, key=PRIVATE_KEY, algorithm="RS256")
     headers = {"Authorization": "Bearer {}".format(access_token)}
 
     app.store = OAuthRedis(hex_key=app.config["SECRET_KEY"])
