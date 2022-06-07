@@ -24,32 +24,32 @@ volatile.**
 
 The Renku API gateway connects the different Renku clients to the various Renku backend
 services (GitLab, Renku components etc). It consists of two parts: a traefik reverse-proxy
-(gateway) and a flask application acting predominantly as traefik forward-auth middleware 
+(gateway) and a flask application acting predominantly as traefik forward-auth middleware
 (gateway-auth).
 
 
 Developing the gateway-auth component
 -------------------------------------
-The renku gateway-auth component is best developped in the context of a full renku 
+The renku gateway-auth component is best developped in the context of a full renku
 deployment. In order to get an instance of Renku up and running, clone the main Renku
 repository and follow these instructions_.
 
 .. _instructions: https://renku.readthedocs.io/en/latest/developer/setup.html
 
-Once you have an instance of Renku running, you could modify the gateway code, build the 
+Once you have an instance of Renku running, you could modify the gateway code, build the
 image, re-build the chart, redeploy, etc... This will make for a poor development experience
 with very long feedback cycles.
 
 Instead we recommend intercepting traffic to the gateway-auth component and routing it to
-your local machine through telepresence_ (note that currently you MUST use version 2.4.X, 
-mac users see in particular tele-troubleshooting_). Once telepresence is installed, create a 
-python environment and install the necessary python dependencies by running 
-:code:`pipenv install --dev`. Then, create a telepresence intercept using the dedicated 
-:code:`./telepresence-intercept.sh` script and follow the instructions. This will forward 
-all requests to the gateway-auth service deployed in the cluster to a flask development 
-server running on your local machine (with hot reloading, etc). You can now use your 
+your local machine through telepresence_ (note that currently you MUST use version 2.4.X,
+mac users see in particular tele-troubleshooting_). Once telepresence is installed, create a
+python environment and install the necessary python dependencies by running
+:code:`poetry install`. Then, create a telepresence intercept using the dedicated
+:code:`./telepresence-intercept.sh` script and follow the instructions. This will forward
+all requests to the gateway-auth service deployed in the cluster to a flask development
+server running on your local machine (with hot reloading, etc). You can now use your
 favourite IDE and develop the component completely locally. Stopping the development server
-through :code:`ctrl-C` and then stopping the shell process invoked with the intercept by 
+through :code:`ctrl-C` and then stopping the shell process invoked with the intercept by
 typing :code:`exit` will terminate the intercept.
 
 .. _telepresence: https://www.telepresence.io/docs/v2.4/quick-start/
@@ -63,7 +63,7 @@ You can run tests with
 
 ::
 
-    $ pipenv run pytest
+    $ poetry run pytest
 
 Configuration
 -------------
@@ -133,4 +133,3 @@ To allow server-side sessions, the gateway relies on Redis.
 +------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | cache_{{id sub}}_{{backend}}_{{token type}}                | The corresponding token                                                                                                   | Id sub is taken from the Keycloak access token in the session or Authorizazion header (after validation of the token). Current backends are Keycloak (kc), Gitlab (gl) and JupyterHub (jh). Token types can be access_token, refresh_token or id_token.     |
 +------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-

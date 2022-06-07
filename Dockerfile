@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y gcc && \
 COPY pyproject.toml poetry.lock /code/
 WORKDIR /code
 
-RUN  poetry config virtualenvs.create false && \
+RUN poetry config virtualenvs.create false && \
     poetry install
 
 COPY ./ /code
