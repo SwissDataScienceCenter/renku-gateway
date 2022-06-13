@@ -2,12 +2,13 @@ FROM python:3.7-slim
 
 RUN apt-get update && apt-get install -y gcc && \
     pip install --upgrade pip==20.1.1 && \
-    pip install pipenv
+    pip install poetry
 
-COPY Pipfile* /code/
+COPY pyproject.toml poetry.lock /code/
 WORKDIR /code
 
-RUN  pipenv install --system --deploy
+RUN poetry config virtualenvs.create false && \
+    poetry install
 
 COPY ./ /code
 

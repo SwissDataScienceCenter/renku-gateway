@@ -21,11 +21,11 @@ jobs:
           python-version: "3.7"
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip pipenv
-          pipenv install --deploy --system --dev
+          python -m pip install --upgrade pip poetry
+          poetry install
       - name: Test with pytest
         run: |
-          pytest
+          poetry run pytest
 
   test-chart:
     needs: test
@@ -46,9 +46,9 @@ jobs:
           helm lint helm-chart/renku-gateway --set oidcClientSecret=foo,gitlabClientSecret=bar,secretKey=foobar,cliClientSecret=barfoo,global.redis.host=test
       - name: Build chart and images
         run: |
-          python -m pip install --upgrade pip pipenv
-          pipenv install --deploy --system --dev
-          chartpress
+          python -m pip install --upgrade pip poetry
+          poetry install
+          poetry run chartpress
 
   publish-chart:
     runs-on: ubuntu-latest

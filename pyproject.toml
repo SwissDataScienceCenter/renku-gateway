@@ -1,15 +1,18 @@
-[[source]]
-url = "https://pypi.org/simple"
-verify_ssl = true
-name = "pypi"
+[tool.poetry]
+name = "renku-gateway"
+version = "0.13.1"
+description = ""
+authors = ["Your Name <you@example.com>"]
+license = "Apache 2"
 
-[packages]
+[tool.poetry.dependencies]
+python = "^3.7"
 flask = "*"
 flask-cors = "*"
 flask-kvsession = "*"
-gunicorn = {extras = ["gevent"],version = "*"}
+gunicorn = {extras = ["gevent"], version = "*"}
 oauthlib = "*"
-pyjwt = "~=1.7.1"
+pyjwt = "~=2.4.0"
 redis = "*"
 requests = "*"
 requests-oauthlib = "*"
@@ -19,7 +22,7 @@ sparqlwrapper = "*"
 werkzeug = "*"
 cryptography = "*"
 
-[dev-packages]
+[tool.poetry.dev-dependencies]
 pytest = "*"
 nose = "*"
 responses = "*"
@@ -27,15 +30,13 @@ debugpy = "*"
 typing-extensions = "*"
 chartpress = "*"
 pytoml = "*"
-black = "==21.11b1"
+black = "==22.3.0"
 pytest-black = "*"
 fakeredis = "*"
 flake8 = "*"
 pytest-flake8 = "*"
 pre-commit = "*"
 
-[requires]
-python_version = "3.7"
-
-[pipenv]
-allow_prereleases = true
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
