@@ -19,9 +19,6 @@
  Renku API gateway
 ==================
 
-**The Renku platform is under very active development and should be considered highly
-volatile.**
-
 The Renku API gateway connects the different Renku clients to the various Renku backend
 services (GitLab, Renku components etc). It consists of two parts: a traefik reverse-proxy
 (gateway) and a flask application acting predominantly as traefik forward-auth middleware
@@ -30,11 +27,11 @@ services (GitLab, Renku components etc). It consists of two parts: a traefik rev
 
 Developing the gateway-auth component
 -------------------------------------
-The renku gateway-auth component is best developped in the context of a full renku
-deployment. In order to get an instance of Renku up and running, clone the main Renku
-repository and follow these instructions_.
 
-.. _instructions: https://renku.readthedocs.io/en/latest/developer/setup.html
+The renku ``gateway-auth`` component is best developped in the context of a full renku
+deployment. In order to get an instance of Renku up and running, follow these instructions_.
+
+.. _instructions: https://renku.readthedocs.io/en/latest/how-to-guides/admin/deploying-renku.html
 
 Once you have an instance of Renku running, you could modify the gateway code, build the
 image, re-build the chart, redeploy, etc... This will make for a poor development experience
