@@ -14,7 +14,7 @@
 ### Bug Fixes
 
 -   **chart:** Fix Cross-Origin Resource Sharing allowed origin list.
-    The parameter is now under [gateway.allowOrigin]{.title-ref}.
+    The parameter is now under `gateway.allowOrigin`.
     ([#554](https://github.com/SwissDataScienceCenter/renku-gateway/issues/554))
     ([527877c](https://github.com/SwissDataScienceCenter/renku-gateway/commit/527877c309d535f50df97cf83963bb63549ff0fc))
 
@@ -35,7 +35,7 @@ the Renku Helm chart. However, due to similar changes made in the global
 Renku chart, this version of the gateway is only compatible with Renku
 versions after Renku 0.12.1 (excluding 0.12.1 itself). The breaking
 changes are in the organization and fields under
-[global.redis]{.title-ref} in the [values.yaml]{.title-ref} file for the
+`global.redis` in the `values.yaml` file for the
 Helm chart.
 
 ## [0.12.3](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.12.2...0.12.3) (2022-02-15)
@@ -162,11 +162,7 @@ Helm chart.
 
 ### Features
 
--   
-
-    enable kubernetes versions \> 1.15
-
-    :   ([b226e47](https://github.com/SwissDataScienceCenter/renku-gateway/commit/b226e4720dac52d031e5ebe991cb1c1749ee0e39))
+-   enable kubernetes versions \> 1.15 ([b226e47](https://github.com/SwissDataScienceCenter/renku-gateway/commit/b226e4720dac52d031e5ebe991cb1c1749ee0e39))
 
 ### Bug Fixes
 
@@ -183,7 +179,7 @@ Helm chart.
 
 ## [0.8.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.7.1...0.8.0) (2020-05-26)
 
-## Code Refactoring
+### Code Refactoring
 
 -   **black:** apply black formatting test it on future PRs
     ([956c767](https://github.com/SwissDataScienceCenter/renku-gateway/commit/956c767733c75587c1d55171d387041be88774a7)).
@@ -195,13 +191,13 @@ Helm chart.
 
 ### BREAKING CHANGES
 
--   **GitLab version:** We now assume a GitLab version [\>=
-    12.9.0]{.title-ref} per default. When deploying Renku through the
+-   **GitLab version:** We now assume a GitLab version
+    `>=12.9.0` per default. When deploying Renku through the
     official helm chart, no changes to the deployment
-    [values.yaml]{.title-ref} file are necessary as we also bump the
+    `values.yaml` file are necessary as we also bump the
     GitLab version in the same
     ([#1118](https://github.com/SwissDataScienceCenter/renku/pull/1118))).
-    GitLab versions [\< 12.7.0]{.title-ref} can be used with this
+    GitLab versions `< 12.7.0` can be used with this
     version too, but a `.Values.oldGitLabLogout: true` has to be set
     explicitly.
 
@@ -225,11 +221,11 @@ Helm chart.
 
 ## [0.6.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.5.0...0.6.0) (2019-11-04)
 
-## Code Refactoring
+### Code Refactoring
 
 -   **chart:** Several small changes to the charts, including the
     renaming of the main keycloak client application to be used from
-    [gateway]{.title-ref} to [renku]{.title-ref}.
+    `gateway` to `renku`.
     ([b332cdc](https://github.com/SwissDataScienceCenter/renku-gateway/commit/b332cdc))
 
 ### Features
@@ -306,26 +302,21 @@ The most notable change is the use of a storage backend to support
 stateful sessions. Namely a Redis instance is now spawned to store the
 current user\'s session and the mapping to the backend API tokens.
 
-\* Redis is added to the helm dependencies (and its name overriden to avoid
+* Redis is added to the helm dependencies (and its name overriden to avoid
+  conflicts). New values can control its parameters, such as replication.
 
-:   conflicts). New values can control its parameters, such as
-    replication.
+* GitLab and JupyterHub are added as OAuth2 providers, a service/application
+  has to be registered into them to allow the gateway to proceed. The
+  corresponding values are mandatory.
 
-\* GitLab and JupyterHub are added as OAuth2 providers, a service/application
+* Authentication of API calls on the gateway can be done with Keycloak access
+  or refresh tokens, or a session cookie. The secret key for 
+  encrypting cookies is a mandatory value with no defaults.
 
-:   has to be registered into them to allow the gateway to proceed. The
-    corresponding values are mandatory.
-
-\* Authentication of API calls on the gateway can be done with Keycloak access
-
-:   or refresh tokens, or a session cookie. The secret key for
-    encrypting cookies is a mandatory value with no defaults.
-
-\* Plug and play extensibility provided by decoupling the authentication /
-
-:   authorization and the query mapping. It is possible to add more
-    backend APIs by extending one or two classes and controling the
-    mapping in a configuration file: endpoints.json
+* Plug and play extensibility provided by decoupling the authentication /
+  authorization and the query mapping. It is possible to add more
+  backend APIs by extending one or two classes and controling the
+  mapping in a configuration file: endpoints.json
 
 ## `v0.2.0`
 
