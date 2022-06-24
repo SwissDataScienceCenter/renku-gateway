@@ -60,7 +60,9 @@ global:
   ## if you would like to use a custom CA. The key for the secret
   ## should have the .crt extension otherwise it is ignored. The
   ## keys across all secrets are mounted as files in one location so
-  ## the keys across all secrets have to be unique.
+  ## the keys across all secrets have to be unique. 
+  ## In addition to this the certificates have to be seperately defined
+  ## in the Traefik section below for the Traefik Helm sub-chart.
   certificates:
     image:
       repository: renku/certificates
@@ -238,6 +240,9 @@ traefik:
         targetAverageUtilization: 60
   additionalArguments:
     - "--providers.file.directory=/config"
+    ## If using custom/self-signed CA certificates uncomment the value below and 
+    ## adjust the volumes section below
+    # - "--serversTransport.rootCAs=/ca-certs/foo.crt,/ca-certs/bar.crt"
   fullnameOverride: *nameOverride
   globalArguments:
     - "--global.checknewversion"
@@ -293,3 +298,9 @@ traefik:
     - name: renku-traefik-config
       mountPath: "/config"
       type: configMap
+    ## List secrets to mount custom/self-signed CA certificates secrets here!
+    ## The Traefik helm chart templating can handle type secret and/or configMap and automatically
+    ## mount them in the specified location
+    # - name: custom-ca-certs-secret
+    #   mountPath: "/ca-certs"
+    #   type: secret
