@@ -119,11 +119,6 @@ rateLimits:
 secretKey:
 
 image:
-  name: traefik
-  repository: traefik
-  tag: 2.6.1
-  pullPolicy: IfNotPresent
-
   ## Define the image for the auth middleware
   auth:
     name: renku/renku-gateway
