@@ -1,7 +1,6 @@
 FROM python:3.7-slim
 
-RUN apt-get update && apt-get install -y gcc && \
-    pip install --upgrade pip==20.1.1 && \
+RUN pip install --upgrade pip==22.1.2 && \
     pip install poetry
 
 COPY pyproject.toml poetry.lock /code/
