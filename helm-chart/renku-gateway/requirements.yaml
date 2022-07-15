@@ -1,6 +1,6 @@
 dependencies:
 - name: certificates
-  version: "0.0.1"
+  version: "0.0.3"
   repository: "https://swissdatasciencecenter.github.io/helm-charts/"
 - name: traefik
   version: 10.14.2
