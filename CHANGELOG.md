@@ -1,5 +1,15 @@
 # Changes
 
+## [0.15.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.14.0...0.15.0) (2022-09-01)
+
+### Features
+
+* remove anon-id cookies creation ([#584](https://github.com/SwissDataScienceCenter/renku-gateway/issues/584)) ([122eb05](https://github.com/SwissDataScienceCenter/renku-gateway/commit/122eb0572fc5d3a41799dadff1aa6d5d3685430b)), closes [SwissDataScienceCenter/renku-ui#1601](https://github.com/SwissDataScienceCenter/renku-ui/issues/1601)
+
+### Bug Fixes
+
+* **ci:** update docker image build ([#581](https://github.com/SwissDataScienceCenter/renku-gateway/issues/581)) ([e3158b1](https://github.com/SwissDataScienceCenter/renku-gateway/commit/e3158b12bff0763c75566b6f4c19f2b1227f61eb))
+
 ## [0.14.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.13.1...0.14.0) (2022-06-24)
 
 ### Features
