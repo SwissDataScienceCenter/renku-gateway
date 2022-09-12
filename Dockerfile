@@ -1,13 +1,12 @@
 FROM python:3.7-slim
 
-RUN pip install --upgrade pip==22.1.2 && \
+RUN pip install --upgrade pip==22.2.2 && \
     pip install poetry
 
 COPY pyproject.toml poetry.lock /code/
 WORKDIR /code
 
-RUN poetry config virtualenvs.create false && \
-    poetry install
+RUN poetry install
 
 COPY ./ /code
 
