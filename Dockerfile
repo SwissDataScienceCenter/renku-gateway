@@ -12,6 +12,6 @@ COPY ./ /code
 
 USER 1000:1000
 
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app",  "-k", "gevent"]
+CMD ["poetry", "run", "gunicorn", "-b", "0.0.0.0:5000", "app:app",  "-k", "gevent"]
 
 EXPOSE 5000
