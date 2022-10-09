@@ -120,8 +120,6 @@ def setup_redis_client():
 
 @app.route("/", methods=["GET"])
 def auth():
-    current_app.logger.debug(f"Hitting gateway auth with args: {request.args}")
-
     if "auth" not in request.args:
         return Response("", status=200)
 

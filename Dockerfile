@@ -1,7 +1,9 @@
 FROM python:3.7-slim
 
 RUN pip install --upgrade pip==22.1.2 && \
-    pip install poetry
+    pip install poetry && \
+    addgroup renku --gid 1000 && \
+    adduser renku --uid 1000 --gid 1000
 
 COPY pyproject.toml poetry.lock /code/
 WORKDIR /code
