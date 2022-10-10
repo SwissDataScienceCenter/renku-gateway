@@ -26,6 +26,7 @@ import jwt
 from flask import current_app, redirect, session, url_for
 
 from .oauth_client import RenkuWebApplicationClient
+from .oauth_provider_app import KeycloakProviderApp
 
 JWT_ALGORITHM = "RS256"
 TEMP_SESSION_KEY = "temp_cache_key"
@@ -108,3 +109,27 @@ def generate_nonce(n_bits=256):
     """Generate a one-time secure key."""
     n_bytes = int(n_bits) // 8
     return secrets.token_hex(n_bytes)
+
+
+def get_or_set_keycloak_client(redis_key: str) -> RenkuWebApplicationClient:
+    """Check if the specific keycloak client is in Redis. If not there
+    re-initilize it, store it in Redis and return it."""
+    from .web import SCOPE as KEYCLOAK_SCOPE
+
+    oauth_client = current_app.store.get_oauth_client(redis_key)
+    if oauth_client is None:
+        keycloak_provider_app = KeycloakProviderApp(
+            client_id=current_app.config["OIDC_CLIENT_ID"],
+            client_secret=current_app.config["OIDC_CLIENT_SECRET"],
+            base_url=current_app.config["OIDC_ISSUER"],
+        )
+        oauth_client = RenkuWebApplicationClient(
+            provider_app=keycloak_provider_app,
+            redirect_url=urljoin(
+                current_app.config["HOST_NAME"], url_for("web_auth.token")
+            ),
+            scope=KEYCLOAK_SCOPE,
+            max_lifetime=None,
+        )
+        current_app.store.set_oauth_client(redis_key, oauth_client)
+    return oauth_client
