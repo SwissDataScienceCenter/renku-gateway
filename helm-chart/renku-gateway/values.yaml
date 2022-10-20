@@ -67,8 +67,7 @@ global:
     image:
       repository: renku/certificates
       tag: "0.0.2"
-    customCAs:
-      []
+    customCAs: []
       # - secret:
 
   ## Specify the information required to connect to a redis instance.
@@ -130,8 +129,7 @@ service:
   type: ClusterIP
   port: 80
 
-resources:
-  {}
+resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -191,6 +189,10 @@ oldGitLabLogout: false
 # trigger a logout from GitLab.
 logoutGitLabUponRenkuLogout: true
 
+# By default the gateway will strip all cookies. If specific cookies should be
+# kept (i.e. for sticky ingress routing) specify them here
+keepCookies: []
+
 # sentry configuration
 sentry:
   enabled: false
@@ -203,6 +205,9 @@ ingress:
   enabled:
 
 traefik:
+  image:
+    name: renku/traefik
+    tag: latest
   anchors:
     nameOverride: &nameOverride renku-traefik
   affinity:
@@ -225,16 +230,17 @@ traefik:
     minReplicas: 2
     maxReplicas: 10
     metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        targetAverageUtilization: 60
-    - type: Resource
-      resource:
-        name: memory
-        targetAverageUtilization: 60
+      - type: Resource
+        resource:
+          name: cpu
+          targetAverageUtilization: 60
+      - type: Resource
+        resource:
+          name: memory
+          targetAverageUtilization: 60
   additionalArguments:
     - "--providers.file.directory=/config"
+    - "--experimental.localPlugins.cookiefilter.moduleName=github.com/SwissDataScienceCenter/cookiefilter"
     ## If using custom/self-signed CA certificates uncomment the value below and 
     ## adjust the volumes section below
     # - "--serversTransport.rootCAs=/ca-certs/foo.crt,/ca-certs/bar.crt"
@@ -252,7 +258,7 @@ traefik:
           defaultmode: keep
         headers:
           defaultmode: keep
-          names: 
+          names:
             Authorization: redact
             Cookie: redact
             Renku-Auth-Access-Token: redact
@@ -289,7 +295,7 @@ traefik:
   service:
     enabled: true
     type: ClusterIP
-  volumes: 
+  volumes:
     - name: renku-traefik-config
       mountPath: "/config"
       type: configMap
