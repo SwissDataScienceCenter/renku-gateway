@@ -125,7 +125,7 @@ data:
         {{ if .Values.gitlabUrl }}
         [http.middlewares.gitlabRedirect.redirectRegex]
           regex = "(.*)/gitlab(.*)"
-          replacement = "{{ .Values.gitlabUrl }}${2}"
+          replacement = "{{ trimSuffix "/" .Values.gitlabUrl }}${2}"
         {{ end }}
 
         [http.middlewares.common.chain]
