@@ -1,5 +1,14 @@
 # Changes
 
+## [0.16.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.15.0...0.16.0) (2022-10-24)
+
+### Features
+
+* redirect /gitlab to external GitLab url ([#596](https://github.com/SwissDataScienceCenter/renku-gateway/issues/596)) ([5bf0701](https://github.com/SwissDataScienceCenter/renku-gateway/commit/5bf0701c54ca730b3b2cabc1a98c7b2efca33ace)), closes [SwissDataScienceCenter/renku#2741](https://github.com/SwissDataScienceCenter/renku/issues/2741)
+
+
+
+
 ## [0.15.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.14.0...0.15.0) (2022-10-11)
 
 ### Bug Fixes
