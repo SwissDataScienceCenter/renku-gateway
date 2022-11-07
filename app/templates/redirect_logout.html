@@ -29,7 +29,7 @@
     </head>
 
     <body>
-        <p>If you are not redirected in 5 seconds, follow this <a href="{{redirect_url}}/">link.</a></p>
+        <p>If you are not redirected in 5 seconds, follow this <a href="{{redirect_url}}">link.</a></p>
         {%for i in range(0, len)%}
             <iframe src="{{logout_pages[i]}}" style="display:none;"></iframe>
         {%endfor%}
