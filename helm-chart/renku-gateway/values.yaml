@@ -60,7 +60,7 @@ global:
   ## if you would like to use a custom CA. The key for the secret
   ## should have the .crt extension otherwise it is ignored. The
   ## keys across all secrets are mounted as files in one location so
-  ## the keys across all secrets have to be unique. 
+  ## the keys across all secrets have to be unique.
   ## In addition to this the certificates have to be seperately defined
   ## in the Traefik section below for the Traefik Helm sub-chart.
   certificates:
@@ -90,6 +90,8 @@ global:
       renku-redis-client: "true"
     existingSecret: redis-secret
     existingSecretPasswordKey: redis-password
+  ## to enable debug mode
+  debug: false
 
 replicaCount: 1
 
@@ -220,7 +222,7 @@ traefik:
               matchExpressions:
                 - key: app.kubernetes.io/name
                   operator: In
-                  # Note that currently this will not distinguish between renku-traefik instances in different namepsaces. This 
+                  # Note that currently this will not distinguish between renku-traefik instances in different namepsaces. This
                   # could be changed: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#namespace-selector
                   values:
                     - *nameOverride
@@ -241,7 +243,7 @@ traefik:
   additionalArguments:
     - "--providers.file.directory=/config"
     - "--experimental.localPlugins.cookiefilter.moduleName=github.com/SwissDataScienceCenter/cookiefilter"
-    ## If using custom/self-signed CA certificates uncomment the value below and 
+    ## If using custom/self-signed CA certificates uncomment the value below and
     ## adjust the volumes section below
     # - "--serversTransport.rootCAs=/ca-certs/foo.crt,/ca-certs/bar.crt"
   fullnameOverride: *nameOverride

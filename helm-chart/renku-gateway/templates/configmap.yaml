@@ -24,6 +24,14 @@ data:
           Rule = "PathPrefix(`/entities`) && HeadersRegexp(`Accept`,`text/html`)"
           Service = "default"
 
+        {{ if .Values.gitlabUrl }}
+        [http.routers.gitlabRedirect]
+          entryPoints = ["web"]
+          Middlewares = ["gitlabRedirect"]
+          Rule = "PathPrefix(`/gitlab`)"
+          Service = "default"
+        {{ end }}
+
         [http.routers.gateway]
           entryPoints = ["web"]
           Rule = "PathPrefix(`{{ printf "/%s/auth" .Values.gatewayServicePrefix | clean }}`)"
@@ -113,6 +121,12 @@ data:
         [http.middlewares.uiRedirect.redirectRegex]
           regex = "http://(.*)/entities/(.*)"
           replacement = "{{(include "gateway.protocol" .)}}://${1}/${2}"
+        
+        {{ if .Values.gitlabUrl }}
+        [http.middlewares.gitlabRedirect.redirectRegex]
+          regex = "(.*)/gitlab(.*)"
+          replacement = "{{ trimSuffix "/" .Values.gitlabUrl }}${2}"
+        {{ end }}
 
         [http.middlewares.common.chain]
           middlewares = ["cookiefilter", "api"{{if .Values.gateway.allowOrigin }}{{", \"cors\""}}{{- end}}]
