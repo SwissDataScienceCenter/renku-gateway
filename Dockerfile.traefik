@@ -2,7 +2,7 @@
 FROM alpine:3 as builder
 ARG PLUGIN_MODULE=github.com/SwissDataScienceCenter/cookiefilter
 ARG PLUGIN_GIT_REPO=https://github.com/SwissDataScienceCenter/cookiefilter.git
-ARG PLUGIN_RELEASE_TAG=0.0.1
+ARG PLUGIN_RELEASE_TAG=0.0.2
 RUN apk add --update git && \
     git clone ${PLUGIN_GIT_REPO} /plugins-local/src/${PLUGIN_MODULE} \
       --depth 1 --single-branch --branch ${PLUGIN_RELEASE_TAG}
