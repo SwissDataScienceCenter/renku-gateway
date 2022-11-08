@@ -209,7 +209,7 @@ ingress:
 traefik:
   image:
     name: renku/traefik
-    tag: latest
+    tag: 0.0.1-set-by-chartpress
   anchors:
     nameOverride: &nameOverride renku-traefik
   affinity:
