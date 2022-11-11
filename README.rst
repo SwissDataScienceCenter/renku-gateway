@@ -135,4 +135,4 @@ To allow server-side sessions, the gateway relies on Redis.
 Templates
 ---------
 
-All static files (css, fonts, images) used in the templates are placed in renku-ui repository under the `static/gateway` path.
+All static files (css, fonts, images) used in the templates are placed in renku-ui under the `static/public` path.
