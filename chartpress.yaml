@@ -14,3 +14,7 @@ charts:
         # Dockerfile path relative to chartpress.yaml
         dockerfilePath: Dockerfile
         valuesPath: image.auth
+      traefik:
+        contextPath: .
+        dockerfilePath: Dockerfile.traefik
+        valuesPath: traefik.image
