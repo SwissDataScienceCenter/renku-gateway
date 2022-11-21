@@ -53,9 +53,6 @@ class GitlabUserToken:
             r"bearer (?P<token>.+)", headers.get("Authorization", ""), re.IGNORECASE
         )
         if m:
-            # current_app.logger.debug(
-            #    'outgoing headers: {}'.format(json.dumps(headers)
-            # )
             access_token = m.group("token")
             redis_key = get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
             gitlab_oauth_client = current_app.store.get_oauth_client(redis_key)
