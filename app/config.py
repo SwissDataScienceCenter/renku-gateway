@@ -109,3 +109,5 @@ OLD_GITLAB_LOGOUT = os.environ.get("OLD_GITLAB_LOGOUT", "") == "true"
 LOGOUT_GITLAB_UPON_RENKU_LOGOUT = (
     os.environ.get("LOGOUT_GITLAB_UPON_RENKU_LOGOUT", "") == "true"
 )
+
+DEBUG = os.environ.get("DEBUG", "false") == "true"
