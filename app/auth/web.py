@@ -68,7 +68,7 @@ def get_valid_token(headers):
     keycloak_oidc_client = current_app.store.get_oauth_client(redis_key)
     if hasattr(keycloak_oidc_client, "access_token"):
         return keycloak_oidc_client.access_token
-    current_app.logger.warning(
+    current_app.logger.debug(
         "The user does not have backend access tokens.",
         exc_info=True,
     )

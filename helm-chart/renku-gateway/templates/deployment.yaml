@@ -112,6 +112,8 @@ spec:
               value: {{ .Values.sentry.dsn }}
             - name: SENTRY_ENVIRONMENT
               value: {{ .Values.sentry.environment }}
+            - name: DEBUG
+              value: {{ .Values.global.debug | quote }}
             {{- include "certificates.env.python" . | nindent 12 }}
           volumeMounts:
             {{- include "certificates.volumeMounts.system" . | nindent 12 }}
