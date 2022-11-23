@@ -124,3 +124,5 @@ KEYCLOAK_JWKS_CLIENT = jwt.PyJWKClient(
 GL_SUFFIX = "gl_oauth_client"
 CLI_SUFFIX = "cli_oauth_client"
 KC_SUFFIX = "kc_oidc_client"
+
+DEBUG = os.environ.get("DEBUG", "false") == "true"
