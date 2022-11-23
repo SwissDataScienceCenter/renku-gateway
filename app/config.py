@@ -21,6 +21,9 @@ import os
 import sys
 import warnings
 
+import jwt
+from urllib.parse import urljoin
+
 # This setting can force tokens to be refreshed in case
 # they are issued with a too long or unlimited lifetime.
 # This is currently the case for BOTH JupyterHub and GitLab!
@@ -86,14 +89,16 @@ WEBHOOK_SERVICE_HOSTNAME = os.environ.get(
     "WEBHOOK_SERVICE_HOSTNAME", "http://renku-graph-webhooks-service"
 )
 
-KEYCLOAK_URL = os.environ.get("KEYCLOAK_URL")
-if not KEYCLOAK_URL:
+KEYCLOAK_URL = os.environ.get("KEYCLOAK_URL", HOST_NAME.strip("/") + "/auth")
+if KEYCLOAK_URL:
+    KEYCLOAK_URL = KEYCLOAK_URL.strip("/")
+else:
     warnings.warn(
         "The environment variable KEYCLOAK_URL is not set. "
         "It is necessary because Keycloak acts as identity provider for Renku."
     )
 KEYCLOAK_REALM = os.environ.get("KEYCLOAK_REALM", "Renku")
-OIDC_ISSUER = "{}/auth/realms/{}".format(KEYCLOAK_URL, KEYCLOAK_REALM)
+OIDC_ISSUER = "{}/realms/{}".format(KEYCLOAK_URL, KEYCLOAK_REALM)
 OIDC_CLIENT_ID = os.environ.get("OIDC_CLIENT_ID", "renku")
 OIDC_CLIENT_SECRET = os.environ.get("OIDC_CLIENT_SECRET")
 if not OIDC_CLIENT_SECRET:
@@ -109,3 +114,13 @@ OLD_GITLAB_LOGOUT = os.environ.get("OLD_GITLAB_LOGOUT", "") == "true"
 LOGOUT_GITLAB_UPON_RENKU_LOGOUT = (
     os.environ.get("LOGOUT_GITLAB_UPON_RENKU_LOGOUT", "") == "true"
 )
+
+KEYCLOAK_JWKS_CLIENT = jwt.PyJWKClient(
+    urljoin(
+        KEYCLOAK_URL + "/", f"realms/{KEYCLOAK_REALM}/protocol/openid-connect/certs"
+    )
+)
+
+GL_SUFFIX = "gl_oauth_client"
+CLI_SUFFIX = "cli_oauth_client"
+KC_SUFFIX = "kc_oidc_client"

@@ -30,7 +30,7 @@ from flask import (
     url_for,
 )
 
-from .cli_auth import CLI_SUFFIX, handle_cli_token_request
+from .cli_auth import handle_cli_token_request
 from .oauth_provider_app import KeycloakProviderApp
 from .utils import (
     TEMP_SESSION_KEY,
@@ -44,7 +44,6 @@ from .utils import (
 
 blueprint = Blueprint("web_auth", __name__, url_prefix="/auth")
 
-KC_SUFFIX = "kc_oidc_client"
 SCOPE = ["profile", "email", "openid"]
 
 
@@ -59,9 +58,13 @@ def get_valid_token(headers):
 
     if authorization_match:
         renku_token = authorization_match.group("token")
-        redis_key = get_redis_key_from_token(renku_token, key_suffix=CLI_SUFFIX)
+        redis_key = get_redis_key_from_token(
+            renku_token, key_suffix=current_app.config["CLI_SUFFIX"]
+        )
     elif headers.get("X-Requested-With") == "XMLHttpRequest" and "sub" in session:
-        redis_key = get_redis_key_from_session(key_suffix=KC_SUFFIX)
+        redis_key = get_redis_key_from_session(
+            key_suffix=current_app.config["KC_SUFFIX"]
+        )
     else:
         return None
 
@@ -122,24 +125,30 @@ def login():
     return handle_login_request(
         provider_app,
         urljoin(current_app.config["HOST_NAME"], url_for("web_auth.token")),
-        KC_SUFFIX,
+        current_app.config["KC_SUFFIX"],
         SCOPE,
     )
 
 
 @blueprint.route("/token")
 def token():
-    response, keycloak_oidc_client = handle_token_request(request, KC_SUFFIX)
+    response, keycloak_oidc_client = handle_token_request(
+        request, current_app.config["KC_SUFFIX"]
+    )
 
     # Get rid of the temporarily stored oauth client object in redis
     # and the reference to it in the session.
-    old_redis_key = get_redis_key_from_session(key_suffix=KC_SUFFIX)
+    old_redis_key = get_redis_key_from_session(
+        key_suffix=current_app.config["KC_SUFFIX"]
+    )
     current_app.store.delete(old_redis_key)
     session.pop(TEMP_SESSION_KEY, None)
 
     # Store the oauth client object in redis under the regular "sub" claim.
     session["sub"] = decode_keycloak_jwt(keycloak_oidc_client.access_token)["sub"]
-    new_redis_key = get_redis_key_from_session(key_suffix=KC_SUFFIX)
+    new_redis_key = get_redis_key_from_session(
+        key_suffix=current_app.config["KC_SUFFIX"]
+    )
     current_app.store.set_oauth_client(new_redis_key, keycloak_oidc_client)
 
     return response
@@ -194,7 +203,9 @@ def logout():
     if "sub" in session:
         # NOTE: Do not delete GL client because CLI login uses it for authentication
         # current_app.store.delete(get_redis_key_from_session(key_suffix=GL_SUFFIX))
-        current_app.store.delete(get_redis_key_from_session(key_suffix=KC_SUFFIX))
+        current_app.store.delete(
+            get_redis_key_from_session(key_suffix=current_app.config["KC_SUFFIX"])
+        )
     session.clear()
 
     logout_pages = []

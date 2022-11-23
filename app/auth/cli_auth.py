@@ -35,7 +35,6 @@ from .utils import (
 
 blueprint = Blueprint("cli_auth", __name__, url_prefix="/auth/cli")
 
-CLI_SUFFIX = "cli_oauth_client"
 SCOPE = ["profile", "email", "openid"]
 
 
@@ -67,16 +66,18 @@ def login():
     return handle_login_request(
         provider_app,
         urljoin(current_app.config["HOST_NAME"], url_for("cli_auth.token")),
-        CLI_SUFFIX,
+        current_app.config["CLI_SUFFIX"],
         SCOPE,
     )
 
 
 @blueprint.route("/token")
 def token():
-    response, _ = handle_token_request(request, CLI_SUFFIX)
+    response, _ = handle_token_request(request, current_app.config["CLI_SUFFIX"])
 
-    client_redis_key = get_redis_key_from_session(key_suffix=CLI_SUFFIX)
+    client_redis_key = get_redis_key_from_session(
+        key_suffix=current_app.config["CLI_SUFFIX"]
+    )
     cli_nonce = session.get("cli_nonce")
     if cli_nonce:
         server_nonce = session.get("server_nonce")
