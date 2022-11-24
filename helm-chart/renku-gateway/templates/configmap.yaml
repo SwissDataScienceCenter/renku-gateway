@@ -93,7 +93,7 @@ data:
 
         [http.routers.renku]
           entryPoints = ["web"]
-          Middlewares = ["common"]
+          Middlewares = ["auth-renku", "common"]
           Rule = "PathPrefix(`{{ printf "/%s/renku" .Values.gatewayServicePrefix | clean }}`)"
           Service = "core"
 
@@ -129,16 +129,12 @@ data:
         {{ end }}
 
         [http.middlewares.common.chain]
-          middlewares = ["cookiefilter", "api"{{if .Values.gateway.allowOrigin }}{{", \"cors\""}}{{- end}}]
+          middlewares = ["noCookies", "api"{{if .Values.gateway.allowOrigin }}{{", \"cors\""}}{{- end}}]
         {{ if .Values.gateway.allowOrigin }}
         [http.middlewares.cors.headers]
           accessControlAllowOriginList  = [{{- range .Values.gateway.allowOrigin}} {{- . | quote }},{{end}}]
           addVaryHeader = true
         {{ end }}
-
-        [http.middlewares.cookiefilter.plugin.cookiefilter]
-          keepCookies = {{ concat .Values.keepCookies (list "stickyCoreIngressCookie") | toJson }}
-
         [http.middlewares.noCookies.headers]
           [http.middlewares.noCookies.headers.customRequestHeaders]
             Cookie = ""
@@ -229,7 +225,7 @@ data:
         [http.services.core.loadBalancer]
           passHostHeader = false
           [[http.services.core.loadBalancer.servers]]
-          url = "{{ printf "%s://%s/api/renku" (include "gateway.protocol" .) .Values.global.renku.domain }}"
+          url = "{{ printf "http://%s-core" .Release.Name }}"
 
         # We need a default backend, should never be hit
         [http.services.default.loadBalancer]
