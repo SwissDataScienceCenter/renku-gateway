@@ -123,12 +123,7 @@ def exchange(*, sub, access_token):
     )
     return jsonify(
         {
-            "git": {
-                "access_token": gl_oauth_client.access_token,
-                "expires_at": gl_oauth_client._expires_at,
-            },
-            "renku": {
-                "access_token": access_token,
-            },
-        }
+            "access_token": gl_oauth_client.access_token,
+            "expires_at": gl_oauth_client._expires_at,
+        },
     )

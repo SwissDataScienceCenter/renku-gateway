@@ -27,7 +27,7 @@ from urllib.parse import urljoin
 import jwt
 from flask import current_app, redirect, request, session, url_for
 
-from ..config import KC_SUFFIX, KEYCLOAK_JWKS_CLIENT
+from ..config import KEYCLOAK_JWKS_CLIENT
 from .oauth_client import RenkuWebApplicationClient
 from .oauth_provider_app import KeycloakProviderApp
 
@@ -141,10 +141,10 @@ def get_or_set_keycloak_client(redis_key: str) -> RenkuWebApplicationClient:
 
 def keycloak_authenticated(f):
     """Looks for a JWT in the Authorization header in the form of a bearer token.
-    Permits the request to proceed even if the JWT signature check is sucessful
-    but the token is expired. Injects the 'sub' claim of the JWT and the encoded
-    JWT in the function as a keyword arguments. The names for the arguments are
-    'sub' and 'access_token' for the sub-claim and access_token respectively."""
+    Will raise an exception if the JWT is not valid or it has expired. If the token
+    is valid, it injects the 'sub' claim of the JWT and the encoded JWT in the function
+    as a keyword arguments. The names for the arguments are 'sub' and 'access_token'
+    for the sub-claim and access_token respectively."""
 
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -156,39 +156,14 @@ def keycloak_authenticated(f):
         if m:
             access_token = m.group("token")
             signing_key = KEYCLOAK_JWKS_CLIENT.get_signing_key_from_jwt(access_token)
-            try:
-                data = jwt.decode(
-                    access_token,
-                    key=signing_key.key,
-                    algorithms=[JWT_ALGORITHM],
-                    audience=current_app.config["OIDC_CLIENT_ID"],
-                )
-            except jwt.exceptions.ExpiredSignatureError:
-                # NOTE: This means that the signature of the token is valid. I.e.
-                # using the public signing key from keycloak we have confirmed that the
-                # token is exactly how keycloak published it and it has not been
-                # tampered with. What has happened however is that the "exp" claim in
-                # the token is past the current time. If the caller had a refresh
-                # token it could simply use it to get a new acces token. But because the
-                # caller does not have a refresh token then we use the gateway to
-                # perform the refresh.
-                data = jwt.decode(
-                    access_token,
-                    key=signing_key.key,
-                    algorithms=[JWT_ALGORITHM],
-                    audience=current_app.config["OIDC_CLIENT_ID"],
-                    options={"verify_exp": False},
-                )
-                redis_key = _get_redis_key(data["sub"], key_suffix=KC_SUFFIX)
-                # NOTE: getting the client from the redis store automatically refreshes
-                # the token if the token is expired.
-                kc_oauth_client: RenkuWebApplicationClient = (
-                    current_app.store.get_oauth_client(redis_key)
-                )
-                access_token = kc_oauth_client.access_token
-                if not access_token:
-                    raise Exception("Keycloak token cannot be refreshed")
+            data = jwt.decode(
+                access_token,
+                key=signing_key.key,
+                algorithms=[JWT_ALGORITHM],
+                audience=current_app.config["OIDC_CLIENT_ID"],
+            )
             return f(*args, **kwargs, sub=data["sub"], access_token=access_token)
+
         raise Exception("Not authenticated")
 
     return decorated
