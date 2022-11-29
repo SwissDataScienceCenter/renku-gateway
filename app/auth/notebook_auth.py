@@ -69,6 +69,7 @@ class NotebookAuthHeaders:
             )
 
             headers["Renku-Auth-Access-Token"] = access_token
+            headers["Renku-Auth-Refresh-Token"] = keycloak_oidc_client.refresh_token
             headers["Renku-Auth-Id-Token"] = keycloak_oidc_client.token["id_token"]
             headers["Renku-Auth-Git-Credentials"] = get_git_credentials_header(
                 [gitlab_oauth_client]

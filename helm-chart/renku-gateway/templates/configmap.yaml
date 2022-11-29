@@ -174,7 +174,7 @@ data:
         [http.middlewares.auth-notebook.forwardAuth]
           address = "http://{{ template "gateway.fullname" . }}-auth/?auth=notebook"
           trustForwardHeader = true
-          authResponseHeaders = ["Renku-Auth-Access-Token", "Renku-Auth-Id-Token", "Renku-Auth-Git-Credentials", "Renku-Auth-Anon-Id"]
+          authResponseHeaders = ["Renku-Auth-Access-Token", "Renku-Auth-Id-Token", "Renku-Auth-Git-Credentials", "Renku-Auth-Anon-Id", "Renku-Auth-Refresh-Token"]
 
         [http.middlewares.webhooks.replacePathRegex]
           regex = "^/projects/([^/]*)/graph/webhooks(.*)"
