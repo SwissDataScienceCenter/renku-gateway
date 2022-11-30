@@ -52,7 +52,7 @@ if VSCODE_DEBUG:
     debugpy.wait_for_client()
     breakpoint()
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path="/")
 
 # We activate all log levels and prevent logs from showing twice.
 app.logger.setLevel(logging.DEBUG if config.DEBUG else logging.INFO)
