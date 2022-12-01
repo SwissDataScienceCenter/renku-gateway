@@ -89,14 +89,7 @@ WEBHOOK_SERVICE_HOSTNAME = os.environ.get(
     "WEBHOOK_SERVICE_HOSTNAME", "http://renku-graph-webhooks-service"
 )
 
-KEYCLOAK_URL = os.environ.get("KEYCLOAK_URL", HOST_NAME.strip("/") + "/auth")
-if KEYCLOAK_URL:
-    KEYCLOAK_URL = KEYCLOAK_URL.strip("/")
-else:
-    warnings.warn(
-        "The environment variable KEYCLOAK_URL is not set. "
-        "It is necessary because Keycloak acts as identity provider for Renku."
-    )
+KEYCLOAK_URL = os.environ.get("KEYCLOAK_URL", HOST_NAME.strip("/") + "/auth").strip("/")
 KEYCLOAK_REALM = os.environ.get("KEYCLOAK_REALM", "Renku")
 OIDC_ISSUER = "{}/realms/{}".format(KEYCLOAK_URL, KEYCLOAK_REALM)
 OIDC_CLIENT_ID = os.environ.get("OIDC_CLIENT_ID", "renku")
