@@ -194,8 +194,8 @@ def auth():
                 "error": "authentication",
                 "message": "can't refresh access token",
                 "target": auth_arg,
-                "exception": str(error),
             }
+            logging.error(error)
             return jsonify(message), 401
         raise
     except Exception as error:
@@ -207,8 +207,8 @@ def auth():
             "error": "authentication",
             "message": "unknown",
             "target": auth_arg,
-            "exception": str(error),
         }
+        logging.error(error)
         return jsonify(message), 401
 
     if (
