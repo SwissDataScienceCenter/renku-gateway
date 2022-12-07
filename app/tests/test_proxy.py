@@ -23,8 +23,6 @@ import requests
 import responses
 
 from .. import app
-from ..auth.cli_auth import CLI_SUFFIX
-from ..auth.gitlab_auth import GL_SUFFIX
 from ..auth.oauth_client import RenkuWebApplicationClient
 from ..auth.oauth_provider_app import OAuthProviderApp
 from ..auth.oauth_redis import OAuthRedis
@@ -102,9 +100,9 @@ def test_gitlab_happyflow(client):
 
     app.store = OAuthRedis(hex_key=app.config["SECRET_KEY"])
 
-    set_dummy_oauth_client(access_token, CLI_SUFFIX)
+    set_dummy_oauth_client(access_token, app.config["CLI_SUFFIX"])
 
-    set_dummy_oauth_client("some_token", GL_SUFFIX)
+    set_dummy_oauth_client("some_token", app.config["GL_SUFFIX"])
 
     rv = client.get("/?auth=gitlab", headers=headers)
 
