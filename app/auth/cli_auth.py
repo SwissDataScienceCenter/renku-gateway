@@ -21,7 +21,7 @@ import json
 import time
 from urllib.parse import urljoin
 
-from flask import Blueprint, current_app, request, session, url_for
+from flask import Blueprint, current_app, jsonify, request, session, url_for
 
 from .gitlab_auth import GL_SUFFIX
 from .oauth_provider_app import KeycloakProviderApp
@@ -126,23 +126,23 @@ def handle_cli_token_request(request):
     cli_nonce = request.args.get("cli_nonce")
     server_nonce = request.args.get("server_nonce")
     if not cli_nonce or not server_nonce:
-        return {"error": "Required arguments are missing."}, 400
+        return jsonify({"error": "Required arguments are missing."}), 400
 
     cli_redis_key = get_redis_key_for_cli(cli_nonce, server_nonce)
     current_app.logger.debug(f"Looking up Keycloak for CLI login request {cli_nonce}")
     data = current_app.store.get_enc(cli_redis_key)
     if not data:
-        return {"error": "Something went wrong internally."}, 500
+        return jsonify({"error": "Something went wrong internally."}), 500
     current_app.store.delete(cli_redis_key)
 
     login_info = CLILoginInfo.from_json(data.decode())
     if login_info.is_expired():
-        return {"error": "Session expired."}, 403
+        return jsonify({"error": "Session expired."}), 403
 
     oauth_client = current_app.store.get_oauth_client(
         login_info.client_redis_key, no_refresh=True
     )
     if not oauth_client:
-        return {"error": "Access token not found."}, 404
+        return jsonify({"error": "Access token not found."}), 404
 
-    return {"access_token": oauth_client.access_token}
+    return jsonify({"access_token": oauth_client.access_token})

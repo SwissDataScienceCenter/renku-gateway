@@ -26,7 +26,7 @@ import sys
 import jwt
 import requests
 import sentry_sdk
-from flask import Flask, Response, current_app, request
+from flask import Flask, Response, current_app, jsonify, request
 from flask_cors import CORS
 from flask_kvsession import KVSessionExtension
 from redis.sentinel import Sentinel
@@ -157,15 +157,15 @@ def auth():
                     allowed = True
                     break
             if not allowed:
-                return Response(
-                    json.dumps(
+                return (
+                    jsonify(
                         {
                             "error": "origin not allowed: {} not matching {}".format(
                                 headers["Referer"], origins
                             )
                         }
                     ),
-                    status=403,
+                    403,
                 )
 
         # auth processors always assume a valid Authorization in header, if any
@@ -180,7 +180,7 @@ def auth():
             "message": "token expired",
             "target": auth_arg,
         }
-        return Response(json.dumps(message), status=401)
+        return jsonify(message), 401
     except AttributeError as error:
         if "access_token" in str(error):
             current_app.logger.warning(
@@ -196,7 +196,7 @@ def auth():
                 "target": auth_arg,
                 "exception": str(error),
             }
-            return Response(json.dumps(message), status=401)
+            return jsonify(message), 401
         raise
     except Exception as error:
         current_app.logger.warning(
@@ -209,7 +209,7 @@ def auth():
             "target": auth_arg,
             "exception": str(error),
         }
-        return Response(json.dumps(message), status=401)
+        return jsonify(message), 401
 
     if (
         "anon-id" not in request.cookies
