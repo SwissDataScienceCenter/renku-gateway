@@ -200,12 +200,6 @@ def user_profile():
 
 @blueprint.route("/logout")
 def logout():
-    if "sub" in session:
-        # NOTE: Do not delete GL client because CLI login uses it for authentication
-        # current_app.store.delete(get_redis_key_from_session(key_suffix=GL_SUFFIX))
-        current_app.store.delete(
-            get_redis_key_from_session(key_suffix=current_app.config["KC_SUFFIX"])
-        )
     session.clear()
 
     logout_pages = []
