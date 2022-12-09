@@ -109,3 +109,6 @@ ENV/
 
 helm-chart/renku-gateway/requirements.lock
 helm-chart/renku-gateway/charts/**
+
+# Ignore snyk cache
+.dccache
