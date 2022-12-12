@@ -1,5 +1,18 @@
 # Changes
 
+## [0.18.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.17.0...0.18.0) (2022-12-12)
+
+### Bug Fixes
+
+* **app:** do not remove redis clients on logout ([#616](https://github.com/SwissDataScienceCenter/renku-gateway/issues/616)) ([8ca7fc9](https://github.com/SwissDataScienceCenter/renku-gateway/commit/8ca7fc986aab3d9d5b7305d4eaa8dbcd37f1a2bb))
+* **app:** snyk vulnerabilities ([#615](https://github.com/SwissDataScienceCenter/renku-gateway/issues/615)) ([77616b7](https://github.com/SwissDataScienceCenter/renku-gateway/commit/77616b7fdcd112d2fb8c759e8f4663eea0ca7222))
+
+
+### Features
+
+* **app:** add endpoint for refreshing expired gitlab tokens ([#613](https://github.com/SwissDataScienceCenter/renku-gateway/issues/613)) ([8d0c2eb](https://github.com/SwissDataScienceCenter/renku-gateway/commit/8d0c2eb5df76a54170132e1bdcefc281c1709530))
+
+
 ## [0.17.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.16.0...0.17.0) (2022-11-29)
 
 ### Bug Fixes
