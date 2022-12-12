@@ -23,20 +23,23 @@ from urllib.parse import urljoin
 from flask import (
     Blueprint,
     current_app,
+    jsonify,
     redirect,
     render_template,
     request,
     url_for,
 )
 
+from ..config import GL_SUFFIX
+from .oauth_client import RenkuWebApplicationClient
 from .oauth_provider_app import GitLabProviderApp
 from .utils import (
     get_redis_key_from_token,
     handle_login_request,
     handle_token_request,
+    keycloak_authenticated,
 )
 
-GL_SUFFIX = "gl_oauth_client"
 
 blueprint = Blueprint("gitlab_auth", __name__, url_prefix="/auth/gitlab")
 
@@ -53,9 +56,6 @@ class GitlabUserToken:
             r"bearer (?P<token>.+)", headers.get("Authorization", ""), re.IGNORECASE
         )
         if m:
-            # current_app.logger.debug(
-            #    'outgoing headers: {}'.format(json.dumps(headers)
-            # )
             access_token = m.group("token")
             redis_key = get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
             gitlab_oauth_client = current_app.store.get_oauth_client(redis_key)
@@ -84,14 +84,14 @@ def login():
     return handle_login_request(
         provider_app,
         urljoin(current_app.config["HOST_NAME"], url_for("gitlab_auth.token")),
-        GL_SUFFIX,
+        current_app.config["GL_SUFFIX"],
         SCOPE,
     )
 
 
 @blueprint.route("/token")
 def token():
-    response, _ = handle_token_request(request, GL_SUFFIX)
+    response, _ = handle_token_request(request, current_app.config["GL_SUFFIX"])
     return response
 
 
@@ -108,3 +108,22 @@ def logout():
         response = render_template("gitlab_logout.html", logout_url=logout_url)
 
     return response
+
+
+@blueprint.route("/exchange", methods=["GET"])
+@keycloak_authenticated
+def exchange(*, sub, access_token):
+    """Exchange a keycloak JWT for a valid Gitlab oauth token."""
+    redis_key = get_redis_key_from_token(
+        access_token, key_suffix=current_app.config["GL_SUFFIX"]
+    )
+    # NOTE: getting the client from the redis store automatically refreshes if needed
+    gl_oauth_client: RenkuWebApplicationClient = current_app.store.get_oauth_client(
+        redis_key
+    )
+    return jsonify(
+        {
+            "access_token": gl_oauth_client.access_token,
+            "expires_at": gl_oauth_client._expires_at,
+        },
+    )

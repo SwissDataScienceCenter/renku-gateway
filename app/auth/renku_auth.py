@@ -28,7 +28,7 @@ from .utils import (
     get_redis_key_from_token,
     get_or_set_keycloak_client,
 )
-from .web import KC_SUFFIX
+from ..config import KC_SUFFIX
 
 # TODO: We're using a class here only to have a uniform interface
 # with GitlabUserToken and JupyterhubUserToken. This should be refactored.

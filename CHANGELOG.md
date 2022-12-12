@@ -1,12 +1,21 @@
 # Changes
 
+## [0.17.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.16.0...0.17.0) (2022-11-29)
+
+### Bug Fixes
+
+* remove trailing slash from redirect links ([#598](https://github.com/SwissDataScienceCenter/renku-gateway/issues/598)) ([024b5f5](https://github.com/SwissDataScienceCenter/renku-gateway/commit/024b5f542cc03e782216412a69563b5b032ec6b8))
+
+### Features
+
+* adopt renku styles in logout pages ([#521](https://github.com/SwissDataScienceCenter/renku-gateway/issues/521), [#601](https://github.com/SwissDataScienceCenter/renku-gateway/issues/601)) ([20404fb](https://github.com/SwissDataScienceCenter/renku-gateway/commit/20404fbb7b8e6e67cffb3b6ad1318e9a88e47d32))
+
+
 ## [0.16.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.15.0...0.16.0) (2022-10-24)
 
 ### Features
 
 * redirect /gitlab to external GitLab url ([#596](https://github.com/SwissDataScienceCenter/renku-gateway/issues/596)) ([5bf0701](https://github.com/SwissDataScienceCenter/renku-gateway/commit/5bf0701c54ca730b3b2cabc1a98c7b2efca33ace)), closes [SwissDataScienceCenter/renku#2741](https://github.com/SwissDataScienceCenter/renku/issues/2741)
-
-
 
 
 ## [0.15.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.14.0...0.15.0) (2022-10-11)
@@ -16,12 +25,9 @@
 * **app:** re-initialize keycloak client if needed ([#590](https://github.com/SwissDataScienceCenter/renku-gateway/issues/590)) ([fc69fb5](https://github.com/SwissDataScienceCenter/renku-gateway/commit/fc69fb54d979ae69f31ea4de34e240a9fb79de45))
 * **ci:** docker image build ([#581](https://github.com/SwissDataScienceCenter/renku-gateway/issues/581)) ([e3158b1](https://github.com/SwissDataScienceCenter/renku-gateway/commit/e3158b12bff0763c75566b6f4c19f2b1227f61eb))
 
-
 ### Features
 
 * remove anon-id cookies creation ([#584](https://github.com/SwissDataScienceCenter/renku-gateway/issues/584)) ([122eb05](https://github.com/SwissDataScienceCenter/renku-gateway/commit/122eb0572fc5d3a41799dadff1aa6d5d3685430b)), closes [SwissDataScienceCenter/renku-ui#1601](https://github.com/SwissDataScienceCenter/renku-ui/issues/1601)
-
-
 
 
 ## [0.14.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.13.1...0.14.0) (2022-06-24)

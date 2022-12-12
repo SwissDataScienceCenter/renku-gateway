@@ -258,6 +258,7 @@ traefik:
             Authorization: redact
             Cookie: redact
             Renku-Auth-Access-Token: redact
+            Renku-Auth-Refresh-Token: redact
             Renku-Auth-Git-Credentials: redact
     general:
       format: json

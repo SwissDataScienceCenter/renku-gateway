@@ -19,18 +19,20 @@
 import json
 import re
 from base64 import b64encode
+from typing import List
 
 from flask import current_app
 
 from .gitlab_auth import GL_SUFFIX
+from .oauth_client import RenkuWebApplicationClient
 from .utils import get_redis_key_from_token, get_or_set_keycloak_client
-from .web import KC_SUFFIX
+from ..config import KC_SUFFIX
 
 # TODO: This is a temporary implementation of the header interface defined in #404
 # TODO: that allowes first clients to transition.
 
 
-def get_git_credentials_header(git_oauth_clients):
+def get_git_credentials_header(git_oauth_clients: List[RenkuWebApplicationClient]):
     """
     Create the git authentication header as defined in #406
     (https://github.com/SwissDataScienceCenter/renku-gateway/issues/406)
@@ -42,6 +44,7 @@ def get_git_credentials_header(git_oauth_clients):
             # TODO: add this information to the provider_app and read it from there.
             "provider": "GitLab",
             "AuthorizationHeader": f"bearer {client.access_token}",
+            "AccessTokenExpiresAt": client._expires_at,
         }
         for client in git_oauth_clients
     }
@@ -66,6 +69,7 @@ class NotebookAuthHeaders:
             )
 
             headers["Renku-Auth-Access-Token"] = access_token
+            headers["Renku-Auth-Refresh-Token"] = keycloak_oidc_client.refresh_token
             headers["Renku-Auth-Id-Token"] = keycloak_oidc_client.token["id_token"]
             headers["Renku-Auth-Git-Credentials"] = get_git_credentials_header(
                 [gitlab_oauth_client]
