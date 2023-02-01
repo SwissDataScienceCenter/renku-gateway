@@ -41,14 +41,15 @@ func setupServer(config revProxyConfig) *echo.Echo {
 
 	// Server instance
 	e := echo.New()
+	e.Pre(middleware.RemoveTrailingSlash())
 	e.Use(middleware.Recover())
 
 	// Routing for Renku services
 	e.Group("/api/auth", logger, authSvcProxy)
 	e.Group("/api/notebooks", logger, notebooksAuth, noCookies, stripPrefix("/api"), notebooksProxy)
 	e.Group("/api/projects/:projectID/graph", logger, gitlabAuth, noCookies, kgProjectsGraphRewrites, webhookProxy)
-	e.Group("/api/datasets", logger, noCookies, regexRewrite("^/api/(.*)", "/knowledge-graph/$1"), kgProxy)
-	e.Group("/api/kg", logger, gitlabAuth, noCookies, regexRewrite("^/api/kg/(.*)", "/knowledge-graph/$1"), kgProxy)
+	e.Group("/api/datasets", logger, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)
+	e.Group("/api/kg", logger, gitlabAuth, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)
 	e.Group("/api/renku", logger, renkuAuth, noCookies, stripPrefix("/api"), coreProxy)
 
 	// Routes that end up proxied to Gitlab
@@ -59,13 +60,13 @@ func setupServer(config revProxyConfig) *echo.Echo {
 		e.Group("/api/direct", logger, stripPrefix("/api/direct"), gitlabProxyHost, gitlabProxy)
 		e.Group("/api/repos", logger, cliGitlabAuth, noCookies, stripPrefix("/api/repos"), gitlabProxyHost, gitlabProxy)
 		// If nothing is matched in any other more specific /api route then fall back to Gitlab
-		e.Group("/api", logger, gitlabAuth, noCookies, regexRewrite("^/api/(.*)", "/api/v4/$1"), gitlabProxyHost, gitlabProxy)
+		e.Group("/api", logger, gitlabAuth, noCookies, regexRewrite("^/api(.*)", "/api/v4$1"), gitlabProxyHost, gitlabProxy)
 	} else {
-		e.Group("/api/graphql", logger, gitlabAuth, regexRewrite("^/(.*)", "/gitlab/$1"), gitlabProxyHost, gitlabProxy)
-		e.Group("/api/direct", logger, regexRewrite("^/api/direct/(.*)", "/gitlab/$1"), gitlabProxyHost, gitlabProxy)
-		e.Group("/api/repos", logger, cliGitlabAuth, noCookies, regexRewrite("^/api/repos/(.*)", "/gitlab/$1"), gitlabProxyHost, gitlabProxy)
+		e.Group("/api/graphql", logger, gitlabAuth, regexRewrite("^(.*)", "/gitlab$1"), gitlabProxyHost, gitlabProxy)
+		e.Group("/api/direct", logger, regexRewrite("^/api/direct(.*)", "/gitlab$1"), gitlabProxyHost, gitlabProxy)
+		e.Group("/api/repos", logger, cliGitlabAuth, noCookies, regexRewrite("^/api/repos(.*)", "/gitlab$1"), gitlabProxyHost, gitlabProxy)
 		// If nothing is matched in any other more specific /api route then fall back to Gitlab
-		e.Group("/api", logger, gitlabAuth, noCookies, regexRewrite("^/api/(.*)", "/gitlab/api/v4/$1"), gitlabProxyHost, gitlabProxy)
+		e.Group("/api", logger, gitlabAuth, noCookies, regexRewrite("^/api(.*)", "/gitlab/api/v4$1"), gitlabProxyHost, gitlabProxy)
 	}
 
 	// If nothing is matched from any of the routes above then fall back to the UI

@@ -171,6 +171,10 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Expected: TestResults{Path: "/api/auth/test", VisitedServerIDs: []string{"auth"}},
 		},
 		{
+			Path:     "/api/auth",
+			Expected: TestResults{Path: "/api/auth", VisitedServerIDs: []string{"auth"}},
+		},
+		{
 			Path:                         "/api/notebooks/test/rejectedAuth",
 			Non200AuthResponseStatusCode: 401,
 			Expected:                     TestResults{VisitedServerIDs: []string{"auth"}, Non200ResponseStatusCode: 401},
@@ -180,39 +184,63 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Expected: TestResults{Path: "/notebooks/test/acceptedAuth", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
+			Path:     "/api/notebooks",
+			Expected: TestResults{Path: "/notebooks", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
 			Path:     "/api/projects/123456/graph/status/something/else",
 			Expected: TestResults{Path: "/projects/123456/events/status/something/else", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
-			Path:     "/api/projects/123456/graph/status",
+			Path:        "/api/projects/123456/graph/status",
 			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
-			Expected: TestResults{Path: "/projects/123456/events/status", VisitedServerIDs: []string{"auth", "upstream"}},
+			Expected:    TestResults{Path: "/projects/123456/events/status", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
 			Path:     "/api/projects/123456/graph/webhooks/something/else",
 			Expected: TestResults{Path: "/projects/123456/webhooks/something/else", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
-			Path:     "/api/projects/123456/graph/webhooks",
+			Path:        "/api/projects/123456/graph/webhooks",
 			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
-			Expected: TestResults{Path: "/projects/123456/webhooks", VisitedServerIDs: []string{"auth", "upstream"}},
+			Expected:    TestResults{Path: "/projects/123456/webhooks", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
 			Path:     "/api/datasets/test",
 			Expected: TestResults{Path: "/knowledge-graph/datasets/test", VisitedServerIDs: []string{"upstream"}},
 		},
 		{
+			Path:        "/api/datasets",
+			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
+			Expected:    TestResults{Path: "/knowledge-graph/datasets", VisitedServerIDs: []string{"upstream"}},
+		},
+		{
 			Path:     "/api/kg/test",
 			Expected: TestResults{Path: "/knowledge-graph/test", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
+			Path:        "/api/kg",
+			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
+			Expected:    TestResults{Path: "/knowledge-graph", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
 			Path:     "/api/renku/test",
 			Expected: TestResults{Path: "/renku/test", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
+			Path:        "/api/renku",
+			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
+			Expected:    TestResults{Path: "/renku", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
 			Path:           "/gitlab/test/something",
 			ExternalGitlab: true,
 			Expected:       TestResults{Path: "/test/something", VisitedServerIDs: []string{"gitlab"}},
+		},
+		{
+			Path:           "/gitlab",
+			ExternalGitlab: true,
+			Expected:       TestResults{Path: "/", VisitedServerIDs: []string{"gitlab"}},
 		},
 		{
 			Path:           "/api/user/test/something",
@@ -225,9 +253,24 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Expected:       TestResults{Path: "/gitlab/api/v4/user/test/something", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
+			Path:           "/api",
+			ExternalGitlab: false,
+			Expected:       TestResults{Path: "/gitlab/api/v4", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
+			Path:           "/api",
+			ExternalGitlab: true,
+			Expected:       TestResults{Path: "/api/v4", VisitedServerIDs: []string{"auth", "gitlab"}},
+		},
+		{
 			Path:           "/api/direct/test",
 			ExternalGitlab: true,
 			Expected:       TestResults{Path: "/test", VisitedServerIDs: []string{"gitlab"}},
+		},
+		{
+			Path:           "/api/direct",
+			ExternalGitlab: true,
+			Expected:       TestResults{Path: "/", VisitedServerIDs: []string{"gitlab"}},
 		},
 		{
 			Path:           "/api/direct/test",
@@ -235,9 +278,19 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Expected:       TestResults{Path: "/gitlab/test", VisitedServerIDs: []string{"upstream"}},
 		},
 		{
+			Path:           "/api/direct",
+			ExternalGitlab: false,
+			Expected:       TestResults{Path: "/gitlab", VisitedServerIDs: []string{"upstream"}},
+		},
+		{
 			Path:           "/api/graphql/test",
 			ExternalGitlab: true,
 			Expected:       TestResults{Path: "/api/graphql/test", VisitedServerIDs: []string{"auth", "gitlab"}},
+		},
+		{
+			Path:           "/api/graphql",
+			ExternalGitlab: true,
+			Expected:       TestResults{Path: "/api/graphql", VisitedServerIDs: []string{"auth", "gitlab"}},
 		},
 		{
 			Path:           "/api/graphql/test",
@@ -245,14 +298,29 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Expected:       TestResults{Path: "/gitlab/api/graphql/test", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
+			Path:           "/api/graphql",
+			ExternalGitlab: false,
+			Expected:       TestResults{Path: "/gitlab/api/graphql", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
 			Path:           "/api/repos/test",
 			ExternalGitlab: true,
 			Expected:       TestResults{Path: "/test", VisitedServerIDs: []string{"auth", "gitlab"}},
 		},
 		{
+			Path:           "/api/repos",
+			ExternalGitlab: true,
+			Expected:       TestResults{Path: "/", VisitedServerIDs: []string{"auth", "gitlab"}},
+		},
+		{
 			Path:           "/api/repos/test",
 			ExternalGitlab: false,
 			Expected:       TestResults{Path: "/gitlab/test", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
+			Path:           "/api/repos",
+			ExternalGitlab: false,
+			Expected:       TestResults{Path: "/gitlab", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
 			Path:           "/api/projects/some.username%2Ftest-project",

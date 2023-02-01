@@ -84,7 +84,8 @@ func regexRewrite(match, replace string) echo.MiddlewareFunc {
 func stripPrefix(prefix string) echo.MiddlewareFunc {
 	return middleware.RewriteWithConfig(middleware.RewriteConfig{
 		RegexRules: map[*regexp.Regexp]string{
-			regexp.MustCompile(fmt.Sprintf("^%s/(.*)", prefix)): "/$1",
+			regexp.MustCompile(fmt.Sprintf("^%s/(.+)", prefix)): "/$1",
+			regexp.MustCompile(fmt.Sprintf("^%s$", prefix)): "/",
 		},
 	})
 }
