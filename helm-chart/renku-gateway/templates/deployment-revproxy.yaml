@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "gateway.fullname" . }}-revproxy
+  labels:
+    app: {{ template "gateway.name" . }}-revproxy
+    chart: {{ template "gateway.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "gateway.name" . }}-revproxy
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "gateway.name" . }}-revproxy
+        release: {{ .Release.Name }}
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      automountServiceAccountToken: {{ .Values.global.debug }}
+      initContainers:
+        {{- include "certificates.initContainer" . | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.revproxy.repository }}:{{ .Values.image.revproxy.tag }}"
+          imagePullPolicy: {{ .Values.image.revproxy.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: REVPROXY_RENKU_BASE_URL
+              value: {{ .Values.hostName | default (printf "%s://%s" (include "gateway.protocol" .) .Values.global.renku.domain) | quote }}
+            - name: REVPROXY_EXTERNAL_GITLAB_URL
+              value: {{ .Values.gitlabUrl | default "" | quote }}
+            - name: REVPROXY_ALLOW_ORIGIN
+              value: {{ join "," .Values.allowOrigin | quote }}
+            - name: REVPROXY_RENKU_SERVICES_WEBHOOK
+              value: {{ .Values.graph.webhookService.hostname | default (printf "http://%s-webhook-service" .Release.Name ) | quote }}
+            - name: REVPROXY_RENKU_SERVICES_KG
+              value: {{ .Values.graph.knowledgeGraph.hostname | default (printf "http://%s-knowledge-graph" .Release.Name ) | quote }}
+            - name: REVPROXY_RENKU_SERVICES_NOTEBOOKS
+              value: {{ .Values.notebooks.hostname | default (printf "http://%s-notebooks" .Release.Name ) | quote }}
+            - name: REVPROXY_RENKU_SERVICES_CORE
+              value: {{ .Values.core.hostname | default (printf "http://%s-core" .Release.Name ) | quote }}
+            - name: REVPROXY_RENKU_SERVICES_AUTH
+              value: {{ printf "http://%s-gateway-auth" .Release.Name }}
+            - name: REVPROXY_PORT
+              value: "8080"
+          volumeMounts:
+            {{- include "certificates.volumeMounts.system" . | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /revproxy/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /revproxy/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 2
+            failureThreshold: 2
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+      volumes:
+        {{- include "certificates.volumes" . | nindent 8 }}

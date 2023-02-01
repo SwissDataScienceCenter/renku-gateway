@@ -214,7 +214,6 @@ def auth():
     if (
         "anon-id" not in request.cookies
         and request.headers.get("X-Requested-With", "") == "XMLHttpRequest"
-        and request.headers["X-Forwarded-Uri"] == "/api/user"
         and "Authorization" not in headers
     ):
         resp = Response(
