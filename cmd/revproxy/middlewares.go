@@ -65,8 +65,8 @@ func authenticate(authURL *url.URL, injectedHeaders ...string) echo.MiddlewareFu
 // kgProjectsGraphStatusPathRewrite middleware
 var kgProjectsGraphRewrites echo.MiddlewareFunc = middleware.RewriteWithConfig(middleware.RewriteConfig{
 	RegexRules: map[*regexp.Regexp]string{
-		regexp.MustCompile("^/api/projects/(.*?)/graph/webhooks/(.*)"): "/projects/$1/webhooks/$2",
-		regexp.MustCompile("^/api/projects/(.*?)/graph/status/(.*)"):   "/projects/$1/events/status/$2",
+		regexp.MustCompile("^/api/projects/(.*?)/graph/webhooks(.*)"): "/projects/$1/webhooks$2",
+		regexp.MustCompile("^/api/projects/(.*?)/graph/status(.*)"):   "/projects/$1/events/status$2",
 	},
 })
 

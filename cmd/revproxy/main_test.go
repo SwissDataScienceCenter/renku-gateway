@@ -184,8 +184,18 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Expected: TestResults{Path: "/projects/123456/events/status/something/else", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
+			Path:     "/api/projects/123456/graph/status",
+			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
+			Expected: TestResults{Path: "/projects/123456/events/status", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
 			Path:     "/api/projects/123456/graph/webhooks/something/else",
 			Expected: TestResults{Path: "/projects/123456/webhooks/something/else", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
+			Path:     "/api/projects/123456/graph/webhooks",
+			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
+			Expected: TestResults{Path: "/projects/123456/webhooks", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
 			Path:     "/api/datasets/test",
