@@ -1,0 +1,14 @@
+{
+    "go.lintTool": "golangci-lint",
+    "go.lintFlags": [
+        "--fast"
+    ],
+    "emeraldwalk.runonsave": {
+        "commands": [
+            {
+                "match": "\\.go$",
+                "cmd": "golines ${file} -w --max-len=120 --base-formatter=gofmt"
+            }
+        ]
+    }
+}
