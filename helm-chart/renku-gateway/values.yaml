@@ -127,11 +127,7 @@ image:
     repository: renku/renku-gateway
     tag: "latest"
     pullPolicy: IfNotPresent
-  revproxy:
-    name: renku/renku-revproxy
-    repository: renku/renku-revproxy
-    tag: "latest"
-    pullPolicy: IfNotPresent
+  
 
 service:
   type: ClusterIP
@@ -208,3 +204,24 @@ sentry:
 # without its own ingress.
 ingress:
   enabled:
+
+# Publish prometheus metrics
+reverseProxy:
+  image:
+    name: renku/renku-revproxy
+    repository: renku/renku-revproxy
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  metrics:
+    enabled: true
+    port: 8765
+  replicaCount: 1
+  podAnnotations: {}
+  resources: {}
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 5
+    targetMemoryUtilizationPercentage:
+    targetCPUUtilizationPercentage:
+  updateStrategy: {}

@@ -20,11 +20,17 @@ type renkuServicesConfig struct {
 	Auth      *url.URL `mapstructure:"renku_services_auth"`
 }
 
+type metricsConfig struct {
+	Enabled bool `mapstructure:"metrics_enabled"`
+	Port    int  `mapstructure:"metrics_port"`
+}
+
 type revProxyConfig struct {
 	RenkuBaseURL      *url.URL            `mapstructure:"renku_base_url"`
 	AllowOrigin       []string            `mapstructure:"allow_origin"`
 	ExternalGitlabURL *url.URL            `mapstructure:"external_gitlab_url"`
 	RenkuServices     renkuServicesConfig `mapstructure:",squash"`
+	Metrics           metricsConfig       `mapstructure:",squash"`
 	Port              int
 }
 

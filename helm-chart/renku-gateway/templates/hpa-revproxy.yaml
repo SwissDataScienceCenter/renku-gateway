@@ -1,0 +1,31 @@
+{{- if .Values.reverseProxy.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ template "gateway.fullname" . }}-revproxy
+  labels:
+    app: {{ template "gateway.name" . }}-revproxy
+    chart: {{ template "gateway.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ template "gateway.fullname" . }}-revproxy
+  minReplicas: {{ .Values.reverseProxy.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.reverseProxy.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.reverseProxy.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: {{ .Values.reverseProxy.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.reverseProxy.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        targetAverageUtilization: {{ .Values.reverseProxy.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}

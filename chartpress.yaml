@@ -15,4 +15,4 @@ charts:
       renku-revproxy:
         contextPath: .
         dockerfilePath: Dockerfile.revproxy
-        valuesPath: image.revproxy
+        valuesPath: reverseProxy.image
