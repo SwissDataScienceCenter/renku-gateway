@@ -8,7 +8,11 @@ metadata:
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  {{- if not .Values.reverseProxy.autoscaling.enabled }}
+  replicas: {{ .Values.reverseProxy.replicaCount }}
+  {{- end }}
+  strategy: 
+    {{- toYaml .Values.reverseProxy.updateStrategy | nindent 4 }}
   selector:
     matchLabels:
       app: {{ template "gateway.name" . }}-revproxy
@@ -18,6 +22,10 @@ spec:
       labels:
         app: {{ template "gateway.name" . }}-revproxy
         release: {{ .Release.Name }}
+      {{- with .Values.reverseProxy.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
@@ -25,9 +33,9 @@ spec:
       initContainers:
         {{- include "certificates.initContainer" . | nindent 8 }}
       containers:
-        - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.revproxy.repository }}:{{ .Values.image.revproxy.tag }}"
-          imagePullPolicy: {{ .Values.image.revproxy.pullPolicy }}
+        - name: revproxy
+          image: "{{ .Values.reverseProxy.image.repository }}:{{ .Values.reverseProxy.image.tag }}"
+          imagePullPolicy: {{ .Values.reverseProxy.image.pullPolicy }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           ports:
@@ -53,6 +61,10 @@ spec:
               value: {{ printf "http://%s-gateway-auth" .Release.Name }}
             - name: REVPROXY_PORT
               value: "8080"
+            - name: REVPROXY_METRICS_ENABLED
+              value: {{ .Values.reverseProxy.metrics.enabled | quote }}
+            - name: REVPROXY_METRICS_PORT
+              value: {{ .Values.reverseProxy.metrics.port | quote }}
           volumeMounts:
             {{- include "certificates.volumeMounts.system" . | nindent 12 }}
           livenessProbe:
@@ -70,7 +82,7 @@ spec:
             periodSeconds: 2
             failureThreshold: 2
           resources:
-{{ toYaml .Values.resources | indent 12 }}
+            {{ toYaml .Values.reverseProxy.resources | nindent 12 }}
     {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}

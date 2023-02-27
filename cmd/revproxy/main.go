@@ -84,18 +84,35 @@ func setupServer(config revProxyConfig) *echo.Echo {
 func main() {
 	config := getConfig()
 	e := setupServer(config)
+	// Start API server
 	e.Logger.Printf("Starting server with config: %+v", config)
 	go func() {
 		if err := e.Start(fmt.Sprintf(":%d", config.Port)); err != nil && err != http.ErrServerClosed {
 			e.Logger.Fatal(err)
 		}
 	}()
+	// Start metrics server if enabled
+	var metricsServer *echo.Echo
+	if (config.Metrics.Enabled) {
+		metricsServer = getMetricsServer(e, config.Metrics.Port)
+		go func() {
+			if err := metricsServer.Start(fmt.Sprintf(":%d", config.Metrics.Port)); err != nil && err != http.ErrServerClosed {
+				metricsServer.Logger.Fatal(err)
+			}
+		}()
+	}
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
-	<-quit
+	<-quit  // Wait for interrupt signal from OS
+	// Start shutting down servers
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := e.Shutdown(ctx); err != nil {
 		e.Logger.Fatal(err)
+	}
+	if config.Metrics.Enabled {
+		if err := metricsServer.Shutdown(ctx); err != nil {
+			metricsServer.Logger.Fatal(err)
+		}
 	}
 }

@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
 
+	"github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -111,4 +113,21 @@ func printMsg(msg string) echo.MiddlewareFunc {
 			return next(c)
 		}
 	}
+}
+
+// getMetricsServer creates a Prometheus server
+func getMetricsServer(apiServer *echo.Echo, port int) *echo.Echo {
+	metricsServer := echo.New()
+	metricsServer.HideBanner = true
+	// Skip the health endpoint
+	urlSkipper := func(c echo.Context) bool {
+		return strings.HasPrefix(c.Path(), "/revproxy/health")
+	}
+	prom := prometheus.NewPrometheus("gateway_revproxy", urlSkipper)
+	prom.MetricsPath = "/"
+	// Scrape metrics from Main Server
+	apiServer.Use(prom.HandlerFunc)
+	// Setup metrics endpoint at another server
+	prom.SetMetricsPath(metricsServer)
+	return metricsServer
 }
