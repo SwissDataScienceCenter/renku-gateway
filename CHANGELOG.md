@@ -1,5 +1,13 @@
 # Changes
 
+## [0.18.1](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.18.0...0.18.1) (2023-02-24)
+
+### Bug Fixes
+
+* use offline access tokens for renku client ([#632](https://github.com/SwissDataScienceCenter/renku-gateway/issues/632)) ([dc93620](https://github.com/SwissDataScienceCenter/renku-gateway/commit/dc93620108f020ba950029de64213169869ed619))
+
+
+
 ## [0.18.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.17.0...0.18.0) (2022-12-12)
 
 ### Bug Fixes
