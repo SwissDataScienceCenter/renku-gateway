@@ -9,8 +9,10 @@ charts:
       - .
     images:
       renku-gateway:
-        # Context to send to docker build for use by the Dockerfile
         contextPath: .
-        # Dockerfile path relative to chartpress.yaml
         dockerfilePath: Dockerfile
         valuesPath: image.auth
+      renku-revproxy:
+        contextPath: .
+        dockerfilePath: Dockerfile.revproxy
+        valuesPath: reverseProxy.image

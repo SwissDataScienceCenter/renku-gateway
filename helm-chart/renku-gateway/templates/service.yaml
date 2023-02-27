@@ -18,3 +18,23 @@ spec:
   selector:
     app: {{ template "gateway.name" . }}-auth
     release: {{ .Release.Name }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: renku-traefik
+  labels:
+    app: {{ template "gateway.name" . }}-revproxy
+    chart: {{ template "gateway.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ template "gateway.name" . }}-revproxy
+    release: {{ .Release.Name }}

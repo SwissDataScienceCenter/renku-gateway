@@ -127,6 +127,7 @@ image:
     repository: renku/renku-gateway
     tag: "latest"
     pullPolicy: IfNotPresent
+  
 
 service:
   type: ClusterIP
@@ -204,101 +205,23 @@ sentry:
 ingress:
   enabled:
 
-traefik:
-  anchors:
-    nameOverride: &nameOverride renku-traefik
-  affinity:
-  # This pod anti-affinity tries tp schedule traefik pods on different nodes.
-    podAntiAffinity:
-      preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          podAffinityTerm:
-            labelSelector:
-              matchExpressions:
-                - key: app.kubernetes.io/name
-                  operator: In
-                  # Note that currently this will not distinguish between renku-traefik instances in different namepsaces. This
-                  # could be changed: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#namespace-selector
-                  values:
-                    - *nameOverride
-            topologyKey: kubernetes.io/hostname
+# Publish prometheus metrics
+reverseProxy:
+  image:
+    name: renku/renku-revproxy
+    repository: renku/renku-revproxy
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  metrics:
+    enabled: true
+    port: 8765
+  replicaCount: 1
+  podAnnotations: {}
+  resources: {}
   autoscaling:
-    enabled: true
+    enabled: false
     minReplicas: 2
-    maxReplicas: 10
-    metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        targetAverageUtilization: 60
-    - type: Resource
-      resource:
-        name: memory
-        targetAverageUtilization: 60
-  additionalArguments:
-    - "--providers.file.directory=/config"
-    ## If using custom/self-signed CA certificates uncomment the value below and
-    ## adjust the volumes section below
-    # - "--serversTransport.rootCAs=/ca-certs/foo.crt,/ca-certs/bar.crt"
-  fullnameOverride: *nameOverride
-  globalArguments:
-    - "--global.checknewversion"
-  logs:
-    access:
-    # To enable access logs
-      enabled: true
-      format: json
-      bufferingSize: 10
-      fields:
-        general:
-          defaultmode: keep
-        headers:
-          defaultmode: keep
-          names:
-            Authorization: redact
-            Cookie: redact
-            Renku-Auth-Access-Token: redact
-            Renku-Auth-Refresh-Token: redact
-            Renku-Auth-Git-Credentials: redact
-    general:
-      format: json
-      # By default, the level is set to ERROR. Alternative logging levels are DEBUG, PANIC, FATAL, ERROR, WARN, and INFO.
-      level: ERROR
-  nameOverride: *nameOverride
-  ingressRoute:
-    dashboard:
-      enabled: false
-  podDisruptionBudget:
-    enabled: true
-    maxUnavailable: 50%
-  ports:
-    websecure:
-      expose: false
-  providers:
-    kubernetesCRD:
-      enabled: false
-    kubernetesIngress:
-      enabled: false
-  rbac:
-    # If set to false (i.e. default) then you get a ClusterRole, this way you get a Role
-    namespaced: true
-  resources:
-    requests:
-      cpu: "100m"
-      memory: "100Mi"
-    limits:
-      cpu: "300m"
-      memory: "200Mi"
-  service:
-    enabled: true
-    type: ClusterIP
-  volumes:
-    - name: renku-traefik-config
-      mountPath: "/config"
-      type: configMap
-    ## List secrets to mount custom/self-signed CA certificates secrets here!
-    ## The Traefik helm chart templating can handle type secret and/or configMap and automatically
-    ## mount them in the specified location
-    # - name: custom-ca-certs-secret
-    #   mountPath: "/ca-certs"
-    #   type: secret
+    maxReplicas: 5
+    targetMemoryUtilizationPercentage:
+    targetCPUUtilizationPercentage:
+  updateStrategy: {}
