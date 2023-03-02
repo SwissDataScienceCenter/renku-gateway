@@ -205,7 +205,6 @@ sentry:
 ingress:
   enabled:
 
-# Publish prometheus metrics
 reverseProxy:
   image:
     name: renku/renku-revproxy
