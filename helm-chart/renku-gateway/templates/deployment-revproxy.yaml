@@ -59,6 +59,8 @@ spec:
               value: {{ .Values.core.hostname | default (printf "http://%s-core" .Release.Name ) | quote }}
             - name: REVPROXY_RENKU_SERVICES_AUTH
               value: {{ printf "http://%s-gateway-auth" .Release.Name }}
+            - name: REVPROXY_DEFAULT_IMAGE_REGISTRY_HOST
+              value: {{ .Values.global.gitlab.registryDomain | quote }}
             - name: REVPROXY_PORT
               value: "8080"
             - name: REVPROXY_METRICS_ENABLED

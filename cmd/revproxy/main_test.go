@@ -61,10 +61,11 @@ func setupTestAuthServer(ID string, responseHeaders map[string]string, responseS
 	return srv, url
 }
 
-func setupTestRevproxy(upstreamServerURL *url.URL, authURL *url.URL, externalGitlabURL *url.URL) (*echo.Echo, *url.URL) {
+func setupTestRevproxy(upstreamServerURL *url.URL, authURL *url.URL, externalGitlabURL *url.URL, defaultImageRegsitryHost string) (*echo.Echo, *url.URL) {
 	config := revProxyConfig{
 		RenkuBaseURL:      upstreamServerURL,
 		ExternalGitlabURL: externalGitlabURL,
+		DefaultImageRegistryHost: defaultImageRegsitryHost,
 		Port:              8080,
 		RenkuServices: renkuServicesConfig{
 			Notebooks: upstreamServerURL,
@@ -124,7 +125,8 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 			gitlab, gitlabURL = setupTestUpstream("gitlab", requestTracker)
 			defer gitlab.Close()
 		}
-		proxy, proxyURL := setupTestRevproxy(upstreamURL, authURL, gitlabURL)
+		imageRegistryHost := "registry.dev.renku.ch"
+		proxy, proxyURL := setupTestRevproxy(upstreamURL, authURL, gitlabURL, imageRegistryHost)
 		defer upstream.Close()
 		defer proxy.Close()
 		defer auth.Close()
@@ -155,10 +157,10 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 		for hdrKey, hdrValue := range scenario.Expected.ResponseHeaders {
 			assert.Equal(t, hdrValue, res.Header.Get(hdrKey))
 		}
-		if scenario.Expected.Path != "" {
+		if scenario.Expected.Path != "" && len(reqs) > 0 {
 			assert.Equal(t, scenario.Expected.Path, reqs[len(reqs)-1].URL.EscapedPath())
 		}
-		if len(scenario.QueryParams) > 0 {
+		if len(scenario.QueryParams) > 0 && len(reqs) > 0 {
 			assert.Equal(t, reqURLQuery.Encode(), reqs[len(reqs)-1].URL.RawQuery)
 		}
 	}
@@ -333,6 +335,16 @@ func TestInternalSvcRoutes(t *testing.T) {
 			QueryParams:    map[string]string{"statistics": "false", "doNotTrack": "true"},
 			ExternalGitlab: false,
 			Expected:       TestResults{Path: "/gitlab/api/v4/projects/some.username%2Ftest-project", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
+			Path:           "/api/config/gitRepositories",
+			ExternalGitlab: false,
+			Expected:       TestResults{Path: "/api/config/gitRepositories"},
+		},
+		{
+			Path:           "/api/config/gitRepositories",
+			ExternalGitlab: false,
+			Expected:       TestResults{Path: "/api/config/gitRepositories"},
 		},
 	}
 	for _, testCase := range testCases {
