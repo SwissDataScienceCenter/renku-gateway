@@ -26,12 +26,13 @@ type metricsConfig struct {
 }
 
 type revProxyConfig struct {
-	RenkuBaseURL      *url.URL            `mapstructure:"renku_base_url"`
-	AllowOrigin       []string            `mapstructure:"allow_origin"`
-	ExternalGitlabURL *url.URL            `mapstructure:"external_gitlab_url"`
-	RenkuServices     renkuServicesConfig `mapstructure:",squash"`
-	Metrics           metricsConfig       `mapstructure:",squash"`
-	Port              int
+	RenkuBaseURL             *url.URL            `mapstructure:"renku_base_url"`
+	AllowOrigin              []string            `mapstructure:"allow_origin"`
+	ExternalGitlabURL        *url.URL            `mapstructure:"external_gitlab_url"`
+	DefaultImageRegistryHost string              `mapstructure:"default_image_registry_host"`
+	RenkuServices            renkuServicesConfig `mapstructure:",squash"`
+	Metrics                  metricsConfig       `mapstructure:",squash"`
+	Port                     int
 }
 
 func parseStringAsURL() mapstructure.DecodeHookFuncType {

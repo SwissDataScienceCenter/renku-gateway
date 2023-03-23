@@ -78,6 +78,12 @@ func setupServer(config revProxyConfig) *echo.Echo {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
 
+	// Config endpoints
+	configAPI := e.Group("/api/config")
+	configAPI.GET("/imageRegistries", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{"default": config.DefaultImageRegistryHost})
+	})
+
 	return e
 }
 

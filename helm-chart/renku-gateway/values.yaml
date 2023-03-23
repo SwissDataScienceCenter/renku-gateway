@@ -21,6 +21,8 @@ global:
   ## Must contain a leading slash, use "/" for root path.
   gitlab:
     urlPrefix: /gitlab
+    ## The domain of the gitlab image registry (i.e. registry.dev.renku.ch)
+    registryDomain: 
   gateway:
     ## Client secret of the renku client application registered in keycloak.
     ## Should be set to a proper value (i.e. by using openssl rand -hex 32) for production.
