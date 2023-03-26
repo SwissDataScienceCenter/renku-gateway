@@ -136,3 +136,4 @@ Templates
 ---------
 
 All static files (css, fonts, images) used in the templates are placed in renku-ui under the `static/public` path.
+
