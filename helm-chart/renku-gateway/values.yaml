@@ -61,8 +61,6 @@ global:
   ## should have the .crt extension otherwise it is ignored. The
   ## keys across all secrets are mounted as files in one location so
   ## the keys across all secrets have to be unique.
-  ## In addition to this the certificates have to be seperately defined
-  ## in the Traefik section below for the Traefik Helm sub-chart.
   certificates:
     image:
       repository: renku/certificates
@@ -102,13 +100,12 @@ development: false
 
 ## To protect the backend services from an excessive amount of API calls
 ## issued by one client, one can enforce rate limits here. The limits apply
-## per UI client session (identified by the cookies). For an explanation of
-## the different values check out the rate limiting documentation of traefik
-## v2.0.
+## based on the IP address of the client.
 rateLimits:
-  ## General rate limit, applies to all /api calls combined.
+  ## General rate limit, applies to all calls combined.
   general:
-    period: 10s
+    enabled: false
+    ## average rate units are requests per second
     average: 20
     burst: 100
 
@@ -214,7 +211,7 @@ reverseProxy:
   metrics:
     enabled: true
     port: 8765
-  replicaCount: 1
+  replicaCount: 2
   podAnnotations: {}
   resources: {}
   autoscaling:

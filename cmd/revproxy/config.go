@@ -25,12 +25,19 @@ type metricsConfig struct {
 	Port    int  `mapstructure:"metrics_port"`
 }
 
+type rateLimits struct {
+	Enabled bool    `mapstructure:"rate_limits_enabled"`
+	Rate    float64 `mapstructure:"rate_limits_average"`
+	Burst   int     `mapstructure:"rate_limits_burst"`
+}
+
 type revProxyConfig struct {
 	RenkuBaseURL      *url.URL            `mapstructure:"renku_base_url"`
 	AllowOrigin       []string            `mapstructure:"allow_origin"`
 	ExternalGitlabURL *url.URL            `mapstructure:"external_gitlab_url"`
 	RenkuServices     renkuServicesConfig `mapstructure:",squash"`
 	Metrics           metricsConfig       `mapstructure:",squash"`
+	RateLimits        rateLimits          `mapstructure:",squash"`
 	Port              int
 }
 

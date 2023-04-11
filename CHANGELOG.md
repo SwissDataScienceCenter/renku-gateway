@@ -1,5 +1,15 @@
 # Changes
 
+## [0.19.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.18.1...0.19.0) (2023-03-31)
+
+
+### Features
+
+* **app:** sticky sessions middleware ([#630](https://github.com/SwissDataScienceCenter/renku-gateway/issues/630)) ([06ff27c](https://github.com/SwissDataScienceCenter/renku-gateway/commit/06ff27cbdc7ba7f5bc7cfbf235c6e643042faecd))
+* **app:** use golang echo as reverse proxy ([#623](https://github.com/SwissDataScienceCenter/renku-gateway/issues/623)) ([58e3cd0](https://github.com/SwissDataScienceCenter/renku-gateway/commit/58e3cd06b6da46cfd5f1d8ec929fee7db1873224))
+
+
+
 ## [0.18.1](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.18.0...0.18.1) (2023-02-24)
 
 ### Bug Fixes

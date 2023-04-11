@@ -12,6 +12,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"golang.org/x/time/rate"
 )
 
 func setupServer(config revProxyConfig) *echo.Echo {
@@ -43,6 +44,17 @@ func setupServer(config revProxyConfig) *echo.Echo {
 	e := echo.New()
 	e.Pre(middleware.RemoveTrailingSlash())
 	e.Use(middleware.Recover())
+	if config.RateLimits.Enabled {
+		e.Use(middleware.RateLimiter(
+			middleware.NewRateLimiterMemoryStoreWithConfig(
+				middleware.RateLimiterMemoryStoreConfig{
+					Rate: rate.Limit(config.RateLimits.Rate),
+					Burst: config.RateLimits.Burst,
+					ExpiresIn: 3 * time.Minute,
+				}),
+			),
+		)
+	}
 
 	// Routing for Renku services
 	e.Group("/api/auth", logger, authSvcProxy)

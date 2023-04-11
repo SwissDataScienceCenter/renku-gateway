@@ -65,6 +65,12 @@ spec:
               value: {{ .Values.reverseProxy.metrics.enabled | quote }}
             - name: REVPROXY_METRICS_PORT
               value: {{ .Values.reverseProxy.metrics.port | quote }}
+            - name: REVPROXY_RATE_LIMITS_ENABLED
+              value: {{ .Values.rateLimits.general.enabled | quote }}
+            - name: REVPROXY_RATE_LIMITS_AVERAGE
+              value: {{ .Values.rateLimits.general.average | quote }}
+            - name: REVPROXY_RATE_LIMITS_BURST
+              value: {{ .Values.rateLimits.general.burst | quote }}
           volumeMounts:
             {{- include "certificates.volumeMounts.system" . | nindent 12 }}
           livenessProbe:
