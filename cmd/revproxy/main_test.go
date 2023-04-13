@@ -303,22 +303,22 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Expected:       TestResults{Path: "/gitlab/api/graphql", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
-			Path:           "/api/repos/test",
+			Path:           "/repos/test",
 			ExternalGitlab: true,
 			Expected:       TestResults{Path: "/test", VisitedServerIDs: []string{"auth", "gitlab"}},
 		},
 		{
-			Path:           "/api/repos",
+			Path:           "/repos",
 			ExternalGitlab: true,
 			Expected:       TestResults{Path: "/", VisitedServerIDs: []string{"auth", "gitlab"}},
 		},
 		{
-			Path:           "/api/repos/test",
+			Path:           "/repos/test",
 			ExternalGitlab: false,
 			Expected:       TestResults{Path: "/gitlab/test", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
-			Path:           "/api/repos",
+			Path:           "/repos",
 			ExternalGitlab: false,
 			Expected:       TestResults{Path: "/gitlab", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
