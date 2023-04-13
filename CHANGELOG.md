@@ -1,5 +1,15 @@
 # Changes
 
+## [0.19.1](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.19.0...0.19.1) (2023-04-13)
+
+
+### Bug Fixes
+
+* /api/repos path should be just /repos ([#640](https://github.com/SwissDataScienceCenter/renku-gateway/issues/640)) ([4d966ce](https://github.com/SwissDataScienceCenter/renku-gateway/commit/4d966ce986c3281459e64fcfaf2f03608baf86a2))
+
+
+
+
 ## [0.19.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.18.1...0.19.0) (2023-03-31)
 
 
