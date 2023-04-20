@@ -218,6 +218,6 @@ reverseProxy:
     enabled: false
     minReplicas: 2
     maxReplicas: 5
-    targetMemoryUtilizationPercentage:
-    targetCPUUtilizationPercentage:
+    targetMemoryUtilizationPercentage: 75
+    targetCPUUtilizationPercentage: 75
   updateStrategy: {}

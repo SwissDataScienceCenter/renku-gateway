@@ -1,5 +1,9 @@
 {{- if .Values.reverseProxy.autoscaling.enabled }}
+{{- if semverCompare ">=1.23.0-0" .Capabilities.KubeVersion.GitVersion -}}
 apiVersion: autoscaling/v2
+{{- else -}}
+apiVersion: autoscaling/v2beta2
+{{- end }}
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ template "gateway.fullname" . }}-revproxy
@@ -20,12 +24,16 @@ spec:
     - type: Resource
       resource:
         name: cpu
-        targetAverageUtilization: {{ .Values.reverseProxy.autoscaling.targetCPUUtilizationPercentage }}
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.reverseProxy.autoscaling.targetCPUUtilizationPercentage }}
     {{- end }}
     {{- if .Values.reverseProxy.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
       resource:
         name: memory
-        targetAverageUtilization: {{ .Values.reverseProxy.autoscaling.targetMemoryUtilizationPercentage }}
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.reverseProxy.autoscaling.targetMemoryUtilizationPercentage }}
     {{- end }}
 {{- end }}
