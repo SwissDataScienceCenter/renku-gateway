@@ -38,6 +38,7 @@ ANONYMOUS_SESSIONS_ENABLED = (
     os.environ.get("ANONYMOUS_SESSIONS_ENABLED", "false") == "true"
 )
 
+# NOTE: HOST_NAME is actually the full base renku URL: i.e. https://dev.renku.ch
 HOST_NAME = os.environ.get("HOST_NAME", "http://gateway.renku.build")
 
 if "GATEWAY_SECRET_KEY" not in os.environ and "pytest" not in sys.modules:

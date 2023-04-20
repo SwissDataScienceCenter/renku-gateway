@@ -30,6 +30,7 @@ from flask import (
     url_for,
 )
 
+from .. import config
 from .cli_auth import handle_cli_token_request
 from .oauth_provider_app import KeycloakProviderApp
 from .utils import (
@@ -107,7 +108,7 @@ def login_next():
 def login():
     """Log in with Keycloak."""
     session.clear()
-    session["ui_redirect_url"] = request.args.get("redirect_url")
+    session["ui_redirect_url"] = request.args.get("redirect_url", config.HOST_NAME)
 
     cli_nonce = request.args.get("cli_nonce")
     if cli_nonce:
@@ -213,7 +214,7 @@ def logout():
 
     return render_template(
         "redirect_logout.html",
-        redirect_url=request.args.get("redirect_url"),
+        redirect_url=request.args.get("redirect_url", config.HOST_NAME),
         logout_pages=logout_pages,
         len=len(logout_pages),
     )
