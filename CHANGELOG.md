@@ -1,5 +1,13 @@
 # Changes
 
+## [0.19.2](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.19.1...0.19.2) (2023-04-20)
+
+### Bug Fixes
+
+* **chart:** HPA for reverse proxy ([#643](https://github.com/SwissDataScienceCenter/renku-gateway/issues/643)) ([de11c52](https://github.com/SwissDataScienceCenter/renku-gateway/commit/de11c52c0e24d4c7f3aaeb52a8d75a6782ee74ea))
+
+
+
 ## [0.19.1](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.19.0...0.19.1) (2023-04-13)
 
 
