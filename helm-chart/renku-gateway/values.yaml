@@ -124,7 +124,7 @@ image:
     repository: renku/renku-gateway
     tag: "latest"
     pullPolicy: IfNotPresent
-  
+
 
 service:
   type: ClusterIP
@@ -171,10 +171,10 @@ graph:
     hostname:
 
 core:
-  ## Set the hostname under which the core service
+  ## Set the base service name under which the core service
   ## can be reached (internally). This will default to
-  ## http://<release-name>-core
-  hostname:
+  ## <release-name>-core
+  basename:
 
 notebooks:
   hostname:

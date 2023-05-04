@@ -8,8 +8,10 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/stickysessions"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"golang.org/x/time/rate"
@@ -29,7 +31,6 @@ func setupServer(config revProxyConfig) *echo.Echo {
 	}
 	notebooksProxy := proxyFromURL(config.RenkuServices.Notebooks)
 	authSvcProxy := proxyFromURL(config.RenkuServices.Auth)
-	coreProxy := proxyFromURL(config.RenkuServices.Core)
 	kgProxy := proxyFromURL(config.RenkuServices.KG)
 	webhookProxy := proxyFromURL(config.RenkuServices.Webhook)
 	logger := middleware.Logger()
@@ -48,11 +49,11 @@ func setupServer(config revProxyConfig) *echo.Echo {
 		e.Use(middleware.RateLimiter(
 			middleware.NewRateLimiterMemoryStoreWithConfig(
 				middleware.RateLimiterMemoryStoreConfig{
-					Rate: rate.Limit(config.RateLimits.Rate),
-					Burst: config.RateLimits.Burst,
+					Rate:      rate.Limit(config.RateLimits.Rate),
+					Burst:     config.RateLimits.Burst,
 					ExpiresIn: 3 * time.Minute,
 				}),
-			),
+		),
 		)
 	}
 
@@ -62,7 +63,19 @@ func setupServer(config revProxyConfig) *echo.Echo {
 	e.Group("/api/projects/:projectID/graph", logger, gitlabAuth, noCookies, kgProjectsGraphRewrites, webhookProxy)
 	e.Group("/api/datasets", logger, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)
 	e.Group("/api/kg", logger, gitlabAuth, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)
-	e.Group("/api/renku", logger, renkuAuth, noCookies, stripPrefix("/api"), coreProxy)
+
+	for _, version := range strings.Split(config.RenkuServices.CoreVersions, ",") {
+		split := strings.SplitN(version, ";", 2)
+		versionName, versionPrefix := split[0], split[1]
+		coreBalancer := stickysessions.NewStickySessionBalancer(fmt.Sprintf("%s-%s", config.RenkuServices.CoreName, versionName), config.RenkuServices.Namespace, "http")
+		coreStickSessionsProxy := middleware.Proxy(coreBalancer)
+
+		e.Group(fmt.Sprintf("/api/renku/%s", versionPrefix), logger, renkuAuth, noCookies, stripPrefix("/api"), coreStickSessionsProxy)
+
+		if versionName == config.RenkuServices.CoreMainVersion {
+			e.Group("/api/renku/", logger, renkuAuth, noCookies, stripPrefix("/api"), coreStickSessionsProxy)
+		}
+	}
 
 	// Routes that end up proxied to Gitlab
 	if config.ExternalGitlabURL != nil {
@@ -105,7 +118,7 @@ func main() {
 	}()
 	// Start metrics server if enabled
 	var metricsServer *echo.Echo
-	if (config.Metrics.Enabled) {
+	if config.Metrics.Enabled {
 		metricsServer = getMetricsServer(e, config.Metrics.Port)
 		go func() {
 			if err := metricsServer.Start(fmt.Sprintf(":%d", config.Metrics.Port)); err != nil && err != http.ErrServerClosed {
@@ -115,7 +128,7 @@ func main() {
 	}
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
-	<-quit  // Wait for interrupt signal from OS
+	<-quit // Wait for interrupt signal from OS
 	// Start shutting down servers
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
