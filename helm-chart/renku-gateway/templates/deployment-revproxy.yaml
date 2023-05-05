@@ -60,7 +60,7 @@ spec:
             - name: REVPROXY_RENKU_SERVICES_CORE_NAME
               value: {{ .Values.core.basename | default (printf "%s-core" .Release.Name ) | quote }}
             - name: REVPROXY_RENKU_SERVICES_CORE_VERSIONS
-              value: {{- range $i, $version := .Values.core.versions-}}{{if $i}},{{end}}{{ $version.name}};{{ $version.prefix }}{{- end -}}
+              value: {{- range $i, $version := .Values.core.versions -}}{{ if $i }},{{ end }}{{ $version.name }};{{ $version.prefix }}{{- end -}}
             - name: REVPROXY_RENKU_SERVICES_CORE_MAIN_VERSION
               value: {{ .Values.core.versions.latest.name | quote }}
             - name: REVPROXY_RENKU_SERVICES_AUTH
