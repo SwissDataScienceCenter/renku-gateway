@@ -41,3 +41,34 @@ https
 http
 {{- end -}}
 {{- end -}}
+
+{{/*
+Template core service paths as a comma separated list
+*/}}
+{{- define "gateway.core.paths" -}}
+{{- $paths := list -}}
+{{- range $k, $v := .Values.global.core.versions -}}
+{{- append $paths (printf "/api/renku/%s" $v.prefix) -}}
+{{- if eq $k "latest" -}}
+{{- append $paths "/api/renku" -}}
+{{- end -}}
+{{- end -}}
+{{- join $paths "," | quote -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Template core service names as a comma separated list
+*/}}
+{{- define "gateway.core.serviceNames" -}}
+{{- $serviceNames := list -}}
+{{- $coreBaseName := .Values.core.basename | default (printf "%s-core" .Release.Name -}}
+{{- range $k, $v := .Values.global.core.versions -}}
+{{- $serviceName := printf "%s-%s" $coreBaseName $v.name -}}
+{{- append $serviceNames $serviceName -}}
+{{- if eq $k "latest" -}}
+{{- append $serviceNames $serviceName -}}
+{{- end -}}
+{{- end -}}
+{{- join $serviceNames "," | quote -}}
+{{- end -}}
