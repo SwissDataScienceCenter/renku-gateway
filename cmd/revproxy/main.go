@@ -73,7 +73,7 @@ func setupServer(config revProxyConfig) *echo.Echo {
 		coreBalancer := stickysessions.NewStickySessionBalancer(fmt.Sprintf("%s-%s", config.RenkuServices.CoreName, versionName), config.RenkuServices.Namespace, "http")
 		coreStickSessionsProxy := middleware.Proxy(coreBalancer)
 
-		e.Group(fmt.Sprintf("/api/renku/%s", versionPrefix), logger, renkuAuth, noCookies, stripPrefix("/api"), coreStickSessionsProxy)
+		e.Group(fmt.Sprintf("/api/renku/%s", versionPrefix), logger, renkuAuth, noCookies, regexRewrite(fmt.Sprintf("^/api/renku/%s/(.*)", versionPrefix), "/renku/$1"), coreStickSessionsProxy)
 
 		if versionName == config.RenkuServices.CoreMainVersion {
 			e.Logger.Printf("Setting main core version to %s", versionName)
