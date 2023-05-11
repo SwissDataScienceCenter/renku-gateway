@@ -40,6 +40,7 @@ type revProxyConfig struct {
 	Metrics           metricsConfig       `mapstructure:",squash"`
 	RateLimits        rateLimits          `mapstructure:",squash"`
 	Namespace         string              `mapstructure:"namespace"`
+	Debug			  bool
 	Port              int
 }
 

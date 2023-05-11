@@ -67,12 +67,14 @@ func setupTestRevproxy(upstreamServerURL *url.URL, authURL *url.URL, externalGit
 		ExternalGitlabURL: externalGitlabURL,
 		Port:              8080,
 		RenkuServices: renkuServicesConfig{
-			Notebooks: upstreamServerURL,
-			Core:      upstreamServerURL,
-			KG:        upstreamServerURL,
-			Webhook:   upstreamServerURL,
-			Auth:      authURL,
+			Notebooks:        upstreamServerURL,
+			CoreServiceNames: []string{upstreamServerURL.String()},
+			CoreServicePaths: []string{"/api/renku"},
+			KG:               upstreamServerURL,
+			Webhook:          upstreamServerURL,
+			Auth:             authURL,
 		},
+		Debug:            true,
 	}
 	proxy := setupServer(config)
 	go func() {
