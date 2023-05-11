@@ -32,6 +32,7 @@ func setupServer(config revProxyConfig) *echo.Echo {
 	coreProxy := proxyFromURL(config.RenkuServices.Core)
 	kgProxy := proxyFromURL(config.RenkuServices.KG)
 	webhookProxy := proxyFromURL(config.RenkuServices.Webhook)
+	cracProxy := proxyFromURL(config.RenkuServices.Crac)
 	logger := middleware.Logger()
 
 	// Initialize common authentication middleware
@@ -63,6 +64,7 @@ func setupServer(config revProxyConfig) *echo.Echo {
 	e.Group("/api/datasets", logger, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)
 	e.Group("/api/kg", logger, gitlabAuth, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)
 	e.Group("/api/renku", logger, renkuAuth, noCookies, stripPrefix("/api"), coreProxy)
+	e.Group("/api/data", logger, noCookies, cracProxy)
 
 	// Routes that end up proxied to Gitlab
 	if config.ExternalGitlabURL != nil {
