@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"time"
 
@@ -36,12 +37,13 @@ type StickySessionBalancer struct {
 	Namespace         string
 	ContainerPortName string
 	CookieName        string
+	CookiePath        string
 	store             *EndpointStore
 	cache             K8sEndpointSliceLister
 	watcher           K8sEndpointSliceWatcher
 }
 
-func NewStickySessionBalancer(service string, namespace string, containerPortName string) middleware.ProxyBalancer {
+func NewStickySessionBalancer(service string, namespace string, containerPortName string, cookiePath string) middleware.ProxyBalancer {
 	log.Printf("Setting up sticky session balancer for service %s port %s in namespace %s", service, containerPortName, namespace)
 	var clientConfig *rest.Config
 	clientConfig, err := rest.InClusterConfig()
@@ -97,6 +99,7 @@ func NewStickySessionBalancer(service string, namespace string, containerPortNam
 		Namespace:         namespace,
 		ContainerPortName: containerPortName,
 		CookieName:        fmt.Sprintf("reverse-proxy-sticky-session-%s", service),
+		CookiePath:        cookiePath,
 		store:             endpointStore,
 		cache:             cache,
 		watcher:           watcher,
@@ -128,11 +131,13 @@ func (s *StickySessionBalancer) Next(c echo.Context) *middleware.ProxyTarget {
 		// The cookie does not exist at all
 		upstream, found := s.store.Peek()
 		if !found {
-			c.String(http.StatusNotFound, "no upstream servers are available")
+			c.String(http.StatusBadGateway, "no upstream servers are available")
+			return &middleware.ProxyTarget{URL: &url.URL{}}
 		}
 		s.store.IncrementSessions(upstream.UID, 1)
 		cookie = &http.Cookie{
 			Name:  s.CookieName,
+			Path:  s.CookiePath,
 			Value: upstream.UID,
 		}
 		c.SetCookie(cookie)
@@ -143,11 +148,13 @@ func (s *StickySessionBalancer) Next(c echo.Context) *middleware.ProxyTarget {
 		// The cookie exists but is pointing to an upstream that does not exist
 		upstream, upstreamFound = s.store.Peek()
 		if !upstreamFound {
-			c.String(http.StatusNotFound, "no upstream servers are available")
+			c.String(http.StatusBadGateway, "no upstream servers are available")
+			return &middleware.ProxyTarget{URL: &url.URL{}}
 		}
 		s.store.IncrementSessions(upstream.UID, 1)
 		cookie = &http.Cookie{
 			Name:  s.CookieName,
+			Path:  s.CookiePath,
 			Value: upstream.UID,
 		}
 		c.SetCookie(cookie)

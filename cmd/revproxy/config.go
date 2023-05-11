@@ -13,14 +13,13 @@ import (
 )
 
 type renkuServicesConfig struct {
-	Namespace       string   `mapstructure:"renku_services_namespace"`
-	Notebooks       *url.URL `mapstructure:"renku_services_notebooks"`
-	KG              *url.URL `mapstructure:"renku_services_kg"`
-	Webhook         *url.URL `mapstructure:"renku_services_webhook"`
-	CoreName        string   `mapstructure:"renku_services_core_name"`
-	CoreVersions    string   `mapstructure:"renku_services_core_versions"`
-	CoreMainVersion string   `mapstructure:"renku_services_core_main_version"`
-	Auth            *url.URL `mapstructure:"renku_services_auth"`
+	Namespace        string   `mapstructure:"renku_services_namespace"`
+	Notebooks        *url.URL `mapstructure:"renku_services_notebooks"`
+	KG               *url.URL `mapstructure:"renku_services_kg"`
+	Webhook          *url.URL `mapstructure:"renku_services_webhook"`
+	CoreServiceNames []string `mapstructure:"renku_services_core_service_names"`
+	CoreServicePaths []string `mapstructure:"renku_services_core_service_paths"`
+	Auth             *url.URL `mapstructure:"renku_services_auth"`
 }
 
 type metricsConfig struct {
@@ -41,6 +40,8 @@ type revProxyConfig struct {
 	RenkuServices     renkuServicesConfig `mapstructure:",squash"`
 	Metrics           metricsConfig       `mapstructure:",squash"`
 	RateLimits        rateLimits          `mapstructure:",squash"`
+	Namespace         string              `mapstructure:"namespace"`
+	Debug             bool
 	Port              int
 }
 

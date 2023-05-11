@@ -8,10 +8,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"time"
 
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/stickysessions"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"golang.org/x/time/rate"
@@ -64,22 +62,7 @@ func setupServer(config revProxyConfig) *echo.Echo {
 	e.Group("/api/datasets", logger, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)
 	e.Group("/api/kg", logger, gitlabAuth, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)
 
-	for _, version := range strings.Split(config.RenkuServices.CoreVersions, ",") {
-		split := strings.SplitN(version, ";", 2)
-		versionName, versionPrefix := split[0], split[1]
-
-		e.Logger.Printf("Setting up sticky sessions for core-%s", versionName)
-
-		coreBalancer := stickysessions.NewStickySessionBalancer(fmt.Sprintf("%s-%s", config.RenkuServices.CoreName, versionName), config.RenkuServices.Namespace, "http")
-		coreStickSessionsProxy := middleware.Proxy(coreBalancer)
-
-		e.Group(fmt.Sprintf("/api/renku/%s", versionPrefix), logger, renkuAuth, noCookies, regexRewrite(fmt.Sprintf("^/api/renku/%s/(.*)", versionPrefix), "/renku/$1"), coreStickSessionsProxy)
-
-		if versionName == config.RenkuServices.CoreMainVersion {
-			e.Logger.Printf("Setting main core version to %s", versionName)
-			e.Group("/api/renku", logger, renkuAuth, noCookies, stripPrefix("/api"), coreStickSessionsProxy)
-		}
-	}
+	registerCoreSvcProxies(e, config, logger, renkuAuth, noCookies, regexRewrite(`^/api/renku(?:/\d+)?((/|\?).*)??$`, "/renku$1"))
 
 	// Routes that end up proxied to Gitlab
 	if config.ExternalGitlabURL != nil {

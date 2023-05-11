@@ -3,6 +3,7 @@ package main
 import (
 	"net/url"
 
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/stickysessions"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -17,4 +18,29 @@ func proxyFromURL(url *url.URL) echo.MiddlewareFunc {
 			}}),
 	}
 	return middleware.ProxyWithConfig(config)
+}
+
+func registerCoreSvcProxies(e *echo.Echo, config revProxyConfig, mwFuncs ...echo.MiddlewareFunc) {
+	if len(config.RenkuServices.CoreServicePaths) != len(config.RenkuServices.CoreServicePaths) {
+		e.Logger.Fatalf("Failed proxy setup for core service, number of paths (%d) and services (%d) provided does not match", len(config.RenkuServices.CoreServicePaths), len(config.RenkuServices.CoreServicePaths))
+	}
+	for i, service := range config.RenkuServices.CoreServiceNames {
+		path := config.RenkuServices.CoreServicePaths[i]
+		var coreBalancer middleware.ProxyBalancer
+		e.Logger.Printf("Setting up sticky sessions for %s with path %s", service, path)
+		if config.Debug {
+			url, err := url.Parse(service)
+			if err != nil {
+				e.Logger.Fatal(err)
+			}
+			coreBalancer = middleware.NewRandomBalancer([]*middleware.ProxyTarget{{URL: url}})
+		} else {
+			coreBalancer = stickysessions.NewStickySessionBalancer(service, config.Namespace, "http", path)
+		}
+		coreStickSessionsProxy := middleware.Proxy(coreBalancer)
+		imwFuncs := make([]echo.MiddlewareFunc, len(mwFuncs))
+		copy(imwFuncs, mwFuncs)
+		imwFuncs = append(imwFuncs, coreStickSessionsProxy)
+		e.Group(path, imwFuncs...)
+	}
 }

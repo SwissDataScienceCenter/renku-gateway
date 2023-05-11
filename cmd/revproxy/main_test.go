@@ -61,18 +61,20 @@ func setupTestAuthServer(ID string, responseHeaders map[string]string, responseS
 	return srv, url
 }
 
-func setupTestRevproxy(upstreamServerURL *url.URL, authURL *url.URL, externalGitlabURL *url.URL) (*echo.Echo, *url.URL) {
+func setupTestRevproxy(upstreamServerURL *url.URL, upstreamServerURL2 *url.URL, authURL *url.URL, externalGitlabURL *url.URL) (*echo.Echo, *url.URL) {
 	config := revProxyConfig{
 		RenkuBaseURL:      upstreamServerURL,
 		ExternalGitlabURL: externalGitlabURL,
-		Port:              8080,
+		Port:              8090,
 		RenkuServices: renkuServicesConfig{
-			Notebooks: upstreamServerURL,
-			Core:      upstreamServerURL,
-			KG:        upstreamServerURL,
-			Webhook:   upstreamServerURL,
-			Auth:      authURL,
+			Notebooks:        upstreamServerURL,
+			CoreServiceNames: []string{upstreamServerURL.String(), upstreamServerURL.String(), upstreamServerURL2.String()},
+			CoreServicePaths: []string{"/api/renku", "/api/renku/10", "/api/renku/9"},
+			KG:               upstreamServerURL,
+			Webhook:          upstreamServerURL,
+			Auth:             authURL,
 		},
+		Debug: true,
 	}
 	proxy := setupServer(config)
 	go func() {
@@ -109,6 +111,7 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 		// Setup and start
 		requestTracker := make(testRequestTracker, 20)
 		upstream, upstreamURL := setupTestUpstream("upstream", requestTracker)
+		upstream2, upstreamURL2 := setupTestUpstream("upstream2", requestTracker)
 		var authResponseStatusCode int
 		if scenario.Non200AuthResponseStatusCode == 0 {
 			authResponseStatusCode = http.StatusOK
@@ -124,8 +127,9 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 			gitlab, gitlabURL = setupTestUpstream("gitlab", requestTracker)
 			defer gitlab.Close()
 		}
-		proxy, proxyURL := setupTestRevproxy(upstreamURL, authURL, gitlabURL)
+		proxy, proxyURL := setupTestRevproxy(upstreamURL, upstreamURL2, authURL, gitlabURL)
 		defer upstream.Close()
+		defer upstream2.Close()
 		defer proxy.Close()
 		defer auth.Close()
 
@@ -231,6 +235,31 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Path:        "/api/renku",
 			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
 			Expected:    TestResults{Path: "/renku", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
+			Path:        "/api/renku/10",
+			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
+			Expected:    TestResults{Path: "/renku", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
+			Path:        "/api/renku/10/1.1/test",
+			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
+			Expected:    TestResults{Path: "/renku/1.1/test", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
+			Path:        "/api/renku/1.1/test",
+			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
+			Expected:    TestResults{Path: "/renku/1.1/test", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
+			Path:        "/api/renku/9",
+			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
+			Expected:    TestResults{Path: "/renku", VisitedServerIDs: []string{"auth", "upstream2"}},
+		},
+		{
+			Path:        "/api/renku/9/endpoint.action",
+			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
+			Expected:    TestResults{Path: "/renku/endpoint.action", VisitedServerIDs: []string{"auth", "upstream2"}},
 		},
 		{
 			Path:           "/gitlab/test/something",
