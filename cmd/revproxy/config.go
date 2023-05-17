@@ -13,7 +13,6 @@ import (
 )
 
 type renkuServicesConfig struct {
-	Namespace        string   `mapstructure:"renku_services_namespace"`
 	Notebooks        *url.URL `mapstructure:"renku_services_notebooks"`
 	KG               *url.URL `mapstructure:"renku_services_kg"`
 	Webhook          *url.URL `mapstructure:"renku_services_webhook"`
