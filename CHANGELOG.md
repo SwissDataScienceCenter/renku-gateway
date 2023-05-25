@@ -1,5 +1,12 @@
 # Changes
 
+## [0.20.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.19.2...0.20.0) (2023-05-25)
+
+### Features
+
+* add new /api/kg/webhooks path ([#639](https://github.com/SwissDataScienceCenter/renku-gateway/issues/639)) ([80a001c](https://github.com/SwissDataScienceCenter/renku-gateway/commit/80a001cd92381fe56956701e8947d4268d955ba3))
+
+
 ## [0.19.2](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.19.1...0.19.2) (2023-04-20)
 
 ### Bug Fixes
