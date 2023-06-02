@@ -54,7 +54,6 @@ class OAuthProviderApp:
     # TODO: Use marshmallow for (de)serialization
     # TODO: https://github.com/SwissDataScienceCenter/renku-gateway/issues/231
     def to_json(self):
-
         serializer_attributes = [
             "kind",
             "base_url",

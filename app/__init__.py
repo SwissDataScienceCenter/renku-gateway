@@ -65,6 +65,7 @@ if os.environ.get("SENTRY_ENABLED", "").lower() == "true":
             dsn=os.environ.get("SENTRY_DSN"),
             integrations=[FlaskIntegration()],
             environment=os.environ.get("SENTRY_ENVIRONMENT"),
+            sample_rate=float(os.environ.get("SENTRY_SAMPLE_RATE", 0.2)),
         )
     except Exception:
         app.logger.warning("Error while trying to initialize Sentry", exc_info=True)
@@ -90,7 +91,6 @@ def setup_redis_client():
     """Set up a redis connection to the master by querying sentinel."""
 
     if "pytest" not in sys.modules:
-
         if current_app.config["REDIS_IS_SENTINEL"]:
             sentinel = Sentinel(
                 [(current_app.config["REDIS_HOST"], current_app.config["REDIS_PORT"])],
