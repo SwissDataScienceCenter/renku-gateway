@@ -334,6 +334,24 @@ func TestInternalSvcRoutes(t *testing.T) {
 			ExternalGitlab: false,
 			Expected:       TestResults{Path: "/gitlab/api/v4/projects/some.username%2Ftest-project", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
+		{
+			Path:     "/api/kg/webhooks/projects/123456/events/status/something/else",
+			Expected: TestResults{Path: "/projects/123456/events/status/something/else", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
+			Path:        "/api/kg/webhooks/projects/123456/events/status",
+			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
+			Expected:    TestResults{Path: "/projects/123456/events/status", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
+			Path:     "/api/kg/webhooks/projects/123456/webhooks/something/else",
+			Expected: TestResults{Path: "/projects/123456/webhooks/something/else", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
+			Path:        "/api/kg/webhooks/projects/123456/webhooks",
+			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
+			Expected:    TestResults{Path: "/projects/123456/webhooks", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
 	}
 	for _, testCase := range testCases {
 		// Test names show up poorly in vscode if the name contains "/"
