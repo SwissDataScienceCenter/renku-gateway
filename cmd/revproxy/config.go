@@ -18,7 +18,7 @@ type renkuServicesConfig struct {
 	Webhook   *url.URL `mapstructure:"renku_services_webhook"`
 	Core      *url.URL `mapstructure:"renku_services_core"`
 	Auth      *url.URL `mapstructure:"renku_services_auth"`
-	Crac      *url.URL `mapstructure:"renku_services_crac"`
+	Crc      *url.URL `mapstructure:"renku_services_crc"`
 }
 
 type metricsConfig struct {
