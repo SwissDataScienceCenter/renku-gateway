@@ -112,6 +112,7 @@ func main() {
 		if err != nil {
 			log.Printf("sentry.Init: %s", err)
 		}
+		defer sentry.Flush(2 * time.Second)
 	}
 
 	e := setupServer(config)
@@ -140,9 +141,6 @@ func main() {
 	defer cancel()
 	if err := e.Shutdown(ctx); err != nil {
 		e.Logger.Fatal(err)
-	}
-	if config.Sentry.Enabled {
-		defer sentry.Flush(2 * time.Second)
 	}
 	if config.Metrics.Enabled {
 		if err := metricsServer.Shutdown(ctx); err != nil {
