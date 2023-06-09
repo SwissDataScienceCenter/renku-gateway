@@ -1,4 +1,11 @@
 # Changes
+## [0.20.1](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.20.0...0.20.1)  (2023-06-09)
+
+
+### Bug Fixes
+
+* logout with new keycloak version ([#655](https://github.com/SwissDataScienceCenter/renku-gateway/issues/655)) ([e8d12eb](https://github.com/SwissDataScienceCenter/renku-gateway/commit/e8d12eb36f2cd2537ea910af243c888a71c9099f))
+
 
 ## [0.20.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.19.2...0.20.0) (2023-05-25)
 
