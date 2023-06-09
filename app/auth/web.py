@@ -200,6 +200,13 @@ def user_profile():
 
 @blueprint.route("/logout")
 def logout():
+    redis_key = get_redis_key_from_session(key_suffix=current_app.config["KC_SUFFIX"])
+    client = current_app.store.get_oauth_client(redis_key)
+    id_token = None
+    if client is not None:
+        tokens = getattr(client, "token", {})
+        id_token = tokens.get("id_token")
+
     session.clear()
 
     logout_pages = []
@@ -210,6 +217,8 @@ def logout():
     logout_pages.append(
         f"{current_app.config['OIDC_ISSUER']}/protocol/openid-connect/logout"
     )
+    if id_token is not None:
+        logout_pages[-1] += f"?id_token_hint={id_token}"
 
     return render_template(
         "redirect_logout.html",
