@@ -5,11 +5,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"golang.org/x/time/rate"
@@ -49,11 +51,11 @@ func setupServer(config revProxyConfig) *echo.Echo {
 		e.Use(middleware.RateLimiter(
 			middleware.NewRateLimiterMemoryStoreWithConfig(
 				middleware.RateLimiterMemoryStoreConfig{
-					Rate: rate.Limit(config.RateLimits.Rate),
-					Burst: config.RateLimits.Burst,
+					Rate:      rate.Limit(config.RateLimits.Rate),
+					Burst:     config.RateLimits.Burst,
 					ExpiresIn: 3 * time.Minute,
 				}),
-			),
+		),
 		)
 	}
 
@@ -99,6 +101,20 @@ func setupServer(config revProxyConfig) *echo.Echo {
 
 func main() {
 	config := getConfig()
+
+	// setup sentry
+	if config.Sentry.Enabled {
+		err := sentry.Init(sentry.ClientOptions{
+			Dsn:         config.Sentry.Dsn,
+			Environment: config.Sentry.Environment,
+			SampleRate:  config.Sentry.SampleRate,
+		})
+		if err != nil {
+			log.Printf("sentry.Init: %s", err)
+		}
+		defer sentry.Flush(2 * time.Second)
+	}
+
 	e := setupServer(config)
 	// Start API server
 	e.Logger.Printf("Starting server with config: %+v", config)
@@ -109,7 +125,7 @@ func main() {
 	}()
 	// Start metrics server if enabled
 	var metricsServer *echo.Echo
-	if (config.Metrics.Enabled) {
+	if config.Metrics.Enabled {
 		metricsServer = getMetricsServer(e, config.Metrics.Port)
 		go func() {
 			if err := metricsServer.Start(fmt.Sprintf(":%d", config.Metrics.Port)); err != nil && err != http.ErrServerClosed {
@@ -119,7 +135,7 @@ func main() {
 	}
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
-	<-quit  // Wait for interrupt signal from OS
+	<-quit // Wait for interrupt signal from OS
 	// Start shutting down servers
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

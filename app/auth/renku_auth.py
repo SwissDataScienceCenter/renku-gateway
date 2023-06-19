@@ -36,7 +36,6 @@ from ..config import KC_SUFFIX
 
 class RenkuCoreAuthHeaders:
     def process(self, request, headers):
-
         m = re.search(
             r"bearer (?P<token>.+)", headers.get("Authorization", ""), re.IGNORECASE
         )

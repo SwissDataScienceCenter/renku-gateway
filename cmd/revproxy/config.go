@@ -32,6 +32,13 @@ type rateLimits struct {
 	Burst   int     `mapstructure:"rate_limits_burst"`
 }
 
+type sentryConfig struct {
+	Enabled     bool    `mapstructure:"sentry_enabled"`
+	Dsn         string  `mapstructure:"sentry_dsn"`
+	Environment string  `mapstructure:"sentry_environment"`
+	SampleRate  float64 `mapstructure:"sentry_sample_rate"`
+}
+
 type revProxyConfig struct {
 	RenkuBaseURL      *url.URL            `mapstructure:"renku_base_url"`
 	AllowOrigin       []string            `mapstructure:"allow_origin"`
@@ -40,6 +47,7 @@ type revProxyConfig struct {
 	Metrics           metricsConfig       `mapstructure:",squash"`
 	RateLimits        rateLimits          `mapstructure:",squash"`
 	Port              int
+	Sentry            sentryConfig `mapstructure:",squash"`
 }
 
 func parseStringAsURL() mapstructure.DecodeHookFuncType {

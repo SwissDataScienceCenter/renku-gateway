@@ -11,7 +11,7 @@ spec:
   {{- if not .Values.reverseProxy.autoscaling.enabled }}
   replicas: {{ .Values.reverseProxy.replicaCount }}
   {{- end }}
-  strategy: 
+  strategy:
     {{- toYaml .Values.reverseProxy.updateStrategy | nindent 4 }}
   selector:
     matchLabels:
@@ -73,6 +73,14 @@ spec:
               value: {{ .Values.rateLimits.general.average | quote }}
             - name: REVPROXY_RATE_LIMITS_BURST
               value: {{ .Values.rateLimits.general.burst | quote }}
+            - name: REVPROXY_SENTRY_ENABLED
+              value: {{ .Values.sentry.enabled | quote }}
+            - name: REVPROXY_SENTRY_DSN
+              value: {{ .Values.sentry.dsn }}
+            - name: REVPROXY_SENTRY_ENVIRONMENT
+              value: {{ .Values.sentry.environment }}
+            - name: REVPROXY_SENTRY_SAMPLE_RATE
+              value: {{ .Values.sentry.sampleRate | quote }}
           volumeMounts:
             {{- include "certificates.volumeMounts.system" . | nindent 12 }}
           livenessProbe:
