@@ -200,6 +200,7 @@ sentry:
   enabled: false
   dsn:
   environment:
+  sampleRate: 0.1
 
 # An ingress could be enabled here. Usually the gateway runs
 # without its own ingress.

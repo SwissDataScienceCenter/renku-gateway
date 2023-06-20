@@ -53,7 +53,6 @@ def client():
 
 @responses.activate
 def test_simple(client):
-
     test_url = app.config["GITLAB_URL"] + "/dummy"
     responses.add(responses.GET, test_url, json={"error": "not found"}, status=404)
 

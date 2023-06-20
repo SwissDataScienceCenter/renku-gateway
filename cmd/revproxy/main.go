@@ -5,11 +5,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"golang.org/x/time/rate"
@@ -48,11 +50,11 @@ func setupServer(config revProxyConfig) *echo.Echo {
 		e.Use(middleware.RateLimiter(
 			middleware.NewRateLimiterMemoryStoreWithConfig(
 				middleware.RateLimiterMemoryStoreConfig{
-					Rate: rate.Limit(config.RateLimits.Rate),
-					Burst: config.RateLimits.Burst,
+					Rate:      rate.Limit(config.RateLimits.Rate),
+					Burst:     config.RateLimits.Burst,
 					ExpiresIn: 3 * time.Minute,
 				}),
-			),
+		),
 		)
 	}
 
@@ -99,6 +101,20 @@ func setupServer(config revProxyConfig) *echo.Echo {
 
 func main() {
 	config := getConfig()
+
+	// setup sentry
+	if config.Sentry.Enabled {
+		err := sentry.Init(sentry.ClientOptions{
+			Dsn:         config.Sentry.Dsn,
+			Environment: config.Sentry.Environment,
+			SampleRate:  config.Sentry.SampleRate,
+		})
+		if err != nil {
+			log.Printf("sentry.Init: %s", err)
+		}
+		defer sentry.Flush(2 * time.Second)
+	}
+
 	e := setupServer(config)
 	// Start API server
 	e.Logger.Printf("Starting server with config: %+v", config)
