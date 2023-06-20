@@ -222,7 +222,7 @@ func TestUpstreamSelection(t *testing.T) {
 			UpstreamIDs:             []string{},
 			RequestCookies:          []http.Cookie{},
 			SessionCookieName:       "session-cookie",
-			ExpectedResponseStatus:  http.StatusNotFound,
+			ExpectedResponseStatus:  http.StatusBadGateway,
 			ExpectedResponseContent: "no upstream servers are available",
 			ExpectedResponseCookies: map[string]string{},
 		},

@@ -31,7 +31,6 @@ func setupServer(config revProxyConfig) *echo.Echo {
 	}
 	notebooksProxy := proxyFromURL(config.RenkuServices.Notebooks)
 	authSvcProxy := proxyFromURL(config.RenkuServices.Auth)
-	coreProxy := proxyFromURL(config.RenkuServices.Core)
 	kgProxy := proxyFromURL(config.RenkuServices.KG)
 	webhookProxy := proxyFromURL(config.RenkuServices.Webhook)
 	crcProxy := proxyFromURL(config.RenkuServices.Crc)
@@ -67,8 +66,9 @@ func setupServer(config revProxyConfig) *echo.Echo {
 	e.Group("/api/kg/webhooks", logger, gitlabAuth, noCookies, stripPrefix("/api/kg/webhooks"), webhookProxy)
 	e.Group("/api/datasets", logger, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)
 	e.Group("/api/kg", logger, gitlabAuth, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)
-	e.Group("/api/renku", logger, renkuAuth, noCookies, stripPrefix("/api"), coreProxy)
 	e.Group("/api/data", logger, noCookies, crcProxy)
+
+	registerCoreSvcProxies(e, config, logger, renkuAuth, noCookies, regexRewrite(`^/api/renku(?:/\d+)?((/|\?).*)??$`, "/renku$1"))
 
 	// Routes that end up proxied to Gitlab
 	if config.ExternalGitlabURL != nil {

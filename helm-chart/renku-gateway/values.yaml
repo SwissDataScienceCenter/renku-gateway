@@ -36,6 +36,8 @@ global:
     ## Should be set to a proper value (i.e. by using openssl rand -hex 32) for production.
     ## Can be set here or as .gitlabClientSecret outside of .global, the values set ouside of global (if defined) take precedence.
     gitlabClientSecret:
+  core:
+    version: {}
   renku:
     ## Domain name for the deployed instance of Renku. Most likely
     ## set by parent chart.
@@ -173,10 +175,10 @@ graph:
     hostname:
 
 core:
-  ## Set the hostname under which the core service
+  ## Set the base service name under which the core service
   ## can be reached (internally). This will default to
-  ## http://<release-name>-core
-  hostname:
+  ## <release-name>-core
+  basename:
 
 notebooks:
   hostname:
