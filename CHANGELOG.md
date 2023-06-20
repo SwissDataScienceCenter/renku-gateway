@@ -1,5 +1,15 @@
 # Changes
-## [0.20.1](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.20.0...0.20.1)  (2023-06-09)
+## [0.21.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.20.1...0.21.0) (2023-06-20)
+
+
+### Features
+
+* add sentry to reverse-proxy ([#654](https://github.com/SwissDataScienceCenter/renku-gateway/issues/654)) ([0492c94](https://github.com/SwissDataScienceCenter/renku-gateway/commit/0492c949352c8ae1b9568b272bc0cd422ceda228))
+* core-service sticky sessions ([#646](https://github.com/SwissDataScienceCenter/renku-gateway/issues/646)) ([091f870](https://github.com/SwissDataScienceCenter/renku-gateway/commit/091f8701333ba0f11157d0e180a44ddfae5207d7))
+
+
+
+## [0.20.1](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.20.0...0.20.1) (2023-06-09)
 
 
 ### Bug Fixes
