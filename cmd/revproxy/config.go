@@ -108,7 +108,7 @@ func getConfig() revProxyConfig {
 		viper.DecodeHook(
 			mapstructure.ComposeDecodeHookFunc(
 				parseStringAsURL(),
-				mapstructure.StringToSliceHookFunc(","),
+            	mapstructure.StringToSliceHookFunc(","),
 			),
 		),
 	)

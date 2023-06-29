@@ -17,7 +17,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
-func setupServer(config revProxyConfig) *echo.Echo {
+func setupServer(ctx context.Context, config revProxyConfig) *echo.Echo {
 	// Intialize common reverse proxy middlewares
 	fallbackProxy := proxyFromURL(config.RenkuBaseURL)
 	renkuBaseProxyHost := setHost(config.RenkuBaseURL.Host)
@@ -68,7 +68,7 @@ func setupServer(config revProxyConfig) *echo.Echo {
 	e.Group("/api/kg", logger, gitlabAuth, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)
 	e.Group("/api/data", logger, noCookies, crcProxy)
 
-	registerCoreSvcProxies(e, config, logger, renkuAuth, noCookies, regexRewrite(`^/api/renku(?:/\d+)?((/|\?).*)??$`, "/renku$1"))
+	registerCoreSvcProxies(ctx, e, config, logger, renkuAuth, noCookies, regexRewrite(`^/api/renku(?:/\d+)?((/|\?).*)??$`, "/renku$1"))
 
 	// Routes that end up proxied to Gitlab
 	if config.ExternalGitlabURL != nil {
@@ -101,6 +101,8 @@ func setupServer(config revProxyConfig) *echo.Echo {
 
 func main() {
 	config := getConfig()
+	shutdownCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	// setup sentry
 	if config.Sentry.Enabled {
@@ -115,7 +117,7 @@ func main() {
 		defer sentry.Flush(2 * time.Second)
 	}
 
-	e := setupServer(config)
+	e := setupServer(shutdownCtx, config)
 	// Start API server
 	e.Logger.Printf("Starting server with config: %+v", config)
 	go func() {
@@ -137,13 +139,11 @@ func main() {
 	signal.Notify(quit, os.Interrupt)
 	<-quit // Wait for interrupt signal from OS
 	// Start shutting down servers
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if err := e.Shutdown(ctx); err != nil {
+	if err := e.Shutdown(shutdownCtx); err != nil {
 		e.Logger.Fatal(err)
 	}
 	if config.Metrics.Enabled {
-		if err := metricsServer.Shutdown(ctx); err != nil {
+		if err := metricsServer.Shutdown(shutdownCtx); err != nil {
 			metricsServer.Logger.Fatal(err)
 		}
 	}

@@ -2,6 +2,7 @@ package stickysessions
 
 import (
 	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -79,6 +80,11 @@ func TestAdd(t *testing.T) {
 			Add:            EndpointStoreItem{Host: "host5", Sessions: 6},
 			ExpectedOutput: []EndpointStoreItem{{Host: "host2", index: 0, Sessions: 5}, {Host: "host5", Sessions: 6, index: 1}, {Host: "host3", index: 2, Sessions: 10}, {Host: "host1", index: 3, Sessions: 100}},
 		},
+		{
+			Input:          []EndpointStoreItem{},
+			Add:            EndpointStoreItem{Host: "host5", Sessions: 6},
+			ExpectedOutput: []EndpointStoreItem{{Host: "host5", Sessions: 6, index: 0}},
+		},
 	}
 	for _, testCase := range testCases {
 		t.Run(fmt.Sprintf("%v", testCase.Input), func(t *testing.T) {
@@ -130,3 +136,30 @@ func TestUpdate(t *testing.T) {
 		})
 	}
 }
+
+func TestSort(t *testing.T) {
+	type TestCase struct {
+		Input          []EndpointStoreItem
+		ExpectedOutput []EndpointStoreItem
+		UpdateName     string
+		UpdateValue    int
+	}
+	testCases := []TestCase{
+		{
+			Input:          []EndpointStoreItem{},
+			ExpectedOutput: []EndpointStoreItem{},
+		},
+		{
+			Input:          []EndpointStoreItem{{Host: "host1", UID: "host1", index: 0, Sessions: 100}, {Host: "host2", UID: "host2", index: 1, Sessions: 5}, {Host: "host3", UID: "host3", index: 2, Sessions: 10}},
+			ExpectedOutput: []EndpointStoreItem{{Host: "host2", UID: "host2", index: 0, Sessions: 5}, {Host: "host3", UID: "host3", index: 1, Sessions: 10}, {Host: "host1", UID: "host1", index: 2, Sessions: 100}},
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(fmt.Sprintf("%v", testCase.Input), func(t *testing.T) {
+			endpoints := NewEndpointStoreFromEndpointItems(testCase.Input, true)
+			sort.Sort(endpoints)
+			assert.Equal(t, testCase.ExpectedOutput, endpoints.List())
+		})
+	}
+}
+

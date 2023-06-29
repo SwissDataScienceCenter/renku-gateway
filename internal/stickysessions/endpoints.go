@@ -119,7 +119,10 @@ func (e *EndpointStore) Remove(name string) {
 	if itemsLen == 0 {
 		return
 	}
-	endpoint := e.index[name]
+	endpoint, found := e.index[name]
+	if !found {
+		return
+	}
 	ind := endpoint.index
 	oldList := e.list
 	if ind == itemsLen-1 {
@@ -189,13 +192,32 @@ func (e *EndpointStore) Get(name string) (EndpointStoreItem, bool) {
 	return *item, found
 }
 
+// UIDs returns all UIDs in the store
+func (e *EndpointStore) UIDs() []string {
+	e.mutex.RLock()
+	defer e.mutex.RUnlock()
+	keys := make([]string, len(e.index))
+	i := 0
+	for k := range e.index {
+		keys[i] = k
+		i++
+	}
+	return keys
+}
+
 // Not thread safe, locking has to be handled outside of Len
 func (e EndpointStore) Len() int {
+	if e.list == nil {
+		return 0
+	}
 	return len(e.list)
 }
 
 // Not thread safe, locking has to be handled outside of Swap
 func (e EndpointStore) Swap(i, j int) {
+	if e.list == nil {
+		return
+	}
 	e.list[i], e.list[j] = e.list[j], e.list[i]
 	e.list[i].index = i
 	e.list[j].index = j
@@ -203,5 +225,8 @@ func (e EndpointStore) Swap(i, j int) {
 
 // Not thread safe, locking has to be handled outside of Less
 func (e EndpointStore) Less(i, j int) bool {
+	if e.list == nil {
+		return false
+	}
 	return e.list[i].Sessions < e.list[j].Sessions
 }
