@@ -103,7 +103,15 @@ func getConfig() revProxyConfig {
 			log.Fatal(bindErr)
 		}
 	}
-	err := viper.Unmarshal(&config, viper.DecodeHook(parseStringAsURL()))
+	err := viper.Unmarshal(
+		&config,
+		viper.DecodeHook(
+			mapstructure.ComposeDecodeHookFunc(
+				parseStringAsURL(),
+            	mapstructure.StringToSliceHookFunc(","),
+			),
+		),
+	)
 	if err != nil {
 		log.Fatalf("unable to decode config into struct, %v\n", err)
 	}
