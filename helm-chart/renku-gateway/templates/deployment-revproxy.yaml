@@ -88,7 +88,7 @@ spec:
             - name: REVPROXY_SENTRY_SAMPLE_RATE
               value: {{ .Values.sentry.sampleRate | quote }}
             - name: REVPROXY_DEBUG
-              value: {{ .Values.debug | default "false" }}
+              value: {{ .Values.debug | default "false" | quote }}
           volumeMounts:
             {{- include "certificates.volumeMounts.system" . | nindent 12 }}
           livenessProbe:

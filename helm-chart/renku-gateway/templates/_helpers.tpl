@@ -48,9 +48,9 @@ Template core service paths as a comma separated list
 {{- define "gateway.core.paths" -}}
 {{- $paths := list -}}
 {{- range $i, $k := (keys .Values.global.core.versions | sortAlpha) -}}
-{{- $paths = mustAppend $paths "/" -}}
+{{- $paths = mustAppend $paths (printf "/api/renku/%s" (get $.Values.global.core.versions $k).prefix) -}}
 {{- if eq $k "latest" -}}
-{{- $paths = mustAppend $paths "/" -}}
+{{- $paths = mustAppend $paths "/api/renku" -}}
 {{- end -}}
 {{- end -}}
 {{- join "," $paths | quote -}}
