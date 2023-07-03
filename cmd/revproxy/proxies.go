@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/stickysessions"
@@ -28,6 +29,8 @@ func registerCoreSvcProxies(ctx context.Context, e *echo.Echo, config revProxyCo
 	for i, service := range config.RenkuServices.CoreServiceNames {
 		path := config.RenkuServices.CoreServicePaths[i]
 		var coreBalancer middleware.ProxyBalancer
+		imwFuncs := make([]echo.MiddlewareFunc, len(mwFuncs))
+		copy(imwFuncs, mwFuncs)
 		e.Logger.Printf("Setting up sticky sessions for %s with path %s", service, path)
 		if config.Debug {
 			url, err := url.Parse(service)
@@ -36,11 +39,10 @@ func registerCoreSvcProxies(ctx context.Context, e *echo.Echo, config revProxyCo
 			}
 			coreBalancer = middleware.NewRandomBalancer([]*middleware.ProxyTarget{{URL: url}})
 		} else {
-			coreBalancer = stickysessions.NewStickySessionBalancer(ctx, service, config.Namespace, "http", "/")
+			cookieName := fmt.Sprintf("reverse-proxy-sticky-session-%s", service)			
+			coreBalancer = stickysessions.NewStickySessionBalancer(ctx, service, config.Namespace, "http", "/", cookieName)
 		}
 		coreStickSessionsProxy := middleware.Proxy(coreBalancer)
-		imwFuncs := make([]echo.MiddlewareFunc, len(mwFuncs))
-		copy(imwFuncs, mwFuncs)
 		imwFuncs = append(imwFuncs, coreStickSessionsProxy)
 		e.Group(path, imwFuncs...)
 	}

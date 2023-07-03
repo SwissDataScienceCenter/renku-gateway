@@ -22,6 +22,23 @@ func noCookies(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
+// stripCookies removes all cookies from a request, except for those provided in the keepCookies list
+func stripCookies(keepCookies []string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			originalReq := c.Request().Clone(c.Request().Context())
+			c.Request().Header.Set(http.CanonicalHeaderKey("cookies"), "")
+			for _, cookieNameToAdd := range keepCookies {
+				cookieToAdd, err := originalReq.Cookie(cookieNameToAdd)
+				if err == nil {
+					c.Request().AddCookie(cookieToAdd)
+				}
+			}
+			return next(c)
+		}
+	}
+}
+
 // injectCredentials middleware makes a call to authenticate the request and injects the credentials
 // if the authentication is successful, if not it returns the response from the autnetication service
 func authenticate(authURL *url.URL, injectedHeaders ...string) echo.MiddlewareFunc {

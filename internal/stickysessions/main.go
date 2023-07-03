@@ -43,7 +43,7 @@ type StickySessionBalancer struct {
 	watcher           K8sEndpointSliceWatcher
 }
 
-func NewStickySessionBalancer(ctx context.Context, service string, namespace string, containerPortName string, cookiePath string) middleware.ProxyBalancer {
+func NewStickySessionBalancer(ctx context.Context, service string, namespace string, containerPortName string, cookiePath string, cookieName string) middleware.ProxyBalancer {
 	log.Printf("Setting up sticky session balancer for service %s port %s in namespace %s", service, containerPortName, namespace)
 	var clientConfig *rest.Config
 	clientConfig, err := rest.InClusterConfig()
@@ -96,7 +96,7 @@ func NewStickySessionBalancer(ctx context.Context, service string, namespace str
 		Service:           service,
 		Namespace:         namespace,
 		ContainerPortName: containerPortName,
-		CookieName:        fmt.Sprintf("reverse-proxy-sticky-session-%s", service),
+		CookieName:        cookieName,
 		CookiePath:        cookiePath,
 		store:             endpointStore,
 		cache:             cache,
