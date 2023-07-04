@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
@@ -61,7 +63,7 @@ func setupTestAuthServer(ID string, responseHeaders map[string]string, responseS
 	return srv, url
 }
 
-func setupTestRevproxy(upstreamServerURL *url.URL, upstreamServerURL2 *url.URL, authURL *url.URL, externalGitlabURL *url.URL) (*echo.Echo, *url.URL) {
+func setupTestRevproxy(ctx context.Context, upstreamServerURL *url.URL, upstreamServerURL2 *url.URL, authURL *url.URL, externalGitlabURL *url.URL) (*echo.Echo, *url.URL) {
 	config := revProxyConfig{
 		RenkuBaseURL:      upstreamServerURL,
 		ExternalGitlabURL: externalGitlabURL,
@@ -73,10 +75,11 @@ func setupTestRevproxy(upstreamServerURL *url.URL, upstreamServerURL2 *url.URL, 
 			KG:               upstreamServerURL,
 			Webhook:          upstreamServerURL,
 			Auth:             authURL,
+			Crc: 	          upstreamServerURL,
 		},
 		Debug: true,
 	}
-	proxy := setupServer(config)
+	proxy := setupServer(ctx, config)
 	go func() {
 		err := proxy.Start(fmt.Sprintf(":%d", config.Port))
 		if err != nil && err != http.ErrServerClosed {
@@ -109,6 +112,8 @@ type TestCase struct {
 func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 	return func(t *testing.T) {
 		// Setup and start
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
 		requestTracker := make(testRequestTracker, 20)
 		upstream, upstreamURL := setupTestUpstream("upstream", requestTracker)
 		upstream2, upstreamURL2 := setupTestUpstream("upstream2", requestTracker)
@@ -127,7 +132,7 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 			gitlab, gitlabURL = setupTestUpstream("gitlab", requestTracker)
 			defer gitlab.Close()
 		}
-		proxy, proxyURL := setupTestRevproxy(upstreamURL, upstreamURL2, authURL, gitlabURL)
+		proxy, proxyURL := setupTestRevproxy(shutdownCtx, upstreamURL, upstreamURL2, authURL, gitlabURL)
 		defer upstream.Close()
 		defer upstream2.Close()
 		defer proxy.Close()

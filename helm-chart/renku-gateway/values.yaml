@@ -37,7 +37,7 @@ global:
     ## Can be set here or as .gitlabClientSecret outside of .global, the values set ouside of global (if defined) take precedence.
     gitlabClientSecret:
   core:
-    version: {}
+    versions: {}
   renku:
     ## Domain name for the deployed instance of Renku. Most likely
     ## set by parent chart.
