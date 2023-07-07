@@ -1,4 +1,14 @@
 # Changes
+
+# [0.21.1](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.21.0...0.21.1)  (2023-07-07)
+
+
+### Bug Fixes
+
+* **chart:** duplicate env variable in revproxy ([#660](https://github.com/SwissDataScienceCenter/renku-gateway/issues/660)) ([11a45d9](https://github.com/SwissDataScienceCenter/renku-gateway/commit/11a45d973f32043db47bc935ae39de05adc28a5d))
+
+
+
 ## [0.21.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.20.1...0.21.0) (2023-06-20)
 
 
