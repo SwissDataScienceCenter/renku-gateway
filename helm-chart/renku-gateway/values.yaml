@@ -53,6 +53,9 @@ global:
   crc:
     serviceName: renku-crc
 
+  storage:
+    serviceName: renku-storage
+
   anonymousSessions:
     ## Set this to true for anonymous notebook sessions.
     enabled: false
