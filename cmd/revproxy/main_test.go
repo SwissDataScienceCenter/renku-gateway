@@ -158,16 +158,18 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 			assert.Equal(t, http.StatusOK, res.StatusCode)
 		}
 		assert.Len(t, reqs, len(scenario.Expected.VisitedServerIDs))
-		for ireq, req := range reqs {
-			assert.Equal(t, scenario.Expected.VisitedServerIDs[ireq], req.Header.Get(serverIDHeader))
+		if len(reqs) == len(scenario.Expected.VisitedServerIDs) {
+			for ireq, req := range reqs {
+				assert.Equal(t, scenario.Expected.VisitedServerIDs[ireq], req.Header.Get(serverIDHeader))
+			}
 		}
 		for hdrKey, hdrValue := range scenario.Expected.ResponseHeaders {
 			assert.Equal(t, hdrValue, res.Header.Get(hdrKey))
 		}
-		if scenario.Expected.Path != "" {
+		if scenario.Expected.Path != "" && len(reqs) > 0 {
 			assert.Equal(t, scenario.Expected.Path, reqs[len(reqs)-1].URL.EscapedPath())
 		}
-		if len(scenario.QueryParams) > 0 {
+		if len(scenario.QueryParams) > 0 && len(reqs) > 0  {
 			assert.Equal(t, reqURLQuery.Encode(), reqs[len(reqs)-1].URL.RawQuery)
 		}
 	}
@@ -245,6 +247,16 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Path:        "/api/renku/10",
 			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
 			Expected:    TestResults{Path: "/renku", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
+			Path:        "/api/renku/8",
+			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
+			Expected:    TestResults{Path: "/api/renku/8", Non200ResponseStatusCode: 404},
+		},
+		{
+			Path:        "/api/renku/7/10/something/else",
+			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
+			Expected:    TestResults{Path: "/api/renku/7/10/something/else", Non200ResponseStatusCode: 404},
 		},
 		{
 			Path:        "/api/renku/10/1.1/test",
