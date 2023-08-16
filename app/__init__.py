@@ -24,12 +24,12 @@ import re
 import sys
 
 import jwt
+import redis
 import requests
 import sentry_sdk
 from flask import Flask, Response, current_app, jsonify, request
 from flask_cors import CORS
 from flask_kvsession import KVSessionExtension
-from redis.sentinel import Sentinel
 from sentry_sdk.integrations.flask import FlaskIntegration
 from simplekv.decorator import PrefixDecorator
 from simplekv.memory.redisstore import RedisStore
@@ -86,33 +86,34 @@ blueprints = (
 )
 
 
-@app.before_request
+@app.before_first_request
 def setup_redis_client():
     """Set up a redis connection to the master by querying sentinel."""
 
     if "pytest" not in sys.modules:
+        _config = {
+            "db": current_app.config["REDIS_DB"],
+            "password": current_app.config["REDIS_PASSWORD"],
+            "retry_on_timeout": True,
+            "health_check_interval": 60,
+        }
         if current_app.config["REDIS_IS_SENTINEL"]:
-            sentinel = Sentinel(
+            _sentinel = redis.Sentinel(
                 [(current_app.config["REDIS_HOST"], current_app.config["REDIS_PORT"])],
                 sentinel_kwargs={"password": current_app.config["REDIS_PASSWORD"]},
             )
-            host, port = sentinel.discover_master(
-                current_app.config["REDIS_MASTER_SET"]
+            _client = _sentinel.master_for(
+                current_app.config["REDIS_MASTER_SET"], **_config
             )
-            current_app.logger.debug(f"Discovered redis master at {host}:{port}")
         else:
-            (host, port) = (
-                current_app.config["REDIS_HOST"],
-                current_app.config["REDIS_PORT"],
+            _client = redis.Redis(
+                host=current_app.config["REDIS_HOST"],
+                port=current_app.config["REDIS_PORT"],
+                **_config,
             )
 
         # Set up the redis store for tokens
-        current_app.store = OAuthRedis(
-            hex_key=current_app.config["SECRET_KEY"],
-            host=host,
-            password=current_app.config["REDIS_PASSWORD"],
-            db=current_app.config["REDIS_DB"],
-        )
+        current_app.store = OAuthRedis(_client, current_app.config["SECRET_KEY"])
         # We use the same store for sessions.
         session_store = PrefixDecorator("sessions_", RedisStore(current_app.store))
         KVSessionExtension(session_store, app)

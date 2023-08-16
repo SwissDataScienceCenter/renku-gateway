@@ -22,18 +22,13 @@ client instances in redis.
 """
 
 import base64
-import sys
 
 from cryptography.fernet import Fernet
 from flask import current_app
 from oauthlib.oauth2.rfc6749.errors import OAuth2Error
+from redis import Redis
 
 from .oauth_client import RenkuWebApplicationClient
-
-if "pytest" in sys.modules:
-    from fakeredis import FakeStrictRedis as StrictRedis
-else:
-    from redis import StrictRedis
 
 
 def create_fernet_key(hex_key):
@@ -55,22 +50,22 @@ def create_fernet_key(hex_key):
     )
 
 
-class OAuthRedis(StrictRedis):
-    """Just a regular StrictRedis store with extra methods for
+class OAuthRedis:
+    """Just a thin wrapper around redis store with extra methods for
     setting and getting encrypted serializations of oauth client objects."""
 
-    def __init__(self, *args, hex_key=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fernet = Fernet(create_fernet_key(hex_key))
+    def __init__(self, redis_client: Redis, fernet_key: Fernet):
+        self._redis_client = redis_client
+        self._fernet = fernet_key
 
     def set_enc(self, name, value):
         """Set method with encryption."""
-        return super().set(name, self.fernet.encrypt(value))
+        return self._redis_client.set(name, self._fernet.encrypt(value))
 
     def get_enc(self, name):
         """Get method with decryption."""
-        value = super().get(name)
-        return None if value is None else self.fernet.decrypt(value)
+        value = self._redis_client.get(name)
+        return None if value is None else self._fernet.decrypt(value)
 
     def set_oauth_client(self, name, oauth_client):
         """Put a client object into the store."""
@@ -102,3 +97,7 @@ class OAuthRedis(StrictRedis):
                 return None
 
         return oauth_client
+
+    def __repr__(self) -> str:
+        """Overriden to avoid leaking the encryption key or Redis password."""
+        return "OAuthRedis()"
