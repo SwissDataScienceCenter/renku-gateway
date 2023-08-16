@@ -148,3 +148,27 @@ func getMetricsServer(apiServer *echo.Echo, port int) *echo.Echo {
 	prom.SetMetricsPath(metricsServer)
 	return metricsServer
 }
+
+// checkCoreServiceMetadataVersion checks if the requested path contains a valid
+// and available metadata version and if not returns a 404, if the metadata version is
+// available the request is let through
+func checkCoreServiceMetadataVersion(coreSvcPaths []string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			requestedPath := c.Request().URL.Path
+			match, err := regexp.MatchString(`^/api/renku/[0-9]+/.*$|^/api/renku/[0-9]+$`, requestedPath)
+			if err != nil {
+				return err
+			}
+			if !match {
+				return next(c)
+			}
+			for _, path := range coreSvcPaths {
+				if strings.HasPrefix(requestedPath, path) && path != "/api/renku" {
+					return next(c)
+				}
+			}
+			return echo.ErrNotFound
+		}
+	}
+}

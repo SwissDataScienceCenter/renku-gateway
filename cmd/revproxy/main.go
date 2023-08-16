@@ -68,7 +68,7 @@ func setupServer(ctx context.Context, config revProxyConfig) *echo.Echo {
 	e.Group("/api/kg", logger, gitlabAuth, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)
 	e.Group("/api/data", logger, noCookies, crcProxy)
 
-	registerCoreSvcProxies(ctx, e, config, logger, renkuAuth, noCookies, regexRewrite(`^/api/renku(?:/\d+)?((/|\?).*)??$`, "/renku$1"))
+	registerCoreSvcProxies(ctx, e, config, logger, checkCoreServiceMetadataVersion(config.RenkuServices.CoreServicePaths), renkuAuth, noCookies, regexRewrite(`^/api/renku(?:/\d+)?((/|\?).*)??$`, "/renku$1"))
 
 	// Routes that end up proxied to Gitlab
 	if config.ExternalGitlabURL != nil {
