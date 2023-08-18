@@ -146,6 +146,7 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 		}
 		reqURL.RawQuery = reqURLQuery.Encode()
 		res, err := http.Get(reqURL.String())
+		assert.NoError(t, err)
 		reqs := requestTracker.getAllRequests()
 
 		// Assert the request was routed as expected

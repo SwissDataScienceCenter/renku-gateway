@@ -172,3 +172,17 @@ func checkCoreServiceMetadataVersion(coreSvcPaths []string) echo.MiddlewareFunc 
 		}
 	}
 }
+
+// gitlabRedirect redirects from the old-style internal gitlab url to an external Gitlab instance
+func gitlabRedirect(newGitlabHost string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			oldURL := c.Request().URL
+			newURL := *oldURL
+			newURL.Host = newGitlabHost
+			newURL.Path = strings.TrimPrefix(newURL.Path, "/gitlab")
+			newURL.RawPath = strings.TrimPrefix(newURL.RawPath, "/gitlab")
+			return c.Redirect(http.StatusMovedPermanently, newURL.String())
+		}
+	}
+}

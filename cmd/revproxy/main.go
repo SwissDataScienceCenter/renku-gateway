@@ -73,7 +73,7 @@ func setupServer(ctx context.Context, config revProxyConfig) *echo.Echo {
 	// Routes that end up proxied to Gitlab
 	if config.ExternalGitlabURL != nil {
 		// Redirect "old" style bundled /gitlab pathing if an external Gitlab is used
-		e.Group("/gitlab", logger, stripPrefix("/gitlab"), gitlabProxyHost, gitlabProxy)
+		e.Group("/gitlab", logger, gitlabRedirect(config.ExternalGitlabURL.Host))
 		e.Group("/api/graphql", logger, gitlabAuth, gitlabProxyHost, gitlabProxy)
 		e.Group("/api/direct", logger, stripPrefix("/api/direct"), gitlabProxyHost, gitlabProxy)
 		e.Group("/repos", logger, cliGitlabAuth, noCookies, stripPrefix("/repos"), gitlabProxyHost, gitlabProxy)
