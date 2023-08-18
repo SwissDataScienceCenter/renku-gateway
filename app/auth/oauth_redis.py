@@ -22,6 +22,7 @@ client instances in redis.
 """
 
 import base64
+from typing import Any, Optional
 
 from cryptography.fernet import Fernet
 from flask import current_app
@@ -54,9 +55,9 @@ class OAuthRedis:
     """Just a thin wrapper around redis store with extra methods for
     setting and getting encrypted serializations of oauth client objects."""
 
-    def __init__(self, redis_client: Redis, fernet_key: Fernet):
+    def __init__(self, redis_client: Redis, fernet_key: Optional[str] = None):
         self._redis_client = redis_client
-        self._fernet = fernet_key
+        self._fernet = Fernet(create_fernet_key(fernet_key))
 
     def set_enc(self, name, value):
         """Set method with encryption."""
@@ -101,3 +102,6 @@ class OAuthRedis:
     def __repr__(self) -> str:
         """Overriden to avoid leaking the encryption key or Redis password."""
         return "OAuthRedis()"
+
+    def __getattr__(self, name: str) -> Any:
+        return self._redis_client.__getattribute__(name)

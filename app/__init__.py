@@ -115,7 +115,7 @@ def setup_redis_client():
         # Set up the redis store for tokens
         current_app.store = OAuthRedis(_client, current_app.config["SECRET_KEY"])
         # We use the same store for sessions.
-        session_store = PrefixDecorator("sessions_", RedisStore(current_app.store))
+        session_store = PrefixDecorator("sessions_", RedisStore(_client))
         KVSessionExtension(session_store, app)
 
 
