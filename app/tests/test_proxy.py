@@ -22,6 +22,8 @@ import pytest
 import requests
 import responses
 
+from fakeredis import FakeStrictRedis
+
 from .. import app
 from ..auth.oauth_client import RenkuWebApplicationClient
 from ..auth.oauth_provider_app import OAuthProviderApp
@@ -97,7 +99,7 @@ def test_gitlab_happyflow(client):
     access_token = jwt.encode(payload=TOKEN_PAYLOAD, key=PRIVATE_KEY, algorithm="RS256")
     headers = {"Authorization": "Bearer {}".format(access_token)}
 
-    app.store = OAuthRedis(hex_key=app.config["SECRET_KEY"])
+    app.store = OAuthRedis(FakeStrictRedis(), app.config["SECRET_KEY"])
 
     set_dummy_oauth_client(access_token, app.config["CLI_SUFFIX"])
 
