@@ -35,7 +35,14 @@ from simplekv.decorator import PrefixDecorator
 from simplekv.memory.redisstore import RedisStore
 
 from . import config
-from .auth import cli_auth, gitlab_auth, renku_auth, web, notebook_auth
+from .auth import (
+    cli_auth,
+    gitlab_auth,
+    renku_auth,
+    web,
+    notebook_auth,
+    keycloak_gitlab_auth,
+)
 from .auth.oauth_redis import OAuthRedis
 from .auth.utils import decode_keycloak_jwt
 
@@ -129,6 +136,7 @@ def auth():
         "renku": renku_auth.RenkuCoreAuthHeaders,
         "notebook": notebook_auth.NotebookAuthHeaders,
         "cli-gitlab": cli_auth.RenkuCLIGitlabAuthHeaders,
+        "keycloak_gitlab": keycloak_gitlab_auth.KeycloakGitlabAuthHeaders,
     }
 
     # Keycloak public key is not defined so error
