@@ -33,7 +33,7 @@ func setupServer(ctx context.Context, config revProxyConfig) *echo.Echo {
 	authSvcProxy := proxyFromURL(config.RenkuServices.Auth)
 	kgProxy := proxyFromURL(config.RenkuServices.KG)
 	webhookProxy := proxyFromURL(config.RenkuServices.Webhook)
-	crcProxy := proxyFromURL(config.RenkuServices.Crc)
+	dataServiceProxy := proxyFromURL(config.RenkuServices.DataService)
 	logger := middleware.Logger()
 
 	// Initialize common authentication middleware
@@ -67,7 +67,7 @@ func setupServer(ctx context.Context, config revProxyConfig) *echo.Echo {
 	e.Group("/api/kg/webhooks", logger, gitlabAuth, noCookies, stripPrefix("/api/kg/webhooks"), webhookProxy)
 	e.Group("/api/datasets", logger, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)
 	e.Group("/api/kg", logger, gitlabAuth, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)
-	e.Group("/api/data", logger, dataAuth, noCookies, crcProxy)
+	e.Group("/api/data", logger, dataAuth, noCookies, dataServiceProxy)
 
 	registerCoreSvcProxies(ctx, e, config, logger, checkCoreServiceMetadataVersion(config.RenkuServices.CoreServicePaths), renkuAuth, noCookies, regexRewrite(`^/api/renku(?:/\d+)?((/|\?).*)??$`, "/renku$1"))
 

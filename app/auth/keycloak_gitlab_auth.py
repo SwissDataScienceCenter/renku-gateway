@@ -34,7 +34,7 @@ class KeycloakGitlabAuthHeaders:
                 get_redis_key_from_token(access_token, key_suffix=GL_SUFFIX)
             )
 
-            headers["Authorization"] = access_token
+            headers["Authorization"] = f"Bearer {access_token}"
             headers["Gitlab-Access-Token"] = gitlab_oauth_client.access_token
 
         return headers

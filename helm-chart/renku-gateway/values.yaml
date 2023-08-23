@@ -50,8 +50,8 @@ global:
     ## part of Renku DO NOT change this value.
     # keycloak:
     #   realm: Renku
-  crc:
-    serviceName: renku-crc
+  dataService:
+    serviceName: renku-data-service
 
   anonymousSessions:
     ## Set this to true for anonymous notebook sessions.
