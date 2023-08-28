@@ -1,5 +1,11 @@
 # Changes
 
+## [0.21.3](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.21.2...0.21.3) (2023-08-28)
+
+### Bug Fixes
+
+* **proxy:** sticky sessions null dereference ([#673](https://github.com/SwissDataScienceCenter/renku-gateway/issues/673)) ([2753d07](https://github.com/SwissDataScienceCenter/renku-gateway/commit/ebd662476be6c4994e69aad2f13b8dc1771828ad))
+
 ## [0.21.2](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.21.1...0.21.2) (2023-08-22)
 
 ### Bug Fixes
