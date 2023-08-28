@@ -62,20 +62,21 @@ type EndpointStore struct {
 // The items' index fields will be overwritten accordingly.
 func NewEndpointStoreFromEndpointItems(input []EndpointStoreItem, includeNonReady bool) *EndpointStore {
 	endpoints := &EndpointStore{
-		list:  make([]*EndpointStoreItem, len(input)),
-		index: map[string]*EndpointStoreItem{},
+		list:  make([]*EndpointStoreItem, 0, len(input)),
+		index: make(map[string]*EndpointStoreItem, len(input)),
 		mutex: sync.RWMutex{},
-	}
-	for i, endpoint := range input {
-		if !includeNonReady && !endpoint.Ready {
-			continue
-		}
-		newEndpoint := *&endpoint
-		endpoints.list[i] = &newEndpoint
-		endpoints.index[endpoint.UID] = &newEndpoint
 	}
 	endpoints.mutex.Lock()
 	defer endpoints.mutex.Unlock()
+	for _, endpoint := range input {
+		if !includeNonReady && !endpoint.Ready {
+			continue
+		}
+		// NOTE: Make a copy of loop variable, golang uses the same pointer for the whole loop
+		newEndpoint := endpoint
+		endpoints.list = append(endpoints.list, &newEndpoint)
+		endpoints.index[endpoint.UID] = &endpoint
+	}
 	sort.Sort(endpoints)
 	return endpoints
 }
