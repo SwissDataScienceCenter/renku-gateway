@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/SwissDataScienceCenter/renku-gateway-v2/internal/models"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/go-co-op/gocron"
 )
 
@@ -26,22 +26,36 @@ type tokenResponse struct {
 }
 
 func (t tokenResponse) String() string {
-	return fmt.Sprintf("CreatedAt: %v, Type: %v, ExpiresIn: %v, RefreshTokenExpiresIn: %v", t.CreatedAt, t.Type, t.ExpiresIn, t.RefreshTokenExpiresIn)
+	return fmt.Sprintf(
+		"CreatedAt: %v, Type: %v, ExpiresIn: %v, RefreshTokenExpiresIn: %v",
+		t.CreatedAt,
+		t.Type,
+		t.ExpiresIn,
+		t.RefreshTokenExpiresIn,
+	)
 }
 
 // RefresherTokenStore is an interface used for refreshing tokens stored by the gateway
 type RefresherTokenStore interface {
-	GetRefreshToken(context.Context, string) (models.RefreshToken, error)
-	GetAccessToken(context.Context, string) (models.AccessToken, error)
-	SetRefreshToken(context.Context, models.RefreshToken) error
-	SetAccessToken(context.Context, models.AccessToken) error
+	GetRefreshToken(context.Context, string) (models.OauthToken, error)
+	GetAccessToken(context.Context, string) (models.OauthToken, error)
+	SetRefreshToken(context.Context, models.OauthToken) error
+	SetAccessToken(context.Context, models.OauthToken) error
 	GetExpiringAccessTokenIDs(context.Context, time.Time, time.Time) ([]string, error)
 }
 
 // ScheduleRefreshExpiringTokens intialises a gocron job to run refreshExpiringTokens at a specified interval
-func ScheduleRefreshExpiringTokens(ctx context.Context, tokenStore RefresherTokenStore, gitlabClientID string, gitlabClientSecret string, minsToExpiration int) error {
+func ScheduleRefreshExpiringTokens(
+	ctx context.Context,
+	tokenStore RefresherTokenStore,
+	gitlabClientID string,
+	gitlabClientSecret string,
+	minsToExpiration int,
+) error {
 	s := gocron.NewScheduler(time.UTC)
-	job, err := s.Every(minsToExpiration).Minutes().Do(refreshExpiringTokens, ctx, tokenStore, gitlabClientID, gitlabClientSecret, minsToExpiration)
+	job, err := s.Every(minsToExpiration).
+		Minutes().
+		Do(refreshExpiringTokens, ctx, tokenStore, gitlabClientID, gitlabClientSecret, minsToExpiration)
 	s.StartBlocking()
 	if err != nil {
 		log.Printf("Starting gocron job failed: %s\n", err)
@@ -52,9 +66,19 @@ func ScheduleRefreshExpiringTokens(ctx context.Context, tokenStore RefresherToke
 }
 
 // refreshExpiringTokens refreshes tokens in the token store expiring in the next minsToExpiration minutes
-func refreshExpiringTokens(ctx context.Context, tokenStore RefresherTokenStore, clientID string, clientSecret string, minsToExpiration int) error {
+func refreshExpiringTokens(
+	ctx context.Context,
+	tokenStore RefresherTokenStore,
+	clientID string,
+	clientSecret string,
+	minsToExpiration int,
+) error {
 	// Get a list of expiring access tokens ids in the next minsToExpiration minutes
-	expiringTokenIDs, err := tokenStore.GetExpiringAccessTokenIDs(ctx, time.Now(), time.Now().Add(time.Minute*time.Duration(minsToExpiration)))
+	expiringTokenIDs, err := tokenStore.GetExpiringAccessTokenIDs(
+		ctx,
+		time.Now(),
+		time.Now().Add(time.Minute*time.Duration(minsToExpiration)),
+	)
 	if err != nil {
 		log.Printf("GetExpiringAccessTokenIDs failed: %s\n", err)
 		return err
@@ -84,7 +108,7 @@ func refreshExpiringTokens(ctx context.Context, tokenStore RefresherTokenStore, 
 		params.Add("grant_type", "refresh_token")
 
 		// Send the POST request to refresh the tokens
-		resp, err := http.PostForm(myAccessToken.URL, params)
+		resp, err := http.PostForm(myAccessToken.TokenURL, params)
 		if err != nil {
 			log.Printf("Request Failed: %s\n", err)
 			return err
@@ -120,21 +144,25 @@ func refreshExpiringTokens(ctx context.Context, tokenStore RefresherTokenStore, 
 		}
 
 		// Set the refreshed access and refresh token values into the token store
-		err = tokenStore.SetAccessToken(ctx, models.AccessToken{
+		err = tokenStore.SetAccessToken(ctx, models.OauthToken{
 			ID:        myAccessToken.ID,
 			Value:     token.AccessToken,
 			ExpiresAt: accessTokenExpiration,
-			URL:       myAccessToken.URL,
+			TokenURL:  myAccessToken.TokenURL,
 			Type:      myAccessToken.Type,
 		})
 
-		err = tokenStore.SetRefreshToken(ctx, models.RefreshToken{
+		err = tokenStore.SetRefreshToken(ctx, models.OauthToken{
 			ID:        myRefreshToken.ID,
 			Value:     token.RefreshToken,
 			ExpiresAt: refreshTokenExpiration,
 		})
 	}
 
-	log.Printf("%v expiring access tokens refreshed, evaluating again in %v minutes\n", len(expiringTokenIDs), minsToExpiration)
+	log.Printf(
+		"%v expiring access tokens refreshed, evaluating again in %v minutes\n",
+		len(expiringTokenIDs),
+		minsToExpiration,
+	)
 	return err
 }
