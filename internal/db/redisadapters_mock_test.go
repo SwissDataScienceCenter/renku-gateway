@@ -1,4 +1,4 @@
-package redisadapters
+package db
 
 import (
 	"context"

@@ -1,17 +1,17 @@
 // Package redisadapters contains functions for interacting with redis
-package redisadapters
+package db
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/SwissDataScienceCenter/renku-gateway-v2/internal/models"
-	"github.com/go-redis/redis/v9"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/mitchellh/mapstructure"
-	"golang.org/x/net/context"
+	"github.com/redis/go-redis/v9"
 )
 
 const (
@@ -322,8 +322,8 @@ func (r RedisAdapter) GetExpiringAccessTokenIDs(
 
 	zrangeargs := redis.ZRangeArgs{
 		Key:     indexExpiringTokens,
-		Start:   startTime.Unix(),
-		Stop:    stopTime.Unix(),
+		Start:   float64(startTime.Unix()),
+		Stop:    float64(stopTime.Unix()),
 		ByScore: true,
 	}
 

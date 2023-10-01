@@ -1,11 +1,12 @@
-package redisadapters
+package db
 
 import (
+	"context"
 	"encoding"
 	"fmt"
+	"sort"
 
-	"github.com/go-redis/redis/v9"
-	"golang.org/x/net/context"
+	"github.com/redis/go-redis/v9"
 )
 
 // Implements the LimitedRedis client struct
@@ -47,7 +48,13 @@ func (m *MockRedisClient) HSet(_ context.Context, key string, values ...interfac
 }
 
 func (m *MockRedisClient) ZAdd(_ context.Context, key string, members ...redis.Z) *redis.IntCmd {
-	m.store[key] = members
+	_, found := m.store[key]
+	if !found {
+		m.store[key] = []redis.Z{}
+	}
+	newMembers := append(m.store[key].([]redis.Z), members...)
+	sort.Slice(newMembers, func(i, j int) bool { return newMembers[i].Score < newMembers[j].Score })
+	m.store[key] = newMembers
 	res := redis.IntCmd{}
 	res.SetVal(1)
 	return &res
@@ -111,8 +118,19 @@ func (m *MockRedisClient) HGetAll(_ context.Context, key string) *redis.MapStrin
 	return &res
 }
 
-func (*MockRedisClient) ZRangeArgsWithScores(_ context.Context, _ redis.ZRangeArgs) *redis.ZSliceCmd {
-	res := redis.ZSliceCmd{}
-	res.SetErr(fmt.Errorf("not implemented"))
-	return &res
+func (m *MockRedisClient) ZRangeArgsWithScores(_ context.Context, zrange redis.ZRangeArgs) *redis.ZSliceCmd {
+	valRaw, found := m.store[zrange.Key]
+	if !found {
+		return &redis.ZSliceCmd{}
+	}
+	val := valRaw.([]redis.Z)
+	res := []redis.Z{}
+	for _, ival := range val {
+		if ival.Score <= zrange.Stop.(float64) && ival.Score >= zrange.Start.(float64) {
+			res = append(res, ival)
+		}
+	}
+	output := redis.ZSliceCmd{}
+	output.SetVal(res)
+	return &output
 }
