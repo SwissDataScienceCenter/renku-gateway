@@ -1,6 +1,6 @@
 module github.com/SwissDataScienceCenter/renku-gateway
 
-go 1.19
+go 1.21
 
 require (
 	github.com/getsentry/sentry-go v0.21.0
