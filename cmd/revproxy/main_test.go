@@ -76,6 +76,7 @@ func setupTestRevproxy(ctx context.Context, upstreamServerURL *url.URL, upstream
 			Webhook:          upstreamServerURL,
 			Auth:             authURL,
 			Crc: 	          upstreamServerURL,
+			Keycloak:         upstreamServerURL,
 		},
 		Debug: true,
 	}
@@ -398,6 +399,10 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Path:        "/api/kg/webhooks/projects/123456/webhooks",
 			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
 			Expected:    TestResults{Path: "/projects/123456/webhooks", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
+			Path:        "/api/kc/auth/realms/Renku/protocol/openid-connect/userinfo",
+			Expected:    TestResults{Path: "/auth/realms/Renku/protocol/openid-connect/userinfo", VisitedServerIDs: []string{"upstream"}},
 		},
 	}
 	for _, testCase := range testCases {
