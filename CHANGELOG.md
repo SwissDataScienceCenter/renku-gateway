@@ -1,6 +1,22 @@
 # Changes
 
-# [0.21.1](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.21.0...0.21.1)  (2023-07-07)
+## [0.21.3](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.21.2...0.21.3) (2023-08-28)
+
+### Bug Fixes
+
+* **proxy:** sticky sessions null dereference ([#673](https://github.com/SwissDataScienceCenter/renku-gateway/issues/673)) ([2753d07](https://github.com/SwissDataScienceCenter/renku-gateway/commit/ebd662476be6c4994e69aad2f13b8dc1771828ad))
+
+## [0.21.2](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.21.1...0.21.2) (2023-08-22)
+
+### Bug Fixes
+
+* properly user Redis sentinel client ([#668](https://github.com/SwissDataScienceCenter/renku-gateway/issues/668)) ([5ab4447](https://github.com/SwissDataScienceCenter/renku-gateway/commit/5ab44475c9f7a516ddb8865c8f70db9bdb0ba5ec))
+* **proxy:** properly redirect from /gitlab urls ([#669](https://github.com/SwissDataScienceCenter/renku-gateway/issues/669)) ([2fac96f](https://github.com/SwissDataScienceCenter/renku-gateway/commit/2fac96f5c6141f4e57ae5cc77877670156bceae5))
+* **proxy:** return 404 on wrong core svc metadata version ([#667](https://github.com/SwissDataScienceCenter/renku-gateway/issues/667)) ([2753d07](https://github.com/SwissDataScienceCenter/renku-gateway/commit/2753d0773e26cb1c74e4be4dd44fe5e77f428657))
+
+
+
+## [0.21.1](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.21.0...0.21.1)  (2023-07-07)
 
 
 ### Bug Fixes
