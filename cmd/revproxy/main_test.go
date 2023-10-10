@@ -75,7 +75,7 @@ func setupTestRevproxy(ctx context.Context, upstreamServerURL *url.URL, upstream
 			KG:               upstreamServerURL,
 			Webhook:          upstreamServerURL,
 			Auth:             authURL,
-			Crc: 	          upstreamServerURL,
+			DataService: 	          upstreamServerURL,
 		},
 		Debug: true,
 	}
