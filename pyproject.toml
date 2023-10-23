@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "renku-gateway"
-version = "0.21.3"
+version = "0.22.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
 license = "Apache 2"
