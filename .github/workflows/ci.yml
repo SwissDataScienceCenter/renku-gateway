@@ -26,9 +26,22 @@ jobs:
       - name: Test with pytest
         run: |
           poetry run pytest
+  
+  test-revproxy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+      - name: Test
+        run: |
+          go test -timeout 300s -p 1 -v github.com/SwissDataScienceCenter/renku-gateway/cmd/revproxy github.com/SwissDataScienceCenter/renku-gateway/internal/stickysessions 
 
   test-chart:
-    needs: test
+    needs: 
+      - test
+      - test-revproxy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
