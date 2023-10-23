@@ -39,20 +39,6 @@ func TestProviderIDs(t *testing.T) {
 	assert.Equal(t, providerIDs[1:], session.LoginWithProviders)
 }
 
-func TestCodeVerifiers(t *testing.T) {
-	session, err := NewSession(time.Hour, []string{"providerID1"})
-	require.NoError(t, err)
-	assert.Len(t, session.CodeVerifiers, 0)
-	assert.Equal(t, "", session.PopCodeVerifier())
-	codeVerifiers := SerializableStringSlice{"code1", "code2"}
-	session.SetCodeVerifiers(codeVerifiers)
-	assert.Equal(t, codeVerifiers, session.CodeVerifiers)
-	assert.Equal(t, codeVerifiers[0], session.PopCodeVerifier())
-	assert.Equal(t, codeVerifiers[1:], session.CodeVerifiers)
-	assert.Equal(t, codeVerifiers[1], session.PopCodeVerifier())
-	assert.Equal(t, SerializableStringSlice{}, session.CodeVerifiers)
-}
-
 func TestAddTokenID(t *testing.T) {
 	session, err := NewSession(time.Hour, []string{"providerID1"})
 	require.NoError(t, err)

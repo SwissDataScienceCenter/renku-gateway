@@ -14,8 +14,8 @@ type Session struct {
 	ExpiresAt          time.Time
 	TokenIDs           SerializableStringSlice
 	LoginWithProviders SerializableStringSlice
-	RedirectURL        string
-	CodeVerifiers      SerializableStringSlice
+	// The url to redirect to when the login flow is complete (i.e. Renku homepage)
+	RedirectURL string
 }
 
 func (s *Session) Expired() bool {
@@ -31,21 +31,15 @@ func (s *Session) PopProviderID() string {
 	return output
 }
 
-func (s *Session) PopCodeVerifier() string {
-	if len(s.CodeVerifiers) == 0 {
+func (s *Session) PeekProviderID() string {
+	if len(s.LoginWithProviders) == 0 {
 		return ""
 	}
-	output := s.CodeVerifiers[0]
-	s.CodeVerifiers = append(SerializableStringSlice{}, s.CodeVerifiers[1:]...)
-	return output
+	return s.LoginWithProviders[0]
 }
 
 func (s *Session) AddTokenID(id string) {
 	s.TokenIDs = append(s.TokenIDs, id)
-}
-
-func (s *Session) SetCodeVerifiers(verifiers []string) {
-	s.CodeVerifiers = verifiers
 }
 
 func (s *Session) SetRedirectURL(url string) {

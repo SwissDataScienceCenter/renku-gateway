@@ -29,7 +29,7 @@ func (c ClientStore) AuthHandler(providerID string) (http.HandlerFunc, error) {
 }
 
 func NewClientStore(configs map[string]Config) (ClientStore, error) {
-	var clients ClientStore
+	var clients = ClientStore{}
 	for id, config := range configs {
 		client, err := NewClient(config, id)
 		if err != nil {

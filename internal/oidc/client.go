@@ -1,6 +1,7 @@
 package oidc
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -29,6 +30,8 @@ type Config struct {
 	CookieEncKey  string   `yaml:"cookieEncKey,omitempty"`
 	CallbackURI   string   `yaml:"callbackURI"`
 	NoPKCE        bool     `yaml:"noPKCE"`
+	// UnsafeNoCookieHandler should NOT be set to true in production
+	UnsafeNoCookieHandler bool `yaml:"unsafeNoCookieHandler"`
 }
 
 type zitadelClient struct {
@@ -105,16 +108,30 @@ func (z *zitadelClient) ID() string {
 }
 
 func NewClient(config Config, id string) (Client, error) {
-	cookieEncKey := []byte(config.CookieEncKey)
-	if len(cookieEncKey) == 0 {
-		cookieEncKey = nil
-	}
-	cookieHandler := httphelper.NewCookieHandler([]byte(config.CookieHashKey), cookieEncKey)
 	options := []rp.Option{}
-	if config.NoPKCE {
+	if !config.NoPKCE || !config.UnsafeNoCookieHandler {
+		cookieEncKey := []byte(config.CookieEncKey)
+		cookieHashKey := []byte(config.CookieHashKey)
+		if len(cookieEncKey) > 0 && !(len(cookieEncKey) == 16 || len(cookieEncKey) == 32) {
+			return nil, fmt.Errorf(
+				"Invalid length for oauth2 state cookie encryption key, got %d, but allowed sizes are 16 or 32",
+				len(cookieEncKey),
+			)
+		}
+		if len(cookieEncKey) == 0 {
+			cookieEncKey = nil
+		}
+		if len(cookieHashKey) != 32 {
+			return nil, fmt.Errorf(
+				"Invalid length for oauth2 state cookie hash key, got %d, allowed size is 32",
+				len(cookieHashKey),
+			)
+		}
+		cookieHandler := httphelper.NewCookieHandler(cookieHashKey, cookieEncKey)
 		options = append(options, rp.WithCookieHandler(cookieHandler))
-	} else {
-		options = append(options, rp.WithPKCE(cookieHandler))
+		if !config.NoPKCE {
+			options = append(options, rp.WithPKCE(cookieHandler))
+		}
 	}
 	client, err := rp.NewRelyingPartyOIDC(
 		config.Issuer,
