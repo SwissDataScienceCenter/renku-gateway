@@ -75,7 +75,7 @@ func NewEndpointStoreFromEndpointItems(input []EndpointStoreItem, includeNonRead
 		// NOTE: Make a copy of loop variable, golang uses the same pointer for the whole loop
 		newEndpoint := endpoint
 		endpoints.list = append(endpoints.list, &newEndpoint)
-		endpoints.index[endpoint.UID] = &endpoint
+		endpoints.index[endpoint.UID] = &newEndpoint
 	}
 	sort.Sort(endpoints)
 	return endpoints

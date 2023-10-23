@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -121,7 +122,6 @@ func setupTestUpstream(ID string) (*httptest.Server, *url.URL, discoveryV1.Endpo
 func TestUpstreamSelection(t *testing.T) {
 	type TestCase struct {
 		RequestCookies          []http.Cookie
-		ProxyPort               int
 		UpstreamPortName        string
 		UpstreamIDs             []string
 		SessionCookieName       string
@@ -155,11 +155,16 @@ func TestUpstreamSelection(t *testing.T) {
 		proxy := middleware.ProxyWithConfig(middleware.ProxyConfig{
 			Balancer: &balancer,
 		})
+		proxyListener, err := net.Listen("tcp", "127.0.0.1:0")
+		assert.NoError(t, err)
+		proxyPort := proxyListener.Addr().(*net.TCPAddr).Port
+		e.Listener = proxyListener
+		defer proxyListener.Close()
 		e.Use(middleware.Logger())
 		e.Group("/").Use(proxy)
-		go e.Start(fmt.Sprintf(":%d", testCase.ProxyPort))
+		go e.Start(fmt.Sprintf(":%d", proxyPort))
 		defer e.Close()
-		req, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/", testCase.ProxyPort), nil)
+		req, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/", proxyPort), nil)
 		assert.NoError(t, err)
 		for _, c := range testCase.RequestCookies {
 			aCookie := c
@@ -187,7 +192,6 @@ func TestUpstreamSelection(t *testing.T) {
 
 	testCases := []TestCase{
 		{
-			ProxyPort:               8080,
 			UpstreamPortName:        "http",
 			UpstreamIDs:             []string{"host1"},
 			RequestCookies:          []http.Cookie{},
@@ -197,7 +201,6 @@ func TestUpstreamSelection(t *testing.T) {
 			ExpectedResponseCookies: map[string]string{"session-cookie": "host1"},
 		},
 		{
-			ProxyPort:               8080,
 			UpstreamPortName:        "http",
 			UpstreamIDs:             []string{"host1", "host2"},
 			RequestCookies:          []http.Cookie{{Name: "session-cookie", Value: "host2"}},
@@ -207,7 +210,6 @@ func TestUpstreamSelection(t *testing.T) {
 			ExpectedResponseCookies: map[string]string{},
 		},
 		{
-			ProxyPort:               8080,
 			UpstreamPortName:        "http",
 			UpstreamIDs:             []string{"host1"},
 			RequestCookies:          []http.Cookie{{Name: "session-cookie", Value: "host2"}},
@@ -217,7 +219,6 @@ func TestUpstreamSelection(t *testing.T) {
 			ExpectedResponseCookies: map[string]string{"session-cookie": "host1"},
 		},
 		{
-			ProxyPort:               8080,
 			UpstreamPortName:        "http",
 			UpstreamIDs:             []string{},
 			RequestCookies:          []http.Cookie{},
