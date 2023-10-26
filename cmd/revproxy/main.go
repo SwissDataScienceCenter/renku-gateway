@@ -33,6 +33,8 @@ func setupServer(ctx context.Context, config revProxyConfig) *echo.Echo {
 	authSvcProxy := proxyFromURL(config.RenkuServices.Auth)
 	kgProxy := proxyFromURL(config.RenkuServices.KG)
 	webhookProxy := proxyFromURL(config.RenkuServices.Webhook)
+	keycloakProxy := proxyFromURL(config.RenkuServices.Keycloak)
+	keycloakProxyHost := setHost(config.RenkuServices.Keycloak.Host)
 	dataServiceProxy := proxyFromURL(config.RenkuServices.DataService)
 	logger := middleware.Logger()
 
@@ -68,6 +70,8 @@ func setupServer(ctx context.Context, config revProxyConfig) *echo.Echo {
 	e.Group("/api/datasets", logger, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)
 	e.Group("/api/kg", logger, gitlabAuth, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)
 	e.Group("/api/data", logger, dataAuth, noCookies, dataServiceProxy)
+	// /api/kc is used only by the ui and no one else, will be removed when the gateway is in charge of user sessions
+	e.Group("/api/kc", logger, stripPrefix("/api/kc"), keycloakProxyHost, keycloakProxy)
 
 	registerCoreSvcProxies(ctx, e, config, logger, checkCoreServiceMetadataVersion(config.RenkuServices.CoreServicePaths), renkuAuth, noCookies, regexRewrite(`^/api/renku(?:/\d+)?((/|\?).*)??$`, "/renku$1"))
 

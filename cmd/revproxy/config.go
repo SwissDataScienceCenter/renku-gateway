@@ -19,7 +19,8 @@ type renkuServicesConfig struct {
 	CoreServiceNames []string `mapstructure:"renku_services_core_service_names"`
 	CoreServicePaths []string `mapstructure:"renku_services_core_service_paths"`
 	Auth             *url.URL `mapstructure:"renku_services_auth"`
-	DataService              *url.URL `mapstructure:"renku_services_data_service"`
+	DataService      *url.URL `mapstructure:"renku_services_data_service"`
+	Keycloak         *url.URL `mapstructure:"renku_services_keycloak"`
 }
 
 type metricsConfig struct {
