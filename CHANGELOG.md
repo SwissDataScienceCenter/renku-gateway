@@ -1,5 +1,15 @@
 # Changes
 
+# [0.23.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.22.0...0.23.0) (2023-10-26)
+
+
+### Features
+
+* add keycloak redirect ([#683](https://github.com/SwissDataScienceCenter/renku-gateway/issues/683)) ([1b2f652](https://github.com/SwissDataScienceCenter/renku-gateway/commit/1b2f6522f3cdeb9ccd1d42677cec5ac071640e04))
+
+
+
+
 ## [0.22.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.21.3...0.22.0) (2023-10-23)
 
 
