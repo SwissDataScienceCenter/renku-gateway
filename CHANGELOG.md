@@ -1,5 +1,19 @@
 # Changes
 
+## [0.22.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.21.3...0.22.0) (2023-10-23)
+
+
+### Bug Fixes
+
+* sticky sessions initialization ([#681](https://github.com/SwissDataScienceCenter/renku-gateway/issues/681)) ([33d4fd2](https://github.com/SwissDataScienceCenter/renku-gateway/commit/33d4fd21707f626d16b9ed36696b49eefd88d272))
+
+
+### Features
+
+* add auth provider for data service ([#670](https://github.com/SwissDataScienceCenter/renku-gateway/issues/670)) ([7bfe9b5](https://github.com/SwissDataScienceCenter/renku-gateway/commit/7bfe9b54a5719f4e2540efea2be44d1ab657c736))
+
+
+
 ## [0.21.3](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.21.2...0.21.3) (2023-08-28)
 
 ### Bug Fixes

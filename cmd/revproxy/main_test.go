@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -64,10 +65,15 @@ func setupTestAuthServer(ID string, responseHeaders map[string]string, responseS
 }
 
 func setupTestRevproxy(ctx context.Context, upstreamServerURL *url.URL, upstreamServerURL2 *url.URL, authURL *url.URL, externalGitlabURL *url.URL) (*echo.Echo, *url.URL) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		log.Fatal(err)
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
 	config := revProxyConfig{
 		RenkuBaseURL:      upstreamServerURL,
 		ExternalGitlabURL: externalGitlabURL,
-		Port:              8090,
+		Port:              port,
 		RenkuServices: renkuServicesConfig{
 			Notebooks:        upstreamServerURL,
 			CoreServiceNames: []string{upstreamServerURL.String(), upstreamServerURL.String(), upstreamServerURL2.String()},
@@ -75,17 +81,19 @@ func setupTestRevproxy(ctx context.Context, upstreamServerURL *url.URL, upstream
 			KG:               upstreamServerURL,
 			Webhook:          upstreamServerURL,
 			Auth:             authURL,
-			Crc: 	          upstreamServerURL,
 			Keycloak:         upstreamServerURL,
+			DataService: 	  upstreamServerURL,
 		},
 		Debug: true,
 	}
 	proxy := setupServer(ctx, config)
 	go func() {
+		proxy.Listener = listener
 		err := proxy.Start(fmt.Sprintf(":%d", config.Port))
 		if err != nil && err != http.ErrServerClosed {
 			log.Fatal(err)
 		}
+		defer listener.Close()
 	}()
 	url, err := url.Parse(fmt.Sprintf("http://localhost:%d", config.Port))
 	if err != nil {
@@ -146,7 +154,17 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 			reqURLQuery.Add(k, v)
 		}
 		reqURL.RawQuery = reqURLQuery.Encode()
-		res, err := http.Get(reqURL.String())
+		// Force ipv4 becaues Github actions seem to constantly switch to ipv6 and fail
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		var zeroDialer net.Dialer
+		var httpClient = &http.Client{
+			Timeout: 10 * time.Second,
+		}
+		transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return zeroDialer.DialContext(ctx, "tcp4", addr)
+		}
+		httpClient.Transport = transport
+		res, err := httpClient.Get(reqURL.String())
 		assert.NoError(t, err)
 		reqs := requestTracker.getAllRequests()
 

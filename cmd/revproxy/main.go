@@ -33,13 +33,14 @@ func setupServer(ctx context.Context, config revProxyConfig) *echo.Echo {
 	authSvcProxy := proxyFromURL(config.RenkuServices.Auth)
 	kgProxy := proxyFromURL(config.RenkuServices.KG)
 	webhookProxy := proxyFromURL(config.RenkuServices.Webhook)
-	crcProxy := proxyFromURL(config.RenkuServices.Crc)
 	keycloakProxy := proxyFromURL(config.RenkuServices.Keycloak)
 	keycloakProxyHost := setHost(config.RenkuServices.Keycloak.Host)
+	dataServiceProxy := proxyFromURL(config.RenkuServices.DataService)
 	logger := middleware.Logger()
 
 	// Initialize common authentication middleware
 	notebooksAuth := authenticate(AddQueryParams(config.RenkuServices.Auth, map[string]string{"auth": "notebook"}), "Renku-Auth-Access-Token", "Renku-Auth-Id-Token", "Renku-Auth-Git-Credentials", "Renku-Auth-Anon-Id", "Renku-Auth-Refresh-Token")
+	dataAuth := authenticate(AddQueryParams(config.RenkuServices.Auth, map[string]string{"auth": "keycloak_gitlab"}), "Authorization", "Gitlab-Access-Token")
 	renkuAuth := authenticate(AddQueryParams(config.RenkuServices.Auth, map[string]string{"auth": "renku"}), "Authorization", "Renku-user-id", "Renku-user-fullname", "Renku-user-email")
 	gitlabAuth := authenticate(AddQueryParams(config.RenkuServices.Auth, map[string]string{"auth": "gitlab"}), "Authorization")
 	cliGitlabAuth := authenticate(AddQueryParams(config.RenkuServices.Auth, map[string]string{"auth": "cli-gitlab"}), "Authorization")
@@ -68,7 +69,7 @@ func setupServer(ctx context.Context, config revProxyConfig) *echo.Echo {
 	e.Group("/api/kg/webhooks", logger, gitlabAuth, noCookies, stripPrefix("/api/kg/webhooks"), webhookProxy)
 	e.Group("/api/datasets", logger, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)
 	e.Group("/api/kg", logger, gitlabAuth, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)
-	e.Group("/api/data", logger, noCookies, crcProxy)
+	e.Group("/api/data", logger, dataAuth, noCookies, dataServiceProxy)
 	// /api/kc is used only by the ui and no one else, will be removed when the gateway is in charge of user sessions
 	e.Group("/api/kc", logger, stripPrefix("/api/kc"), keycloakProxyHost, keycloakProxy)
 
