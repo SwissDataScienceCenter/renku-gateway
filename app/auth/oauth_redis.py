@@ -72,15 +72,17 @@ class OAuthRedis:
         """Put a client object into the store."""
         return self.set_enc(name, oauth_client.to_json().encode())
 
-    def get_oauth_client(self, name, no_refresh=False):
+    def get_oauth_client(
+        self, name, no_refresh=False
+    ) -> Optional[RenkuWebApplicationClient]:
         """Get a client object from the store, refresh if necessary."""
         value = self.get_enc(name)
         if value is None:
-            return
+            return None
 
         oauth_client = RenkuWebApplicationClient.from_json(value.decode())
 
-        # We refresh 5 seconds before the token/client actually expires
+        # We refresh 3 minutes before the token/client actually expires
         # to avoid unlucky edge cases.
         if not no_refresh and oauth_client.expires_soon():
             try:
