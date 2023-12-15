@@ -1,5 +1,14 @@
 # Changes
 
+# [0.23.1] (https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.23.0...0.23.1)  (2023-12-15)
+
+
+### Bug Fixes
+
+* handle missing gitlab credentials ([#692](https://github.com/SwissDataScienceCenter/renku-gateway/issues/692)) ([fb83840](https://github.com/SwissDataScienceCenter/renku-gateway/commit/fb83840c44156e9b35cd41aa86631c91077f06a9))
+
+
+
 # [0.23.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.22.0...0.23.0) (2023-10-26)
 
 
