@@ -16,6 +16,7 @@ RUN chmod a+x /tini && \
     addgroup renku --gid 1000 && \
     adduser renku --uid 1000 --gid 1000
 COPY --chown=1000:1000 --from=builder /code/.venv .venv
+COPY --chown=1000:1000 --from=builder /code/app app
 USER 1000:1000
-ENTRYPOINT [ "/tini", "-g", "--", "./.venv/bin/gunicorn", "-b", "0.0.0.0:5000", "renku-gateway.app:app" ]
+ENTRYPOINT [ "/tini", "-g", "--", "./.venv/bin/gunicorn", "-b", "0.0.0.0:5000", "app:app" ]
 EXPOSE 5000

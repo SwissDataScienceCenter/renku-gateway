@@ -16,40 +16,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-DOCKER_REPOSITORY?=renku/
-IMAGE?=renku-gateway
+auth_tests:
+	poetry run flake8 -v
+	poetry run pytest
 
-DOCKER_LABEL?=$(shell git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/^* //')
-ifeq ($(DOCKER_LABEL), master)
-	DOCKER_LABEL=latest
-endif
-
-GIT_MASTER_HEAD_SHA:=$(shell git rev-parse --short=7 --verify HEAD)
-
-# Note that this is the default target executed when typing 'make'
-build:
-	@echo "Building image: docker build -t ${DOCKER_REPOSITORY}${IMAGE}:${GIT_MASTER_HEAD_SHA} ."
-	@docker build -t ${DOCKER_REPOSITORY}${IMAGE}:${GIT_MASTER_HEAD_SHA} .
-
-tag: build
-	@echo "Tagging image: docker tag ${DOCKER_REPOSITORY}${IMAGE}:${GIT_MASTER_HEAD_SHA} ${DOCKER_REPOSITORY}${IMAGE}:${DOCKER_LABEL}"
-	@docker tag ${DOCKER_REPOSITORY}${IMAGE}:${GIT_MASTER_HEAD_SHA} ${DOCKER_REPOSITORY}${IMAGE}:${DOCKER_LABEL}
-
-push: tag
-	@echo "Pushing image image: docker push ${DOCKER_REPOSITORY}${IMAGE}:${DOCKER_LABEL}"
-	@docker push ${DOCKER_REPOSITORY}${IMAGE}:${DOCKER_LABEL}
-
-start:
-	@echo "Start"
-	@docker pull ${DOCKER_REPOSITORY}${IMAGE}
-    @docker run -p 5000:5000 ${DOCKER_REPOSITORY}${IMAGE}
-
-dev-docker:
-	@echo "Running development server to develop against renku running inside docker"
-	FLASK_APP=app:app FLASK_DEBUG=1 HOST_NAME=http://localhost:5000 flask run
-
-dev:
-	./run-telepresence.sh
-
-login:
-	@echo "${DOCKER_PASSWORD}" | docker login -u="${DOCKER_USERNAME}" --password-stdin ${DOCKER_REGISTRY}
+revproxy_tests:
+	go test -timeout 300s -p 1 -v github.com/SwissDataScienceCenter/renku-gateway/cmd/revproxy github.com/SwissDataScienceCenter/renku-gateway/internal/stickysessions
