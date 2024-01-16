@@ -1,4 +1,4 @@
-package main
+package login
 
 import (
 	"context"
@@ -9,67 +9,51 @@ import (
 	"net/http/httptest"
 	"net/http/httputil"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
+	"time"
 
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/commonconfig"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func getTestProviderConfig(authServers ...testAuthServer) (string, error) {
-	id, err := uuid.NewUUID()
-	if err != nil {
-		return "", err
-	}
-	f, err := os.CreateTemp("", id.String())
-
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
+func getTestProviderConfig(authServers ...testAuthServer) (map[string]config.OIDCClient, error) {
+	output := map[string]config.OIDCClient{}
 	for _, server := range authServers {
-		_, err := f.Write([]byte(server.ProviderConfig() + "\n"))
+		id, err := uuid.NewUUID()
 		if err != nil {
-			return "", err
+			return map[string]config.OIDCClient{}, err
 		}
+		output[id.String()] = server.ProviderConfig()
 	}
-
-	return f.Name(), nil
+	return output, nil
 }
 
-func getTestConfig(
-	providersConfigFile string,
-	defaultProviderIDs []string,
-	loginServerPort int,
-) (LoginServerConfig, error) {
-	config := LoginServerConfig{
-		Server: ServerConfig{
-			BasePath: "/api/auth",
-			Port:     loginServerPort,
-		},
-		DefaultProviderIDs:    defaultProviderIDs,
-		DefaultAppRedirectURL: fmt.Sprintf("http://localhost:%d/api/auth/health", loginServerPort),
-		CallbackURL:           fmt.Sprintf("http://localhost:%d/api/auth/callback", loginServerPort),
-		SessionPersistence: SessionPersistenceConfig{
-			Type: "redis-mock",
-		},
-		TokenEncryption: TokenEncryptionConfig{
+func getTestConfig(loginServerPort int, authServers ...testAuthServer) (config.LoginConfig, error) {
+	providers, err := getTestProviderConfig(authServers...)
+	if err != nil {
+		return config.LoginConfig{}, err
+	}
+	config := config.LoginConfig{
+		DefaultAppRedirectURL: fmt.Sprintf("http://localhost:%d/api/health", loginServerPort),
+		TokenEncryption: config.TokenEncryptionConfig{
 			Enabled:   true,
 			SecretKey: "1b195c6329ba7df1c1adf6975c71910d",
 		},
-		ProviderConfigFile:     providersConfigFile,
-		sessionCookieNotSecure: true,
+		Providers: providers,
 	}
 	return config, nil
 }
 
 func startTestServer(loginServer *LoginServer, listener net.Listener) (*httptest.Server, error) {
-	server := httptest.NewUnstartedServer(loginServer.echo)
+	e := echo.New()
+	loginServer.RegisterHandlers(e)
+	server := httptest.NewUnstartedServer(e)
 	server.Listener = listener
 	server.Start()
 	return server, nil
@@ -82,22 +66,18 @@ func TestGetLogin(t *testing.T) {
 	require.NoError(t, err)
 	loginServerPort := loginServerListener.Addr().(*net.TCPAddr).Port
 	defer loginServerListener.Close()
-
 	kcAuthServer := testAuthServer{
 		Authorized:   true,
 		RefreshToken: "refresh-token-value",
 		ClientID:     "renku",
-		CallbackURI:  fmt.Sprintf("http://localhost:%d/api/auth/callback", loginServerPort),
+		CallbackURI:  fmt.Sprintf("http://localhost:%d/api/callback", loginServerPort),
 	}
 	kcAuthServer.Start()
 	defer kcAuthServer.Server().Close()
-	providersConfigFile, err := getTestProviderConfig(kcAuthServer)
-	require.NoError(t, err)
-	defer os.Remove(providersConfigFile)
-	config, err := getTestConfig(providersConfigFile, []string{"renku"}, loginServerPort)
+	config, err := getTestConfig(loginServerPort, kcAuthServer)
 	require.NoError(t, err)
 
-	api, err := NewLoginServer(&config)
+	api, err := NewLoginServer(WithConfig(config))
 	require.NoError(t, err)
 	apiServer, err := startTestServer(api, loginServerListener)
 	require.NoError(t, err)
@@ -107,16 +87,16 @@ func TestGetLogin(t *testing.T) {
 	require.NoError(t, err)
 	client.Jar = jar
 	testServerURL, err := url.Parse(strings.TrimRight(
-		fmt.Sprintf("http://localhost:%d%s", config.Server.Port, config.Server.BasePath),
+		fmt.Sprintf("http://localhost:%d%s", loginServerPort, config.EndpointsBasePath),
 		"/",
 	))
 	require.NoError(t, err)
 	assert.Len(t, client.Jar.Cookies(testServerURL), 0)
-	res, err := client.Get(testServerURL.JoinPath("/health").String())
+	res, err := client.Get(testServerURL.JoinPath("/api/health").String())
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	req, err := http.NewRequest(http.MethodGet, testServerURL.JoinPath("/login").String(), nil)
+	req, err := http.NewRequest(http.MethodGet, testServerURL.JoinPath("/api/login").String(), nil)
 	require.NoError(t, err)
 	res, err = client.Do(req)
 	require.NoError(t, err)
@@ -134,21 +114,20 @@ func TestGetLogin(t *testing.T) {
 	assert.Len(t, client.Jar.Cookies(testServerURL), 1)
 
 	sessionCookie := client.Jar.Cookies(testServerURL)[0]
-	assert.Equal(t, commonconfig.SessionCookieName, sessionCookie.Name)
+	assert.Equal(t, api.sessionHandler.Cookie(&models.Session{TTLSeconds: 3600, CreatedAt: time.Now().UTC()}).Name, sessionCookie.Name)
 	session, err := api.sessionStore.GetSession(context.Background(), sessionCookie.Value)
 	require.NoError(t, err)
 	assert.Len(t, session.TokenIDs, 1)
-	assert.Len(t, session.LoginWithProviders, 0)
+	assert.Equal(t, 0, session.ProviderIDs.Len())
 	assert.Equal(t, res.Request.URL.String(), config.DefaultAppRedirectURL)
 
-	req, err = http.NewRequest(http.MethodGet, testServerURL.JoinPath("/logout").String(), nil)
+	req, err = http.NewRequest(http.MethodGet, testServerURL.JoinPath("/api/logout").String(), nil)
 	require.NoError(t, err)
 	res, err = client.Do(req)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	session, err = api.sessionStore.GetSession(context.Background(), sessionCookie.Value)
-	require.NoError(t, err)
-	assert.Equal(t, models.Session{}, session)
+	assert.ErrorIs(t, err, gwerrors.ErrSessionNotFound)
 }
 
 func TestGetLogin2Steps(t *testing.T) {
@@ -163,7 +142,7 @@ func TestGetLogin2Steps(t *testing.T) {
 		Authorized:   true,
 		RefreshToken: "refresh-token-value",
 		ClientID:     "renku1",
-		CallbackURI:  fmt.Sprintf("http://localhost:%d/api/auth/callback", loginServerPort),
+		CallbackURI:  fmt.Sprintf("http://localhost:%d/api/callback", loginServerPort),
 	}
 	kcAuthServer1.Start()
 	defer kcAuthServer1.Server().Close()
@@ -171,17 +150,14 @@ func TestGetLogin2Steps(t *testing.T) {
 		Authorized:   true,
 		RefreshToken: "refresh-token-value",
 		ClientID:     "renku2",
-		CallbackURI:  fmt.Sprintf("http://localhost:%d/api/auth/callback", loginServerPort),
+		CallbackURI:  fmt.Sprintf("http://localhost:%d/api/callback", loginServerPort),
 	}
 	kcAuthServer2.Start()
 	defer kcAuthServer2.Server().Close()
-	providersConfigFile, err := getTestProviderConfig(kcAuthServer1, kcAuthServer2)
-	require.NoError(t, err)
-	defer os.Remove(providersConfigFile)
-	config, err := getTestConfig(providersConfigFile, []string{"renku1", "renku2"}, loginServerPort)
+	config, err := getTestConfig(loginServerPort, kcAuthServer1, kcAuthServer2)
 	require.NoError(t, err)
 
-	api, err := NewLoginServer(&config)
+	api, err := NewLoginServer(WithConfig(config))
 	apiServer, err := startTestServer(api, loginServerListener)
 	require.NoError(t, err)
 	defer apiServer.Close()
@@ -192,16 +168,16 @@ func TestGetLogin2Steps(t *testing.T) {
 
 	require.NoError(t, err)
 	testServerURL, err := url.Parse(strings.TrimRight(
-		fmt.Sprintf("http://localhost:%d%s", config.Server.Port, config.Server.BasePath),
+		fmt.Sprintf("http://localhost:%d%s", loginServerPort, config.EndpointsBasePath),
 		"/",
 	))
 	require.NoError(t, err)
 	assert.Len(t, client.Jar.Cookies(testServerURL), 0)
-	res, err := client.Get(testServerURL.JoinPath("/health").String())
+	res, err := client.Get(testServerURL.JoinPath("/api/health").String())
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	req, err := http.NewRequest(http.MethodGet, testServerURL.JoinPath("/login").String(), nil)
+	req, err := http.NewRequest(http.MethodGet, testServerURL.JoinPath("/api/login").String(), nil)
 	require.NoError(t, err)
 	res, err = client.Do(req)
 	require.NoError(t, err)
@@ -219,19 +195,18 @@ func TestGetLogin2Steps(t *testing.T) {
 	assert.Len(t, client.Jar.Cookies(testServerURL), 1)
 
 	sessionCookie := client.Jar.Cookies(testServerURL)[0]
-	assert.Equal(t, commonconfig.SessionCookieName, sessionCookie.Name)
+	assert.Equal(t, api.sessionHandler.Cookie(&models.Session{TTLSeconds: 3600, CreatedAt: time.Now().UTC()}).Name, sessionCookie.Name)
 	session, err := api.sessionStore.GetSession(context.Background(), sessionCookie.Value)
 	require.NoError(t, err)
 	assert.Len(t, session.TokenIDs, 2)
-	assert.Len(t, session.LoginWithProviders, 0)
+	assert.Equal(t, 0, session.ProviderIDs.Len())
 	assert.Equal(t, res.Request.URL.String(), config.DefaultAppRedirectURL)
 
-	req, err = http.NewRequest(http.MethodGet, testServerURL.JoinPath("/logout").String(), nil)
+	req, err = http.NewRequest(http.MethodGet, testServerURL.JoinPath("/api/logout").String(), nil)
 	require.NoError(t, err)
 	res, err = client.Do(req)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	session, err = api.sessionStore.GetSession(context.Background(), sessionCookie.Value)
-	require.NoError(t, err)
-	assert.Equal(t, models.Session{}, session)
+	assert.ErrorIs(t, err, gwerrors.ErrSessionNotFound)
 }

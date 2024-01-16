@@ -1,20 +1,11 @@
-FROM python:3.7-slim
+FROM golang:1.19.5-alpine3.17 as builder
+WORKDIR /src
+COPY go.mod go.sum ./
+COPY cmd/revproxy/ ./
+COPY internal/stickysessions/ ./internal/stickysessions/
+RUN go build -o /revproxy
 
-RUN pip install --upgrade pip==22.1.2 && \
-    pip install poetry && \
-    addgroup renku --gid 1000 && \
-    adduser renku --uid 1000 --gid 1000
-
-COPY pyproject.toml poetry.lock /code/
-WORKDIR /code
-
-RUN poetry config virtualenvs.create false && \
-    poetry install
-
-COPY ./ /code
-
+FROM alpine:3.17
 USER 1000:1000
-
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app",  "-k", "gevent"]
-
-EXPOSE 5000
+COPY --from=builder /revproxy /revproxy
+ENTRYPOINT [ "/revproxy" ]

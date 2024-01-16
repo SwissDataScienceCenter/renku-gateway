@@ -160,7 +160,7 @@ func (s *StickySessionBalancer) Next(c echo.Context) *middleware.ProxyTarget {
 		}
 		c.SetCookie(cookie)
 		log.Printf("Receiving sticky session request (%s/%s), cookie found but not upstream, assigned upstream with uid %s", s.Namespace, s.Service, upstream.UID)
-	} 
+	}
 	return upstream.ProxyTarget()
 }
 

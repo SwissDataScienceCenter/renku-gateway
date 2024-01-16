@@ -39,7 +39,7 @@ func registerCoreSvcProxies(ctx context.Context, e *echo.Echo, config revProxyCo
 			}
 			coreBalancer = middleware.NewRandomBalancer([]*middleware.ProxyTarget{{URL: url}})
 		} else {
-			cookieName := fmt.Sprintf("reverse-proxy-sticky-session-%s", service)			
+			cookieName := fmt.Sprintf("reverse-proxy-sticky-session-%s", service)
 			coreBalancer = stickysessions.NewStickySessionBalancer(ctx, service, config.Namespace, "http", "/", cookieName)
 		}
 		coreStickSessionsProxy := middleware.Proxy(coreBalancer)

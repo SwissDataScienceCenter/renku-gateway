@@ -75,7 +75,7 @@ func setupTestRevproxy(ctx context.Context, upstreamServerURL *url.URL, upstream
 			KG:               upstreamServerURL,
 			Webhook:          upstreamServerURL,
 			Auth:             authURL,
-			Crc: 	          upstreamServerURL,
+			Crc:              upstreamServerURL,
 		},
 		Debug: true,
 	}
@@ -170,7 +170,7 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 		if scenario.Expected.Path != "" && len(reqs) > 0 {
 			assert.Equal(t, scenario.Expected.Path, reqs[len(reqs)-1].URL.EscapedPath())
 		}
-		if len(scenario.QueryParams) > 0 && len(reqs) > 0  {
+		if len(scenario.QueryParams) > 0 && len(reqs) > 0 {
 			assert.Equal(t, reqURLQuery.Encode(), reqs[len(reqs)-1].URL.RawQuery)
 		}
 	}

@@ -1,4 +1,4 @@
-package idgenerators
+package models
 
 import (
 	"crypto/rand"
@@ -22,7 +22,7 @@ func (ULIDGenerator) ID() (string, error) {
 	return id.String(), err
 }
 
-// ULIDGenerator implements models.IDGenerator and generates random IDs used for session IDs
+// RandomGenerator implements models.IDGenerator and generates random IDs used for session IDs
 type RandomGenerator struct {
 	Length int
 }
@@ -35,6 +35,6 @@ func (r RandomGenerator) ID() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
-func NewRandomGenerator() RandomGenerator {
-	return RandomGenerator{24}
+func NewRandomGenerator(length int) RandomGenerator {
+	return RandomGenerator{length}
 }

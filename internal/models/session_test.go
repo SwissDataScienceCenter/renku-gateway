@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -9,40 +10,58 @@ import (
 )
 
 func TestSessionExpired(t *testing.T) {
-	session, err := NewSession(time.Hour, []string{"providerID1"})
+	session, err := NewSession()
 	require.NoError(t, err)
 	assert.False(t, session.Expired())
-	session.ExpiresAt = time.Now().Add(-8 * time.Hour)
+	session.CreatedAt = time.Now().UTC().Add(-999 * time.Hour)
 	assert.True(t, session.Expired())
 }
 
 func TestSetLoginURL(t *testing.T) {
-	session, err := NewSession(time.Hour, []string{"providerID1"})
+	store := NewDummyDBAdapter()
+	session, err := NewSession()
 	require.NoError(t, err)
+	session.sessionStore = &store
 	assert.Equal(t, session.RedirectURL, "")
-	url := "http://url1"
-	session.SetRedirectURL(url)
+	url := "http://url1.com"
+	err = session.SetRedirectURL(context.Background(), url)
+	require.NoError(t, err)
 	assert.Equal(t, url, session.RedirectURL)
 }
 
 func TestProviderIDs(t *testing.T) {
-	session, err := NewSession(time.Hour, []string{"providerID1"})
+	session, err := NewSession(WithProviders("providerID1", "providerID2"))
 	require.NoError(t, err)
-	assert.Len(t, session.LoginWithProviders, 1)
-	assert.Equal(t, "providerID1", session.PopProviderID())
-	assert.Len(t, session.LoginWithProviders, 0)
-	assert.Equal(t, "", session.PopProviderID())
-	providerIDs := SerializableStringSlice{"providerID2", "providerID3"}
-	session.SetProviderIDs(providerIDs)
-	assert.Equal(t, providerIDs, session.LoginWithProviders)
-	assert.Equal(t, providerIDs[0], session.PopProviderID())
-	assert.Equal(t, providerIDs[1:], session.LoginWithProviders)
+	assert.Equal(t, 2, session.ProviderIDs.Len())
+	assert.Equal(t, "providerID1", session.PeekProviderID())
+	assert.Equal(t, "providerID2", session.ProviderIDs.Newest().Value)
+	session, err = NewSession()
+	require.NoError(t, err)
+	store := NewDummyDBAdapter()
+	session.sessionStore = &store
+	assert.Equal(t, "", session.PeekProviderID())
+	err = session.SetProviders(context.Background(), "providerID1", "providerID2")
+	require.NoError(t, err)
+	assert.Equal(t, 2, session.ProviderIDs.Len())
 }
 
 func TestAddTokenID(t *testing.T) {
-	session, err := NewSession(time.Hour, []string{"providerID1"})
+	session, err := NewSession(WithProviders("provider1"))
+	state := session.ProviderIDs.Oldest().Key
 	require.NoError(t, err)
+	store := NewDummyDBAdapter()
+	session.tokenStore = &store
+	session.sessionStore = &store
 	assert.Len(t, session.TokenIDs, 0)
-	session.AddTokenID("test1")
-	assert.Equal(t, SerializableStringSlice{"test1"}, session.TokenIDs)
+	at := OauthToken{ID: "1", Value: "access_token", ProviderID: "provider1", Type: AccessTokenType, ExpiresAt: time.Now().UTC().Add(time.Hour)}
+	rt := OauthToken{ID: "1", Value: "refresh_token", ProviderID: "provider1", Type: RefreshTokenType, ExpiresAt: time.Now().UTC().Add(time.Hour)}
+	err = session.SaveTokens(context.Background(), at, rt, state)
+	require.NoError(t, err)
+	assert.Len(t, session.TokenIDs, 1)
+	rat, err := session.GetAccessToken(context.Background(), "provider1")
+	require.NoError(t, err)
+	assert.Equal(t, at, rat)
+	rrt, err := session.tokenStore.GetRefreshToken(context.Background(), rt.ID)
+	require.NoError(t, err)
+	assert.Equal(t, rt, rrt)
 }

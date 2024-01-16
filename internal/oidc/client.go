@@ -5,41 +5,19 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/idgenerators"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
-	"github.com/google/uuid"
 	"github.com/zitadel/oidc/v2/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v2/pkg/http"
 	"github.com/zitadel/oidc/v2/pkg/oidc"
 )
 
-type Client interface {
-	AuthHandler() http.HandlerFunc
-	CodeExchangeHandler(tokensHandler TokensHandler) http.HandlerFunc
-	ID() string
-}
-
-type TokensHandler func(accessToken, refreshToken models.OauthToken) error
-
-type Config struct {
-	Issuer        string   `yaml:"issuer"`
-	ClientID      string   `yaml:"clientId"`
-	ClientSecret  string   `yaml:"clientSecret"`
-	Scopes        []string `yaml:"scopes"`
-	CookieHashKey string   `yaml:"cookieHashKey,omitempty"`
-	CookieEncKey  string   `yaml:"cookieEncKey,omitempty"`
-	CallbackURI   string   `yaml:"callbackURI"`
-	NoPKCE        bool     `yaml:"noPKCE"`
-	// UnsafeNoCookieHandler should NOT be set to true in production
-	UnsafeNoCookieHandler bool `yaml:"unsafeNoCookieHandler"`
-}
-
-type zitadelClient struct {
+type Client struct {
 	client rp.RelyingParty
 	id     string
 }
 
-func (z *zitadelClient) getCodeExchangeCallback(tokensCallback TokensHandler) func(
+func (c *Client) getCodeExchangeCallback(tokensCallback models.TokensHandler) func(
 	w http.ResponseWriter,
 	r *http.Request,
 	tokens *oidc.Tokens[*oidc.IDTokenClaims],
@@ -55,7 +33,7 @@ func (z *zitadelClient) getCodeExchangeCallback(tokensCallback TokensHandler) fu
 	) {
 		refreshTokenValue := tokens.RefreshToken
 		accessTokenValue := tokens.AccessToken
-		id, err := idgenerators.ULIDGenerator{}.ID()
+		id, err := models.ULIDGenerator{}.ID()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -66,7 +44,7 @@ func (z *zitadelClient) getCodeExchangeCallback(tokensCallback TokensHandler) fu
 			Value:      accessTokenValue,
 			TokenURL:   client.OAuthConfig().Endpoint.TokenURL,
 			ExpiresAt:  tokens.Expiry,
-			ProviderID: z.ID(),
+			ProviderID: c.ID(),
 		}
 		var refreshTokenExpiresIn int
 		if refreshTokenExpiresInRaw := tokens.Extra("refresh_expires_in"); refreshTokenExpiresInRaw != nil {
@@ -82,7 +60,7 @@ func (z *zitadelClient) getCodeExchangeCallback(tokensCallback TokensHandler) fu
 			Value:      refreshTokenValue,
 			TokenURL:   client.OAuthConfig().Endpoint.TokenURL,
 			ExpiresAt:  refreshTokenExpiry,
-			ProviderID: z.ID(),
+			ProviderID: c.ID(),
 		}
 		err = tokensCallback(accessToken, refreshToken)
 		if err != nil {
@@ -92,57 +70,91 @@ func (z *zitadelClient) getCodeExchangeCallback(tokensCallback TokensHandler) fu
 	}
 }
 
-func (z *zitadelClient) AuthHandler() http.HandlerFunc {
+// AuthHandler returns a http handler that can start the login flow and redirect
+// to the identity provider /authorization page, setting all reaquired paramters
+// like state, client ID, secret, etc. We store the oAuth state values in the session
+// in Redis so the function here just forwards the state that was provided from the session.
+func (c *Client) AuthHandler(state string) http.HandlerFunc {
 	stateFunc := func() string {
-		return uuid.NewString()
+		return state
 	}
-	return rp.AuthURLHandler(stateFunc, z.client)
+	return rp.AuthURLHandler(stateFunc, c.client)
 }
 
-func (z *zitadelClient) CodeExchangeHandler(tokensCallback TokensHandler) http.HandlerFunc {
-	return rp.CodeExchangeHandler(z.getCodeExchangeCallback(tokensCallback), z.client)
+// Returns a http handler that will receive the authorization code from the identity provider.
+// swap it for an access token and then pass the access and refresh token to the callback function.
+func (c *Client) CodeExchangeHandler(tokensCallback models.TokensHandler) http.HandlerFunc {
+	return rp.CodeExchangeHandler(c.getCodeExchangeCallback(tokensCallback), c.client)
 }
 
-func (z *zitadelClient) ID() string {
-	return z.id
+func (c *Client) ID() string {
+	return c.id
 }
 
-func NewClient(config Config, id string) (Client, error) {
-	options := []rp.Option{}
-	if !config.NoPKCE || !config.UnsafeNoCookieHandler {
-		cookieEncKey := []byte(config.CookieEncKey)
-		cookieHashKey := []byte(config.CookieHashKey)
+type ClientOption func(*Client) error
+
+func WithOIDCConfig(clientConfig config.OIDCClient) ClientOption {
+	validateConfig := func(clientConfig config.OIDCClient) error {
+		cookieEncKey := []byte(clientConfig.CookieEncodingKey)
+		cookieHashKey := []byte(clientConfig.CookieHashKey)
 		if len(cookieEncKey) > 0 && !(len(cookieEncKey) == 16 || len(cookieEncKey) == 32) {
-			return nil, fmt.Errorf(
+			return fmt.Errorf(
 				"Invalid length for oauth2 state cookie encryption key, got %d, but allowed sizes are 16 or 32",
 				len(cookieEncKey),
 			)
 		}
-		if len(cookieEncKey) == 0 {
-			cookieEncKey = nil
-		}
-		if len(cookieHashKey) != 32 {
-			return nil, fmt.Errorf(
+		if len(cookieHashKey) > 0 && len(cookieHashKey) != 32 {
+			return fmt.Errorf(
 				"Invalid length for oauth2 state cookie hash key, got %d, allowed size is 32",
 				len(cookieHashKey),
 			)
 		}
-		cookieHandler := httphelper.NewCookieHandler(cookieHashKey, cookieEncKey)
-		options = append(options, rp.WithCookieHandler(cookieHandler))
-		if !config.NoPKCE {
-			options = append(options, rp.WithPKCE(cookieHandler))
+		return nil
+	}
+	makeClient := func(clientConfig config.OIDCClient) (rp.RelyingParty, error) {
+		options := []rp.Option{}
+		if !clientConfig.UnsafeNoCookieHandler {
+			cookieEncKey := []byte(clientConfig.CookieEncodingKey)
+			cookieHashKey := []byte(clientConfig.CookieHashKey)
+			if len(cookieEncKey) == 0 {
+				cookieEncKey = nil
+			}
+			cookieHandler := httphelper.NewCookieHandler(cookieHashKey, cookieEncKey)
+			options = append(options, rp.WithCookieHandler(cookieHandler))
+			if clientConfig.UsePKCE {
+				options = append(options, rp.WithPKCE(cookieHandler))
+			}
+		}
+		return rp.NewRelyingPartyOIDC(
+			clientConfig.Issuer,
+			clientConfig.ClientID,
+			clientConfig.ClientSecret,
+			clientConfig.CallbackURI,
+			clientConfig.Scopes,
+			options...,
+		)
+	}
+	return func(c *Client) error {
+		err := validateConfig(clientConfig)
+		if err != nil {
+			return err
+		}
+		client, err := makeClient(clientConfig)
+		if err != nil {
+			return err
+		}
+		c.client = client
+		return nil
+	}
+}
+
+func NewClient(id string, options ...ClientOption) (Client, error) {
+	client := Client{id: id}
+	for _, opt := range options {
+		err := opt(&client)
+		if err != nil {
+			return Client{}, err
 		}
 	}
-	client, err := rp.NewRelyingPartyOIDC(
-		config.Issuer,
-		config.ClientID,
-		config.ClientSecret,
-		config.CallbackURI,
-		config.Scopes,
-		options...,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return &zitadelClient{client, id}, nil
+	return client, nil
 }

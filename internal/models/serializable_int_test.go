@@ -7,21 +7,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSerializableSessionTypeText(t *testing.T) {
-	a := Default
+func TestSerializableIntText(t *testing.T) {
+	var a SerializableInt = 10
 	data, err := a.MarshalText()
 	require.NoError(t, err)
-	var b SessionType
+	var b SerializableInt
 	err = b.UnmarshalText(data)
 	require.NoError(t, err)
 	assert.Equal(t, a, b)
 }
 
-func TestSerializableSessionTypeBinary(t *testing.T) {
-	a := Device
+func TestSerializableIntBinary(t *testing.T) {
+	var a SerializableInt = 10
 	data, err := a.MarshalBinary()
 	require.NoError(t, err)
-	var b SessionType
+	var b SerializableInt
 	err = b.UnmarshalBinary(data)
 	require.NoError(t, err)
 	assert.Equal(t, a, b)

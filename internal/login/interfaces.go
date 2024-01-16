@@ -1,4 +1,4 @@
-package main
+package login
 
 import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"

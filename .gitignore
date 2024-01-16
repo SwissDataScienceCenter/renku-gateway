@@ -112,3 +112,5 @@ helm-chart/renku-gateway/charts/**
 
 # Ignore snyk cache
 .dccache
+
+.DS_Store

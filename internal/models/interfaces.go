@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"net/http"
 	"time"
 )
 
@@ -15,9 +16,9 @@ type IDGenerator interface {
 }
 
 type AccessTokenGetter interface {
-	GetAccessToken(context.Context, string) (OauthToken, error)
-	GetAccessTokens(context.Context, ...string) (map[string]OauthToken, error)
-	GetExpiringAccessTokenIDs(context.Context, time.Time, time.Time) ([]string, error)
+	GetAccessToken(ctx context.Context, tokenID string) (OauthToken, error)
+	GetAccessTokens(ctx context.Context, tokenIDs ...string) (map[string]OauthToken, error)
+	GetExpiringAccessTokenIDs(ctx context.Context, expiryStart time.Time, expiryEnd time.Time) ([]string, error)
 }
 
 type AccessTokenSetter interface {
@@ -29,8 +30,8 @@ type AccessTokenRemover interface {
 }
 
 type RefreshTokenGetter interface {
-	GetRefreshToken(context.Context, string) (OauthToken, error)
-	GetRefreshTokens(context.Context, ...string) (map[string]OauthToken, error)
+	GetRefreshToken(ctx context.Context, tokenID string) (OauthToken, error)
+	GetRefreshTokens(ctx context.Context, tokenIDs ...string) (map[string]OauthToken, error)
 }
 
 type RefreshTokenSetter interface {
@@ -51,4 +52,17 @@ type SessionSetter interface {
 
 type SessionRemover interface {
 	RemoveSession(context.Context, string) error
+}
+
+type TokensHandler func(accessToken, refreshToken OauthToken) error
+
+type OIDCProviderStore interface {
+	CallbackHandler(providerID string, tokensHandler TokensHandler) (http.HandlerFunc, error)
+	AuthHandler(providerID string, state string) (http.HandlerFunc, error)
+}
+
+type OIDCProvider interface {
+	AuthHandler(state string) http.HandlerFunc
+	CodeExchangeHandler(tokensHandler TokensHandler) http.HandlerFunc
+	ID() string
 }

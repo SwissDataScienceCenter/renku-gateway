@@ -4,16 +4,17 @@ import (
 	"context"
 	"encoding"
 	"fmt"
-	"math/rand"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var compareOptions []cmp.Option = []cmp.Option{cmpopts.IgnoreUnexported(models.OauthToken{})}
@@ -51,38 +52,26 @@ func decomposeStructToMap(strct interface{}) (map[string]string, error) {
 func TestSetGetSession(t *testing.T) {
 	ctx := context.Background()
 	adapter := NewMockRedisAdapter()
-	mySession := models.Session{
-		ID:        "12345",
-		ExpiresAt: time.Now().Add(time.Second * time.Duration(uint64(rand.Int63n(14400)))),
-		TokenIDs:  []string{"test"},
-	}
-	err := adapter.SetSession(ctx, mySession)
-	assert.NoError(t, err)
-	session, err := adapter.GetSession(ctx, "12345")
-	assert.NoError(t, err)
-	assert.Truef(
-		t,
-		cmp.Equal(mySession, session, compareOptions...),
-		"The two values are not equal, diff is: %s\n",
-		cmp.Diff(mySession, session, compareOptions...),
-	)
+	mySession, err := models.NewSession()
+	require.NoError(t, err)
+	err = adapter.SetSession(ctx, mySession)
+	require.NoError(t, err)
+	session, err := adapter.GetSession(ctx, mySession.ID)
+	require.NoError(t, err)
+	assert.True(t, mySession.Equal(&session))
 }
 
 func TestRemoveSession(t *testing.T) {
 	ctx := context.Background()
 	adapter := NewMockRedisAdapter()
-	mySession := models.Session{
-		ID:        "12345",
-		ExpiresAt: time.Now().Add(time.Second * time.Duration(uint64(rand.Int63n(14400)))),
-		TokenIDs:  []string{"test"},
-	}
-	err := adapter.SetSession(ctx, mySession)
+	mySession, err := models.NewSession()
+	require.NoError(t, err)
+	err = adapter.SetSession(ctx, mySession)
 	assert.NoError(t, err)
-	err = adapter.RemoveSession(ctx, "12345")
+	err = adapter.RemoveSession(ctx, mySession.ID)
 	assert.NoError(t, err)
-	session, err := adapter.GetSession(ctx, "12345")
-	assert.NoError(t, err)
-	assert.Equal(t, models.Session{}, session)
+	_, err = adapter.GetSession(ctx, mySession.ID)
+	assert.ErrorIs(t, err, gwerrors.ErrSessionNotFound)
 }
 
 func TestSetGetRemoveAccessToken(t *testing.T) {
@@ -114,6 +103,5 @@ func TestSetGetRemoveAccessToken(t *testing.T) {
 	err = adapter.RemoveAccessToken(ctx, myAccessToken)
 	assert.NoError(t, err)
 	accessToken, err = adapter.GetAccessToken(ctx, myAccessToken.ID)
-	assert.NoError(t, err)
-	assert.Equal(t, models.OauthToken{}, accessToken)
+	assert.ErrorIs(t, err, gwerrors.ErrMissingDBResource)
 }

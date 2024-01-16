@@ -1,12 +1,12 @@
-package main
+package login
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"time"
 
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -192,21 +192,13 @@ func (t *testAuthServer) Start() {
 	t.server = httptest.NewServer(e.Server.Handler)
 }
 
-func (t *testAuthServer) ProviderConfig() string {
-	return fmt.Sprintf(`
-%s:
-  clientId: %s
-  clientSecret: client-secret-value
-  issuer: %s
-  scopes: []
-  callbackURI: %s
-  cookieHashKey: 32ByteHashKey1234567891011121314
-  cookieEncKey: 32ByteKey12345678910111213141516
-  unsafeNoCookieHandler: true
-  noPKCE: true`,
-		t.ClientID,
-		t.ClientID,
-		t.Server().URL,
-		t.CallbackURI,
-	)
+func (t *testAuthServer) ProviderConfig() config.OIDCClient {
+	return config.OIDCClient{
+		Default:               true,
+		Issuer:                t.Server().URL,
+		ClientID:              t.ClientID,
+		ClientSecret:          "client-secret-value",
+		CallbackURI:           t.CallbackURI,
+		UnsafeNoCookieHandler: true,
+	}
 }

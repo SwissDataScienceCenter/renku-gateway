@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -36,4 +37,12 @@ func TestSerializableStringSliceJSON(t *testing.T) {
 	err = json.Unmarshal(data, &b)
 	require.NoError(t, err)
 	assert.Equal(t, a, b)
+}
+
+func TestStringSliceDeepEqualWorksAsExpected(t *testing.T) {
+	a := SerializableStringSlice{"1", "2"}
+	b := SerializableStringSlice{"1", "2"}
+	assert.True(t, reflect.DeepEqual(a, b))
+	c := SerializableStringSlice{"2", "1"}
+	assert.False(t, reflect.DeepEqual(a, c))
 }

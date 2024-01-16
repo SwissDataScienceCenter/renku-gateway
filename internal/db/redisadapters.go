@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/mitchellh/mapstructure"
 	"github.com/redis/go-redis/v9"
@@ -60,6 +62,11 @@ func (RedisAdapter) serializeStruct(strct interface{}) []interface{} {
 
 // deserializeToStruct takes a result from a Hash value in Redis and converts it to a struct
 func (RedisAdapter) deserializeToStruct(hash map[string]string, output interface{}) error {
+	if len(hash) == 0 {
+		// HGetAll returns an empty list of keys and values if the element is not present in the DB
+		// then this is deserialized the empty valued struct of whatever it is we are looking at
+		return gwerrors.ErrMissingDBResource
+	}
 	decoder, err := mapstructure.NewDecoder(
 		&mapstructure.DecoderConfig{
 			DecodeHook: mapstructure.ComposeDecodeHookFunc(
@@ -73,8 +80,6 @@ func (RedisAdapter) deserializeToStruct(hash map[string]string, output interface
 	}
 	return decoder.Decode(hash)
 }
-
-// Set/write functions
 
 // SetSession writes the associated ID, type, expiration and tokenID of a session to Redis
 func (r RedisAdapter) SetSession(ctx context.Context, session models.Session) error {
@@ -218,8 +223,11 @@ func (r RedisAdapter) RemoveProjectToken(ctx context.Context, projectID int, acc
 // Get functions
 
 // GetSession reads the associated ID, type, expiration and tokenID of a session from Redis
+// If the session does not exist in redis then an error is return with value redis.Nil
 func (r RedisAdapter) GetSession(ctx context.Context, sessionID string) (models.Session, error) {
 	output := models.Session{}
+	// NOTE: HGETALL will return an empty list of hash-keys and hash-values if the key is not found
+	// then this is deserialized as an empty (zero-valued) struct
 	raw, err := r.rdb.HGetAll(
 		ctx,
 		sessionPrefix+sessionID,
@@ -227,9 +235,14 @@ func (r RedisAdapter) GetSession(ctx context.Context, sessionID string) (models.
 	if err != nil {
 		return output, err
 	}
-
 	err = r.deserializeToStruct(raw, &output)
-	return output, err
+	if err != nil {
+		if err == gwerrors.ErrMissingDBResource {
+			err = gwerrors.ErrSessionNotFound
+		}
+		return models.Session{}, err
+	}
+	return output, nil
 }
 
 // getOauthToken reads a specific token from redis, decrypting if necessary.
@@ -240,6 +253,9 @@ func (r RedisAdapter) getOauthToken(ctx context.Context, keyPrefix string, token
 		keyPrefix+tokenID,
 	).Result()
 	if err != nil {
+		if err == gwerrors.ErrMissingDBResource {
+			err = gwerrors.ErrTokenNotFound
+		}
 		return output, err
 	}
 
@@ -362,6 +378,59 @@ func (r RedisAdapter) GetProjectTokens(ctx context.Context, projectID int) ([]st
 	return projectTokens, err
 }
 
-func NewRedisAdapter(rdb redis.UniversalClient, encryptor models.Encryptor) RedisAdapter {
-	return RedisAdapter{rdb: rdb, encryptor: encryptor}
+type RedisAdapterOption func(*RedisAdapter) error
+
+func WithRedisConfig(redisConfig config.RedisConfig) RedisAdapterOption {
+	return func(r *RedisAdapter) error {
+		switch redisConfig.Type {
+		case config.DBTypeRedis:
+			if redisConfig.IsSentinel {
+				rdb := redis.NewFailoverClient(&redis.FailoverOptions{
+					MasterName:       redisConfig.MasterName,
+					SentinelAddrs:    redisConfig.Addresses,
+					Password:         redisConfig.Password,
+					DB:               redisConfig.DBIndex,
+					SentinelPassword: redisConfig.Password,
+				})
+				r.rdb = rdb
+				return nil
+			}
+			rdb := redis.NewClient(&redis.Options{
+				Password: redisConfig.Password,
+				DB:       redisConfig.DBIndex,
+				Addr:     redisConfig.Addresses[0],
+			})
+			r.rdb = rdb
+			return nil
+		case config.DBTypeRedisMock:
+			r.rdb = &MockRedisClient{map[string]interface{}{}}
+			return nil
+		default:
+			return fmt.Errorf("unrecognized persistence type %v", redisConfig.Type)
+		}
+	}
+}
+
+func WithEcryption(secretKey string) RedisAdapterOption {
+	return func(r *RedisAdapter) error {
+		encryptor, err := NewGCMEncryptor(secretKey)
+		if err != nil {
+			return err
+		}
+		r.encryptor = encryptor
+		return nil
+	}
+}
+
+// NewRedisAdapter creates a new DB adapter for Redis, if not provided as an option by default
+// it will not use encryption and it will use an in-memory mock of Redis.
+func NewRedisAdapter(options ...RedisAdapterOption) (RedisAdapter, error) {
+	rdb := RedisAdapter{rdb: &MockRedisClient{}}
+	for _, opt := range options {
+		err := opt(&rdb)
+		if err != nil {
+			return RedisAdapter{}, err
+		}
+	}
+	return rdb, nil
 }

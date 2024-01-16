@@ -1,0 +1,142 @@
+openapi: 3.0.2
+info:
+  title: Renku gateway
+  description: Login flow, OAuth callbacks and authentication for Renku
+  version: v1
+servers:
+  - url: /api/auth
+paths:
+  /health:
+    servers:
+      - url: http://renku-gateway-auth
+        description: Available only from within the k8s cluster
+    get:
+      description: Healthcheck endpoint.
+      responses:
+        '200':
+          description: The service is running properly.
+      tags:
+        - traefik
+  /login:
+    get:
+      description: Starts the login process for Renku.
+      parameters:
+        - in: query
+          name: redirect_url
+          schema:
+            type: string
+        - in: query
+          name: provider_id
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '302':
+          description: The user is redirected to the proper login page.
+      tags:
+        - renku
+  /device/login:
+    get:
+      description: Starts the device login process for Renku.
+      parameters:
+        - in: query
+          name: device_code
+          schema:
+            type: string
+        - in: query
+          name: user_code
+          schema:
+            type: string
+        - in: query
+          name: original_verification_uri
+          schema:
+            type: string
+        - in: query
+          name: original_verification_uri_complete
+          schema:
+            type: string
+        - in: query
+          name: provider_id
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '302':
+          description: The user is redirected to the proper login page.
+      tags:
+        - renku
+  /callback:
+    get:
+      description: Authorization code flow callback
+      parameters:
+        - in: query
+          name: code
+          required: true 
+          schema:
+            type: string
+        - in: query
+          name: state
+          required: true 
+          schema:
+            type: string
+        - in: query
+          name: session_state
+          required: false 
+          schema:
+            type: string
+      responses:
+        '302':
+          description: The token was used to acquire the access token and the request is redirected further
+      tags:
+        - renku
+  /logout:
+    get:
+      description: |
+        Log the user out of Renku. Depending on the configuration of the gateway 
+        this can result in the user also being logged out of Gitlab.
+      parameters:
+        - in: query
+          name: redirect_url
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The user was successfully logged out
+      tags:
+        - renku
+    post:
+      description: Backchannel oauth2 logout
+  /device:
+    post:
+      description: Starts the login process for the the CLI.
+      responses:
+        '302':
+          description: The user is redirected to the proper login page.
+      tags:
+        - device
+  /device/token:
+    post:
+      description: Callback endpoint for logging in with the CLI.
+      responses:
+        '302':
+          description: The user is redirected to the proper login page or content.
+      tags:
+        - device
+components:
+  schemas:
+    CLIResponseErrorMessage:
+      properties:
+        error:
+          type: string
+      required:
+        - error
+      type: object
+    CLIResponseAccessToken:
+      properties:
+        access_token:
+          type: string
+      required:
+        - access_token
+      type: object

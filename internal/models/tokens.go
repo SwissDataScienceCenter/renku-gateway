@@ -63,3 +63,7 @@ func (o OauthToken) String() string {
 		o.encryptor != nil,
 	)
 }
+
+func (o OauthToken) Expired() bool {
+	return time.Now().UTC().After(o.ExpiresAt)
+}

@@ -1,22 +1,23 @@
-package main
+package login
 
 import (
 	"fmt"
 	"net/http"
 
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/commonconfig"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/errors"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/common"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/labstack/echo/v4"
 )
 
-const SessionIDCtxKey string = "sessionID"
-
+// GetLogin is a handler for the initiation of a authorization code flow login for Renku
 func (l *LoginServer) GetLogin(c echo.Context, params GetLoginParams) error {
-	var session models.Session
+	session, ok := c.Get(common.SessionCtxKey).(models.Session)
+	if !ok {
+		return gwerrors.ErrSessionParse
+	}
 	var appRedirectURL string
 	var providerIDs models.SerializableStringSlice
-
 	// Check redirect parameters
 	if params.RedirectUrl != nil && *params.RedirectUrl != "" {
 		appRedirectURL = *params.RedirectUrl
@@ -27,20 +28,54 @@ func (l *LoginServer) GetLogin(c echo.Context, params GetLoginParams) error {
 	if params.ProviderId != nil && len(*params.ProviderId) > 0 {
 		providerIDs = *params.ProviderId
 	} else {
-		providerIDs = l.config.DefaultProviderIDs
+		providerIDs = l.config.DefaultProviderIDs()
 	}
-	// Get the session from the context - the session middleware already got it from the store
-	session, ok := c.Get(commonconfig.SessionCtxKey).(models.Session)
-	if !ok {
-		return errors.ErrSessionParse
+	// Set the providers and redirect
+	// TODO: check if the session already has logged in with the provider
+	err := session.SetRedirectURL(c.Request().Context(), appRedirectURL)
+	if err != nil {
+		return err
 	}
-	session.SetProviderIDs(providerIDs)
-	session.SetRedirectURL(appRedirectURL)
-
+	err = session.SetProviders(c.Request().Context(), providerIDs...)
+	if err != nil {
+		return err
+	}
 	return l.oAuthNext(c, session)
 }
 
-// oauthStart sets up the beginning of the oauth flow and ends with
+// GetDeviceLogin is a handler for the initiation of a device login for Renku, used by the CLI
+func (l *LoginServer) GetDeviceLogin(c echo.Context, params GetDeviceLoginParams) error {
+	session, ok := c.Get(common.SessionCtxKey).(models.Session)
+	if !ok {
+		return gwerrors.ErrSessionParse
+	}
+	var appRedirectURL string
+	var providerIDs models.SerializableStringSlice
+	if params.OriginalVerificationUriComplete != nil {
+		appRedirectURL = *params.OriginalVerificationUriComplete
+	}
+	if params.OriginalVerificationUri != nil {
+		appRedirectURL = *params.OriginalVerificationUri
+	}
+	if params.ProviderId != nil && len(*params.ProviderId) > 0 {
+		providerIDs = *params.ProviderId
+	} else {
+		providerIDs = l.config.DefaultProviderIDs()
+	}
+	// Set the providers and redirect
+	// TODO: check if the session already has logged in with the provider
+	err := session.SetRedirectURL(c.Request().Context(), appRedirectURL)
+	if err != nil {
+		return err
+	}
+	err = session.SetProviders(c.Request().Context(), providerIDs...)
+	if err != nil {
+		return err
+	}
+	return l.oAuthNext(c, session)
+}
+
+// oauthNext sets up the beginning of the oauth flow and ends with
 // the redirect of the user to the Provider's login and authorization page.
 // Adapted from oauth2-proxy code.
 func (l *LoginServer) oAuthNext(
@@ -49,17 +84,17 @@ func (l *LoginServer) oAuthNext(
 ) error {
 	// Get the providerID to login with
 	providerID := session.PeekProviderID()
-	// Persist session in store
-	err := l.sessionStore.SetSession(c.Request().Context(), session)
-	if err != nil {
-		return err
-	}
 	if providerID == "" {
 		// no more providers to login with go to the application
-		return c.Redirect(http.StatusFound, session.RedirectURL)
+		url := session.PopRedirectURL()
+		if url == "" {
+			url = l.config.DefaultAppRedirectURL
+		}
+		return c.Redirect(http.StatusFound, url)
 	}
+	state := session.PeekOauthState()
 	// Handle the login
-	handler, err := l.providerStore.AuthHandler(providerID)
+	handler, err := l.providerStore.AuthHandler(providerID, state)
 	if err != nil {
 		return err
 	}
@@ -67,23 +102,24 @@ func (l *LoginServer) oAuthNext(
 	return err
 }
 
-func (l *LoginServer) GetCallback(c echo.Context) error {
-	session, ok := c.Get(commonconfig.SessionCtxKey).(models.Session)
+func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) error {
+	session, ok := c.Get(common.SessionCtxKey).(models.Session)
 	if !ok {
-		return fmt.Errorf("cannot cast session from context")
+		return gwerrors.ErrSessionParse
 	}
-	providerID := session.PopProviderID()
+	state := c.Request().URL.Query().Get("state")
+	if state == "" {
+		return fmt.Errorf("a state parameter is required")
+	}
+	providerID := session.PeekProviderID()
 	provider, found := l.providerStore[providerID]
 	if !found {
 		return fmt.Errorf("provider not found %s", providerID)
 	}
-	err := echo.WrapHandler(provider.CodeExchangeHandler(func(accessToken, refreshToken models.OauthToken) error {
-		session.AddTokenID(accessToken.ID)
-		if err := l.tokenStore.SetAccessToken(c.Request().Context(), accessToken); err != nil {
-			return err
-		}
-		return l.tokenStore.SetRefreshToken(c.Request().Context(), refreshToken)
-	}))(c)
+	tokenCallback := func(accessToken, refreshToken models.OauthToken) error {
+		return session.SaveTokens(c.Request().Context(), accessToken, refreshToken, state)
+	}
+	err := echo.WrapHandler(provider.CodeExchangeHandler(tokenCallback))(c)
 	if err != nil {
 		return err
 	}
@@ -94,44 +130,42 @@ func (l *LoginServer) GetCallback(c echo.Context) error {
 // GetLogout logs the user out of the current session, removing the session cookie and removing the session
 // in the session store.
 func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
+	session, ok := c.Get(common.SessionCtxKey).(models.Session)
+	if !ok {
+		return gwerrors.ErrSessionParse
+	}
 	// figure out redirectURL
 	var redirectURL = l.config.DefaultAppRedirectURL
 	if params.RedirectUrl != nil {
 		redirectURL = *params.RedirectUrl
 	}
-	// get session cookie
-	cookie, err := c.Request().Cookie(commonconfig.SessionCookieName)
-	if err == http.ErrNoCookie {
-		return c.Redirect(http.StatusFound, redirectURL)
-	}
+	// remove the session
+	err := session.Remove(c.Request().Context())
 	if err != nil {
 		return err
 	}
-	// remove the session
-	if cookie.Value != "" {
-		if err := l.sessionStore.RemoveSession(c.Request().Context(), cookie.Value); err != nil {
-			return err
-		}
-	}
 	// remove the cookie
-	c.SetCookie(&http.Cookie{Name: commonconfig.SessionCookieName, Value: "", MaxAge: -1})
+	cookieName := l.sessionHandler.Cookie(&session).Name
+	c.SetCookie(&http.Cookie{Name: cookieName, Value: "", MaxAge: -1})
 	// redirect
 	return c.Redirect(http.StatusFound, redirectURL)
 }
 
-func (*LoginServer) PostCliLoginComplete(c echo.Context) error {
+func (*LoginServer) PostDeviceToken(c echo.Context) error {
 	return c.String(http.StatusOK, "Coming soon")
+	// just proxy to keycloak
 }
 
-func (*LoginServer) PostCliLoginInit(c echo.Context) error {
+func (l *LoginServer) PostDevice(c echo.Context) error {
 	return c.String(http.StatusOK, "Coming soon")
+	// just proxy to keycloak
 }
 
 func (*LoginServer) GetHealth(c echo.Context) error {
 	return c.String(http.StatusOK, "Running")
 }
 
-func (*LoginServer) PostBackchannelLogout(c echo.Context) error {
+func (*LoginServer) PostLogout(c echo.Context) error {
 	logoutToken := c.FormValue("logout_token")
 	type invalidLogoutResponse struct {
 		Error            string `json:"error,omitempty"`

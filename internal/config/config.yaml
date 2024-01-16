@@ -1,0 +1,55 @@
+server:
+  port: 8080
+  allowOrigin: []
+  host: 0.0.0.0
+  rateLimits:
+    enabled: false
+    rate:
+    burst:
+revproxy:
+  renkuBaseUrl:
+  externalGitlabUrl:
+  k8sNamespace:
+  renkuServices:
+    noteboooks:
+    kg:
+    webhoook:
+    coreServiceNames: []
+    coreServicePaths: []
+    auth:
+    crc:
+login:
+  endpointsBasePath: 
+  defaultAppRedirectURL: 
+  tokenEncryption:
+    enabled: true
+    secretKey: "secret-token-entryption-key"
+  providers:
+    id1:
+      default: true
+      issuer: https://dev.renku.ch/auth/...
+      clientID: renku
+      clientSecret: dasfasga42g452gdfgadfgadgadgasf34rf4
+      scopes: []
+      callbackURI: https://dev.renku.ch/callback
+      # For securely handling callbacks an encoding and hashing of 32 bytes should be provided
+      cookieEncodingKey: 
+      cookieHashKey:
+      usePKCE: false
+redis:
+  type: dummy 
+  addresses: []
+  isSentinel: false
+  password:
+  masterName:
+  dbIndex: 1
+monitoring:
+  sentry:
+    enabled: false
+    dsn: 
+    environment: gateway
+    sampleRate: 0.1
+  prometheus:
+    enabled: true
+    port: 8005
+

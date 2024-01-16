@@ -80,7 +80,7 @@ func newMockRelyingParty(tokenURL string) rp.RelyingParty {
 }
 
 func TestClientReturnsID(t *testing.T) {
-	client := zitadelClient{
+	client := Client{
 		client: newMockRelyingParty("https://token.url"),
 		id:     "id",
 	}
@@ -134,7 +134,7 @@ func TestTokenCallback(t *testing.T) {
 
 	parametrizedTest := func(testCase TestTokenCallbackScenario) func(*testing.T) {
 		return func(t *testing.T) {
-			client := zitadelClient{
+			client := Client{
 				client: newMockRelyingParty(testCase.TokenURL),
 				id:     testCase.ProviderID,
 			}
