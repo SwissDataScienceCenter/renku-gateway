@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/common"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/labstack/echo/v4"
@@ -12,7 +12,7 @@ import (
 
 // GetLogin is a handler for the initiation of a authorization code flow login for Renku
 func (l *LoginServer) GetLogin(c echo.Context, params GetLoginParams) error {
-	session, ok := c.Get(common.SessionCtxKey).(models.Session)
+	session, ok := c.Get(config.SessionCtxKey).(models.Session)
 	if !ok {
 		return gwerrors.ErrSessionParse
 	}
@@ -45,7 +45,7 @@ func (l *LoginServer) GetLogin(c echo.Context, params GetLoginParams) error {
 
 // GetDeviceLogin is a handler for the initiation of a device login for Renku, used by the CLI
 func (l *LoginServer) GetDeviceLogin(c echo.Context, params GetDeviceLoginParams) error {
-	session, ok := c.Get(common.SessionCtxKey).(models.Session)
+	session, ok := c.Get(config.SessionCtxKey).(models.Session)
 	if !ok {
 		return gwerrors.ErrSessionParse
 	}
@@ -103,7 +103,7 @@ func (l *LoginServer) oAuthNext(
 }
 
 func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) error {
-	session, ok := c.Get(common.SessionCtxKey).(models.Session)
+	session, ok := c.Get(config.SessionCtxKey).(models.Session)
 	if !ok {
 		return gwerrors.ErrSessionParse
 	}
@@ -130,7 +130,7 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 // GetLogout logs the user out of the current session, removing the session cookie and removing the session
 // in the session store.
 func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
-	session, ok := c.Get(common.SessionCtxKey).(models.Session)
+	session, ok := c.Get(config.SessionCtxKey).(models.Session)
 	if !ok {
 		return gwerrors.ErrSessionParse
 	}
