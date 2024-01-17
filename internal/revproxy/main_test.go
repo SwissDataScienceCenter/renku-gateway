@@ -1,8 +1,7 @@
-package main
+package revproxy
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -12,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 )
@@ -63,34 +63,32 @@ func setupTestAuthServer(ID string, responseHeaders map[string]string, responseS
 	return srv, url
 }
 
-func setupTestRevproxy(ctx context.Context, upstreamServerURL *url.URL, upstreamServerURL2 *url.URL, authURL *url.URL, externalGitlabURL *url.URL) (*echo.Echo, *url.URL) {
-	config := revProxyConfig{
+func setupTestRevproxy(ctx context.Context, upstreamServerURL *url.URL, upstreamServerURL2 *url.URL, authURL *url.URL, externalGitlabURL *url.URL) (*httptest.Server, *url.URL) {
+	rpConfig := config.RevproxyConfig{
 		RenkuBaseURL:      upstreamServerURL,
 		ExternalGitlabURL: externalGitlabURL,
-		Port:              8090,
-		RenkuServices: renkuServicesConfig{
-			Notebooks:        upstreamServerURL,
-			CoreServiceNames: []string{upstreamServerURL.String(), upstreamServerURL.String(), upstreamServerURL2.String()},
-			CoreServicePaths: []string{"/api/renku", "/api/renku/10", "/api/renku/9"},
-			KG:               upstreamServerURL,
-			Webhook:          upstreamServerURL,
-			Auth:             authURL,
-			Crc:              upstreamServerURL,
+		RenkuServices: config.RenkuServicesConfig{
+			Notebooks: upstreamServerURL,
+			Core: config.CoreSvcConfig{
+				ServiceNames: []string{upstreamServerURL.String(), upstreamServerURL.String(), upstreamServerURL2.String()},
+				ServicePaths: []string{"/api/renku", "/api/renku/10", "/api/renku/9"},
+				Sticky:       false,
+			},
+			KG:      upstreamServerURL,
+			Webhook: upstreamServerURL,
+			Auth:    authURL,
+			Crc:     upstreamServerURL,
 		},
-		Debug: true,
 	}
-	proxy := setupServer(ctx, config)
-	go func() {
-		err := proxy.Start(fmt.Sprintf(":%d", config.Port))
-		if err != nil && err != http.ErrServerClosed {
-			log.Fatal(err)
-		}
-	}()
-	url, err := url.Parse(fmt.Sprintf("http://localhost:%d", config.Port))
+	proxy := NewServer(&rpConfig)
+	e := echo.New()
+	proxy.RegisterHandlers(e)
+	srv := httptest.NewServer(e)
+	url, err := url.Parse(srv.URL)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return proxy, url
+	return srv, url
 }
 
 type TestResults struct {

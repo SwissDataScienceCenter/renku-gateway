@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -58,9 +58,9 @@ func ScheduleRefreshExpiringTokens(
 		Do(refreshExpiringTokens, ctx, tokenStore, gitlabClientID, gitlabClientSecret, minsToExpiration)
 	s.StartBlocking()
 	if err != nil {
-		log.Printf("Starting gocron job failed: %s\n", err)
+		slog.Error("Starting gocron job failed", "error", err)
 	} else {
-		log.Printf("Job starting: %v\n", job)
+		slog.Info("Job starting", "job", job)
 	}
 	return err
 }
@@ -80,7 +80,7 @@ func refreshExpiringTokens(
 		time.Now().Add(time.Minute*time.Duration(minsToExpiration)),
 	)
 	if err != nil {
-		log.Printf("GetExpiringAccessTokenIDs failed: %s\n", err)
+		slog.Error("GetExpiringAccessTokenIDs failed", "error", err)
 		return err
 	}
 
@@ -90,13 +90,13 @@ func refreshExpiringTokens(
 		// Get the refresh and access tokens associated with the token ID
 		myRefreshToken, err := tokenStore.GetRefreshToken(ctx, expiringTokenID)
 		if err != nil {
-			log.Printf("GetRefreshToken failed: %s\n", err)
+			slog.Error("GetRefreshToken failed", "error", err)
 			return err
 		}
 
 		myAccessToken, err := tokenStore.GetAccessToken(ctx, expiringTokenID)
 		if err != nil {
-			log.Printf("GetAccessToken failed: %s\n", err)
+			slog.Error("GetAccessToken failed", "error", err)
 			return err
 		}
 
@@ -110,7 +110,7 @@ func refreshExpiringTokens(
 		// Send the POST request to refresh the tokens
 		resp, err := http.PostForm(myAccessToken.TokenURL, params)
 		if err != nil {
-			log.Printf("Request Failed: %s\n", err)
+			slog.Error("Request Failed", "error", err)
 			return err
 		}
 		defer resp.Body.Close()
@@ -119,11 +119,11 @@ func refreshExpiringTokens(
 		token := tokenResponse{}
 		err = json.NewDecoder(resp.Body).Decode(&token)
 		if err != nil {
-			log.Printf("Decoding body failed: %s\n", err)
+			slog.Error("Decoding body failed", "error", err)
 			return err
 		}
 
-		log.Printf("New token received: %v\n", token)
+		slog.Info("New token received")
 
 		// Calculate the UNIX timestamp at which the newly refreshed access and refresh tokens will expire
 		accessTokenExpiration := time.Unix(token.CreatedAt+token.ExpiresIn, 0)
@@ -159,10 +159,12 @@ func refreshExpiringTokens(
 		})
 	}
 
-	log.Printf(
-		"%v expiring access tokens refreshed, evaluating again in %v minutes\n",
-		len(expiringTokenIDs),
-		minsToExpiration,
+	slog.Info(
+		fmt.Sprintf(
+			"%v expiring access tokens refreshed, evaluating again in %v minutes",
+			len(expiringTokenIDs),
+			minsToExpiration,
+		),
 	)
 	return err
 }

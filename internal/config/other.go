@@ -19,7 +19,7 @@ type SentryConfig struct {
 	Enabled     bool
 	Dsn         string
 	Environment string
-	SampleRate  float32
+	SampleRate  float64
 }
 
 type PrometheusConfig struct {

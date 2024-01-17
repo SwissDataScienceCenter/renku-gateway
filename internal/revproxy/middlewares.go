@@ -1,9 +1,9 @@
-package main
+package revproxy
 
 import (
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -126,7 +126,7 @@ func setHost(host string) echo.MiddlewareFunc {
 func printMsg(msg string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			log.Printf("Printing msg '%s' at path %s\n", msg, c.Request().URL.Path)
+			slog.Info("reporting from middleware", "message", msg, "path", c.Request().URL.Path)
 			return next(c)
 		}
 	}

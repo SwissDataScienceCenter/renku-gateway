@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"net/url"
 	"os"
 	"reflect"
@@ -21,11 +21,11 @@ type ConfigHandler struct {
 
 func (c *ConfigHandler) HandleChanges(callback func(Config, error)) {
 	c.mainViper.OnConfigChange(func(e fsnotify.Event) {
-		log.Println("Main file changed")
+		slog.Info("main config file changed", "path", e.Name)
 		callback(c.Config())
 	})
 	c.secretViper.OnConfigChange(func(e fsnotify.Event) {
-		log.Println("Secret file changed")
+		slog.Info("secret config file changed", "path", e.Name)
 		callback(c.Config())
 	})
 }
@@ -37,13 +37,21 @@ func NewConfigHandler() *ConfigHandler {
 	main := viper.New()
 	main.SetConfigType("yaml")
 	main.SetConfigName("config")
-	main.AddConfigPath("/etc/gateway")
-	main.AddConfigPath(".")
 	secret := viper.New()
 	secret.SetConfigType("yaml")
 	secret.SetConfigName("secret_config")
-	secret.AddConfigPath("/etc/gateway")
-	secret.AddConfigPath(".")
+	// Viper will look through the list of paths and use the first one where there is a file
+	// so the path specified in the env variable will always take precedence over the rest
+	configPaths := []string{}
+	configPathEnv := os.Getenv("CONFIG_LOCATION")
+	if configPathEnv != "" {
+		configPaths = append(configPaths, configPathEnv)
+	}
+	configPaths = append(configPaths, "/etc/gateway", ".")
+	for _, path := range configPaths {
+		main.AddConfigPath(path)
+		secret.AddConfigPath(path)
+	}
 	return &ConfigHandler{secretViper: secret, mainViper: main, lock: &sync.Mutex{}}
 }
 

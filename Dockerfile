@@ -1,11 +1,13 @@
-FROM golang:1.19.5-alpine3.17 as builder
+FROM golang:1.21.6-alpine3.19 as builder
 WORKDIR /src
 COPY go.mod go.sum ./
-COPY cmd/revproxy/ ./
-COPY internal/stickysessions/ ./internal/stickysessions/
-RUN go build -o /revproxy
+RUN go mod download
+COPY cmd/gateway cmd/gateway
+COPY internal internal 
+RUN go build -o /gateway github.com/SwissDataScienceCenter/renku-gateway/cmd/gateway 
 
-FROM alpine:3.17
+FROM alpine:3.19
 USER 1000:1000
-COPY --from=builder /revproxy /revproxy
-ENTRYPOINT [ "/revproxy" ]
+COPY --from=builder /gateway /gateway
+ENTRYPOINT [ "/gateway" ]
+

@@ -4,12 +4,11 @@ import (
 	"net/url"
 )
 
-type renkuServicesConfig struct {
+type RenkuServicesConfig struct {
 	Notebooks        *url.URL
 	KG               *url.URL
 	Webhook          *url.URL
-	CoreServiceNames []string
-	CoreServicePaths []string
+	Core             CoreSvcConfig
 	Auth             *url.URL
 	Crc              *url.URL
 }
@@ -23,5 +22,12 @@ type RevproxyConfig struct {
 	RenkuBaseURL      *url.URL
 	ExternalGitlabURL *url.URL
 	K8sNamespace      string
-	RenkuServices     renkuServicesConfig
+	RenkuServices     RenkuServicesConfig
 }
+
+type CoreSvcConfig struct {
+	ServiceNames []string
+	ServicePaths []string
+	Sticky bool
+}
+

@@ -5,9 +5,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -44,11 +45,18 @@ type StickySessionBalancer struct {
 }
 
 func NewStickySessionBalancer(ctx context.Context, service string, namespace string, containerPortName string, cookiePath string, cookieName string) middleware.ProxyBalancer {
-	log.Printf("Setting up sticky session balancer for service %s port %s in namespace %s", service, containerPortName, namespace)
+	slog.Info(
+		fmt.Sprintf(
+			"Setting up sticky session balancer for service %s port %s in namespace %s",
+			service,
+			containerPortName,
+			namespace,
+		),
+	)
 	var clientConfig *rest.Config
 	clientConfig, err := rest.InClusterConfig()
 	if err != nil {
-		log.Println("Cannot find in-cluster config, looking for kubeconfig file")
+		slog.Info("Cannot find in-cluster config, looking for kubeconfig file")
 		var kubeconfigPath string
 		if home := homedir.HomeDir(); home != "" {
 			kubeconfigPath = filepath.Join(home, ".kube", "config")
@@ -57,13 +65,15 @@ func NewStickySessionBalancer(ctx context.Context, service string, namespace str
 
 		clientConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 		if err != nil {
-			log.Fatalln(err)
+			slog.Error("cannot find a k8s config in kubeconfig path", "error", err)
+			os.Exit(1)
 		}
 	}
 
 	clientset, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
-		log.Fatalln(err)
+		slog.Error("cannot make a new clientset for sticky sessions", "error", err)
+		os.Exit(1)
 	}
 
 	listOptions := func(options *metaV1.ListOptions) {
@@ -79,16 +89,17 @@ func NewStickySessionBalancer(ctx context.Context, service string, namespace str
 	synced := factory.WaitForCacheSync(ctx.Done())
 	for v, ok := range synced {
 		if !ok {
-			log.Fatalf("caches failed to sync: %v", v)
+			slog.Error("caches failed to sync", "error", v)
+			os.Exit(1)
 		}
 	}
 
 	slices, err := cache.List(labels.Everything())
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("listing caches failed", "error", err)
+		os.Exit(1)
 	}
-
-	log.Printf("Endpoint slices found: %v", slices)
+	slog.Info(fmt.Sprintf("Endpoint slices found: %v", slices))
 
 	endpointStore := NewEndpointStoreFromEndpointSlices(slices, containerPortName)
 
@@ -129,7 +140,13 @@ func (s *StickySessionBalancer) Next(c echo.Context) *middleware.ProxyTarget {
 		// The cookie does not exist at all
 		upstream, found := s.store.Peek()
 		if !found {
-			log.Printf("Receiving sticky session request (%s/%s), no cookie found, no new suitable upstream found, failing the request", s.Namespace, s.Service)
+			slog.Info(
+				fmt.Sprintf(
+					"Receiving sticky session request (%s/%s), no cookie found, no new suitable upstream found, failing the request",
+					s.Namespace,
+					s.Service,
+				),
+			)
 			c.String(http.StatusBadGateway, "no upstream servers are available")
 			return &middleware.ProxyTarget{URL: &url.URL{}}
 		}
@@ -140,7 +157,14 @@ func (s *StickySessionBalancer) Next(c echo.Context) *middleware.ProxyTarget {
 			Value: upstream.UID,
 		}
 		c.SetCookie(cookie)
-		log.Printf("Receiving sticky session request (%s/%s), no cookie found, assigned upstream with uid %s", s.Namespace, s.Service, upstream.UID)
+		slog.Info(
+			fmt.Sprintf(
+				"Receiving sticky session request (%s/%s), no cookie found, assigned upstream with uid %s",
+				s.Namespace, 
+				s.Service,
+				upstream.UID,
+			),
+		)
 		return upstream.ProxyTarget()
 	}
 	upstream, upstreamFound = s.store.Get(cookie.Value)
@@ -148,7 +172,13 @@ func (s *StickySessionBalancer) Next(c echo.Context) *middleware.ProxyTarget {
 		// The cookie exists but is pointing to an upstream that does not exist
 		upstream, upstreamFound = s.store.Peek()
 		if !upstreamFound {
-			log.Printf("Receiving sticky session request (%s/%s), cookie found but not upstream, no new suitable upstream found, failing the request", s.Namespace, s.Service)
+			slog.Info(
+				fmt.Sprintf(
+					"Receiving sticky session request (%s/%s), cookie found but not upstream, no new suitable upstream found, failing the request",
+					s.Namespace,
+					s.Service,
+				),
+			)
 			c.String(http.StatusBadGateway, "no upstream servers are available")
 			return &middleware.ProxyTarget{URL: &url.URL{}}
 		}
@@ -159,12 +189,18 @@ func (s *StickySessionBalancer) Next(c echo.Context) *middleware.ProxyTarget {
 			Value: upstream.UID,
 		}
 		c.SetCookie(cookie)
-		log.Printf("Receiving sticky session request (%s/%s), cookie found but not upstream, assigned upstream with uid %s", s.Namespace, s.Service, upstream.UID)
+		slog.Info(
+			fmt.Sprintf(
+				"Receiving sticky session request (%s/%s), cookie found but not upstream, assigned upstream with uid %s",s.Namespace,
+				s.Service,
+				upstream.UID,
+			),
+		)
 	}
 	return upstream.ProxyTarget()
 }
 
-func (s StickySessionBalancer) OnAdd(obj interface{}) {
+func (s StickySessionBalancer) OnAdd(obj interface{}, isInitialList bool) {
 	slice := obj.(*discoveryV1.EndpointSlice)
 	endpointItems := NewEndpointStoreItems(slice, s.ContainerPortName)
 	for _, endpointItem := range endpointItems {

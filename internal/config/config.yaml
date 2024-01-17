@@ -14,8 +14,10 @@ revproxy:
     noteboooks:
     kg:
     webhoook:
-    coreServiceNames: []
-    coreServicePaths: []
+    core:
+      serviceNames: []
+      servicePaths: []
+      sticky: 
     auth:
     crc:
 login:
