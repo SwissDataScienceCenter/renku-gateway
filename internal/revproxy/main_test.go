@@ -14,6 +14,7 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -75,14 +76,15 @@ func setupTestRevproxy(ctx context.Context, upstreamServerURL *url.URL, upstream
 				ServicePaths: []string{"/api/renku", "/api/renku/10", "/api/renku/9"},
 				Sticky:       false,
 			},
-			KG:      upstreamServerURL,
-			Webhook: upstreamServerURL,
-			Auth:    authURL,
-			Crc:     upstreamServerURL,
+			KG:          upstreamServerURL,
+			Webhook:     upstreamServerURL,
+			DataService: upstreamServerURL,
+			Keycloak:    upstreamServerURL,
 		},
 	}
 	proxy := NewServer(&rpConfig)
 	e := echo.New()
+	e.Pre(middleware.RemoveTrailingSlash())
 	proxy.RegisterHandlers(e)
 	srv := httptest.NewServer(e)
 	url, err := url.Parse(srv.URL)
@@ -409,8 +411,8 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Expected:    TestResults{Path: "/projects/123456/webhooks", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
-			Path:        "/api/kc/auth/realms/Renku/protocol/openid-connect/userinfo",
-			Expected:    TestResults{Path: "/auth/realms/Renku/protocol/openid-connect/userinfo", VisitedServerIDs: []string{"upstream"}},
+			Path:     "/api/kc/auth/realms/Renku/protocol/openid-connect/userinfo",
+			Expected: TestResults{Path: "/auth/realms/Renku/protocol/openid-connect/userinfo", VisitedServerIDs: []string{"upstream"}},
 		},
 	}
 	for _, testCase := range testCases {

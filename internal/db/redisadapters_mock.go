@@ -14,19 +14,19 @@ import (
 // The value set for the IntCmd or similar results is always 1 regardless of how many records were affected
 // Contexts are completely ignored
 type MockRedisClient struct {
-	store map[string]interface{}
+	store map[string]any
 }
 
 func NewMockRedisAdapter() RedisAdapter {
-	store := MockRedisClient{map[string]interface{}{}}
+	store := MockRedisClient{map[string]any{}}
 	return RedisAdapter{rdb: &store}
 }
 
-func convertValuesToMap(values ...interface{}) (map[string]interface{}, error) {
+func convertValuesToMap(values ...any) (map[string]any, error) {
 	if len(values)%2 != 0 {
-		return map[string]interface{}{}, fmt.Errorf("number of provided values must be even")
+		return map[string]any{}, fmt.Errorf("number of provided values must be even")
 	}
-	output := map[string]interface{}{}
+	output := map[string]any{}
 	for i := 0; i < len(values); i += 2 {
 		key := values[i].(string)
 		val := values[i+1]
@@ -35,7 +35,7 @@ func convertValuesToMap(values ...interface{}) (map[string]interface{}, error) {
 	return output, nil
 }
 
-func (m *MockRedisClient) HSet(_ context.Context, key string, values ...interface{}) *redis.IntCmd {
+func (m *MockRedisClient) HSet(_ context.Context, key string, values ...any) *redis.IntCmd {
 	res := redis.IntCmd{}
 	val, err := convertValuesToMap(values...)
 	if err != nil {
@@ -69,7 +69,7 @@ func (m *MockRedisClient) Del(_ context.Context, keys ...string) *redis.IntCmd {
 	return &res
 }
 
-func (m *MockRedisClient) ZRem(_ context.Context, key string, members ...interface{}) *redis.IntCmd {
+func (m *MockRedisClient) ZRem(_ context.Context, key string, members ...any) *redis.IntCmd {
 	val, found := m.store[key]
 	res := redis.IntCmd{}
 	if !found {
@@ -98,7 +98,7 @@ func (m *MockRedisClient) HGetAll(_ context.Context, key string) *redis.MapStrin
 	if !found {
 		return &res
 	}
-	valMap1 := val.(map[string]interface{})
+	valMap1 := val.(map[string]any)
 	valMap2 := map[string]string{}
 	for k, v := range valMap1 {
 		valString, ok := v.(string)

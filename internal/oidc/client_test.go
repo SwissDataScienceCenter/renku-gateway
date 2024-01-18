@@ -144,7 +144,7 @@ func TestTokenCallback(t *testing.T) {
 				Expiry:       testCase.Now.Add(time.Second * time.Duration(testCase.AccessTokenExpiresIn)),
 			}
 			if testCase.RefreshTokenExpiresIn > 0 {
-				oauth2Token = oauth2Token.WithExtra(map[string]interface{}{
+				oauth2Token = oauth2Token.WithExtra(map[string]any{
 					"refresh_expires_in": testCase.RefreshTokenExpiresIn,
 				})
 			}

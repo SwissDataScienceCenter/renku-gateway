@@ -29,7 +29,7 @@ type OIDCClient struct {
 	UnsafeNoCookieHandler bool
 }
 
-func (c LoginConfig) Validate() error {
+func (c *LoginConfig) Validate() error {
 	if c.TokenEncryption.Enabled && len([]byte(c.TokenEncryption.SecretKey)) != 32 {
 		return fmt.Errorf(
 			"token encryption key has to be 32 bytes long, the provided one is %d long",

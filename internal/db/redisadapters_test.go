@@ -19,7 +19,7 @@ import (
 
 var compareOptions []cmp.Option = []cmp.Option{cmpopts.IgnoreUnexported(models.OauthToken{})}
 
-func decomposeStructToMap(strct interface{}) (map[string]string, error) {
+func decomposeStructToMap(strct any) (map[string]string, error) {
 	v := reflect.ValueOf(strct)
 	t := v.Type()
 	output := map[string]string{}

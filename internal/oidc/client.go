@@ -47,8 +47,13 @@ func (c *Client) getCodeExchangeCallback(tokensCallback models.TokensHandler) fu
 			ProviderID: c.ID(),
 		}
 		var refreshTokenExpiresIn int
+		var ok bool
 		if refreshTokenExpiresInRaw := tokens.Extra("refresh_expires_in"); refreshTokenExpiresInRaw != nil {
-			refreshTokenExpiresIn = refreshTokenExpiresInRaw.(int)
+			refreshTokenExpiresIn, ok = refreshTokenExpiresInRaw.(int)
+			if !ok {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		}
 		var refreshTokenExpiry time.Time
 		if refreshTokenExpiresIn > 0 {

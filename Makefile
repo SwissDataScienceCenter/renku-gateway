@@ -10,7 +10,7 @@ clean:
 	go clean -testcache
 	rm -f build/*
 
-test:
+tests:
 	go test -vet=all -race -cover -p 1 ./... 
 
 openapi:

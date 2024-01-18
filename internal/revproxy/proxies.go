@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"os"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/stickysessions"
@@ -14,6 +15,10 @@ import (
 
 // proxyFromURL middleware creates a proxy that forwards requests to the specified URL
 func proxyFromURL(url *url.URL) echo.MiddlewareFunc {
+	if url == nil {
+		slog.Error("cannot create a proxy from a nil URL")
+		os.Exit(1)
+	}
 	mwconfig := middleware.ProxyConfig{
 		Balancer: middleware.NewRoundRobinBalancer([]*middleware.ProxyTarget{
 			{

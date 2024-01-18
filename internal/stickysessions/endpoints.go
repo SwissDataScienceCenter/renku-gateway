@@ -86,7 +86,8 @@ func NewEndpointStoreFromEndpointItems(input []EndpointStoreItem, includeNonRead
 func NewEndpointStoreFromEndpointSlices(input []*discoveryV1.EndpointSlice, containerPortName string) *EndpointStore {
 	items := []EndpointStoreItem{}
 	for _, endpointSlice := range input {
-		items = append(items, NewEndpointStoreItems(endpointSlice, containerPortName)...)
+		es := endpointSlice
+		items = append(items, NewEndpointStoreItems(es, containerPortName)...)
 	}
 	return NewEndpointStoreFromEndpointItems(items, false)
 }

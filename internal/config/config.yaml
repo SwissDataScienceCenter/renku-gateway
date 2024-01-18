@@ -19,7 +19,8 @@ revproxy:
       servicePaths: []
       sticky: 
     auth:
-    crc:
+    dataService:
+    keycloak:
 login:
   endpointsBasePath: 
   defaultAppRedirectURL: 

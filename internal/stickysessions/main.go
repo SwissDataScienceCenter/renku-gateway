@@ -200,7 +200,7 @@ func (s *StickySessionBalancer) Next(c echo.Context) *middleware.ProxyTarget {
 	return upstream.ProxyTarget()
 }
 
-func (s StickySessionBalancer) OnAdd(obj interface{}, isInitialList bool) {
+func (s StickySessionBalancer) OnAdd(obj any, isInitialList bool) {
 	slice := obj.(*discoveryV1.EndpointSlice)
 	endpointItems := NewEndpointStoreItems(slice, s.ContainerPortName)
 	for _, endpointItem := range endpointItems {
@@ -211,7 +211,7 @@ func (s StickySessionBalancer) OnAdd(obj interface{}, isInitialList bool) {
 	}
 }
 
-func (s StickySessionBalancer) OnUpdate(oldObj, newObj interface{}) {
+func (s StickySessionBalancer) OnUpdate(oldObj, newObj any) {
 	newStore := NewEndpointStoreFromEndpointItems(NewEndpointStoreItems(newObj.(*discoveryV1.EndpointSlice), s.ContainerPortName), true)
 	for _, newItem := range newStore.List() {
 		if !newItem.Ready {
@@ -239,7 +239,7 @@ func (s StickySessionBalancer) OnUpdate(oldObj, newObj interface{}) {
 	}
 }
 
-func (s StickySessionBalancer) OnDelete(obj interface{}) {
+func (s StickySessionBalancer) OnDelete(obj any) {
 	removedSlice := obj.(*discoveryV1.EndpointSlice)
 	for _, endpoint := range removedSlice.Endpoints {
 		uid := string(endpoint.TargetRef.UID)

@@ -28,10 +28,10 @@ const (
 // LimitedRedisClient is the limited set of functionality expected from the redis client in this adapter.
 // This allows for easy mocking and swapping of the client. The universal redis client interface is way too big.
 type LimitedRedisClient interface {
-	HSet(ctx context.Context, key string, values ...interface{}) *redis.IntCmd
+	HSet(ctx context.Context, key string, values ...any) *redis.IntCmd
 	ZAdd(ctx context.Context, key string, members ...redis.Z) *redis.IntCmd
 	Del(ctx context.Context, keys ...string) *redis.IntCmd
-	ZRem(ctx context.Context, key string, members ...interface{}) *redis.IntCmd
+	ZRem(ctx context.Context, key string, members ...any) *redis.IntCmd
 	HGetAll(ctx context.Context, key string) *redis.MapStringStringCmd
 	ZRangeArgsWithScores(ctx context.Context, z redis.ZRangeArgs) *redis.ZSliceCmd
 }
@@ -45,10 +45,10 @@ type RedisAdapter struct {
 // serializeStruct returns a list of alternativing struct fields and values
 // from the provided struct.
 // Used to easily save a struct as a Hash in redis. It will only deconstruct exported fields.
-func (RedisAdapter) serializeStruct(strct interface{}) []interface{} {
+func (RedisAdapter) serializeStruct(strct any) []any {
 	v := reflect.ValueOf(strct)
 	t := v.Type()
-	var output []interface{}
+	var output []any
 	for i := 0; i < v.NumField(); i++ {
 		if !t.Field(i).IsExported() {
 			continue
@@ -61,7 +61,7 @@ func (RedisAdapter) serializeStruct(strct interface{}) []interface{} {
 }
 
 // deserializeToStruct takes a result from a Hash value in Redis and converts it to a struct
-func (RedisAdapter) deserializeToStruct(hash map[string]string, output interface{}) error {
+func (RedisAdapter) deserializeToStruct(hash map[string]string, output any) error {
 	if len(hash) == 0 {
 		// HGetAll returns an empty list of keys and values if the element is not present in the DB
 		// then this is deserialized the empty valued struct of whatever it is we are looking at
@@ -403,7 +403,7 @@ func WithRedisConfig(redisConfig config.RedisConfig) RedisAdapterOption {
 			r.rdb = rdb
 			return nil
 		case config.DBTypeRedisMock:
-			r.rdb = &MockRedisClient{map[string]interface{}{}}
+			r.rdb = &MockRedisClient{map[string]any{}}
 			return nil
 		default:
 			return fmt.Errorf("unrecognized persistence type %v", redisConfig.Type)

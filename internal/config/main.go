@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"net/http"
+
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 )
 
 type Config struct {
@@ -32,3 +33,16 @@ const SessionCtxKey = "_renku_session"
 
 var CLISessionCookieOpt = models.WithCookieTemplate(http.Cookie{Name: "_renku_cli_session", Secure: true, HttpOnly: true, Path: "/"})
 var UISessionCookieOpt = models.WithCookieTemplate(http.Cookie{Name: "_renku_ui_session", Secure: true, HttpOnly: true, Path: "/"})
+
+func (c *Config) Validate() error {
+	err := c.Login.Validate()
+	if err != nil {
+		return err
+	}
+	err = c.Revproxy.Validate()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+

@@ -10,7 +10,7 @@ import (
 
 func TestHGetAll(t *testing.T) {
 	ctx := context.Background()
-	store := MockRedisClient{map[string]interface{}{}}
+	store := MockRedisClient{map[string]any{}}
 	res := store.HGetAll(ctx, "test")
 	val, err := res.Result()
 	require.NoError(t, err)
@@ -19,7 +19,7 @@ func TestHGetAll(t *testing.T) {
 
 func TestHSetDel(t *testing.T) {
 	ctx := context.Background()
-	store := MockRedisClient{map[string]interface{}{}}
+	store := MockRedisClient{map[string]any{}}
 	res1 := store.HSet(ctx, "test", "f1", "v1", "f2", "v2")
 	_, err := res1.Result()
 	require.NoError(t, err)

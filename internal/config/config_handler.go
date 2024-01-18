@@ -120,6 +120,10 @@ func (c *ConfigHandler) getConfig() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	err = output.Validate()
+	if err != nil {
+		return Config{}, err
+	}
 	return output, nil
 }
 
@@ -135,7 +139,7 @@ func (c *ConfigHandler) Watch() {
 }
 
 func parseStringAsURL() mapstructure.DecodeHookFuncType {
-	return func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
+	return func(f reflect.Type, t reflect.Type, data any) (interface{}, error) {
 		// Check that the data is string
 		if f.Kind() != reflect.String {
 			return data, nil
