@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"strings"
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
@@ -32,7 +33,9 @@ func (c *ConfigHandler) HandleChanges(callback func(Config, error)) {
 
 // Creates a configuration handler that reads the configuration files, merges them and can watch
 // them for changes. Please note that the merges replace whole arrays - they do not merge arrays.
-// The secret file will always overwrite anything in the non-secret / regular file.
+// The secret file will always overwrite anything in the non-secret / regular file. And any environment
+// variables will always rewrite stuff in the secret config, so the order of preference from most 
+// preferred to least is environment variables, secret config, non-secret config.
 func NewConfigHandler() *ConfigHandler {
 	main := viper.New()
 	main.SetConfigType("yaml")
@@ -56,16 +59,24 @@ func NewConfigHandler() *ConfigHandler {
 }
 
 func (c *ConfigHandler) merge() error {
-	fname := c.secretViper.ConfigFileUsed()
-	if fname == "" {
-		return fmt.Errorf("cannot find secret config")
-	}
-	fp, err := os.Open(fname)
-	defer fp.Close()
+	err := c.secretViper.ReadInConfig()
 	if err != nil {
 		return err
 	}
-	err = c.mainViper.MergeConfig(fp)
+	var cm map[string]any
+	err = c.secretViper.Unmarshal(
+		&cm,
+		viper.DecodeHook(
+			mapstructure.ComposeDecodeHookFunc(
+				parseStringAsURL(),
+			),
+		),
+	)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("merging in secret config %+v\n", cm)
+	err = c.mainViper.MergeConfigMap(cm)
 	if err != nil {
 		return err
 	}
@@ -80,8 +91,23 @@ func (c *ConfigHandler) getConfig() (Config, error) {
 	}
 	err = c.secretViper.ReadInConfig()
 	if err != nil {
-		return Config{}, err
+		switch err.(type) {
+			default:
+				return Config{}, err
+			case viper.ConfigFileNotFoundError:
+				slog.Info("could not find any secret config files - only the public file and environment variables will be used")
+		}
 	}
+	// the env variables will overwrite stuff in the secret config if set
+    for _, key := range c.mainViper.AllKeys() {
+		envKey := strings.ToUpper(strings.ReplaceAll(key, ".", "_"))
+		err := c.secretViper.BindEnv(key, envKey)
+		if err != nil {
+			slog.Error("config: unable to bind env", "error", err)
+			os.Exit(1)
+		}
+	}
+	// here the secret config (with any env variables merged) will overwrite anything from the non-secret configuration
 	err = c.merge()
 	err = c.mainViper.Unmarshal(
 		&output,

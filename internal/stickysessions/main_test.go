@@ -39,7 +39,7 @@ func (m *MockInformer) TriggerAdd(obj *discoveryV1.EndpointSlice) {
 		defer m.mutex.Unlock()
 		m.store = append(m.store, obj)
 	}()
-	m.eventHandler.OnAdd(obj)
+	m.eventHandler.OnAdd(obj, true)
 }
 
 func (m *MockInformer) TriggerDelete(obj *discoveryV1.EndpointSlice) {

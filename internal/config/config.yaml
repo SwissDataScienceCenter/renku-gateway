@@ -7,7 +7,7 @@ server:
     rate:
     burst:
 revproxy:
-  renkuBaseUrl:
+  renkuBaseUrl: "https://renkulab.io"
   externalGitlabUrl:
   k8sNamespace:
   renkuServices:

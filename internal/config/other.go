@@ -13,6 +13,7 @@ type ServerConfig struct {
 	Host       string
 	Port       int
 	RateLimits RateLimits
+	AllowOrigin []string
 }
 
 type SentryConfig struct {

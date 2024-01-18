@@ -108,6 +108,10 @@ func main() {
 		),
 		)
 	}
+	// CORS
+	if len(gwConfig.Server.AllowOrigin) > 0 {
+		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{AllowOrigins: gwConfig.Server.AllowOrigin}))
+	}
 	// Sentry
 	if gwConfig.Monitoring.Sentry.Enabled {
 		err := sentry.Init(sentry.ClientOptions{
