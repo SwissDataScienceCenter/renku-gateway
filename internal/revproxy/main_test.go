@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -143,7 +144,17 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 			reqURLQuery.Add(k, v)
 		}
 		reqURL.RawQuery = reqURLQuery.Encode()
-		res, err := http.Get(reqURL.String())
+		// Force ipv4 becaues Github actions seem to constantly switch to ipv6 and fail
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		var zeroDialer net.Dialer
+		var httpClient = &http.Client{
+			Timeout: 10 * time.Second,
+		}
+		transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return zeroDialer.DialContext(ctx, "tcp4", addr)
+		}
+		httpClient.Transport = transport
+		res, err := httpClient.Get(reqURL.String())
 		assert.NoError(t, err)
 		reqs := requestTracker.getAllRequests()
 
@@ -396,6 +407,10 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Path:        "/api/kg/webhooks/projects/123456/webhooks",
 			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
 			Expected:    TestResults{Path: "/projects/123456/webhooks", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
+			Path:        "/api/kc/auth/realms/Renku/protocol/openid-connect/userinfo",
+			Expected:    TestResults{Path: "/auth/realms/Renku/protocol/openid-connect/userinfo", VisitedServerIDs: []string{"upstream"}},
 		},
 	}
 	for _, testCase := range testCases {

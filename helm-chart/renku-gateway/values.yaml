@@ -2,4 +2,3 @@ gateway:
   image:
     repository: renku/renku-gateway
     tag: "latest"
-

@@ -1,5 +1,38 @@
 # Changes
 
+# [0.23.1] (https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.23.0...0.23.1)  (2023-12-15)
+
+
+### Bug Fixes
+
+* handle missing gitlab credentials ([#692](https://github.com/SwissDataScienceCenter/renku-gateway/issues/692)) ([fb83840](https://github.com/SwissDataScienceCenter/renku-gateway/commit/fb83840c44156e9b35cd41aa86631c91077f06a9))
+
+
+
+# [0.23.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.22.0...0.23.0) (2023-10-26)
+
+
+### Features
+
+* add keycloak redirect ([#683](https://github.com/SwissDataScienceCenter/renku-gateway/issues/683)) ([1b2f652](https://github.com/SwissDataScienceCenter/renku-gateway/commit/1b2f6522f3cdeb9ccd1d42677cec5ac071640e04))
+
+
+
+
+## [0.22.0](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.21.3...0.22.0) (2023-10-23)
+
+
+### Bug Fixes
+
+* sticky sessions initialization ([#681](https://github.com/SwissDataScienceCenter/renku-gateway/issues/681)) ([33d4fd2](https://github.com/SwissDataScienceCenter/renku-gateway/commit/33d4fd21707f626d16b9ed36696b49eefd88d272))
+
+
+### Features
+
+* add auth provider for data service ([#670](https://github.com/SwissDataScienceCenter/renku-gateway/issues/670)) ([7bfe9b5](https://github.com/SwissDataScienceCenter/renku-gateway/commit/7bfe9b54a5719f4e2540efea2be44d1ab657c736))
+
+
+
 ## [0.21.3](https://github.com/SwissDataScienceCenter/renku-gateway/compare/0.21.2...0.21.3) (2023-08-28)
 
 ### Bug Fixes

@@ -12,4 +12,3 @@ charts:
         contextPath: .
         dockerfilePath: Dockerfile
         valuesPath: gateway.image
-

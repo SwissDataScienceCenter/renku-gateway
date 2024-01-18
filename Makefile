@@ -1,22 +1,14 @@
 PKG_NAME=github.com/SwissDataScienceCenter/renku-gateway
 
-.PHONY: build clean lint format test
+.PHONY: build clean test
 
 build:
-	go build -o ./build/revproxy ${PKG_NAME}/cmd/revproxy
-	go build -o ./build/login ${PKG_NAME}/cmd/login
+	go build -o gateway github.com/SwissDataScienceCenter/renku-gateway/cmd/gateway 
 
 clean:
 	go clean
 	go clean -testcache
 	rm -f build/*
-
-lint:
-	golangci-lint run --config .golangci.yaml
-
-format:
-	go fmt
-	golines . -w --max-len=120 --base-formatter=gofmt --ignore-generated --shorten-comments
 
 test:
 	go test -vet=all -race -cover -p 1 ./... 
