@@ -61,7 +61,12 @@ func NewConfigHandler() *ConfigHandler {
 func (c *ConfigHandler) merge() error {
 	err := c.secretViper.ReadInConfig()
 	if err != nil {
-		return err
+		switch err.(type) {
+			case viper.ConfigFileNotFoundError:
+				slog.Info("could not find any secret config files when merging - only the public file and environment variables will be used")
+			default:
+				return err
+		}
 	}
 	var cm map[string]any
 	err = c.secretViper.Unmarshal(
@@ -75,7 +80,6 @@ func (c *ConfigHandler) merge() error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("merging in secret config %+v\n", cm)
 	err = c.mainViper.MergeConfigMap(cm)
 	if err != nil {
 		return err
@@ -92,15 +96,16 @@ func (c *ConfigHandler) getConfig() (Config, error) {
 	err = c.secretViper.ReadInConfig()
 	if err != nil {
 		switch err.(type) {
+			case viper.ConfigFileNotFoundError:
+				slog.Info("could not find any secret config files to read - only the public file and environment variables will be used")
 			default:
 				return Config{}, err
-			case viper.ConfigFileNotFoundError:
-				slog.Info("could not find any secret config files - only the public file and environment variables will be used")
 		}
 	}
 	// the env variables will overwrite stuff in the secret config if set
     for _, key := range c.mainViper.AllKeys() {
 		envKey := strings.ToUpper(strings.ReplaceAll(key, ".", "_"))
+		slog.Info("binding environment keys", "secret_key", key, "env_key", envKey)
 		err := c.secretViper.BindEnv(key, envKey)
 		if err != nil {
 			slog.Error("config: unable to bind env", "error", err)
@@ -109,6 +114,9 @@ func (c *ConfigHandler) getConfig() (Config, error) {
 	}
 	// here the secret config (with any env variables merged) will overwrite anything from the non-secret configuration
 	err = c.merge()
+	if err != nil {
+		return Config{}, err
+	}
 	err = c.mainViper.Unmarshal(
 		&output,
 		viper.DecodeHook(
@@ -117,10 +125,6 @@ func (c *ConfigHandler) getConfig() (Config, error) {
 			),
 		),
 	)
-	if err != nil {
-		return Config{}, err
-	}
-	err = output.Validate()
 	if err != nil {
 		return Config{}, err
 	}

@@ -26,7 +26,7 @@ login:
   defaultAppRedirectURL: 
   tokenEncryption:
     enabled: true
-    secretKey: "secret-token-entryption-key"
+    secretKey: "secret-token-entryption-key-1234"
   providers:
     id1:
       default: true

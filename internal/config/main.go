@@ -1,10 +1,17 @@
 package config
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 )
+
+type RedactedString string
+
+func (r RedactedString) String() string {
+	return fmt.Sprintf("<redacted-%d-chars>", len(r))
+}
 
 type Config struct {
 	Server     ServerConfig

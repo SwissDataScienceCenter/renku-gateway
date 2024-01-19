@@ -388,15 +388,15 @@ func WithRedisConfig(redisConfig config.RedisConfig) RedisAdapterOption {
 				rdb := redis.NewFailoverClient(&redis.FailoverOptions{
 					MasterName:       redisConfig.MasterName,
 					SentinelAddrs:    redisConfig.Addresses,
-					Password:         redisConfig.Password,
+					Password:         string(redisConfig.Password),
 					DB:               redisConfig.DBIndex,
-					SentinelPassword: redisConfig.Password,
+					SentinelPassword: string(redisConfig.Password),
 				})
 				r.rdb = rdb
 				return nil
 			}
 			rdb := redis.NewClient(&redis.Options{
-				Password: redisConfig.Password,
+				Password: string(redisConfig.Password),
 				DB:       redisConfig.DBIndex,
 				Addr:     redisConfig.Addresses[0],
 			})

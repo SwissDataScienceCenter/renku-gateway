@@ -97,7 +97,7 @@ func WithDBConfig(dbConfig config.RedisConfig) LoginServerOption {
 	return func(l *LoginServer) error {
 		options := []db.RedisAdapterOption{db.WithRedisConfig(dbConfig)}
 		if l.config.TokenEncryption.Enabled && l.config.TokenEncryption.SecretKey != "" {
-			options = append(options, db.WithEcryption(l.config.TokenEncryption.SecretKey))
+			options = append(options, db.WithEcryption(string(l.config.TokenEncryption.SecretKey)))
 		}
 		rdb, err := db.NewRedisAdapter(options...)
 		if err != nil {

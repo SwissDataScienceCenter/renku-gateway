@@ -133,7 +133,7 @@ func WithOIDCConfig(clientConfig config.OIDCClient) ClientOption {
 		return rp.NewRelyingPartyOIDC(
 			clientConfig.Issuer,
 			clientConfig.ClientID,
-			clientConfig.ClientSecret,
+			string(clientConfig.ClientSecret),
 			clientConfig.CallbackURI,
 			clientConfig.Scopes,
 			options...,

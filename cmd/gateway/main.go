@@ -62,7 +62,13 @@ func main() {
 	ch := config.NewConfigHandler()
 	gwConfig, err := ch.Config()
 	if err != nil {
-		slog.Error("loading the configuration failed: %v", "error", err)
+		slog.Error("loading the configuration failed", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("loaded config", "config", gwConfig)
+	err = gwConfig.Validate()
+	if err != nil {
+		slog.Error("the config validation failed", "error", err)
 		os.Exit(1)
 	}
 	ch.Watch()
@@ -115,7 +121,7 @@ func main() {
 	// Sentry
 	if gwConfig.Monitoring.Sentry.Enabled {
 		err := sentry.Init(sentry.ClientOptions{
-			Dsn: gwConfig.Monitoring.Sentry.Dsn,
+			Dsn: string(gwConfig.Monitoring.Sentry.Dsn),
 			TracesSampleRate: gwConfig.Monitoring.Sentry.SampleRate, 
 			Environment: gwConfig.Monitoring.Sentry.Environment,	
 		})
