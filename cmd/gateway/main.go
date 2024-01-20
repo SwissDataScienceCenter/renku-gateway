@@ -25,39 +25,13 @@ func main() {
 	// Setup
 	e := echo.New()
 	e.Pre(middleware.RemoveTrailingSlash())
-	e.Use(middleware.Recover(), middleware.RequestID())
+	e.Use(middleware.Recover())
 	// The banner and the port do not respect the logger formatting we set below so we remove them
 	// the port will be logged further down when the server starts.
 	e.HideBanner = true
 	e.HidePort = true
 	// Logging setup
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	slog.SetDefault(logger)
-	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
-		LogStatus:    true,
-		LogURI:       true,
-		LogError:     true,
-		LogRequestID: true,
-		LogRoutePath: true, // logs the handler path in the server that matched the request path
-		LogMethod:    true,
-		LogUserAgent: true,
-		HandleError:  true, // forwards error to the global error handler, so it can decide appropriate status code
-		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
-			if v.Error == nil {
-				logger.LogAttrs(context.Background(), slog.LevelInfo, "REQUEST",
-					slog.String("uri", v.URI),
-					slog.Int("status", v.Status),
-				)
-			} else {
-				logger.LogAttrs(context.Background(), slog.LevelError, "REQUEST_ERROR",
-					slog.String("uri", v.URI),
-					slog.Int("status", v.Status),
-					slog.String("error", v.Error.Error()),
-				)
-			}
-			return nil
-		},
-	}))
+	slog.SetDefault(jsonLogger)
 	// Load configuration
 	ch := config.NewConfigHandler()
 	gwConfig, err := ch.Config()
@@ -94,14 +68,14 @@ func main() {
 	})
 	// Initialize the reverse proxy
 	revproxy := revproxy.NewServer(&gwConfig.Revproxy)
-	revproxy.RegisterHandlers(e)
+	revproxy.RegisterHandlers(e, commonMiddlewares...)
 	// Initialize login server
 	loginServer, err := login.NewLoginServer(login.WithConfig(gwConfig.Login), login.WithDBConfig(gwConfig.Redis))
 	if err != nil {
 		slog.Error("login handlers initialization failed", "error", err)
 		os.Exit(1)
 	}
-	loginServer.RegisterHandlers(e)
+	loginServer.RegisterHandlers(e, commonMiddlewares...)
 	// Rate limiting
 	if gwConfig.Server.RateLimits.Enabled {
 		e.Use(middleware.RateLimiter(

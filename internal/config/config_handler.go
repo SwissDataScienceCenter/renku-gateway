@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -17,6 +18,7 @@ import (
 type ConfigHandler struct {
 	mainViper   *viper.Viper
 	secretViper *viper.Viper
+	envPrefix   string
 	lock        *sync.Mutex
 }
 
@@ -34,7 +36,7 @@ func (c *ConfigHandler) HandleChanges(callback func(Config, error)) {
 // Creates a configuration handler that reads the configuration files, merges them and can watch
 // them for changes. Please note that the merges replace whole arrays - they do not merge arrays.
 // The secret file will always overwrite anything in the non-secret / regular file. And any environment
-// variables will always rewrite stuff in the secret config, so the order of preference from most 
+// variables will always rewrite stuff in the secret config, so the order of preference from most
 // preferred to least is environment variables, secret config, non-secret config.
 func NewConfigHandler() *ConfigHandler {
 	main := viper.New()
@@ -55,78 +57,71 @@ func NewConfigHandler() *ConfigHandler {
 		main.AddConfigPath(path)
 		secret.AddConfigPath(path)
 	}
-	return &ConfigHandler{secretViper: secret, mainViper: main, lock: &sync.Mutex{}}
-}
-
-func (c *ConfigHandler) merge() error {
-	err := c.secretViper.ReadInConfig()
+	// Set the deafults to the main config
+	var def map[string]any
+	err := mapstructure.Decode(Config{}, &def)
 	if err != nil {
-		switch err.(type) {
-			case viper.ConfigFileNotFoundError:
-				slog.Info("could not find any secret config files when merging - only the public file and environment variables will be used")
-			default:
-				return err
-		}
+		// NOTE: the error here can include the whole config file with sensitive fields shown in the logs
+		slog.Error("could not decode default configuration struct into map[string]any")
+		os.Exit(1)
 	}
-	var cm map[string]any
-	err = c.secretViper.Unmarshal(
-		&cm,
-		viper.DecodeHook(
-			mapstructure.ComposeDecodeHookFunc(
-				parseStringAsURL(),
-			),
-		),
-	)
-	if err != nil {
-		return err
-	}
-	err = c.mainViper.MergeConfigMap(cm)
-	if err != nil {
-		return err
-	}
-	return nil
+	main.MergeConfigMap(def)
+	return &ConfigHandler{secretViper: secret, mainViper: main, lock: &sync.Mutex{}, envPrefix: "GATEWAY_"}
 }
 
 func (c *ConfigHandler) getConfig() (Config, error) {
-	var output Config
-	err := c.mainViper.ReadInConfig()
+	// NOTE: returning the error is avoided on purpose in most cases here because the error could 
+	// contain sensitive data from the config file or data that is being read in 
+	err := c.mainViper.MergeInConfig()
 	if err != nil {
-		return Config{}, err
+		return Config{}, fmt.Errorf("could not read the main configuration file") 
 	}
+	// read secret config
 	err = c.secretViper.ReadInConfig()
 	if err != nil {
 		switch err.(type) {
-			case viper.ConfigFileNotFoundError:
-				slog.Info("could not find any secret config files to read - only the public file and environment variables will be used")
-			default:
-				return Config{}, err
+		default:
+			return Config{}, fmt.Errorf("reading in the secret config failed")
+		case viper.ConfigFileNotFoundError:
+			slog.Info("could not find any secret config files - only the public file and environment variables will be used")
 		}
 	}
-	// the env variables will overwrite stuff in the secret config if set
-    for _, key := range c.mainViper.AllKeys() {
-		envKey := strings.ToUpper(strings.ReplaceAll(key, ".", "_"))
-		slog.Info("binding environment keys", "secret_key", key, "env_key", envKey)
-		err := c.secretViper.BindEnv(key, envKey)
-		if err != nil {
-			slog.Error("config: unable to bind env", "error", err)
-			os.Exit(1)
-		}
-	}
-	// here the secret config (with any env variables merged) will overwrite anything from the non-secret configuration
-	err = c.merge()
+	err = c.mainViper.MergeConfigMap(c.secretViper.AllSettings())
 	if err != nil {
-		return Config{}, err
+		return Config{}, fmt.Errorf("could not merge the secret file config") 
 	}
-	err = c.mainViper.Unmarshal(
-		&output,
-		viper.DecodeHook(
-			mapstructure.ComposeDecodeHookFunc(
-				parseStringAsURL(),
-			),
+	// read environment variables
+	envVarsFiltered := []string{}
+	for _, kv := range os.Environ() {
+		if !strings.HasPrefix(kv, c.envPrefix) {
+			continue
+		}
+		envVarsFiltered = append(envVarsFiltered, kv)
+	}
+	envBuf := bytes.NewBuffer([]byte(strings.Join(envVarsFiltered, "\n")))
+	envViper := viper.New()
+	envViper.SetConfigType("env")
+	err = envViper.ReadConfig(envBuf)
+	if err != nil {
+		return Config{}, fmt.Errorf("could not read the environment variables into a config") 
+	}
+	envData := envViper.AllSettings()
+	prefix := strings.ToLower(c.envPrefix)
+	for key, val := range envData {
+		dataKey := strings.TrimPrefix(key, prefix)
+		dataKey = strings.ReplaceAll(dataKey, "_", ".")
+		c.mainViper.Set(dataKey, val)
+	}
+	// unmarshal and return
+	var output Config
+	dh := viper.DecodeHook(
+		mapstructure.ComposeDecodeHookFunc(
+			parseStringAsURL(),
 		),
 	)
+	err = c.mainViper.Unmarshal(&output, dh)
 	if err != nil {
-		return Config{}, err
+		return Config{}, fmt.Errorf("cannot unmarshal the combined config into a struct") 
 	}
 	return output, nil
 }

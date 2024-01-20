@@ -6,7 +6,6 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/oidc"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 )
 
 type LoginServer struct {
@@ -17,31 +16,26 @@ type LoginServer struct {
 	config         *config.LoginConfig
 }
 
-func (l *LoginServer) RegisterHandlers(server *echo.Echo) {
+func (l *LoginServer) RegisterHandlers(server *echo.Echo, commonMiddlewares ...echo.MiddlewareFunc) {
 	e := server.Group("/api")
-	e.Use(
-		middleware.Recover(),
-	)
+	e.Use(commonMiddlewares...)
 
 	wrapper := ServerInterfaceWrapper{Handler: l}
 	e.GET(
 		l.config.EndpointsBasePath+"/callback",
 		wrapper.GetCallback,
-		middleware.Logger(),
 		NoCaching,
 		l.sessionHandler.Middleware(),
 	)
 	e.POST(
 		l.config.EndpointsBasePath+"/device/token",
 		wrapper.PostDeviceToken,
-		middleware.Logger(),
 		NoCaching,
 		l.sessionHandler.Middleware(),
 	)
 	e.POST(
 		l.config.EndpointsBasePath+"/device",
 		wrapper.PostDevice,
-		middleware.Logger(),
 		NoCaching,
 		l.sessionHandler.Middleware(),
 	)
@@ -52,28 +46,24 @@ func (l *LoginServer) RegisterHandlers(server *echo.Echo) {
 	e.GET(
 		l.config.EndpointsBasePath+"/login",
 		wrapper.GetLogin,
-		middleware.Logger(),
 		NoCaching,
 		l.sessionHandler.Middleware(),
 	)
 	e.GET(
 		l.config.EndpointsBasePath+"/login/device",
 		wrapper.GetDeviceLogin,
-		middleware.Logger(),
 		NoCaching,
 		l.sessionHandler.Middleware(),
 	)
 	e.GET(
 		l.config.EndpointsBasePath+"/logout",
 		wrapper.GetLogout,
-		middleware.Logger(),
 		NoCaching,
 		l.sessionHandler.Middleware(),
 	)
 	e.POST(
 		l.config.EndpointsBasePath+"/logout",
 		wrapper.PostLogout,
-		middleware.Logger(),
 		NoCaching,
 		l.sessionHandler.Middleware(),
 	)
@@ -117,7 +107,10 @@ func NewLoginServer(options ...LoginServerOption) (*LoginServer, error) {
 	dummyStore := db.NewMockRedisAdapter()
 	server.tokenStore = &dummyStore
 	server.sessionStore = &dummyStore
-	server.sessionHandler = models.NewSessionHandler(models.WithSessionStore(dummyStore), models.WithTokenStore(dummyStore))
+	server.sessionHandler = models.NewSessionHandler(
+		models.WithSessionStore(dummyStore),
+		models.WithTokenStore(dummyStore),
+	)
 	providerStore, err := oidc.NewClientStore(map[string]config.OIDCClient{})
 	if err != nil {
 		return nil, err

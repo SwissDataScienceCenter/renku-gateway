@@ -10,7 +10,6 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 )
 
 type tokenStore interface {
@@ -24,7 +23,7 @@ type Revproxy struct {
 	db tokenStore	
 }
 
-func (r *Revproxy) RegisterHandlers(e *echo.Echo) {
+func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.MiddlewareFunc) {
 	// Intialize common reverse proxy middlewares
 	fallbackProxy := proxyFromURL(r.config.RenkuBaseURL)
 	renkuBaseProxyHost := setHost(r.config.RenkuBaseURL.Host)
@@ -42,7 +41,6 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo) {
 	keycloakProxy := proxyFromURL(r.config.RenkuServices.Keycloak)
 	keycloakProxyHost := setHost(r.config.RenkuServices.Keycloak.Host)
 	dataServiceProxy := proxyFromURL(r.config.RenkuServices.DataService)
-	logger := middleware.Logger()
 
 	// Initialize common authentication middleware
 	notebooksAuth := printMsg("auth")
@@ -52,39 +50,39 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo) {
 	cliGitlabAuth := printMsg("auth")
 
 	// Routing for Renku services
-	e.Group("/api/notebooks", logger, notebooksAuth, noCookies, stripPrefix("/api"), notebooksProxy)
+	e.Group("/api/notebooks", append(commonMiddlewares, notebooksAuth, noCookies, stripPrefix("/api"), notebooksProxy)...)
 	// /api/projects/:projectID/graph will is being deprecated in favour of /api/kg/webhooks, the old endpoint will remain for some time for backward compatibility
-	e.Group("/api/projects/:projectID/graph", logger, gitlabAuth, noCookies, kgProjectsGraphRewrites, webhookProxy)
-	e.Group("/api/kg/webhooks", logger, gitlabAuth, noCookies, stripPrefix("/api/kg/webhooks"), webhookProxy)
-	e.Group("/api/datasets", logger, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)
-	e.Group("/api/kg", logger, gitlabAuth, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)
-	e.Group("/api/data", logger, dataAuth, noCookies, dataServiceProxy)
+	e.Group("/api/projects/:projectID/graph", append(commonMiddlewares, gitlabAuth, noCookies, kgProjectsGraphRewrites, webhookProxy)...)
+	e.Group("/api/kg/webhooks", append(commonMiddlewares, gitlabAuth, noCookies, stripPrefix("/api/kg/webhooks"), webhookProxy)...)
+	e.Group("/api/datasets", append(commonMiddlewares, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)...)
+	e.Group("/api/kg", append(commonMiddlewares, gitlabAuth, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)...)
+	e.Group("/api/data", append(commonMiddlewares, dataAuth, noCookies, dataServiceProxy)...)
 	// /api/kc is used only by the ui and no one else, will be removed when the gateway is in charge of user sessions
-	e.Group("/api/kc", logger, stripPrefix("/api/kc"), keycloakProxyHost, keycloakProxy)
+	e.Group("/api/kc", append(commonMiddlewares, stripPrefix("/api/kc"), keycloakProxyHost, keycloakProxy)...)
 
 	coreSvcProxyStartupCtx, cancel := context.WithTimeout(context.Background(), time.Second*120)
 	defer cancel()
-	registerCoreSvcProxies(coreSvcProxyStartupCtx, e, r.config, logger, checkCoreServiceMetadataVersion(r.config.RenkuServices.Core.ServicePaths), renkuAuth, noCookies, regexRewrite(`^/api/renku(?:/\d+)?((/|\?).*)??$`, "/renku$1"))
+	registerCoreSvcProxies(coreSvcProxyStartupCtx, e, r.config, append(commonMiddlewares, checkCoreServiceMetadataVersion(r.config.RenkuServices.Core.ServicePaths), renkuAuth, noCookies, regexRewrite(`^/api/renku(?:/\d+)?((/|\?).*)??$`, "/renku$1"))...)
 
 	// Routes that end up proxied to Gitlab
 	if r.config.ExternalGitlabURL != nil {
 		// Redirect "old" style bundled /gitlab pathing if an external Gitlab is used
-		e.Group("/gitlab", logger, gitlabRedirect(r.config.ExternalGitlabURL.Host))
-		e.Group("/api/graphql", logger, gitlabAuth, gitlabProxyHost, gitlabProxy)
-		e.Group("/api/direct", logger, stripPrefix("/api/direct"), gitlabProxyHost, gitlabProxy)
-		e.Group("/repos", logger, cliGitlabAuth, noCookies, stripPrefix("/repos"), gitlabProxyHost, gitlabProxy)
+		e.Group("/gitlab", append(commonMiddlewares, gitlabRedirect(r.config.ExternalGitlabURL.Host))...)
+		e.Group("/api/graphql", append(commonMiddlewares, gitlabAuth, gitlabProxyHost, gitlabProxy)...)
+		e.Group("/api/direct", append(commonMiddlewares, stripPrefix("/api/direct"), gitlabProxyHost, gitlabProxy)...)
+		e.Group("/repos", append(commonMiddlewares, cliGitlabAuth, noCookies, stripPrefix("/repos"), gitlabProxyHost, gitlabProxy)...)
 		// If nothing is matched in any other more specific /api route then fall back to Gitlab
-		e.Group("/api", logger, gitlabAuth, noCookies, regexRewrite("^/api(.*)", "/api/v4$1"), gitlabProxyHost, gitlabProxy)
+		e.Group("/api", append(commonMiddlewares, gitlabAuth, noCookies, regexRewrite("^/api(.*)", "/api/v4$1"), gitlabProxyHost, gitlabProxy)...)
 	} else {
-		e.Group("/api/graphql", logger, gitlabAuth, regexRewrite("^(.*)", "/gitlab$1"), gitlabProxyHost, gitlabProxy)
-		e.Group("/api/direct", logger, regexRewrite("^/api/direct(.*)", "/gitlab$1"), gitlabProxyHost, gitlabProxy)
-		e.Group("/repos", logger, cliGitlabAuth, noCookies, regexRewrite("^/repos(.*)", "/gitlab$1"), gitlabProxyHost, gitlabProxy)
+		e.Group("/api/graphql", append(commonMiddlewares, gitlabAuth, regexRewrite("^(.*)", "/gitlab$1"), gitlabProxyHost, gitlabProxy)...)
+		e.Group("/api/direct", append(commonMiddlewares, regexRewrite("^/api/direct(.*)", "/gitlab$1"), gitlabProxyHost, gitlabProxy)...)
+		e.Group("/repos", append(commonMiddlewares, cliGitlabAuth, noCookies, regexRewrite("^/repos(.*)", "/gitlab$1"), gitlabProxyHost, gitlabProxy)...)
 		// If nothing is matched in any other more specific /api route then fall back to Gitlab
-		e.Group("/api", logger, gitlabAuth, noCookies, regexRewrite("^/api(.*)", "/gitlab/api/v4$1"), gitlabProxyHost, gitlabProxy)
+		e.Group("/api", append(commonMiddlewares, gitlabAuth, noCookies, regexRewrite("^/api(.*)", "/gitlab/api/v4$1"), gitlabProxyHost, gitlabProxy)...)
 	}
 
 	// If nothing is matched from any of the routes above then fall back to the UI
-	e.Group("/", logger, renkuBaseProxyHost, fallbackProxy)
+	e.Group("/", append(commonMiddlewares, renkuBaseProxyHost, fallbackProxy)...)
 }
 
 func NewServer(revproxyConfig *config.RevproxyConfig) Revproxy {

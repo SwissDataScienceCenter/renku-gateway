@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log/slog"
 	"os"
 	"path"
 	"testing"
@@ -47,9 +48,9 @@ func TestReadConfigWithEnvVars(t *testing.T) {
 	t.Setenv("CONFIG_LOCATION", tmpDir)
 	err := createSecretFile(path.Join(tmpDir, "secret_config.yaml"))
 	require.NoError(t, err)
-	t.Setenv("LOGIN_PROVIDERS_ID1_CLIENTSECRET", "env-var-secret")
-	t.Setenv("REVPROXY_RENKUBASEURL", "https://dev.renku.ch")
-	t.Setenv("LOGIN_TOKENENCRYPTION_SECRETKEY", "token-encryption-key-12345678910")
+	t.Setenv("GATEWAY_LOGIN_PROVIDERS_ID1_CLIENTSECRET", "env-var-secret")
+	t.Setenv("GATEWAY_REVPROXY_RENKUBASEURL", "https://dev.renku.ch")
+	t.Setenv("GATEWAY_LOGIN_TOKENENCRYPTION_SECRETKEY", "token-encryption-key-12345678910")
 	ch := NewConfigHandler()
 	config, err := ch.Config()
 	require.NoError(t, err)
@@ -64,11 +65,12 @@ func TestReadConfigWithEnvVars(t *testing.T) {
 }
 
 func TestReadConfigWithEnvVarsNoSecretFile(t *testing.T) {
-	t.Setenv("LOGIN_PROVIDERS_ID1_CLIENTSECRET", "env-var-secret")
-	t.Setenv("LOGIN_TOKENENCRYPTION_SECRETKEY", "token-encryption-key-12345678910")
+	t.Setenv("GATEWAY_LOGIN_PROVIDERS_ID1_CLIENTSECRET", "env-var-secret")
+	t.Setenv("GATEWAY_LOGIN_TOKENENCRYPTION_SECRETKEY", "token-encryption-key-12345678910")
 	ch := NewConfigHandler()
 	config, err := ch.Config()
 	require.NoError(t, err)
+	slog.Info("configuration data", "config", config)
 	assert.NotEqual(t, config, Config{})
 	assert.Len(t, config.Login.Providers, 1)
 	assert.Equal(t, "https://renkulab.io", config.Revproxy.RenkuBaseURL.String())

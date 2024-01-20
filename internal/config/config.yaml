@@ -1,3 +1,4 @@
+# Example values for configuration
 server:
   port: 8080
   allowOrigin: []
@@ -26,15 +27,15 @@ login:
   defaultAppRedirectURL: 
   tokenEncryption:
     enabled: true
-    secretKey: "secret-token-entryption-key-1234"
+    secretKey:
   providers:
     id1:
       default: true
-      issuer: https://dev.renku.ch/auth/...
+      issuer: https://renkulab.io/auth/realms/Renku
       clientID: renku
-      clientSecret: dasfasga42g452gdfgadfgadgadgasf34rf4
+      clientSecret: 
       scopes: []
-      callbackURI: https://dev.renku.ch/callback
+      callbackURI: https://renkulab.io/api/auth/callback
       # For securely handling callbacks an encoding and hashing of 32 bytes should be provided
       cookieEncodingKey: 
       cookieHashKey:
