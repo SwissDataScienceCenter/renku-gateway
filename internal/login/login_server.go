@@ -17,52 +17,52 @@ type LoginServer struct {
 }
 
 func (l *LoginServer) RegisterHandlers(server *echo.Echo, commonMiddlewares ...echo.MiddlewareFunc) {
-	e := server.Group("/api")
+	e := server.Group(l.config.EndpointsBasePath)
 	e.Use(commonMiddlewares...)
 
 	wrapper := ServerInterfaceWrapper{Handler: l}
 	e.GET(
-		l.config.EndpointsBasePath+"/callback",
+		"/callback",
 		wrapper.GetCallback,
 		NoCaching,
 		l.sessionHandler.Middleware(),
 	)
 	e.POST(
-		l.config.EndpointsBasePath+"/device/token",
+		"/device/token",
 		wrapper.PostDeviceToken,
 		NoCaching,
 		l.sessionHandler.Middleware(),
 	)
 	e.POST(
-		l.config.EndpointsBasePath+"/device",
+		"/device",
 		wrapper.PostDevice,
 		NoCaching,
 		l.sessionHandler.Middleware(),
 	)
 	e.GET(
-		l.config.EndpointsBasePath+"/health",
+		"/health",
 		wrapper.GetHealth,
 	)
 	e.GET(
-		l.config.EndpointsBasePath+"/login",
+		"/login",
 		wrapper.GetLogin,
 		NoCaching,
 		l.sessionHandler.Middleware(),
 	)
 	e.GET(
-		l.config.EndpointsBasePath+"/login/device",
+		"/login/device",
 		wrapper.GetDeviceLogin,
 		NoCaching,
 		l.sessionHandler.Middleware(),
 	)
 	e.GET(
-		l.config.EndpointsBasePath+"/logout",
+		"/logout",
 		wrapper.GetLogout,
 		NoCaching,
 		l.sessionHandler.Middleware(),
 	)
 	e.POST(
-		l.config.EndpointsBasePath+"/logout",
+		"/logout",
 		wrapper.PostLogout,
 		NoCaching,
 		l.sessionHandler.Middleware(),

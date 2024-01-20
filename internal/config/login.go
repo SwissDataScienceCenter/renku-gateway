@@ -33,7 +33,7 @@ type OIDCClient struct {
 }
 
 func (c *LoginConfig) Validate() error {
-	slog.Info("configuration info", "config", c)
+	slog.Info("login configuration info", "config", c)
 	if c.TokenEncryption.Enabled && len(c.TokenEncryption.SecretKey) != 32 {
 		return fmt.Errorf(
 			"token encryption key has to be 32 bytes long, the provided one is %d long",

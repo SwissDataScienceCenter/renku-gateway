@@ -123,6 +123,14 @@ func (c *ConfigHandler) getConfig() (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("cannot unmarshal the combined config into a struct") 
 	}
+	// NOTE: websockets proxying does not work if the port of the uiserver is not explicitly set
+	if output.Revproxy.RenkuServices.UIServer != nil && output.Revproxy.RenkuServices.UIServer.Port() == "" {
+		if output.Revproxy.RenkuServices.UIServer.Scheme == "http" {
+			output.Revproxy.RenkuServices.UIServer.Host += ":80"
+		} else if output.Revproxy.RenkuServices.UIServer.Scheme == "https" {
+			output.Revproxy.RenkuServices.UIServer.Host += ":443"
+		} 
+	}
 	return output, nil
 }
 

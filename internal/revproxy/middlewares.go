@@ -186,3 +186,113 @@ func gitlabRedirect(newGitlabHost string) echo.MiddlewareFunc {
 		}
 	}
 }
+
+// uiServerUpstreamInternalGitlabLocation is used to set headers used by the UI server to route 1 specific request for
+// Gitlab, when a Renku-bundled Gitlab is used. The UI server needs to cache or further process the results from
+// this reqest, therefore it is not possible to fully skip the UI server.
+func uiServerUpstreamInternalGitlabLocation(host string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			upstreamPath := *c.Request().URL
+			upstreamPath.Host = ""
+			upstreamPath.Scheme = ""
+			upstreamPathStr := strings.TrimPrefix(upstreamPath.String(), "/ui-server/api")
+			c.Request().Header.Set("Renku-Gateway-Upstream-Path", "/gitlab/api/v4"+upstreamPathStr)
+			c.Request().Header.Set("Renku-Gateway-Upstream-Host", host)
+			return next(c)
+		}
+	}
+}
+
+// uiServerUpstreamExternalGitlabLocation is used to set headers used by the UI server to route 1 specific request for
+// Gitlab, when an external Gitlab is used with Renku. The UI server needs to cache or further process the results from
+// this reqest, therefore it is not possible to fully skip the UI server.
+func uiServerUpstreamExternalGitlabLocation(host string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			upstreamPath := *c.Request().URL
+			upstreamPath.Host = ""
+			upstreamPath.Scheme = ""
+			upstreamPathStr := strings.TrimPrefix(upstreamPath.String(), "/ui-server/api")
+			c.Request().Header.Set("Renku-Gateway-Upstream-Path", "/api/v4"+upstreamPathStr)
+			c.Request().Header.Set("Renku-Gateway-Upstream-Host", host)
+			return next(c)
+		}
+	}
+}
+
+// uiServerUpstreamCoreLocation sets headers used by the UI server to determine where to route a specific Core service
+// request. Allows us to position the UI server behind the gateway and still have the gateway "tell" the UI server
+// where to route this Core service request. Used for only 1 specific endpoint that the UI server needs to cache so
+// skipping the UI server on this endpoint is not possible.
+func uiServerUpstreamCoreLocation(host string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			upstreamPath := *c.Request().URL
+			upstreamPath.Host = ""
+			upstreamPath.Scheme = ""
+			upstreamPathStr := strings.TrimPrefix(upstreamPath.String(), "/ui-server")
+			c.Request().Header.Set("Renku-Gateway-Upstream-Path", upstreamPathStr)
+			c.Request().Header.Set("Renku-Gateway-Upstream-Host", host)
+			return next(c)
+		}
+	}
+}
+
+// uiServerUpstreamKgLocation sets headers used by the UI server to determine where to route a specific KG request.
+// Allows us to position the UI server behind the gateway and still have the gateway "tell" the UI server
+// where to route this KG request. Used for only 1 specific endpoint on the KG that the UI server needs to cache
+// so skipping the UI server on this endpoint is not possible.
+func uiServerUpstreamKgLocation(host string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			upstreamPath := *c.Request().URL
+			upstreamPath.Host = ""
+			upstreamPath.Scheme = ""
+			upstreamPathStr := strings.TrimPrefix(upstreamPath.String(), "/ui-server/api/kg")
+			c.Request().Header.Set("Renku-Gateway-Upstream-Path", "/knowledge-graph"+upstreamPathStr)
+			c.Request().Header.Set("Renku-Gateway-Upstream-Host", host)
+			return next(c)
+		}
+	}
+}
+
+// uiServerInjectSessionId injects the session ID as a bearer token in the authorization header
+// func uiServerInjectSessionId(next echo.HandlerFunc) echo.HandlerFunc {
+// 	return func(c echo.Context) error {
+// 		sessionID, ok := c.Get(commonconfig.SessionIDCtxKey).(string)
+// 		if !ok {
+// 			return gwerrors.ErrSessionParse
+// 		}
+// 		c.Request().Header.Set(http.CanonicalHeaderKey("authorization"), fmt.Sprintf("bearer %s", sessionID))
+// 		return next(c)
+// 	}
+// }
+
+// uiServerPathRewrite changes the incoming requests so that the UI server is used (as a second proxy) only for very
+// specific endpoints (when absolutely necessary). For all other cases the gateway routes directly to the required
+// Renku component and injects the proper credentials required by the specific component.
+func UiServerPathRewrite() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			path := c.Request().URL.Path
+			// For several endpoints below the gateway still cannot skip the UI server.
+			if strings.HasPrefix(path, "/ui-server/api/projects") ||
+				strings.HasPrefix(path, "/ui-server/api/renku/cache.files_upload") ||
+				strings.HasPrefix(path, "/ui-server/api/kg/entities") ||
+				strings.HasPrefix(path, "/ui-server/api/last-projects") ||
+				strings.HasPrefix(path, "/ui-server/api/last-searches") {
+				return next(c)
+			}
+			// For all other endpoints the gateway will fully bypass the UI server routing things directly to the proper
+			// Renku component.
+			if strings.HasPrefix(path, "/ui-server/api") {
+				c.Request().URL.Path = strings.TrimPrefix(path, "/ui-server")
+				c.Request().RequestURI = strings.TrimPrefix(c.Request().RequestURI, "/ui-server")
+				c.Request().URL.RawPath = strings.TrimPrefix(c.Request().URL.RawPath, "/ui-server")
+			}
+			return next(c)
+		}
+	}
+}
+

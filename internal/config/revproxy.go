@@ -12,6 +12,7 @@ type RenkuServicesConfig struct {
 	Core             CoreSvcConfig
 	DataService      *url.URL
 	Keycloak         *url.URL
+	UIServer         *url.URL
 }
 
 type metricsConfig struct {
