@@ -2,6 +2,7 @@ package login
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
@@ -90,12 +91,14 @@ func (l *LoginServer) oAuthNext(
 		if url == "" {
 			url = l.config.DefaultAppRedirectURL
 		}
+		slog.Info("login completed", "requestID", c.Request().Header.Get("X-Request-ID"), "appRedirectURL", url)
 		return c.Redirect(http.StatusFound, url)
 	}
 	state := session.PeekOauthState()
 	// Handle the login
 	handler, err := l.providerStore.AuthHandler(providerID, state)
 	if err != nil {
+		slog.Error("auth handler failed", "error", err, "requestID", c.Request().Header.Get("X-Request-ID"))
 		return err
 	}
 	err = echo.WrapHandler(handler)(c)
@@ -121,6 +124,7 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 	}
 	err := echo.WrapHandler(provider.CodeExchangeHandler(tokenCallback))(c)
 	if err != nil {
+		slog.Error("code exchange handler failed", "error", err, "requestID", c.Request().Header.Get("X-Request-ID"))
 		return err
 	}
 

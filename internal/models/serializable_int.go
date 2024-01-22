@@ -1,27 +1,15 @@
 package models
 
-import (
-	"bytes"
-	"encoding/binary"
-	"strconv"
-)
+import "strconv"
 
 type SerializableInt int
 
 func (s SerializableInt) MarshalBinary() (data []byte, err error) {
-	output := make([]byte, 8)
-	binary.PutVarint(output, int64(s))
-	return output, nil
+	return s.MarshalText()
 }
 
 func (s *SerializableInt) UnmarshalBinary(data []byte) error {
-	input := bytes.NewReader(data)
-	res, err := binary.ReadVarint(input)
-	if err != nil {
-		return err
-	}
-	*s = SerializableInt(res)
-	return nil
+	return s.UnmarshalText(data)
 }
 
 func (s SerializableInt) MarshalText() (data []byte, err error) {
@@ -36,3 +24,4 @@ func (s *SerializableInt) UnmarshalText(data []byte) error {
 	*s = SerializableInt(val)
 	return nil
 }
+

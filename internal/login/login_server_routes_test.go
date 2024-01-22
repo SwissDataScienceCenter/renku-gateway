@@ -40,7 +40,7 @@ func getTestConfig(loginServerPort int, authServers ...testAuthServer) (config.L
 		return config.LoginConfig{}, err
 	}
 	config := config.LoginConfig{
-		DefaultAppRedirectURL: fmt.Sprintf("http://localhost:%d/api/health", loginServerPort),
+		DefaultAppRedirectURL: fmt.Sprintf("http://localhost:%d/health", loginServerPort),
 		TokenEncryption: config.TokenEncryptionConfig{
 			Enabled:   true,
 			SecretKey: "1b195c6329ba7df1c1adf6975c71910d",
@@ -70,7 +70,7 @@ func TestGetLogin(t *testing.T) {
 		Authorized:   true,
 		RefreshToken: "refresh-token-value",
 		ClientID:     "renku",
-		CallbackURI:  fmt.Sprintf("http://localhost:%d/api/callback", loginServerPort),
+		CallbackURI:  fmt.Sprintf("http://localhost:%d/callback", loginServerPort),
 	}
 	kcAuthServer.Start()
 	defer kcAuthServer.Server().Close()
@@ -92,11 +92,11 @@ func TestGetLogin(t *testing.T) {
 	))
 	require.NoError(t, err)
 	assert.Len(t, client.Jar.Cookies(testServerURL), 0)
-	res, err := client.Get(testServerURL.JoinPath("/api/health").String())
+	res, err := client.Get(testServerURL.JoinPath("/health").String())
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	req, err := http.NewRequest(http.MethodGet, testServerURL.JoinPath("/api/login").String(), nil)
+	req, err := http.NewRequest(http.MethodGet, testServerURL.JoinPath("/login").String(), nil)
 	require.NoError(t, err)
 	res, err = client.Do(req)
 	require.NoError(t, err)
@@ -121,7 +121,7 @@ func TestGetLogin(t *testing.T) {
 	assert.Equal(t, 0, session.ProviderIDs.Len())
 	assert.Equal(t, res.Request.URL.String(), config.DefaultAppRedirectURL)
 
-	req, err = http.NewRequest(http.MethodGet, testServerURL.JoinPath("/api/logout").String(), nil)
+	req, err = http.NewRequest(http.MethodGet, testServerURL.JoinPath("/logout").String(), nil)
 	require.NoError(t, err)
 	res, err = client.Do(req)
 	require.NoError(t, err)
@@ -142,7 +142,7 @@ func TestGetLogin2Steps(t *testing.T) {
 		Authorized:   true,
 		RefreshToken: "refresh-token-value",
 		ClientID:     "renku1",
-		CallbackURI:  fmt.Sprintf("http://localhost:%d/api/callback", loginServerPort),
+		CallbackURI:  fmt.Sprintf("http://localhost:%d/callback", loginServerPort),
 	}
 	kcAuthServer1.Start()
 	defer kcAuthServer1.Server().Close()
@@ -150,7 +150,7 @@ func TestGetLogin2Steps(t *testing.T) {
 		Authorized:   true,
 		RefreshToken: "refresh-token-value",
 		ClientID:     "renku2",
-		CallbackURI:  fmt.Sprintf("http://localhost:%d/api/callback", loginServerPort),
+		CallbackURI:  fmt.Sprintf("http://localhost:%d/callback", loginServerPort),
 	}
 	kcAuthServer2.Start()
 	defer kcAuthServer2.Server().Close()
@@ -173,11 +173,11 @@ func TestGetLogin2Steps(t *testing.T) {
 	))
 	require.NoError(t, err)
 	assert.Len(t, client.Jar.Cookies(testServerURL), 0)
-	res, err := client.Get(testServerURL.JoinPath("/api/health").String())
+	res, err := client.Get(testServerURL.JoinPath("/health").String())
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	req, err := http.NewRequest(http.MethodGet, testServerURL.JoinPath("/api/login").String(), nil)
+	req, err := http.NewRequest(http.MethodGet, testServerURL.JoinPath("/login").String(), nil)
 	require.NoError(t, err)
 	res, err = client.Do(req)
 	require.NoError(t, err)
@@ -202,7 +202,7 @@ func TestGetLogin2Steps(t *testing.T) {
 	assert.Equal(t, 0, session.ProviderIDs.Len())
 	assert.Equal(t, res.Request.URL.String(), config.DefaultAppRedirectURL)
 
-	req, err = http.NewRequest(http.MethodGet, testServerURL.JoinPath("/api/logout").String(), nil)
+	req, err = http.NewRequest(http.MethodGet, testServerURL.JoinPath("/logout").String(), nil)
 	require.NoError(t, err)
 	res, err = client.Do(req)
 	require.NoError(t, err)

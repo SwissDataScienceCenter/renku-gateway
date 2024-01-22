@@ -2,7 +2,9 @@ package oidc
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
@@ -35,7 +37,8 @@ func (c *Client) getCodeExchangeCallback(tokensCallback models.TokensHandler) fu
 		accessTokenValue := tokens.AccessToken
 		id, err := models.ULIDGenerator{}.ID()
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			slog.Error("generating token ID failed in token exchange", "error", err, "requestID", r.Header.Get("X-Request-ID"))
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		accessToken := models.OauthToken{
@@ -47,12 +50,19 @@ func (c *Client) getCodeExchangeCallback(tokensCallback models.TokensHandler) fu
 			ProviderID: c.ID(),
 		}
 		var refreshTokenExpiresIn int
-		var ok bool
+		var isInt bool
 		if refreshTokenExpiresInRaw := tokens.Extra("refresh_expires_in"); refreshTokenExpiresInRaw != nil {
-			refreshTokenExpiresIn, ok = refreshTokenExpiresInRaw.(int)
-			if !ok {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
+			refreshTokenExpiresIn, isInt = refreshTokenExpiresInRaw.(int)
+			if !isInt {
+				refreshTokenExpiresInStr, isStr := refreshTokenExpiresInRaw.(string)
+				refreshTokenExpiresIn, err = strconv.Atoi(refreshTokenExpiresInStr)
+				// refresh_expires_in is not a standard field so if we cannot parse it after a few tries
+				// we just give up
+				if isStr && err != nil {
+					slog.Error("cannot parse expires_in of refresh token", "error", err, "requestID", r.Header.Get("X-Request-ID"))
+					http.Error(w, "cannot parse expires_in of refresh token", http.StatusInternalServerError)
+					return
+				}
 			}
 		}
 		var refreshTokenExpiry time.Time
@@ -69,7 +79,8 @@ func (c *Client) getCodeExchangeCallback(tokensCallback models.TokensHandler) fu
 		}
 		err = tokensCallback(accessToken, refreshToken)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			slog.Error("error when running tokens callback", "error", err, "requestID", r.Header.Get("X-Request-ID"))
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
