@@ -11,6 +11,9 @@ type SerializableOrderedMap struct {
 }
 
 func (s SerializableOrderedMap) MarshalBinary() (data []byte, err error) {
+	if s.OrderedMap == nil {
+		s.OrderedMap = orderedmap.New[string, string]()
+	}
 	return json.Marshal(s.OrderedMap)
 }
 
@@ -22,6 +25,9 @@ func (s *SerializableOrderedMap) UnmarshalBinary(data []byte) error {
 }
 
 func (s SerializableOrderedMap) MarshalText() (data []byte, err error) {
+	if s.OrderedMap == nil {
+		s.OrderedMap = orderedmap.New[string, string]()
+	}
 	return json.Marshal(s)
 }
 

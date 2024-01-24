@@ -19,6 +19,7 @@ import (
 const (
 	accessTokenPrefix   string = "accessToken-"
 	refreshTokenPrefix  string = "refreshToken-"
+	idTokenPrefix       string = "idToken-"
 	indexExpiringTokens string = "indexExpiringTokens"
 	sessionPrefix       string = "session-"
 	loginSessionPrefix  string = "loginSession-"
@@ -91,15 +92,11 @@ func (r RedisAdapter) SetSession(ctx context.Context, session models.Session) er
 }
 
 func (r RedisAdapter) setOauthToken(ctx context.Context, token models.OauthToken) error {
-	var keyPrefix string
-	switch token.Type {
-	case models.AccessTokenType:
-		keyPrefix = accessTokenPrefix
-	case models.RefreshTokenType:
-		keyPrefix = refreshTokenPrefix
-	default:
-		return fmt.Errorf("unknown token type")
+	err := validateTokenType(token.Type)
+	if err != nil {
+		return err
 	}
+	var keyPrefix string = prefixForTokenType(token.Type)
 
 	if token.Type == models.AccessTokenType {
 		if err := r.setToIndexExpiringTokens(ctx, token); err != nil {
@@ -107,6 +104,9 @@ func (r RedisAdapter) setOauthToken(ctx context.Context, token models.OauthToken
 		}
 	}
 
+	if r.encryptor != nil {
+		token = token.SetEncryptor(r.encryptor)
+	}
 	encToken, err := token.Encrypt()
 	if err != nil {
 		return err
@@ -136,11 +136,18 @@ func (r RedisAdapter) SetRefreshToken(ctx context.Context, refreshToken models.O
 	return r.setOauthToken(ctx, refreshToken)
 }
 
+func (r RedisAdapter) SetIDToken(ctx context.Context, idToken models.OauthToken) error {
+	if idToken.Type != models.IDTokenType {
+		return fmt.Errorf("token is not of the right type")
+	}
+	return r.setOauthToken(ctx, idToken)
+}
+
 // SetToIndexExpiringTokens writes the associated expiration and tokenID of an access token to Redis
-func (r RedisAdapter) setToIndexExpiringTokens(ctx context.Context, accessToken models.OauthToken) error {
+func (r RedisAdapter) setToIndexExpiringTokens(ctx context.Context, token models.OauthToken) error {
 	var z1 redis.Z
-	z1.Score = float64(accessToken.ExpiresAt.Unix())
-	z1.Member = accessToken.ID
+	z1.Score = float64(token.ExpiresAt.Unix())
+	z1.Member = prefixForTokenType(token.Type) + token.ID
 
 	return r.rdb.ZAdd(
 		ctx,
@@ -194,11 +201,23 @@ func (r RedisAdapter) RemoveRefreshToken(ctx context.Context, refreshTokenID str
 	).Err()
 }
 
-// removeFromIndexExpiringTokens removes an access token entry in the indexExpiringTokens sorted set from Redis
-func (r RedisAdapter) removeFromIndexExpiringTokens(ctx context.Context, accessToken models.OauthToken) error {
+func (r RedisAdapter) RemoveIDToken(ctx context.Context, idToken models.OauthToken) error {
+	err := r.removeFromIndexExpiringTokens(ctx, idToken)
+	if err != nil {
+		return err
+	}
+
+	return r.rdb.Del(
+		ctx,
+		idTokenPrefix+idToken.ID,
+	).Err()
+}
+
+// removeFromIndexExpiringTokens removes a token entry in the indexExpiringTokens sorted set from Redis
+func (r RedisAdapter) removeFromIndexExpiringTokens(ctx context.Context, token models.OauthToken) error {
 	var z1 redis.Z
-	z1.Score = float64(accessToken.ExpiresAt.Unix())
-	z1.Member = accessToken.ID
+	z1.Score = float64(token.ExpiresAt.Unix())
+	z1.Member = prefixForTokenType(token.Type) + token.ID
 
 	return r.rdb.ZRem(
 		ctx,
@@ -253,14 +272,14 @@ func (r RedisAdapter) getOauthToken(ctx context.Context, keyPrefix string, token
 		keyPrefix+tokenID,
 	).Result()
 	if err != nil {
-		if err == gwerrors.ErrMissingDBResource {
-			err = gwerrors.ErrTokenNotFound
-		}
 		return output, err
 	}
 
 	err = r.deserializeToStruct(raw, &output)
 	if err != nil {
+		if err == gwerrors.ErrMissingDBResource {
+			err = gwerrors.ErrTokenNotFound
+		}
 		return models.OauthToken{}, err
 	}
 
@@ -291,7 +310,20 @@ func (r RedisAdapter) getOauthTokens(
 	for _, tokenID := range tokenIDs {
 		go func(tokenID string) {
 			defer wg.Done()
+			if tokenErr != nil {
+				// NOTE: This means a previous attempt to retrieve a token resulted in an unexpected error
+				// so we do not try to get more tokens in this case
+				return
+			}
 			token, err := r.getOauthToken(ctx, keyPrefix, tokenID)
+			if err != nil {
+				if err == gwerrors.ErrTokenNotFound {
+					// Ignore if the token is missing
+					return
+				}
+				tokenErr = err
+				return
+			}
 			lock.Lock()
 			defer lock.Unlock()
 			tokens[token.ProviderID] = token
@@ -321,6 +353,14 @@ func (r RedisAdapter) GetAccessTokens(ctx context.Context, tokenIDs ...string) (
 // GetRefreshToken reads the associated ID, refresh token value, expiration and tokenID of a refresh token from Redis
 func (r RedisAdapter) GetRefreshToken(ctx context.Context, tokenID string) (models.OauthToken, error) {
 	return r.getOauthToken(ctx, refreshTokenPrefix, tokenID)
+}
+
+func (r RedisAdapter) GetIDToken(ctx context.Context, tokenID string) (models.OauthToken, error) {
+	return r.getOauthToken(ctx, idTokenPrefix, tokenID)
+}
+
+func (r RedisAdapter) GetIDTokens(ctx context.Context, tokenIDs ...string) (map[string]models.OauthToken, error) {
+	return r.getOauthTokens(ctx, idTokenPrefix, tokenIDs...)
 }
 
 // GetRefreshTokens reads the associated IDs, and returns the tokens in map keyed by the provider IDs
@@ -433,4 +473,30 @@ func NewRedisAdapter(options ...RedisAdapterOption) (RedisAdapter, error) {
 		}
 	}
 	return rdb, nil
+}
+
+func prefixForTokenType(tokenType models.OauthTokenType) string {
+	switch tokenType {
+	case models.AccessTokenType:
+		return accessTokenPrefix
+	case models.RefreshTokenType:
+		return refreshTokenPrefix
+	case models.IDTokenType:
+		return idTokenPrefix
+	default:
+		return ""
+	}
+}
+
+func validateTokenType(tokenType models.OauthTokenType) error {
+	switch tokenType {
+	case models.AccessTokenType:
+		return nil
+	case models.RefreshTokenType:
+		return nil
+	case models.IDTokenType:
+		return nil
+	default:
+		return fmt.Errorf("unknown token type: %s", tokenType)
+	}
 }

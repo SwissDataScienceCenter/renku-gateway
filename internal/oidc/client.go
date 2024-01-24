@@ -77,7 +77,14 @@ func (c *Client) getCodeExchangeCallback(tokensCallback models.TokensHandler) fu
 			ExpiresAt:  refreshTokenExpiry,
 			ProviderID: c.ID(),
 		}
-		err = tokensCallback(accessToken, refreshToken)
+		idToken := models.OauthToken{
+			ID: id,
+			Type: models.IDTokenType,
+			Value: tokens.IDToken,
+			ExpiresAt: tokens.IDTokenClaims.GetExpiration(),
+			ProviderID: c.ID(),
+		}
+		err = tokensCallback(accessToken, refreshToken, idToken)
 		if err != nil {
 			slog.Error("error when running tokens callback", "error", err, "requestID", r.Header.Get("X-Request-ID"))
 			http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -153,7 +153,7 @@ func TestTokenCallback(t *testing.T) {
 				IDTokenClaims: &oidc.IDTokenClaims{},
 				IDToken:       testCase.IDToken,
 			}
-			tokenCallback := func(accessToken, refreshToken models.OauthToken) error {
+			tokenCallback := func(accessToken, refreshToken, idToken models.OauthToken) error {
 				if testCase.Error != nil {
 					return testCase.Error
 				}

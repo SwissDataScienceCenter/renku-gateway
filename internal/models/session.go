@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 )
@@ -19,6 +20,9 @@ type TokenStore interface {
 	RefreshTokenGetter
 	RefreshTokenSetter
 	RefreshTokenRemover
+	IDTokenGetter
+	IDTokenSetter
+	IDTokenRemover
 }
 
 type SessionStore interface {
@@ -26,6 +30,10 @@ type SessionStore interface {
 	SessionSetter
 	SessionRemover
 }
+
+const SessionCookieName = "_renku_session"
+const SessionCtxKey = "_renku_session"
+const SessionHeaderKey = "Renku-Session"
 
 var randomIDGenerator IDGenerator = RandomGenerator{Length: 24}
 
@@ -36,7 +44,7 @@ type Session struct {
 	// TokenIDs represent the Redis keys where the acccess and refresh tokens will be stored
 	TokenIDs SerializableStringSlice
 	// Mapping of state values to OIDC provider IDs
-	ProviderIDs *SerializableOrderedMap
+	ProviderIDs SerializableOrderedMap
 	// The url to redirect to when the login flow is complete (i.e. Renku homepage)
 	RedirectURL string
 	// UTC timestamp for when the session was created
@@ -56,7 +64,7 @@ func (s *Session) TTL() time.Duration {
 	return time.Duration(s.TTLSeconds) * time.Second
 }
 
-func (s *Session) SaveTokens(ctx context.Context, accessToken OauthToken, refreshToken OauthToken, state string) error {
+func (s *Session) SaveTokens(ctx context.Context, accessToken OauthToken, refreshToken OauthToken, idToken OauthToken, state string) error {
 	if s.tokenStore == nil {
 		return fmt.Errorf("cannot save tokens when the token store is nil")
 	}
@@ -64,7 +72,7 @@ func (s *Session) SaveTokens(ctx context.Context, accessToken OauthToken, refres
 	if !found {
 		return fmt.Errorf("could not find a matching state parameter in the session")
 	}
-	if accessToken.ID != refreshToken.ID {
+	if accessToken.ID != refreshToken.ID || accessToken.ID != idToken.ID {
 		return fmt.Errorf("trying to save access and refresh token with different IDs")
 	}
 	s.TokenIDs = append(s.TokenIDs, accessToken.ID)
@@ -79,6 +87,12 @@ func (s *Session) SaveTokens(ctx context.Context, accessToken OauthToken, refres
 	err = s.tokenStore.SetRefreshToken(ctx, refreshToken)
 	if err != nil {
 		return err
+	}
+	if idToken.Value != "" {
+		err = s.tokenStore.SetIDToken(ctx, idToken)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -155,6 +169,36 @@ func (s *Session) GetAccessToken(ctx context.Context, providerID string) (OauthT
 	return token, nil
 }
 
+func (s *Session) GetIDToken(ctx context.Context, providerID string) (OauthToken, error) {
+	tokens, err := s.tokenStore.GetIDTokens(ctx, s.TokenIDs...)
+	if err != nil {
+		return OauthToken{}, err
+	}
+	token, found := tokens[providerID]
+	if !found {
+		return OauthToken{}, gwerrors.ErrTokenNotFound
+	}
+	if token.Expired() {
+		return OauthToken{}, gwerrors.ErrTokenExpired
+	}
+	return token, nil
+}
+
+func (s *Session) GetRefreshToken(ctx context.Context, providerID string) (OauthToken, error) {
+	tokens, err := s.tokenStore.GetRefreshTokens(ctx, s.TokenIDs...)
+	if err != nil {
+		return OauthToken{}, err
+	}
+	token, found := tokens[providerID]
+	if !found {
+		return OauthToken{}, gwerrors.ErrTokenNotFound
+	}
+	if token.Expired() {
+		return OauthToken{}, gwerrors.ErrTokenExpired
+	}
+	return token, nil
+}
+
 // func (s *Session) AddTokenID(id string) {
 // 	s.loadOrCreateSessionData()
 // 	s.data.TokenIDs = append(s.data.TokenIDs, id)
@@ -206,9 +250,10 @@ func (s *Session) SetRedirectURL(ctx context.Context, url string) error {
 
 func WithProviders(providerIDs ...string) SessionOption {
 	return func(s *Session) error {
-		if s.ProviderIDs == nil {
+		blank := SerializableOrderedMap{}
+		if s.ProviderIDs == blank {
 			providers := NewSerializableOrderedMap()
-			s.ProviderIDs = &providers
+			s.ProviderIDs = providers
 		}
 		for _, provider := range providerIDs {
 			aprovider := provider
@@ -252,7 +297,7 @@ func NewSession(options ...SessionOption) (Session, error) {
 	session := Session{
 		CreatedAt:   time.Now().UTC(),
 		TTLSeconds:  SerializableInt((time.Hour * 8).Seconds()),
-		ProviderIDs: &providers,
+		ProviderIDs: providers,
 		TokenIDs:    SerializableStringSlice{},
 		ID:          id,
 	}
@@ -279,7 +324,7 @@ type SessionHandler struct {
 	headerKey                string
 }
 
-func (s *SessionHandler) Cookie(session *Session) *http.Cookie {
+func (s *SessionHandler) cookie(session *Session) *http.Cookie {
 	if session == nil {
 		return nil
 	}
@@ -292,11 +337,77 @@ func (s *SessionHandler) Cookie(session *Session) *http.Cookie {
 	return &cookie
 }
 
-func (s *SessionHandler) Load(ctx context.Context, id string) (Session, error) {
+func (s *SessionHandler) Remove(c echo.Context) error {
+	if s.sessionStore == nil {
+		return fmt.Errorf("cannot remove a session when the session store is not defined")
+	}
+	sessionIDs := mapset.NewSet[string]() 
+	sessionID := c.Request().Header.Get(s.headerKey)
+	// remove the request header if set
+	if sessionID != "" {
+		c.Request().Header.Del(s.headerKey)
+		sessionIDs.Add(sessionID)
+	}
+	sessionID = c.Response().Header().Get(s.headerKey)
+	// remove the response header if set
+	if sessionID != "" {
+		c.Response().Header().Del(s.headerKey)
+		sessionIDs.Add(sessionID)
+	}
+	cookie, err := c.Cookie(s.cookieTemplate().Name)
+	if err != nil && err != http.ErrNoCookie {
+		return err
+	}
+	// remove the cookie if present
+	if cookie != nil {
+		sessionIDs.Add(cookie.Value)
+		c.SetCookie(&http.Cookie{Name: s.cookieTemplate().Name, Value: "", MaxAge: -1})
+	}
+	// remove session from the context if present
+	if c.Get(s.contextKey) != nil {
+		c.Set(s.contextKey, nil)
+	}
+	for _, id := range sessionIDs.ToSlice() {
+		err = s.sessionStore.RemoveSession(c.Request().Context(), id)
+		if err == redis.Nil {
+			// the session is not in the store - we ignore this
+			err = nil
+		}
+	}
+	return err 
+}
+
+func (s *SessionHandler) load(c echo.Context) (Session, error) {
 	if s.sessionStore == nil {
 		return Session{}, fmt.Errorf("cannot load a session when the session store is not defined")
 	}
-	session, err := s.sessionStore.GetSession(ctx, id)
+	// check if the session is already in the request context
+	sessionRaw := c.Get(s.contextKey)
+	if sessionRaw != nil {
+		session, ok := sessionRaw.(Session)
+		if !ok {
+			return Session{}, gwerrors.ErrSessionParse
+		}
+		if session.Expired() {
+			return Session{}, gwerrors.ErrSessionExpired
+		}
+		return session, nil
+	}
+	// check if the session ID is in the request header
+	sessionID := c.Request().Header.Get(s.headerKey)
+	if sessionID == "" {
+		// check if the session ID is in the cookie
+		cookie, err := c.Cookie(s.cookieTemplate().Name)
+		if err != nil {
+			if err == http.ErrNoCookie {
+				return Session{}, gwerrors.ErrSessionNotFound
+			}
+			return Session{}, err
+		}
+		sessionID = cookie.Value
+	}
+	// load the session from the store
+	session, err := s.sessionStore.GetSession(c.Request().Context(), sessionID)
 	if err != nil {
 		if err == redis.Nil {
 			return Session{}, gwerrors.ErrSessionNotFound
@@ -312,75 +423,47 @@ func (s *SessionHandler) Load(ctx context.Context, id string) (Session, error) {
 	return session, nil
 }
 
+func (s *SessionHandler) create(c echo.Context) (Session, error) {
+	session, err := NewSession(SessionWithTokenStore(s.tokenStore), SessionWithSessionStore(s.sessionStore))
+	if err != nil {
+		return Session{}, err
+	}
+	err = session.Save(c.Request().Context())
+	if err != nil {
+		return Session{}, err
+	}
+	c.Set(s.contextKey, session)
+	c.Request().Header.Set(s.headerKey, session.ID)
+	c.SetCookie(s.cookie(&session))
+	return session, nil 
+}
+
 func (s *SessionHandler) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		createPersistSession := func(c echo.Context) error {
-			session, err := NewSession(SessionWithTokenStore(s.tokenStore), SessionWithSessionStore(s.sessionStore))
-			if err != nil {
-				return err
-			}
-			err = session.Save(c.Request().Context())
-			if err != nil {
-				return err
-			}
-			c.Set(s.contextKey, session)
-			c.SetCookie(s.Cookie(&session))
-			return nil
-		}
 		return func(c echo.Context) error {
-			// Check if the session ID is in the header
-			// if not in the header keep going and fallback to cookie
-			// the CLI will pass the session ID in the header
-			headerID := c.Request().Header.Get(s.headerKey)
-			if headerID != "" {
-				session, err := s.Load(c.Request().Context(), headerID)
-				if err != nil && err != gwerrors.ErrSessionNotFound {
-					return err
-				}
-				c.Set(s.contextKey, session)
-				return next(c)
-			}
-			cookie, err := c.Cookie(s.cookieTemplate().Name)
+			session, err := s.load(c)
 			if err != nil {
-				if !(err == http.ErrNoCookie && s.createSessionIfMissing) {
-					// An error other than the cookie not being found occured
-					// or the cookie cannot be found but also cannot be recreated
-					return err
-				}
-				// There is no cookie for the session, set one
-				err = createPersistSession(c)
-				if err != nil {
-					return err
-				}
-				return next(c)
-			}
-			// A cookie was found, load the session from DB
-			session, err := s.Load(c.Request().Context(), cookie.Value)
-			if err != nil {
-				if err != gwerrors.ErrSessionNotFound {
-					return err
-				}
-				// The session does not exist in the DB
-				if s.createSessionIfMissing {
-					err = createPersistSession(c)
+				switch err {
+				case gwerrors.ErrSessionExpired:
+					if !s.recreateSessionIfExpired {
+						return next(c)
+					}
+					_, err := s.create(c)
 					if err != nil {
 						return err
 					}
 					return next(c)
-				}
-			}
-			if session.Expired() {
-				// The session is expired
-				err := session.Remove(c.Request().Context())
-				if err != nil {
-					return err
-				}
-				if s.recreateSessionIfExpired {
-					err = createPersistSession(c)
+				case gwerrors.ErrSessionNotFound:
+					if !s.createSessionIfMissing {
+						return next(c)
+					}
+					_, err := s.create(c)
 					if err != nil {
 						return err
 					}
 					return next(c)
+				default:
+					return err
 				}
 			}
 			c.Set(s.contextKey, session)
@@ -396,9 +479,11 @@ func WithSessionTTL(ttl time.Duration) SessionHandlerOption {
 }
 
 // Note that the value of the cookie and expiry will be rewritten when generated
+// also the cookie name will always come from the config constant and will be ignored if set in the template
 func WithCookieTemplate(cookie http.Cookie) SessionHandlerOption {
 	return func(s *SessionHandler) {
 		s.cookieTemplate = func() http.Cookie {
+			cookie.Name = SessionCookieName
 			return cookie
 		}
 	}
@@ -436,10 +521,11 @@ func NewSessionHandler(options ...SessionHandlerOption) SessionHandler {
 		sessionTTL:               time.Hour,
 		tokenStore:               &store,
 		sessionStore:             &store,
-		contextKey:               "_renku_session",
+		contextKey:               SessionCtxKey,
+		headerKey:                SessionHeaderKey,
 		cookieTemplate: func() http.Cookie {
 			return http.Cookie{
-				Name:     "_renku_session",
+				Name:     SessionCookieName,
 				Secure:   false,
 				HttpOnly: true,
 				Path:     "/",

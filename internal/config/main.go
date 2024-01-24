@@ -48,8 +48,6 @@ type DBAdapter interface {
 const DBTypeRedis string = "redis"
 const DBTypeRedisMock string = "redis-mock"
 
-const SessionCtxKey = "_renku_session"
-
 var CLISessionCookieOpt = models.WithCookieTemplate(http.Cookie{Name: "_renku_cli_session", Secure: true, HttpOnly: true, Path: "/"})
 var UISessionCookieOpt = models.WithCookieTemplate(http.Cookie{Name: "_renku_ui_session", Secure: true, HttpOnly: true, Path: "/"})
 

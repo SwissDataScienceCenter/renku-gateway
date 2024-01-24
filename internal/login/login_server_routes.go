@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/labstack/echo/v4"
@@ -13,7 +12,7 @@ import (
 
 // GetLogin is a handler for the initiation of a authorization code flow login for Renku
 func (l *LoginServer) GetLogin(c echo.Context, params GetLoginParams) error {
-	session, ok := c.Get(config.SessionCtxKey).(models.Session)
+	session, ok := c.Get(models.SessionCtxKey).(models.Session)
 	if !ok {
 		return gwerrors.ErrSessionParse
 	}
@@ -46,7 +45,7 @@ func (l *LoginServer) GetLogin(c echo.Context, params GetLoginParams) error {
 
 // GetDeviceLogin is a handler for the initiation of a device login for Renku, used by the CLI
 func (l *LoginServer) GetDeviceLogin(c echo.Context, params GetDeviceLoginParams) error {
-	session, ok := c.Get(config.SessionCtxKey).(models.Session)
+	session, ok := c.Get(models.SessionCtxKey).(models.Session)
 	if !ok {
 		return gwerrors.ErrSessionParse
 	}
@@ -106,7 +105,7 @@ func (l *LoginServer) oAuthNext(
 }
 
 func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) error {
-	session, ok := c.Get(config.SessionCtxKey).(models.Session)
+	session, ok := c.Get(models.SessionCtxKey).(models.Session)
 	if !ok {
 		return gwerrors.ErrSessionParse
 	}
@@ -119,8 +118,8 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 	if !found {
 		return fmt.Errorf("provider not found %s", providerID)
 	}
-	tokenCallback := func(accessToken, refreshToken models.OauthToken) error {
-		return session.SaveTokens(c.Request().Context(), accessToken, refreshToken, state)
+	tokenCallback := func(accessToken, refreshToken, idToken models.OauthToken) error {
+		return session.SaveTokens(c.Request().Context(), accessToken, refreshToken, idToken, state)
 	}
 	err := echo.WrapHandler(provider.CodeExchangeHandler(tokenCallback))(c)
 	if err != nil {
@@ -131,26 +130,18 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 	return l.oAuthNext(c, session)
 }
 
-// GetLogout logs the user out of the current session, removing the session cookie and removing the session
-// in the session store.
+// GetLogout logs the user out of the current session, 
 func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
-	session, ok := c.Get(config.SessionCtxKey).(models.Session)
-	if !ok {
-		return gwerrors.ErrSessionParse
-	}
 	// figure out redirectURL
 	var redirectURL = l.config.DefaultAppRedirectURL
 	if params.RedirectUrl != nil {
 		redirectURL = *params.RedirectUrl
 	}
-	// remove the session
-	err := session.Remove(c.Request().Context())
+	// remove the session from store, cookie, context, request header 
+	err := l.sessionHandler.Remove(c)
 	if err != nil {
 		return err
 	}
-	// remove the cookie
-	cookieName := l.sessionHandler.Cookie(&session).Name
-	c.SetCookie(&http.Cookie{Name: cookieName, Value: "", MaxAge: -1})
 	// redirect
 	return c.Redirect(http.StatusFound, redirectURL)
 }

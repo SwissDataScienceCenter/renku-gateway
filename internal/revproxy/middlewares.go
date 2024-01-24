@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -296,3 +298,22 @@ func UiServerPathRewrite() echo.MiddlewareFunc {
 	}
 }
 
+// Injects the sessionID as an identifier for an anonymous user. It will only do so if there are no
+// headers already injected for the keycloak tokens. Therefore this should always run in the middleware
+// chain after all other token injection middelwares have run.
+func notebooksAnonymousID(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		sessionRaw := c.Get(models.SessionCtxKey)
+		if sessionRaw == nil {
+			return gwerrors.ErrSessionNotFound
+		}
+		session, ok := sessionRaw.(models.Session)
+		if !ok {
+			return gwerrors.ErrSessionParse
+		}
+		if c.Request().Header.Get("Renku-Auth-Access-Token") == "" && c.Request().Header.Get("Renku-Auth-Id-Token") == "" && c.Request().Header.Get("Renku-Auth-Refresh-Token") == "" {
+			c.Request().Header.Set("Renku-Auth-Anon-Id", session.ID)
+		}
+		return next(c)
+	}
+}

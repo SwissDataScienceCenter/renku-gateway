@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
@@ -39,7 +38,7 @@ func getTestConfig(loginServerPort int, authServers ...testAuthServer) (config.L
 	if err != nil {
 		return config.LoginConfig{}, err
 	}
-	config := config.LoginConfig{
+	testConfig := config.LoginConfig{
 		DefaultAppRedirectURL: fmt.Sprintf("http://localhost:%d/health", loginServerPort),
 		TokenEncryption: config.TokenEncryptionConfig{
 			Enabled:   true,
@@ -47,7 +46,7 @@ func getTestConfig(loginServerPort int, authServers ...testAuthServer) (config.L
 		},
 		Providers: providers,
 	}
-	return config, nil
+	return testConfig, nil
 }
 
 func startTestServer(loginServer *LoginServer, listener net.Listener) (*httptest.Server, error) {
@@ -74,10 +73,10 @@ func TestGetLogin(t *testing.T) {
 	}
 	kcAuthServer.Start()
 	defer kcAuthServer.Server().Close()
-	config, err := getTestConfig(loginServerPort, kcAuthServer)
+	testConfig, err := getTestConfig(loginServerPort, kcAuthServer)
 	require.NoError(t, err)
 
-	api, err := NewLoginServer(WithConfig(config))
+	api, err := NewLoginServer(WithConfig(testConfig))
 	require.NoError(t, err)
 	apiServer, err := startTestServer(api, loginServerListener)
 	require.NoError(t, err)
@@ -87,7 +86,7 @@ func TestGetLogin(t *testing.T) {
 	require.NoError(t, err)
 	client.Jar = jar
 	testServerURL, err := url.Parse(strings.TrimRight(
-		fmt.Sprintf("http://localhost:%d%s", loginServerPort, config.EndpointsBasePath),
+		fmt.Sprintf("http://localhost:%d%s", loginServerPort, testConfig.EndpointsBasePath),
 		"/",
 	))
 	require.NoError(t, err)
@@ -114,12 +113,12 @@ func TestGetLogin(t *testing.T) {
 	assert.Len(t, client.Jar.Cookies(testServerURL), 1)
 
 	sessionCookie := client.Jar.Cookies(testServerURL)[0]
-	assert.Equal(t, api.sessionHandler.Cookie(&models.Session{TTLSeconds: 3600, CreatedAt: time.Now().UTC()}).Name, sessionCookie.Name)
+	assert.Equal(t, models.SessionCookieName, sessionCookie.Name)
 	session, err := api.sessionStore.GetSession(context.Background(), sessionCookie.Value)
 	require.NoError(t, err)
 	assert.Len(t, session.TokenIDs, 1)
 	assert.Equal(t, 0, session.ProviderIDs.Len())
-	assert.Equal(t, res.Request.URL.String(), config.DefaultAppRedirectURL)
+	assert.Equal(t, res.Request.URL.String(), testConfig.DefaultAppRedirectURL)
 
 	req, err = http.NewRequest(http.MethodGet, testServerURL.JoinPath("/logout").String(), nil)
 	require.NoError(t, err)
@@ -154,10 +153,10 @@ func TestGetLogin2Steps(t *testing.T) {
 	}
 	kcAuthServer2.Start()
 	defer kcAuthServer2.Server().Close()
-	config, err := getTestConfig(loginServerPort, kcAuthServer1, kcAuthServer2)
+	testConfig, err := getTestConfig(loginServerPort, kcAuthServer1, kcAuthServer2)
 	require.NoError(t, err)
 
-	api, err := NewLoginServer(WithConfig(config))
+	api, err := NewLoginServer(WithConfig(testConfig))
 	apiServer, err := startTestServer(api, loginServerListener)
 	require.NoError(t, err)
 	defer apiServer.Close()
@@ -168,7 +167,7 @@ func TestGetLogin2Steps(t *testing.T) {
 
 	require.NoError(t, err)
 	testServerURL, err := url.Parse(strings.TrimRight(
-		fmt.Sprintf("http://localhost:%d%s", loginServerPort, config.EndpointsBasePath),
+		fmt.Sprintf("http://localhost:%d%s", loginServerPort, testConfig.EndpointsBasePath),
 		"/",
 	))
 	require.NoError(t, err)
@@ -195,12 +194,12 @@ func TestGetLogin2Steps(t *testing.T) {
 	assert.Len(t, client.Jar.Cookies(testServerURL), 1)
 
 	sessionCookie := client.Jar.Cookies(testServerURL)[0]
-	assert.Equal(t, api.sessionHandler.Cookie(&models.Session{TTLSeconds: 3600, CreatedAt: time.Now().UTC()}).Name, sessionCookie.Name)
+	assert.Equal(t, models.SessionCookieName, sessionCookie.Name)
 	session, err := api.sessionStore.GetSession(context.Background(), sessionCookie.Value)
 	require.NoError(t, err)
 	assert.Len(t, session.TokenIDs, 2)
 	assert.Equal(t, 0, session.ProviderIDs.Len())
-	assert.Equal(t, res.Request.URL.String(), config.DefaultAppRedirectURL)
+	assert.Equal(t, res.Request.URL.String(), testConfig.DefaultAppRedirectURL)
 
 	req, err = http.NewRequest(http.MethodGet, testServerURL.JoinPath("/logout").String(), nil)
 	require.NoError(t, err)
@@ -210,3 +209,4 @@ func TestGetLogin2Steps(t *testing.T) {
 	session, err = api.sessionStore.GetSession(context.Background(), sessionCookie.Value)
 	assert.ErrorIs(t, err, gwerrors.ErrSessionNotFound)
 }
+

@@ -46,12 +46,13 @@ type StickySessionBalancer struct {
 
 func NewStickySessionBalancer(ctx context.Context, service string, namespace string, containerPortName string, cookiePath string, cookieName string) middleware.ProxyBalancer {
 	slog.Info(
-		fmt.Sprintf(
-			"Setting up sticky session balancer for service %s port %s in namespace %s",
-			service,
-			containerPortName,
-			namespace,
-		),
+		"SETTING UP STICKY SESSIONS BALANCER",
+		"service",
+		service,
+		"containerPort",
+		containerPortName,
+		"namespace",
+		namespace,
 	)
 	var clientConfig *rest.Config
 	clientConfig, err := rest.InClusterConfig()

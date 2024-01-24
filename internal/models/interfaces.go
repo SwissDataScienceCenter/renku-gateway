@@ -29,6 +29,19 @@ type AccessTokenRemover interface {
 	RemoveAccessToken(context.Context, OauthToken) error
 }
 
+type IDTokenGetter interface {
+	GetIDToken(ctx context.Context, tokenID string) (OauthToken, error)
+	GetIDTokens(ctx context.Context, tokenIDs ...string) (map[string]OauthToken, error)
+}
+
+type IDTokenSetter interface {
+	SetIDToken(context.Context, OauthToken) error
+}
+
+type IDTokenRemover interface {
+	RemoveIDToken(context.Context, OauthToken) error
+}
+
 type RefreshTokenGetter interface {
 	GetRefreshToken(ctx context.Context, tokenID string) (OauthToken, error)
 	GetRefreshTokens(ctx context.Context, tokenIDs ...string) (map[string]OauthToken, error)
@@ -54,7 +67,7 @@ type SessionRemover interface {
 	RemoveSession(context.Context, string) error
 }
 
-type TokensHandler func(accessToken, refreshToken OauthToken) error
+type TokensHandler func(accessToken, refreshToken, idToken OauthToken) error
 
 type OIDCProviderStore interface {
 	CallbackHandler(providerID string, tokensHandler TokensHandler) (http.HandlerFunc, error)

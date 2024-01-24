@@ -43,7 +43,7 @@ func registerCoreSvcProxies(ctx context.Context, e *echo.Echo, revproxyConfig *c
 		var coreBalancer middleware.ProxyBalancer
 		imwFuncs := make([]echo.MiddlewareFunc, len(mwFuncs))
 		copy(imwFuncs, mwFuncs)
-		slog.Info("Setting up sticky sessions for %s with path %s", service, path)
+		slog.Info("STICKY SESSIONS SETUP", "service", service, "path", path)
 		if revproxyConfig.RenkuServices.Core.Sticky {
 			cookieName := fmt.Sprintf("reverse-proxy-sticky-session-%s", service)
 			coreBalancer = stickysessions.NewStickySessionBalancer(ctx, service, revproxyConfig.K8sNamespace, "http", "/", cookieName)

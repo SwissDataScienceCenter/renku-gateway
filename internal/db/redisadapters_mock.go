@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding"
 	"fmt"
+	"log"
 	"sort"
 
 	"github.com/redis/go-redis/v9"
@@ -17,9 +18,25 @@ type MockRedisClient struct {
 	store map[string]any
 }
 
-func NewMockRedisAdapter() RedisAdapter {
+type MockRedisAdapterOption func(r *RedisAdapter)
+
+func WithEncryption(key string) MockRedisAdapterOption {
+	return func(r *RedisAdapter) {
+		enc, err := NewGCMEncryptor(key)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		r.encryptor = enc
+	}
+}
+
+func NewMockRedisAdapter(options ...MockRedisAdapterOption) RedisAdapter {
 	store := MockRedisClient{map[string]any{}}
-	return RedisAdapter{rdb: &store}
+	db := RedisAdapter{rdb: &store}
+	for _, opt := range options {
+		opt(&db)
+	}
+	return db
 }
 
 func convertValuesToMap(values ...any) (map[string]any, error) {
@@ -95,6 +112,8 @@ func (m *MockRedisClient) ZRem(_ context.Context, key string, members ...any) *r
 func (m *MockRedisClient) HGetAll(_ context.Context, key string) *redis.MapStringStringCmd {
 	val, found := m.store[key]
 	res := redis.MapStringStringCmd{}
+	res.SetVal(map[string]string{})
+	res.SetErr(nil)
 	if !found {
 		return &res
 	}

@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/db"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/login"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/revproxy"
 	"github.com/getsentry/sentry-go"
 	sentryecho "github.com/getsentry/sentry-go/echo"
@@ -66,11 +68,23 @@ func main() {
 	e.GET("/version", func(c echo.Context) error {
 		return c.String(http.StatusOK, version)
 	})
+	// Initialize shared moduels like db adapter
+	dbOptions := []db.RedisAdapterOption{db.WithRedisConfig(gwConfig.Redis)}
+	if gwConfig.Login.TokenEncryption.Enabled && gwConfig.Login.TokenEncryption.SecretKey != "" {
+		dbOptions = append(dbOptions, db.WithEcryption(string(gwConfig.Login.TokenEncryption.SecretKey)))
+	}
+	dbAdapter, err := db.NewRedisAdapter(dbOptions...)
+	if err != nil {
+		slog.Error("DB adapter initialization failed", "error", err)
+		os.Exit(1)
+	}
+	sessionHandler := models.NewSessionHandler(models.WithSessionStore(&dbAdapter), models.WithTokenStore(&dbAdapter))
 	// Initialize the reverse proxy
 	revproxy := revproxy.NewServer(&gwConfig.Revproxy)
-	revproxy.RegisterHandlers(e, commonMiddlewares...)
+	revProxyMiddlewares := append(commonMiddlewares, sessionHandler.Middleware())
+	revproxy.RegisterHandlers(e, revProxyMiddlewares...)
 	// Initialize login server
-	loginServer, err := login.NewLoginServer(login.WithConfig(gwConfig.Login), login.WithDBConfig(gwConfig.Redis))
+	loginServer, err := login.NewLoginServer(login.WithConfig(gwConfig.Login), login.WithTokenStore(&dbAdapter), login.WithSessionStore(&dbAdapter))
 	if err != nil {
 		slog.Error("login handlers initialization failed", "error", err)
 		os.Exit(1)

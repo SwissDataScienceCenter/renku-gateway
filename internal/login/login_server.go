@@ -9,9 +9,9 @@ import (
 )
 
 type LoginServer struct {
-	sessionStore   SessionStore
+	sessionStore   models.SessionStore
 	providerStore  oidc.ClientStore
-	tokenStore     TokenStore
+	tokenStore     models.TokenStore
 	sessionHandler models.SessionHandler
 	config         *config.LoginConfig
 }
@@ -95,6 +95,20 @@ func WithDBConfig(dbConfig config.RedisConfig) LoginServerOption {
 		}
 		l.tokenStore = &rdb
 		l.sessionStore = &rdb
+		return nil
+	}
+}
+
+func WithTokenStore(store models.TokenStore) LoginServerOption {
+	return func(l *LoginServer) error {
+		l.tokenStore = store 
+		return nil
+	}
+}
+
+func WithSessionStore(store models.SessionStore) LoginServerOption {
+	return func(l *LoginServer) error {
+		l.sessionStore = store 
 		return nil
 	}
 }

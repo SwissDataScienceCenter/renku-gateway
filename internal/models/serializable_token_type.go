@@ -4,6 +4,7 @@ type OauthTokenType string
 
 const AccessTokenType OauthTokenType = "AccessToken"
 const RefreshTokenType OauthTokenType = "RefreshToken"
+const IDTokenType OauthTokenType = "IDToken"
 
 func (o OauthTokenType) MarshalText() (data []byte, err error) {
 	return []byte(o), nil

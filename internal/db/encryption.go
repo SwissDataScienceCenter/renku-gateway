@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"io"
+	"log/slog"
 )
 
 type GCMEncryptor struct {
@@ -22,19 +23,19 @@ func (g GCMEncryptor) nonce() ([]byte, error) {
 func (g GCMEncryptor) Encrypt(val string) (string, error) {
 	nonce, err := g.nonce()
 	if err != nil {
+		slog.Error("ENCRYPTION", "message", "failed to generate nonce", "error", err)
 		return "", err
 	}
-	res := g.cipher.Seal(nil, nonce, []byte(val), nil)
+	res := g.cipher.Seal(nonce, nonce, []byte(val), nil)
 	return string(res), nil
 }
 
 func (g GCMEncryptor) Decrypt(val string) (string, error) {
-	nonce, err := g.nonce()
+	nonceSize := g.cipher.NonceSize()
+	nonce, ciphertext := val[:nonceSize], val[nonceSize:]
+	res, err := g.cipher.Open(nil, []byte(nonce), []byte(ciphertext), nil)
 	if err != nil {
-		return "", err
-	}
-	res, err := g.cipher.Open(nil, nonce, []byte(val), nil)
-	if err != nil {
+		slog.Error("DECRYPTION", "message", "failed to decrypt", "error", err)
 		return "", err
 	}
 	return string(res), nil
@@ -51,3 +52,4 @@ func NewGCMEncryptor(secret string) (GCMEncryptor, error) {
 	}
 	return GCMEncryptor{aesgcm}, nil
 }
+

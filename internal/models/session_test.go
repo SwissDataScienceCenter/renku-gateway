@@ -54,8 +54,9 @@ func TestAddTokenID(t *testing.T) {
 	session.sessionStore = &store
 	assert.Len(t, session.TokenIDs, 0)
 	at := OauthToken{ID: "1", Value: "access_token", ProviderID: "provider1", Type: AccessTokenType, ExpiresAt: time.Now().UTC().Add(time.Hour)}
+	it := OauthToken{ID: "1", Value: "id_token", ProviderID: "provider1", Type: IDTokenType, ExpiresAt: time.Now().UTC().Add(time.Hour)}
 	rt := OauthToken{ID: "1", Value: "refresh_token", ProviderID: "provider1", Type: RefreshTokenType, ExpiresAt: time.Now().UTC().Add(time.Hour)}
-	err = session.SaveTokens(context.Background(), at, rt, state)
+	err = session.SaveTokens(context.Background(), at, rt, it, state)
 	require.NoError(t, err)
 	assert.Len(t, session.TokenIDs, 1)
 	rat, err := session.GetAccessToken(context.Background(), "provider1")
@@ -64,4 +65,7 @@ func TestAddTokenID(t *testing.T) {
 	rrt, err := session.tokenStore.GetRefreshToken(context.Background(), rt.ID)
 	require.NoError(t, err)
 	assert.Equal(t, rt, rrt)
+	rit, err := session.tokenStore.GetIDToken(context.Background(), it.ID)
+	require.NoError(t, err)
+	assert.Equal(t, it, rit)
 }

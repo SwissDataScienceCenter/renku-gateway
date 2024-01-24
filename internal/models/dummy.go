@@ -12,6 +12,7 @@ type DummyDBAdapter struct {
 	lock          *sync.RWMutex
 	accessTokens  map[string]OauthToken
 	refreshTokens map[string]OauthToken
+	idTokens       map[string]OauthToken
 	sessions      map[string]Session
 }
 
@@ -42,7 +43,7 @@ func WithSessions(sessions ...Session) DummyAdapterOption {
 }
 
 func NewDummyDBAdapter(options ...DummyAdapterOption) DummyDBAdapter {
-	db := DummyDBAdapter{lock: &sync.RWMutex{}, accessTokens: map[string]OauthToken{}, refreshTokens: map[string]OauthToken{}, sessions: map[string]Session{}}
+	db := DummyDBAdapter{lock: &sync.RWMutex{}, accessTokens: map[string]OauthToken{}, refreshTokens: map[string]OauthToken{}, idTokens: map[string]OauthToken{}, sessions: map[string]Session{}}
 	for _, opt := range options {
 		opt(&db)
 	}
@@ -123,6 +124,29 @@ func (d *DummyDBAdapter) GetRefreshTokens(ctx context.Context, ids ...string) (m
 	return tokens, nil
 }
 
+func (d *DummyDBAdapter) GetIDToken(ctx context.Context, id string) (OauthToken, error) {
+	d.lock.RLock()
+	defer d.lock.RUnlock()
+	token, found := d.idTokens[id]
+	if !found {
+		return OauthToken{}, gwerrors.ErrTokenNotFound
+	}
+	return token, nil
+}
+
+func (d *DummyDBAdapter) GetIDTokens(ctx context.Context, ids ...string) (map[string]OauthToken, error) {
+	d.lock.RLock()
+	defer d.lock.RUnlock()
+	tokens := map[string]OauthToken{}
+	for _, id := range ids {
+		token, found := d.idTokens[id]
+		if found {
+			tokens[token.ProviderID] = token
+		}
+	}
+	return tokens, nil
+}
+
 func (d *DummyDBAdapter) GetExpiringAccessTokenIDs(ctx context.Context, start time.Time, end time.Time) ([]string, error) {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
@@ -149,6 +173,13 @@ func (d *DummyDBAdapter) SetRefreshToken(ctx context.Context, token OauthToken) 
 	return nil
 }
 
+func (d *DummyDBAdapter) SetIDToken(ctx context.Context, token OauthToken) error {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	d.idTokens[token.ID] = token
+	return nil
+}
+
 func (d *DummyDBAdapter) RemoveAccessToken(ctx context.Context, token OauthToken) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
@@ -170,3 +201,15 @@ func (d *DummyDBAdapter) RemoveRefreshToken(ctx context.Context, id string) erro
 	delete(d.refreshTokens, id)
 	return nil
 }
+
+func (d *DummyDBAdapter) RemoveIDToken(ctx context.Context, token OauthToken) error {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	_, found := d.idTokens[token.ID]
+	if !found {
+		return nil
+	}
+	delete(d.idTokens, token.ID)
+	return nil
+}
+

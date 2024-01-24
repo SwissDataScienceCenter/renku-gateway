@@ -2,8 +2,10 @@ package db
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding"
 	"fmt"
+	"io"
 	"reflect"
 	"strconv"
 	"testing"
@@ -103,5 +105,31 @@ func TestSetGetRemoveAccessToken(t *testing.T) {
 	err = adapter.RemoveAccessToken(ctx, myAccessToken)
 	assert.NoError(t, err)
 	accessToken, err = adapter.GetAccessToken(ctx, myAccessToken.ID)
-	assert.ErrorIs(t, err, gwerrors.ErrMissingDBResource)
+	assert.ErrorIs(t, err, gwerrors.ErrTokenNotFound)
 }
+
+func TestSetGetAccessTokenWithEncryption(t *testing.T) {
+	ctx := context.Background()
+	secretKey := make([]byte, 32)
+	_, err := io.ReadFull(rand.Reader, secretKey)
+	require.NoError(t, err)
+	adapter := NewMockRedisAdapter(WithEncryption(string(secretKey)))
+	myAccessToken := models.OauthToken{
+		ID:        "12345",
+		Value:     "6789",
+		ExpiresAt: time.Now().Add(time.Hour * 24),
+		TokenURL:  "https://gitlab.com",
+		Type:      models.AccessTokenType,
+	}
+	err = adapter.SetAccessToken(ctx, myAccessToken)
+	assert.NoError(t, err)
+	accessToken, err := adapter.GetAccessToken(ctx, myAccessToken.ID)
+	assert.NoError(t, err)
+	assert.Truef(
+		t,
+		cmp.Equal(myAccessToken, accessToken, compareOptions...),
+		"The two values are not equal, diff is: %s\n",
+		cmp.Diff(myAccessToken, accessToken, compareOptions...),
+	)
+}
+
