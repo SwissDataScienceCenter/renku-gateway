@@ -65,5 +65,9 @@ func (o OauthToken) String() string {
 }
 
 func (o OauthToken) Expired() bool {
+	if o.ExpiresAt.IsZero() {
+		// IF the expiry date is missing we assume the token is not expired
+		return false
+	}
 	return time.Now().UTC().After(o.ExpiresAt)
 }

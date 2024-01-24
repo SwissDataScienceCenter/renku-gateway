@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/url"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
@@ -14,11 +15,11 @@ import (
 
 type AuthOption func(*Auth)
 
-type TokenHandler func(c echo.Context, token models.OauthToken)
+type TokenHandler func(c echo.Context, token models.OauthToken) error
 
 func InjectInHeader(headerKey string) AuthOption {
 	return func(a *Auth) {
-		a.tokenHandler = func(c echo.Context, token models.OauthToken) {
+		a.tokenHandler = func(c echo.Context, token models.OauthToken) error {
 			slog.Info(
 				"PROXY AUTH MIDDLEWARE",
 				"message",
@@ -35,13 +36,14 @@ func InjectInHeader(headerKey string) AuthOption {
 				c.Request().Header.Get("X-Request-ID"),
 			)
 			c.Request().Header.Set(headerKey, token.Value)
+			return nil
 		}
 	}
 }
 
 func InjectBearerToken() AuthOption {
 	return func(a *Auth) {
-		a.tokenHandler = func(c echo.Context, token models.OauthToken) {
+		a.tokenHandler = func(c echo.Context, token models.OauthToken) error {
 			slog.Info(
 				"PROXY AUTH MIDDLEWARE",
 				"message",
@@ -58,6 +60,7 @@ func InjectBearerToken() AuthOption {
 				c.Request().Header.Get("X-Request-ID"),
 			)
 			c.Request().Header.Set(echo.HeaderAuthorization, fmt.Sprintf("Bearer %s", token.Value))
+			return nil
 		}
 	}
 }
@@ -156,13 +159,16 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 			if a.tokenHandler == nil {
 				return fmt.Errorf("missing token handler for the authenitcation middelware")
 			}
-			a.tokenHandler(c, token)
+			err = a.tokenHandler(c, token)
+			if err != nil {
+				return err
+			}
 			return next(c)
 		}
 	}
 }
 
-var notebooksGitlabAccessTokenHandler TokenHandler = func(c echo.Context, accessToken models.OauthToken) {
+var notebooksGitlabAccessTokenHandler TokenHandler = func(c echo.Context, accessToken models.OauthToken) error {
 	// NOTE: As long as the token comes from the database we can trust it and do nto have to validate it.
 	// Each service that the request ultimately goes to will also validate before it users the token
 	type gitCredentials struct {
@@ -171,33 +177,36 @@ var notebooksGitlabAccessTokenHandler TokenHandler = func(c echo.Context, access
 		AccessTokenExpiresAt int64
 	}
 	output := map[string]gitCredentials{}
-	parser := jwt.NewParser(jwt.WithoutClaimsValidation())
-	parsedJWT, _, err := parser.ParseUnverified(accessToken.Value, jwt.RegisteredClaims{})
-	if err != nil {
-		c.Error(err)
-	}
-	claims, ok := parsedJWT.Claims.(jwt.RegisteredClaims)
-	if !ok {
-		c.Error(fmt.Errorf("cannot parse claims"))
-	}
-
 	credentials := gitCredentials{Provider: "GitLab", AuthorizationHeader: fmt.Sprintf("Bearer %s", accessToken.Value)}
-	// NOTE; if the expiry date in the claims is absent we assume that the token does not expire
+	// NOTE: if the expiry date in the claims is absent we assume that the token does not expire
 	var expiresAt int64 = -1
-	if claims.ExpiresAt != nil {
-		expiresAt = claims.ExpiresAt.Unix()
+	if !accessToken.ExpiresAt.IsZero() {
+		expiresAt = accessToken.ExpiresAt.Unix()
 	}
 	credentials.AccessTokenExpiresAt = expiresAt
-	output[claims.Issuer] = credentials
+	tokenURL, err := url.Parse(accessToken.TokenURL)
+	if err != nil {
+		return err
+	}
+	// The notebook service expects a specific format for the headers where we have to provide the 
+	// base URL for gitlab. That is why we strip out all the things from the token URL.
+	issuerURL := tokenURL
+	issuerURL.Fragment = ""
+	issuerURL.RawFragment = ""
+	issuerURL.Path = ""
+	issuerURL.RawPath = ""
+	issuerURL.RawQuery = ""
+	output[issuerURL.String()] = credentials
 	outputJson, err := json.Marshal(output)
 	if err != nil {
-		c.Error(err)
+		return err
 	}
 	headerVal := base64.StdEncoding.EncodeToString(outputJson)
 	c.Request().Header.Set("Renku-Auth-Git-Credentials", headerVal)
+	return nil
 }
 
-var coreSvcRenkuAccessTokenHandler TokenHandler = func(c echo.Context, accessToken models.OauthToken) {
+var coreSvcRenkuAccessTokenHandler TokenHandler = func(c echo.Context, accessToken models.OauthToken) error {
 	extractClaim := func(claims jwt.MapClaims, key string) (string, error) {
 		valRaw, found := claims["email"]
 		if !found {
@@ -212,34 +221,36 @@ var coreSvcRenkuAccessTokenHandler TokenHandler = func(c echo.Context, accessTok
 	parser := jwt.NewParser(jwt.WithoutClaimsValidation())
 	parsedJWT, _, err := parser.ParseUnverified(accessToken.Value, jwt.MapClaims{})
 	if err != nil {
-		c.Error(err)
+		return err
 	}
 	claims, ok := parsedJWT.Claims.(jwt.MapClaims)
 	if !ok {
-		c.Error(fmt.Errorf("cannot parse claims"))
+		return fmt.Errorf("cannot parse claims")
 	}
 	email, err := extractClaim(claims, "email")
 	if err != nil {
-		c.Error(err)
+		return err
 	}
 	sub, err := extractClaim(claims, "sub")
 	if err != nil {
-		c.Error(err)
+		return err
 	}
 	name, err := extractClaim(claims, "name")
 	if err != nil {
-		c.Error(err)
+		return err
 	}
 	c.Request().Header.Set("Renku-user-id", sub)
 	c.Request().Header.Set("Renku-user-email", email)
 	c.Request().Header.Set("Renku-user-fullname", name)
 	c.Request().Header.Set(echo.HeaderAuthorization, fmt.Sprintf("Bearer %s", accessToken.Value))
+	return nil
 }
 
-var gitlabCliTokenHandler TokenHandler = func(c echo.Context, accessToken models.OauthToken) {
+var gitlabCliTokenHandler TokenHandler = func(c echo.Context, accessToken models.OauthToken) error {
 	if accessToken.Value == "" {
-		return
+		return nil 
 	}
 	c.Request().Header.Set(echo.HeaderAuthorization, fmt.Sprintf("Basic oauth2:%s", accessToken.Value))
+	return nil
 }
 

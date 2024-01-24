@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strconv"
-	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
@@ -33,8 +31,6 @@ func (c *Client) getCodeExchangeCallback(tokensCallback models.TokensHandler) fu
 		state string,
 		client rp.RelyingParty,
 	) {
-		refreshTokenValue := tokens.RefreshToken
-		accessTokenValue := tokens.AccessToken
 		id, err := models.ULIDGenerator{}.ID()
 		if err != nil {
 			slog.Error("generating token ID failed in token exchange", "error", err, "requestID", r.Header.Get("X-Request-ID"))
@@ -44,37 +40,16 @@ func (c *Client) getCodeExchangeCallback(tokensCallback models.TokensHandler) fu
 		accessToken := models.OauthToken{
 			ID:         id,
 			Type:       models.AccessTokenType,
-			Value:      accessTokenValue,
+			Value:      tokens.AccessToken, 
 			TokenURL:   client.OAuthConfig().Endpoint.TokenURL,
 			ExpiresAt:  tokens.Expiry,
 			ProviderID: c.ID(),
 		}
-		var refreshTokenExpiresIn int
-		var isInt bool
-		if refreshTokenExpiresInRaw := tokens.Extra("refresh_expires_in"); refreshTokenExpiresInRaw != nil {
-			refreshTokenExpiresIn, isInt = refreshTokenExpiresInRaw.(int)
-			if !isInt {
-				refreshTokenExpiresInStr, isStr := refreshTokenExpiresInRaw.(string)
-				refreshTokenExpiresIn, err = strconv.Atoi(refreshTokenExpiresInStr)
-				// refresh_expires_in is not a standard field so if we cannot parse it after a few tries
-				// we just give up
-				if isStr && err != nil {
-					slog.Error("cannot parse expires_in of refresh token", "error", err, "requestID", r.Header.Get("X-Request-ID"))
-					http.Error(w, "cannot parse expires_in of refresh token", http.StatusInternalServerError)
-					return
-				}
-			}
-		}
-		var refreshTokenExpiry time.Time
-		if refreshTokenExpiresIn > 0 {
-			refreshTokenExpiry = time.Now().Add(time.Second * time.Duration(refreshTokenExpiresIn))
-		}
 		refreshToken := models.OauthToken{
 			ID:         id,
 			Type:       models.RefreshTokenType,
-			Value:      refreshTokenValue,
+			Value:      tokens.RefreshToken,
 			TokenURL:   client.OAuthConfig().Endpoint.TokenURL,
-			ExpiresAt:  refreshTokenExpiry,
 			ProviderID: c.ID(),
 		}
 		idToken := models.OauthToken{
