@@ -3,30 +3,31 @@ package config
 import (
 	"fmt"
 	"log/slog"
+	"net/url"
 )
 
 type TokenEncryptionConfig struct {
 	Enabled   bool
-	SecretKey RedactedString 
+	SecretKey RedactedString
 }
 
 type LoginConfig struct {
-	DefaultAppRedirectURL string
-	EndpointsBasePath     string
-	TokenEncryption       TokenEncryptionConfig
-	Providers             map[string]OIDCClient
+	RenkuBaseURL      *url.URL 
+	EndpointsBasePath string
+	TokenEncryption   TokenEncryptionConfig
+	Providers         map[string]OIDCClient
 }
 
 type OIDCClient struct {
 	Default           bool
 	Issuer            string
 	ClientID          string
-	ClientSecret      RedactedString 
+	ClientSecret      RedactedString
 	Scopes            []string
 	CallbackURI       string
 	UsePKCE           bool
-	CookieEncodingKey RedactedString 
-	CookieHashKey     RedactedString 
+	CookieEncodingKey RedactedString
+	CookieHashKey     RedactedString
 	// NOTE: UnsafeNoCookieHandler should only be used for testing, in production this has to be false/unset
 	// without this there is no CSRF protection on the oauth callback endpoint
 	UnsafeNoCookieHandler bool

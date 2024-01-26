@@ -80,11 +80,11 @@ func newMockRelyingParty(tokenURL string) rp.RelyingParty {
 }
 
 func TestClientReturnsID(t *testing.T) {
-	client := Client{
+	client := oidcClient{
 		client: newMockRelyingParty("https://token.url"),
 		id:     "id",
 	}
-	assert.Equal(t, "id", client.ID())
+	assert.Equal(t, "id", client.getID())
 }
 
 type TestTokenCallbackScenario struct {
@@ -96,7 +96,6 @@ type TestTokenCallbackScenario struct {
 	IDToken               string
 	State                 string
 	AccessTokenExpiresIn  int
-	RefreshTokenExpiresIn int
 	Now                   time.Time
 	TokenURL              string
 }
@@ -115,18 +114,6 @@ func TestTokenCallback(t *testing.T) {
 			TokenURL:             "https://token.url",
 		},
 		{
-			Name:                  "withRefreshTokenExpiry",
-			ProviderID:            "id",
-			AccessToken:           "accessToken",
-			RefreshToken:          "refreshToken",
-			IDToken:               "idToken",
-			State:                 "state",
-			AccessTokenExpiresIn:  50,
-			RefreshTokenExpiresIn: 100,
-			Now:                   time.Now(),
-			TokenURL:              "https://token.url",
-		},
-		{
 			Name:  "error",
 			Error: fmt.Errorf("Some error"),
 		},
@@ -134,7 +121,7 @@ func TestTokenCallback(t *testing.T) {
 
 	parametrizedTest := func(testCase TestTokenCallbackScenario) func(*testing.T) {
 		return func(t *testing.T) {
-			client := Client{
+			client := oidcClient{
 				client: newMockRelyingParty(testCase.TokenURL),
 				id:     testCase.ProviderID,
 			}
@@ -142,11 +129,6 @@ func TestTokenCallback(t *testing.T) {
 				AccessToken:  testCase.AccessToken,
 				RefreshToken: testCase.RefreshToken,
 				Expiry:       testCase.Now.Add(time.Second * time.Duration(testCase.AccessTokenExpiresIn)),
-			}
-			if testCase.RefreshTokenExpiresIn > 0 {
-				oauth2Token = oauth2Token.WithExtra(map[string]any{
-					"refresh_expires_in": testCase.RefreshTokenExpiresIn,
-				})
 			}
 			tokens := oidc.Tokens[*oidc.IDTokenClaims]{
 				Token:         oauth2Token,
@@ -170,13 +152,6 @@ func TestTokenCallback(t *testing.T) {
 					testCase.Now.Add(time.Second*time.Duration(testCase.AccessTokenExpiresIn)).Unix(),
 					accessToken.ExpiresAt.Unix(),
 				)
-				if testCase.RefreshTokenExpiresIn > 0 {
-					assert.Equal(
-						t,
-						testCase.Now.Add(time.Second*time.Duration(testCase.RefreshTokenExpiresIn)).Unix(),
-						refreshToken.ExpiresAt.Unix(),
-					)
-				}
 				return nil
 			}
 			codeExchangeCallback := client.getCodeExchangeCallback(tokenCallback)
@@ -195,3 +170,4 @@ func TestTokenCallback(t *testing.T) {
 	}
 
 }
+

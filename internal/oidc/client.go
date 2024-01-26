@@ -1,6 +1,7 @@
 package oidc
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,14 +11,15 @@ import (
 	"github.com/zitadel/oidc/v2/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v2/pkg/http"
 	"github.com/zitadel/oidc/v2/pkg/oidc"
+	"golang.org/x/oauth2"
 )
 
-type Client struct {
+type oidcClient struct {
 	client rp.RelyingParty
 	id     string
 }
 
-func (c *Client) getCodeExchangeCallback(tokensCallback models.TokensHandler) func(
+func (c *oidcClient) getCodeExchangeCallback(tokensCallback models.TokensHandler) func(
 	w http.ResponseWriter,
 	r *http.Request,
 	tokens *oidc.Tokens[*oidc.IDTokenClaims],
@@ -40,24 +42,24 @@ func (c *Client) getCodeExchangeCallback(tokensCallback models.TokensHandler) fu
 		accessToken := models.OauthToken{
 			ID:         id,
 			Type:       models.AccessTokenType,
-			Value:      tokens.AccessToken, 
+			Value:      tokens.AccessToken,
 			TokenURL:   client.OAuthConfig().Endpoint.TokenURL,
 			ExpiresAt:  tokens.Expiry,
-			ProviderID: c.ID(),
+			ProviderID: c.getID(),
 		}
 		refreshToken := models.OauthToken{
 			ID:         id,
 			Type:       models.RefreshTokenType,
 			Value:      tokens.RefreshToken,
 			TokenURL:   client.OAuthConfig().Endpoint.TokenURL,
-			ProviderID: c.ID(),
+			ProviderID: c.getID(),
 		}
 		idToken := models.OauthToken{
-			ID: id,
-			Type: models.IDTokenType,
-			Value: tokens.IDToken,
-			ExpiresAt: tokens.IDTokenClaims.GetExpiration(),
-			ProviderID: c.ID(),
+			ID:         id,
+			Type:       models.IDTokenType,
+			Value:      tokens.IDToken,
+			ExpiresAt:  tokens.IDTokenClaims.GetExpiration(),
+			ProviderID: c.getID(),
 		}
 		err = tokensCallback(accessToken, refreshToken, idToken)
 		if err != nil {
@@ -68,11 +70,11 @@ func (c *Client) getCodeExchangeCallback(tokensCallback models.TokensHandler) fu
 	}
 }
 
-// AuthHandler returns a http handler that can start the login flow and redirect
+// authHandler returns a http handler that can start the login flow and redirect
 // to the identity provider /authorization page, setting all reaquired paramters
 // like state, client ID, secret, etc. We store the oAuth state values in the session
 // in Redis so the function here just forwards the state that was provided from the session.
-func (c *Client) AuthHandler(state string) http.HandlerFunc {
+func (c *oidcClient) authHandler(state string) http.HandlerFunc {
 	stateFunc := func() string {
 		return state
 	}
@@ -81,17 +83,66 @@ func (c *Client) AuthHandler(state string) http.HandlerFunc {
 
 // Returns a http handler that will receive the authorization code from the identity provider.
 // swap it for an access token and then pass the access and refresh token to the callback function.
-func (c *Client) CodeExchangeHandler(tokensCallback models.TokensHandler) http.HandlerFunc {
+func (c *oidcClient) CodeExchangeHandler(tokensCallback models.TokensHandler) http.HandlerFunc {
 	return rp.CodeExchangeHandler(c.getCodeExchangeCallback(tokensCallback), c.client)
 }
 
-func (c *Client) ID() string {
+func (c *oidcClient) getID() string {
 	return c.id
 }
 
-type ClientOption func(*Client) error
+func (c *oidcClient) startDeviceFlow(ctx context.Context) (*oauth2.DeviceAuthResponse, error) {
+	return c.client.OAuthConfig().DeviceAuth(ctx)
+}
 
-func WithOIDCConfig(clientConfig config.OIDCClient) ClientOption {
+// Verifies the signature, checks the token is not expired, parses the claims and returns them
+// NOTE: For Gitlab only the ID tokens can be parsed like this, access and refresh tokens are not JWTs
+// NOTE: This will and should return a list of 3 tokens in the order in which they are defined in the function
+func (c *oidcClient) verifyTokens(ctx context.Context, accessToken, refreshToken, idToken string) ([]models.OauthToken, error) {
+	checkToken := func(val string, tokenID string, tokenType models.OauthTokenType, ks oidc.KeySet) (models.OauthToken, error) {
+		claims := new(oidc.TokenClaims)
+		payload, err := oidc.ParseToken(val, claims)
+		if err != nil {
+			return models.OauthToken{}, err
+		}
+		err = oidc.CheckSignature(ctx, val, payload, claims, []string{"RS256"}, ks)
+		if err != nil {
+			return models.OauthToken{}, err
+		}
+		err = oidc.CheckExpiration(claims, 0)
+		if err != nil {
+			return models.OauthToken{}, err
+		}
+		output := models.OauthToken{ID: tokenID, Type: tokenType, Value: val, ExpiresAt: claims.GetExpiration(), TokenURL: c.client.OAuthConfig().Endpoint.TokenURL, ProviderID: c.getID()}
+		return output, nil
+	}
+
+	ks := c.client.IDTokenVerifier().KeySet()
+	tokenID, err := models.ULIDGenerator{}.ID()
+	if err != nil {
+		return []models.OauthToken{}, err
+	}
+	accessTokenParsed, err := checkToken(accessToken, tokenID, models.AccessTokenType, ks)
+	if err != nil {
+		return []models.OauthToken{}, err
+	}
+	refreshTokenParsed, err := checkToken(refreshToken, tokenID, models.RefreshTokenType, ks)
+	if err != nil {
+		return []models.OauthToken{}, err
+	}
+	if idToken == "" {
+		return []models.OauthToken{accessTokenParsed, refreshTokenParsed, models.OauthToken{}}, nil
+	}
+	idTokenParsed, err := checkToken(idToken, tokenID, models.IDTokenType, ks)
+	if err != nil {
+		return []models.OauthToken{}, err
+	}
+	return []models.OauthToken{accessTokenParsed, refreshTokenParsed, idTokenParsed}, nil
+}
+
+type clientOption func(*oidcClient) error
+
+func withOIDCConfig(clientConfig config.OIDCClient) clientOption {
 	validateConfig := func(clientConfig config.OIDCClient) error {
 		cookieEncKey := []byte(clientConfig.CookieEncodingKey)
 		cookieHashKey := []byte(clientConfig.CookieHashKey)
@@ -132,7 +183,7 @@ func WithOIDCConfig(clientConfig config.OIDCClient) ClientOption {
 			options...,
 		)
 	}
-	return func(c *Client) error {
+	return func(c *oidcClient) error {
 		err := validateConfig(clientConfig)
 		if err != nil {
 			return err
@@ -146,13 +197,14 @@ func WithOIDCConfig(clientConfig config.OIDCClient) ClientOption {
 	}
 }
 
-func NewClient(id string, options ...ClientOption) (Client, error) {
-	client := Client{id: id}
+func newClient(id string, options ...clientOption) (oidcClient, error) {
+	client := oidcClient{id: id}
 	for _, opt := range options {
 		err := opt(&client)
 		if err != nil {
-			return Client{}, err
+			return oidcClient{}, err
 		}
 	}
 	return client, nil
 }
+

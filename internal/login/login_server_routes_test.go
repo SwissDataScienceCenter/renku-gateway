@@ -38,8 +38,12 @@ func getTestConfig(loginServerPort int, authServers ...testAuthServer) (config.L
 	if err != nil {
 		return config.LoginConfig{}, err
 	}
+	renkuBaseURL, err := url.Parse(fmt.Sprintf("http://localhost:%d/health", loginServerPort))
+	if err != nil {
+		return config.LoginConfig{}, err
+	}
 	testConfig := config.LoginConfig{
-		DefaultAppRedirectURL: fmt.Sprintf("http://localhost:%d/health", loginServerPort),
+		RenkuBaseURL: renkuBaseURL, 
 		TokenEncryption: config.TokenEncryptionConfig{
 			Enabled:   true,
 			SecretKey: "1b195c6329ba7df1c1adf6975c71910d",
@@ -118,7 +122,7 @@ func TestGetLogin(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, session.TokenIDs, 1)
 	assert.Equal(t, 0, session.ProviderIDs.Len())
-	assert.Equal(t, res.Request.URL.String(), testConfig.DefaultAppRedirectURL)
+	assert.Equal(t, res.Request.URL.String(), testConfig.RenkuBaseURL.String())
 
 	req, err = http.NewRequest(http.MethodGet, testServerURL.JoinPath("/logout").String(), nil)
 	require.NoError(t, err)
@@ -199,7 +203,7 @@ func TestGetLogin2Steps(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, session.TokenIDs, 2)
 	assert.Equal(t, 0, session.ProviderIDs.Len())
-	assert.Equal(t, res.Request.URL.String(), testConfig.DefaultAppRedirectURL)
+	assert.Equal(t, res.Request.URL.String(), testConfig.RenkuBaseURL.String())
 
 	req, err = http.NewRequest(http.MethodGet, testServerURL.JoinPath("/logout").String(), nil)
 	require.NoError(t, err)

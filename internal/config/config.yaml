@@ -24,7 +24,7 @@ revproxy:
     keycloak:
 login:
   endpointsBasePath: 
-  defaultAppRedirectURL: 
+  renkuBaseURL: "https://renkulab.io" 
   tokenEncryption:
     enabled: true
     secretKey:

@@ -22,7 +22,7 @@ func (l *LoginServer) GetLogin(c echo.Context, params GetLoginParams) error {
 	if params.RedirectUrl != nil && *params.RedirectUrl != "" {
 		appRedirectURL = *params.RedirectUrl
 	} else {
-		appRedirectURL = l.config.DefaultAppRedirectURL
+		appRedirectURL = l.config.RenkuBaseURL.String()
 	}
 	// Check provider IDs requested for login
 	if params.ProviderId != nil && len(*params.ProviderId) > 0 {
@@ -88,7 +88,7 @@ func (l *LoginServer) oAuthNext(
 		// no more providers to login with go to the application
 		url := session.PopRedirectURL()
 		if url == "" {
-			url = l.config.DefaultAppRedirectURL
+			url = l.config.RenkuBaseURL.String()
 		}
 		slog.Info("login completed", "requestID", c.Request().Header.Get("X-Request-ID"), "appRedirectURL", url)
 		return c.Redirect(http.StatusFound, url)
@@ -133,7 +133,7 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 // GetLogout logs the user out of the current session, 
 func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
 	// figure out redirectURL
-	var redirectURL = l.config.DefaultAppRedirectURL
+	var redirectURL = l.config.RenkuBaseURL.String()
 	if params.RedirectUrl != nil {
 		redirectURL = *params.RedirectUrl
 	}

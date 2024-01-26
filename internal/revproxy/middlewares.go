@@ -2,16 +2,13 @@ package revproxy
 
 import (
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strings"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
-	"github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -21,65 +18,6 @@ func noCookies(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		c.Request().Header.Set(http.CanonicalHeaderKey("cookies"), "")
 		return next(c)
-	}
-}
-
-// stripCookies removes all cookies from a request, except for those provided in the keepCookies list
-func stripCookies(keepCookies []string) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			originalReq := c.Request().Clone(c.Request().Context())
-			c.Request().Header.Set(http.CanonicalHeaderKey("cookies"), "")
-			for _, cookieNameToAdd := range keepCookies {
-				cookieToAdd, err := originalReq.Cookie(cookieNameToAdd)
-				if err == nil {
-					c.Request().AddCookie(cookieToAdd)
-				}
-			}
-			return next(c)
-		}
-	}
-}
-
-// injectCredentials middleware makes a call to authenticate the request and injects the credentials
-// if the authentication is successful, if not it returns the response from the autnetication service
-func authenticate(authURL *url.URL, injectedHeaders ...string) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			// Send request to the authorization service
-			req, err := http.NewRequestWithContext(
-				c.Request().Context(),
-				"GET",
-				authURL.String(),
-				nil,
-			)
-			if err != nil {
-				return err
-			}
-			req.Header = c.Request().Header.Clone()
-			res, err := http.DefaultClient.Do(req)
-			if err != nil {
-				return err
-			}
-			// The authentication request was rejected, return the authentication service response and status code
-			if res.StatusCode >= 300 || res.StatusCode < 200 {
-				defer res.Body.Close()
-				for name, values := range res.Header {
-					c.Response().Header()[name] = values
-				}
-				c.Response().WriteHeader(res.StatusCode)
-				_, err = io.Copy(c.Response().Writer, res.Body)
-				return err
-			}
-			// The authentication request was successful, inject headers and go to next middleware
-			for _, hdr := range injectedHeaders {
-				hdrValue := res.Header.Get(hdr)
-				if hdrValue != "" {
-					c.Request().Header.Set(hdr, hdrValue)
-				}
-			}
-			return next(c)
-		}
 	}
 }
 
@@ -132,23 +70,6 @@ func printMsg(msg string) echo.MiddlewareFunc {
 			return next(c)
 		}
 	}
-}
-
-// getMetricsServer creates a Prometheus server
-func getMetricsServer(apiServer *echo.Echo, port int) *echo.Echo {
-	metricsServer := echo.New()
-	metricsServer.HideBanner = true
-	// Skip the health endpoint
-	urlSkipper := func(c echo.Context) bool {
-		return strings.HasPrefix(c.Path(), "/revproxy/health")
-	}
-	prom := prometheus.NewPrometheus("gateway_revproxy", urlSkipper)
-	prom.MetricsPath = "/"
-	// Scrape metrics from Main Server
-	apiServer.Use(prom.HandlerFunc)
-	// Setup metrics endpoint at another server
-	prom.SetMetricsPath(metricsServer)
-	return metricsServer
 }
 
 // checkCoreServiceMetadataVersion checks if the requested path contains a valid
@@ -258,18 +179,6 @@ func uiServerUpstreamKgLocation(host string) echo.MiddlewareFunc {
 		}
 	}
 }
-
-// uiServerInjectSessionId injects the session ID as a bearer token in the authorization header
-// func uiServerInjectSessionId(next echo.HandlerFunc) echo.HandlerFunc {
-// 	return func(c echo.Context) error {
-// 		sessionID, ok := c.Get(commonconfig.SessionIDCtxKey).(string)
-// 		if !ok {
-// 			return gwerrors.ErrSessionParse
-// 		}
-// 		c.Request().Header.Set(http.CanonicalHeaderKey("authorization"), fmt.Sprintf("bearer %s", sessionID))
-// 		return next(c)
-// 	}
-// }
 
 // uiServerPathRewrite changes the incoming requests so that the UI server is used (as a second proxy) only for very
 // specific endpoints (when absolutely necessary). For all other cases the gateway routes directly to the required

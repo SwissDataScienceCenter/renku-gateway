@@ -8,11 +8,11 @@ import (
 )
 
 func TestClientStore(t *testing.T) {
-	client1 := Client{
+	client1 := oidcClient{
 		client: newMockRelyingParty("https://token.url"),
 		id:     "id1",
 	}
-	client2 := Client{
+	client2 := oidcClient{
 		client: newMockRelyingParty("https://token.url"),
 		id:     "id2",
 	}
