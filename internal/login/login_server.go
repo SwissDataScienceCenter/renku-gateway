@@ -1,6 +1,10 @@
 package login
 
 import (
+	"log/slog"
+	"net/http"
+	"os"
+
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/db"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
@@ -13,6 +17,7 @@ type LoginServer struct {
 	providerStore  oidc.ClientStore
 	tokenStore     models.TokenStore
 	sessionHandler models.SessionHandler
+	cliSessionHandler models.SessionHandler
 	config         *config.LoginConfig
 }
 
@@ -25,19 +30,6 @@ func (l *LoginServer) RegisterHandlers(server *echo.Echo, commonMiddlewares ...e
 		"/callback",
 		wrapper.GetCallback,
 		NoCaching,
-		l.sessionHandler.Middleware(),
-	)
-	e.POST(
-		"/device/token",
-		wrapper.PostDeviceToken,
-		NoCaching,
-		l.sessionHandler.Middleware(),
-	)
-	e.POST(
-		"/device",
-		wrapper.PostDevice,
-		NoCaching,
-		l.sessionHandler.Middleware(),
 	)
 	e.GET(
 		"/health",
@@ -46,12 +38,6 @@ func (l *LoginServer) RegisterHandlers(server *echo.Echo, commonMiddlewares ...e
 	e.GET(
 		"/login",
 		wrapper.GetLogin,
-		NoCaching,
-		l.sessionHandler.Middleware(),
-	)
-	e.GET(
-		"/login/device",
-		wrapper.GetDeviceLogin,
 		NoCaching,
 		l.sessionHandler.Middleware(),
 	)
@@ -67,6 +53,29 @@ func (l *LoginServer) RegisterHandlers(server *echo.Echo, commonMiddlewares ...e
 		NoCaching,
 		l.sessionHandler.Middleware(),
 	)
+	e.GET(
+		"/device/login",
+		wrapper.GetDeviceLogin,
+		NoCaching,
+	)
+	e.POST(
+		"/device/login",
+		wrapper.PostDeviceLogin,
+		NoCaching,
+	)
+	e.POST(
+		"/device/logout",
+		wrapper.PostDeviceLogout,
+		NoCaching,
+		l.cliSessionHandler.Middleware(),
+	)
+	tokenProxyMiddlewares, err := l.DeviceTokenProxy()
+	if err != nil {
+		slog.Error("LOGIN SERVER INITIALIZATION", "error", err)	
+		os.Exit(1)
+	}
+	// /device/token is just proxied - it does not need a handler on this server
+	e.Group("/device/token", tokenProxyMiddlewares...)
 }
 
 type LoginServerOption func(*LoginServer) error
@@ -140,6 +149,22 @@ func NewLoginServer(options ...LoginServerOption) (*LoginServer, error) {
 		models.WithSessionStore(server.sessionStore),
 		models.WithTokenStore(server.tokenStore),
 	)
+	cliSessionHandler := models.NewSessionHandler(
+		models.WithSessionStore(server.sessionStore),
+		models.WithTokenStore(server.tokenStore),
+		models.DontCreateIfMissing(),
+		models.DontRecreateIfExpired(),
+		models.WithCookieTemplate(http.Cookie{
+			Name:     models.CliSessionCookieName,
+			Secure:   false,
+			HttpOnly: true,
+			Path:     "/",
+			MaxAge:   3600,
+		}),
+		models.WithHeaderKey(models.CliSessionHeaderKey),
+		models.WithContextKey(models.CliSessionCtxKey),
+	)
 	server.sessionHandler = sessionHandler
+	server.cliSessionHandler = cliSessionHandler
 	return &server, nil
 }

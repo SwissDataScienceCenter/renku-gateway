@@ -246,11 +246,12 @@ var coreSvcRenkuAccessTokenHandler TokenHandler = func(c echo.Context, accessTok
 	return nil
 }
 
+// Sets up Basic Auth for Gitlab 
 var gitlabCliTokenHandler TokenHandler = func(c echo.Context, accessToken models.OauthToken) error {
 	if accessToken.Value == "" {
 		return nil 
 	}
-	c.Request().Header.Set(echo.HeaderAuthorization, fmt.Sprintf("Basic oauth2:%s", accessToken.Value))
+	c.Request().SetBasicAuth("oauth2", accessToken.Value)
 	return nil
 }
 

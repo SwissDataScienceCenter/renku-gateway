@@ -43,38 +43,6 @@ func (l *LoginServer) GetLogin(c echo.Context, params GetLoginParams) error {
 	return l.oAuthNext(c, session)
 }
 
-// GetDeviceLogin is a handler for the initiation of a device login for Renku, used by the CLI
-func (l *LoginServer) GetDeviceLogin(c echo.Context, params GetDeviceLoginParams) error {
-	session, ok := c.Get(models.SessionCtxKey).(models.Session)
-	if !ok {
-		return gwerrors.ErrSessionParse
-	}
-	var appRedirectURL string
-	var providerIDs models.SerializableStringSlice
-	if params.OriginalVerificationUriComplete != nil {
-		appRedirectURL = *params.OriginalVerificationUriComplete
-	}
-	if params.OriginalVerificationUri != nil {
-		appRedirectURL = *params.OriginalVerificationUri
-	}
-	if params.ProviderId != nil && len(*params.ProviderId) > 0 {
-		providerIDs = *params.ProviderId
-	} else {
-		providerIDs = l.config.DefaultProviderIDs()
-	}
-	// Set the providers and redirect
-	// TODO: check if the session already has logged in with the provider
-	err := session.SetRedirectURL(c.Request().Context(), appRedirectURL)
-	if err != nil {
-		return err
-	}
-	err = session.SetProviders(c.Request().Context(), providerIDs...)
-	if err != nil {
-		return err
-	}
-	return l.oAuthNext(c, session)
-}
-
 // oauthNext sets up the beginning of the oauth flow and ends with
 // the redirect of the user to the Provider's login and authorization page.
 // Adapted from oauth2-proxy code.
@@ -105,14 +73,30 @@ func (l *LoginServer) oAuthNext(
 }
 
 func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) error {
-	session, ok := c.Get(models.SessionCtxKey).(models.Session)
-	if !ok {
-		return gwerrors.ErrSessionParse
-	}
+	// Load both the regular and the cli session (if present), see which fits
 	state := c.Request().URL.Query().Get("state")
 	if state == "" {
 		return fmt.Errorf("a state parameter is required")
 	}
+	uiSession, err := l.sessionHandler.Load(c)
+	if err != nil && err != gwerrors.ErrSessionNotFound && err != gwerrors.ErrSessionExpired {
+		return err
+	}
+	cliSession, err := l.cliSessionHandler.Load(c)
+	if err != nil && err != gwerrors.ErrSessionNotFound && err != gwerrors.ErrSessionExpired {
+		return err
+	}
+	uiState := uiSession.PeekOauthState()
+	cliState := cliSession.PeekOauthState()
+	if uiState != state && cliState != state {
+		return fmt.Errorf("state cannot be found in any existing session")
+	}
+	var session models.Session
+	session = uiSession
+	if cliState == state {
+		session = cliSession
+	}
+	// Load the provider from the selected session
 	providerID := session.PeekProviderID()
 	provider, found := l.providerStore[providerID]
 	if !found {
@@ -121,12 +105,13 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 	tokenCallback := func(accessToken, refreshToken, idToken models.OauthToken) error {
 		return session.SaveTokens(c.Request().Context(), accessToken, refreshToken, idToken, state)
 	}
-	err := echo.WrapHandler(provider.CodeExchangeHandler(tokenCallback))(c)
+	// Exchange the authorization code for credentials
+	err = echo.WrapHandler(provider.CodeExchangeHandler(tokenCallback))(c)
 	if err != nil {
 		slog.Error("code exchange handler failed", "error", err, "requestID", c.Request().Header.Get("X-Request-ID"))
 		return err
 	}
-
+	// Continue to the next provider to login with
 	return l.oAuthNext(c, session)
 }
 
@@ -144,16 +129,6 @@ func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
 	}
 	// redirect
 	return c.Redirect(http.StatusFound, redirectURL)
-}
-
-func (*LoginServer) PostDeviceToken(c echo.Context) error {
-	return c.String(http.StatusOK, "Coming soon")
-	// just proxy to keycloak
-}
-
-func (l *LoginServer) PostDevice(c echo.Context) error {
-	return c.String(http.StatusOK, "Coming soon")
-	// just proxy to keycloak
 }
 
 func (*LoginServer) GetHealth(c echo.Context) error {

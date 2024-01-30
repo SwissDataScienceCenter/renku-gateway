@@ -10,6 +10,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/zitadel/oidc/v2/pkg/oidc"
 )
 
 var testJWKSContent = map[string][]map[string]string{
@@ -100,6 +101,8 @@ type testAuthServer struct {
 	ClientID     string
 	JWTSecretKey string
 	CallbackURI  string
+	DefaultProvider bool
+	IssuedTokens []string
 	server       *httptest.Server
 }
 
@@ -116,6 +119,8 @@ func (t *testAuthServer) wktEndpoint(c echo.Context) error {
 		ResponseTypesSup      []string `json:"response_types_supported,omitempty"`
 		SubjectTypes          []string `json:"subject_types,omitempty"`
 		IdTokenSignAlgs       []string `json:"id_token_signing_alg_values_supported,omitempty"`
+		DeviceAuthorizationEndpoint string `json:"device_authorization_endpoint,omitempty"`
+		GrantTypesSupported []string `json:"grant_types_supported,omitempty"`
 	}
 	res := wkt{
 		Issuer:                t.Server().URL,
@@ -125,6 +130,8 @@ func (t *testAuthServer) wktEndpoint(c echo.Context) error {
 		ResponseTypesSup:      []string{"code", "id_token", "token id_token"},
 		SubjectTypes:          []string{"public"},
 		IdTokenSignAlgs:       []string{"RS256"},
+		DeviceAuthorizationEndpoint: t.Server().URL + "/authorize/device",
+		GrantTypesSupported: []string{"authorization_code", "urn:ietf:params:oauth:grant-type:device_code"},
 	}
 	return c.JSON(http.StatusOK, res)
 }
@@ -166,6 +173,7 @@ func (t *testAuthServer) tokenEndpoint(c echo.Context) error {
 		if err != nil {
 			return err
 		}
+		t.IssuedTokens = append(t.IssuedTokens, jwtToken)
 		return c.JSON(http.StatusOK, map[string]string{
 			"access_token":  jwtToken,
 			"refresh_token": t.RefreshToken,
@@ -173,6 +181,39 @@ func (t *testAuthServer) tokenEndpoint(c echo.Context) error {
 		})
 	}
 	return c.String(http.StatusBadRequest, "bad request")
+}
+
+func (t *testAuthServer) authDevicePost(c echo.Context) error {
+	return c.JSON(http.StatusOK, oidc.DeviceAuthorizationResponse{
+		DeviceCode: "device_code",
+		VerificationURI: t.Server().URL + "/authorize/device",
+		UserCode: "user_code",
+		ExpiresIn: 1800,
+		Interval: 5,
+	})	
+}
+
+func (t *testAuthServer) authDeviceGet(c echo.Context) error {
+	if !t.Authorized {
+		return c.NoContent(http.StatusUnauthorized)
+	}
+	return c.NoContent(http.StatusOK)
+}
+
+func (t *testAuthServer) authDeviceTokenPost(c echo.Context) error {
+	if !t.Authorized {
+		return c.NoContent(http.StatusUnauthorized)
+	}
+	jwtToken, err := t.getJWT()
+	if err != nil {
+		return err
+	}
+	t.IssuedTokens = append(t.IssuedTokens, jwtToken)
+	return c.JSON(http.StatusOK, map[string]string{
+		"access_token":  jwtToken,
+		"refresh_token": jwtToken,
+		"id_token":      jwtToken,
+	})
 }
 
 func (t *testAuthServer) Server() *httptest.Server {
@@ -184,8 +225,11 @@ func (t *testAuthServer) Server() *httptest.Server {
 
 func (t *testAuthServer) Start() {
 	e := echo.New()
-	e.Use(middleware.Logger())
+	e.Use(middleware.Recover(), middleware.Logger())
 	e.GET("/authorize", t.authorizeEndpoint)
+	e.POST("/protocol/openid-connect/token", t.authDeviceTokenPost)
+	e.POST("/authorize/device", t.authDevicePost)
+	e.GET("/authorize/device", t.authDeviceGet)
 	e.GET("/jwks", t.jwksEndpoint)
 	e.POST("/token", t.tokenEndpoint)
 	e.GET("/.well-known/openid-configuration", t.wktEndpoint)
@@ -194,7 +238,7 @@ func (t *testAuthServer) Start() {
 
 func (t *testAuthServer) ProviderConfig() config.OIDCClient {
 	return config.OIDCClient{
-		Default:               true,
+		Default:               t.DefaultProvider,
 		Issuer:                t.Server().URL,
 		ClientID:              t.ClientID,
 		ClientSecret:          "client-secret-value",

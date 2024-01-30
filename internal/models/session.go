@@ -27,12 +27,16 @@ type SessionStore interface {
 	SessionRemover
 }
 
+// Note the UI and CLI depend on some of these values, changing them will cause breaking changes
 const SessionCookieName = "_renku_session"
 const SessionCtxKey = "_renku_session"
 const SessionHeaderKey = "Renku-Session"
-const DeviceSessionCookieName = "_renku_device_session"
-const DevicesSessionCtxKey = "_renku_device_session"
-const DeviceSessionHeaderKey = "Renku-Device-Session"
+const CliSessionCookieName = "_renku_cli_session"
+const CliSessionCtxKey = "_renku_cli_session"
+const CliSessionHeaderKey = "Renku-Cli-Session"
+// BasicAuthUsername is used as the username in the Basic Auth authorization header when the CLI
+// sends session IDs for Git requests.
+const BasicAuthUsername = "Renku-Session"
 
 var randomIDGenerator IDGenerator = RandomGenerator{Length: 24}
 
@@ -103,6 +107,11 @@ func (s *Session) SaveTokens(ctx context.Context, accessToken OauthToken, refres
 // are the same but they are out of order then the comparison will return False
 func (s *Session) Equal(other *Session) bool {
 	// == does not work on some types like SerializableStringSlice or the OrderedMap
+	if s == nil && other == nil {
+		return true
+	} else if (s == nil && other != nil) || (s != nil && other == nil) {
+		return false
+	}
 	return s.ID == other.ID &&
 		s.Type == other.Type &&
 		reflect.DeepEqual(s.TokenIDs, other.TokenIDs) &&
@@ -111,16 +120,6 @@ func (s *Session) Equal(other *Session) bool {
 		s.CreatedAt == other.CreatedAt &&
 		s.TTLSeconds == other.TTLSeconds
 }
-
-// func (s *Session) PopProviderID() string {
-// 	s.loadOrCreateSessionData()
-// 	if len(s.data.LoginWithProviders) == 0 {
-// 		return ""
-// 	}
-// 	output := s.data.LoginWithProviders[0]
-// 	s.data.LoginWithProviders = append(SerializableStringSlice{}, s.data.LoginWithProviders[1:]...)
-// 	return output
-// }
 
 func (s *Session) PeekProviderID() string {
 	pair := s.ProviderIDs.Oldest()
@@ -131,21 +130,10 @@ func (s *Session) PeekProviderID() string {
 }
 
 func (s *Session) PopRedirectURL() string {
-	defer func() {
-		s.RedirectURL = ""
-	}()
-	return s.RedirectURL
+	redirectURL := s.RedirectURL
+	s.RedirectURL = ""
+	return redirectURL
 }
-
-// func (s *Session) PopOauthState() string {
-// 	s.loadOrCreateSessionData()
-// 	if len(s.data.OauthStates) == 0 {
-// 		return ""
-// 	}
-// 	output := s.data.OauthStates[0]
-// 	s.data.OauthStates = append(SerializableStringSlice{}, s.data.OauthStates[1:]...)
-// 	return output
-// }
 
 func (s *Session) PeekOauthState() string {
 	pair := s.ProviderIDs.Oldest()
@@ -156,6 +144,9 @@ func (s *Session) PeekOauthState() string {
 }
 
 func (s *Session) GetAccessToken(ctx context.Context, providerID string) (OauthToken, error) {
+	if s.tokenStore == nil {
+		return OauthToken{}, fmt.Errorf("cannot get a token when the token store is not defined")
+	}
 	tokens, err := s.tokenStore.GetAccessTokens(ctx, s.TokenIDs...)
 	if err != nil {
 		return OauthToken{}, err
@@ -171,6 +162,9 @@ func (s *Session) GetAccessToken(ctx context.Context, providerID string) (OauthT
 }
 
 func (s *Session) GetIDToken(ctx context.Context, providerID string) (OauthToken, error) {
+	if s.tokenStore == nil {
+		return OauthToken{}, fmt.Errorf("cannot get a token when the token store is not defined")
+	}
 	tokens, err := s.tokenStore.GetIDTokens(ctx, s.TokenIDs...)
 	if err != nil {
 		return OauthToken{}, err
@@ -186,6 +180,9 @@ func (s *Session) GetIDToken(ctx context.Context, providerID string) (OauthToken
 }
 
 func (s *Session) GetRefreshToken(ctx context.Context, providerID string) (OauthToken, error) {
+	if s.tokenStore == nil {
+		return OauthToken{}, fmt.Errorf("cannot get a token when the token store is not defined")
+	}
 	tokens, err := s.tokenStore.GetRefreshTokens(ctx, s.TokenIDs...)
 	if err != nil {
 		return OauthToken{}, err
@@ -199,21 +196,6 @@ func (s *Session) GetRefreshToken(ctx context.Context, providerID string) (Oauth
 	}
 	return token, nil
 }
-
-// func (s *Session) AddTokenID(id string) {
-// 	s.loadOrCreateSessionData()
-// 	s.data.TokenIDs = append(s.data.TokenIDs, id)
-// }
-//
-// func (s *Session) SetRedirectURL(url string) {
-// 	s.loadOrCreateSessionData()
-// 	s.data.RedirectURL = url
-// }
-//
-// func (s *Session) SetProviderIDs(ids []string) {
-// 	s.loadOrCreateSessionData()
-// 	s.data.LoginWithProviders = ids
-// }
 
 func (s *Session) Save(ctx context.Context) error {
 	if s.Expired() {
@@ -247,6 +229,14 @@ func (s *Session) SetRedirectURL(ctx context.Context, url string) error {
 		return err
 	}
 	return s.Save(ctx)
+}
+
+func (s *Session) SetTokenStore(tokenStore TokenStore) {
+	s.tokenStore = tokenStore
+}
+
+func (s *Session) SetSessionStore(sessionStore SessionStore) {
+	s.sessionStore = sessionStore
 }
 
 func WithProviders(providerIDs ...string) SessionOption {

@@ -27,11 +27,7 @@ type GetCallbackParams struct {
 
 // GetDeviceLoginParams defines parameters for GetDeviceLogin.
 type GetDeviceLoginParams struct {
-	DeviceCode                      *string   `form:"device_code,omitempty" json:"device_code,omitempty"`
-	UserCode                        *string   `form:"user_code,omitempty" json:"user_code,omitempty"`
-	OriginalVerificationUri         *string   `form:"original_verification_uri,omitempty" json:"original_verification_uri,omitempty"`
-	OriginalVerificationUriComplete *string   `form:"original_verification_uri_complete,omitempty" json:"original_verification_uri_complete,omitempty"`
-	ProviderId                      *[]string `form:"provider_id,omitempty" json:"provider_id,omitempty"`
+	SessionId *string `form:"session_id,omitempty" json:"session_id,omitempty"`
 }
 
 // GetLoginParams defines parameters for GetLogin.
@@ -51,11 +47,14 @@ type ServerInterface interface {
 	// (GET /callback)
 	GetCallback(ctx echo.Context, params GetCallbackParams) error
 
-	// (POST /device)
-	PostDevice(ctx echo.Context) error
-
 	// (GET /device/login)
 	GetDeviceLogin(ctx echo.Context, params GetDeviceLoginParams) error
+
+	// (POST /device/login)
+	PostDeviceLogin(ctx echo.Context) error
+
+	// (POST /device/logout)
+	PostDeviceLogout(ctx echo.Context) error
 
 	// (POST /device/token)
 	PostDeviceToken(ctx echo.Context) error
@@ -110,58 +109,39 @@ func (w *ServerInterfaceWrapper) GetCallback(ctx echo.Context) error {
 	return err
 }
 
-// PostDevice converts echo context to params.
-func (w *ServerInterfaceWrapper) PostDevice(ctx echo.Context) error {
-	var err error
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.PostDevice(ctx)
-	return err
-}
-
 // GetDeviceLogin converts echo context to params.
 func (w *ServerInterfaceWrapper) GetDeviceLogin(ctx echo.Context) error {
 	var err error
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetDeviceLoginParams
-	// ------------- Optional query parameter "device_code" -------------
+	// ------------- Optional query parameter "session_id" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "device_code", ctx.QueryParams(), &params.DeviceCode)
+	err = runtime.BindQueryParameter("form", true, false, "session_id", ctx.QueryParams(), &params.SessionId)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter device_code: %s", err))
-	}
-
-	// ------------- Optional query parameter "user_code" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "user_code", ctx.QueryParams(), &params.UserCode)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter user_code: %s", err))
-	}
-
-	// ------------- Optional query parameter "original_verification_uri" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "original_verification_uri", ctx.QueryParams(), &params.OriginalVerificationUri)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter original_verification_uri: %s", err))
-	}
-
-	// ------------- Optional query parameter "original_verification_uri_complete" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "original_verification_uri_complete", ctx.QueryParams(), &params.OriginalVerificationUriComplete)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter original_verification_uri_complete: %s", err))
-	}
-
-	// ------------- Optional query parameter "provider_id" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "provider_id", ctx.QueryParams(), &params.ProviderId)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter provider_id: %s", err))
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter session_id: %s", err))
 	}
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.GetDeviceLogin(ctx, params)
+	return err
+}
+
+// PostDeviceLogin converts echo context to params.
+func (w *ServerInterfaceWrapper) PostDeviceLogin(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.PostDeviceLogin(ctx)
+	return err
+}
+
+// PostDeviceLogout converts echo context to params.
+func (w *ServerInterfaceWrapper) PostDeviceLogout(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.PostDeviceLogout(ctx)
 	return err
 }
 
@@ -264,8 +244,9 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	}
 
 	router.GET(baseURL+"/callback", wrapper.GetCallback)
-	router.POST(baseURL+"/device", wrapper.PostDevice)
 	router.GET(baseURL+"/device/login", wrapper.GetDeviceLogin)
+	router.POST(baseURL+"/device/login", wrapper.PostDeviceLogin)
+	router.POST(baseURL+"/device/logout", wrapper.PostDeviceLogout)
 	router.POST(baseURL+"/device/token", wrapper.PostDeviceToken)
 	router.GET(baseURL+"/health", wrapper.GetHealth)
 	router.GET(baseURL+"/login", wrapper.GetLogin)
@@ -277,20 +258,25 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

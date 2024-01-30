@@ -261,6 +261,8 @@ func (r RedisAdapter) GetSession(ctx context.Context, sessionID string) (models.
 		}
 		return models.Session{}, err
 	}
+	output.SetTokenStore(r)
+	output.SetSessionStore(r)
 	return output, nil
 }
 

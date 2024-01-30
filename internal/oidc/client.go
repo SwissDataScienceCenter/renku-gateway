@@ -92,6 +92,9 @@ func (c *oidcClient) getID() string {
 }
 
 func (c *oidcClient) startDeviceFlow(ctx context.Context) (*oauth2.DeviceAuthResponse, error) {
+	// NOTE: the Zitadel OIDC library does not set this field when doing OIDC discovery automatically
+	// And if this is not done here manually then the device flow all providers will not work
+	c.client.OAuthConfig().Endpoint.DeviceAuthURL = c.client.GetDeviceAuthorizationEndpoint()
 	return c.client.OAuthConfig().DeviceAuth(ctx)
 }
 
@@ -131,7 +134,7 @@ func (c *oidcClient) verifyTokens(ctx context.Context, accessToken, refreshToken
 		return []models.OauthToken{}, err
 	}
 	if idToken == "" {
-		return []models.OauthToken{accessTokenParsed, refreshTokenParsed, models.OauthToken{}}, nil
+		return []models.OauthToken{accessTokenParsed, refreshTokenParsed, {}}, nil
 	}
 	idTokenParsed, err := checkToken(idToken, tokenID, models.IDTokenType, ks)
 	if err != nil {

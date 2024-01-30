@@ -23,9 +23,10 @@ type SessionHandler struct {
 	recreateSessionIfExpired bool
 	contextKey               string
 	headerKey                string
+	idQueryKey                 string
 }
 
-func (s *SessionHandler) cookie(session *Session) *http.Cookie {
+func (s *SessionHandler) Cookie(session *Session) *http.Cookie {
 	if session == nil {
 		return nil
 	}
@@ -78,7 +79,7 @@ func (s *SessionHandler) Remove(c echo.Context) error {
 	return err 
 }
 
-func (s *SessionHandler) load(c echo.Context) (Session, error) {
+func (s *SessionHandler) Load(c echo.Context) (Session, error) {
 	if s.sessionStore == nil {
 		return Session{}, fmt.Errorf("cannot load a session when the session store is not defined")
 	}
@@ -94,18 +95,33 @@ func (s *SessionHandler) load(c echo.Context) (Session, error) {
 		}
 		return session, nil
 	}
-	// check if the session ID is in the request header
-	sessionID := c.Request().Header.Get(s.headerKey)
-	if sessionID == "" {
-		// check if the session ID is in the cookie
-		cookie, err := c.Cookie(s.cookieTemplate().Name)
-		if err != nil {
-			if err == http.ErrNoCookie {
-				return Session{}, gwerrors.ErrSessionNotFound
-			}
-			return Session{}, err
+	var sessionID string = ""
+	// the CLI will pass in the session ID as Basic Auth to access Gitlab, try to see if that is the case
+	basicAuthUser, basicAuthPwd, ok := c.Request().BasicAuth()	
+	if ok {
+		switch basicAuthUser {
+		case "renku":
+			// this is a request from an outdated version of the CLI
+			return Session{}, gwerrors.ErrUnsupportedCLI
+		case BasicAuthUsername:
+			// this is a supported request, get the sessionID
+			sessionID = basicAuthPwd
 		}
-		sessionID = cookie.Value
+	}
+	if sessionID == "" {
+		// check if the session ID is in the header
+		sessionID = c.Request().Header.Get(s.headerKey)
+		if sessionID == "" {
+			// check if the session ID is in the cookie
+			cookie, err := c.Cookie(s.cookieTemplate().Name)
+			if err != nil {
+				if err == http.ErrNoCookie {
+					return Session{}, gwerrors.ErrSessionNotFound
+				}
+				return Session{}, err
+			}
+			sessionID = cookie.Value
+		}
 	}
 	// load the session from the store
 	session, err := s.sessionStore.GetSession(c.Request().Context(), sessionID)
@@ -124,7 +140,7 @@ func (s *SessionHandler) load(c echo.Context) (Session, error) {
 	return session, nil
 }
 
-func (s *SessionHandler) create(c echo.Context) (Session, error) {
+func (s *SessionHandler) Create(c echo.Context) (Session, error) {
 	session, err := NewSession(SessionWithTokenStore(s.tokenStore), SessionWithSessionStore(s.sessionStore))
 	if err != nil {
 		return Session{}, err
@@ -134,22 +150,22 @@ func (s *SessionHandler) create(c echo.Context) (Session, error) {
 		return Session{}, err
 	}
 	c.Set(s.contextKey, session)
-	c.Request().Header.Set(s.headerKey, session.ID)
-	c.SetCookie(s.cookie(&session))
+	c.SetCookie(s.Cookie(&session))
+	c.Request().AddCookie(s.Cookie(&session))
 	return session, nil 
 }
 
 func (s *SessionHandler) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			session, err := s.load(c)
+			session, err := s.Load(c)
 			if err != nil {
 				switch err {
 				case gwerrors.ErrSessionExpired:
 					if !s.recreateSessionIfExpired {
 						return next(c)
 					}
-					_, err := s.create(c)
+					_, err := s.Create(c)
 					if err != nil {
 						return err
 					}
@@ -158,7 +174,7 @@ func (s *SessionHandler) Middleware() echo.MiddlewareFunc {
 					if !s.createSessionIfMissing {
 						return next(c)
 					}
-					_, err := s.create(c)
+					_, err := s.Create(c)
 					if err != nil {
 						return err
 					}
@@ -184,9 +200,23 @@ func WithSessionTTL(ttl time.Duration) SessionHandlerOption {
 func WithCookieTemplate(cookie http.Cookie) SessionHandlerOption {
 	return func(s *SessionHandler) {
 		s.cookieTemplate = func() http.Cookie {
-			cookie.Name = SessionCookieName
+			if cookie.Name == "" {
+				cookie.Name = SessionCookieName
+			}
 			return cookie
 		}
+	}
+}
+
+func WithHeaderKey(headerKey string) SessionHandlerOption {
+	return func(s *SessionHandler) {
+		s.headerKey = headerKey
+	}
+}
+
+func WithContextKey(ctxKey string) SessionHandlerOption {
+	return func(s *SessionHandler) {
+		s.contextKey = ctxKey
 	}
 }
 
