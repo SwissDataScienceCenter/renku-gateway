@@ -21,6 +21,16 @@ jobs:
       - name: Test
         run: |
           make tests
+      - name: Coveralls
+        uses: coverallsapp/github-action@v2
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+          COVERALLS_SERVICE_NAME: gihub-action
+        with:
+          file: covprofile 
+          format: golang
+        continue-on-error: true
+
 
   publish-images:
     runs-on: ubuntu-latest

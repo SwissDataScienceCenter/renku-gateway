@@ -1,5 +1,7 @@
 # Renku Gateway
 
+[![Coverage Status](https://coveralls.io/repos/github/SwissDataScienceCenter/renku-gateway/badge.svg?branch=master)](https://coveralls.io/github/SwissDataScienceCenter/renku-gateway?branch=master)
+
 A reverse proxy and Oauth2 flows handler for Renku.
 
 ## Package dependencies and import chains

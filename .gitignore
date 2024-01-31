@@ -114,3 +114,7 @@ helm-chart/renku-gateway/charts/**
 .dccache
 
 .DS_Store
+
+gateway
+covprofile
+

@@ -1,17 +1,20 @@
 PKG_NAME=github.com/SwissDataScienceCenter/renku-gateway
 
-.PHONY: build clean test
+.PHONY: build clean tests
 
-build:
-	go build -o gateway github.com/SwissDataScienceCenter/renku-gateway/cmd/gateway 
+build: internal/login/spec.gen.go
+	go mod download
+	go build -o gateway $(PKG_NAME)/cmd/gateway 
 
 clean:
 	go clean
 	go clean -testcache
-	rm -f build/*
+	rm -f gateway covprofile
 
 tests:
-	go test -vet=all -race -cover -p 1 ./... 
+	go mod download
+	go test -count=1 -covermode atomic -coverprofile=covprofile -vet=all -race ./...
 
-openapi:
-	oapi-codegen -generate types,server,spec -package login apispec.yaml > internal/login/spec.gen.go
+internal/login/spec.gen.go: apispec.yaml
+	oapi-codegen -generate types,server,spec -package login $< > $@ 
+

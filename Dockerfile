@@ -10,3 +10,4 @@ FROM alpine:3.19
 USER 1000:1000
 COPY --from=builder /gateway /gateway
 ENTRYPOINT [ "/gateway" ]
+

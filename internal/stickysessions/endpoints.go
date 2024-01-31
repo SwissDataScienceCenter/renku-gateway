@@ -55,7 +55,7 @@ func NewEndpointStoreItems(input *discoveryV1.EndpointSlice, containerPortName s
 type EndpointStore struct {
 	list  []*EndpointStoreItem
 	index map[string]*EndpointStoreItem
-	mutex sync.RWMutex
+	mutex *sync.RWMutex
 }
 
 // NewEndpointStoreFromEndpointItems creates an endpoint store from a slice of items
@@ -64,7 +64,7 @@ func NewEndpointStoreFromEndpointItems(input []EndpointStoreItem, includeNonRead
 	endpoints := &EndpointStore{
 		list:  make([]*EndpointStoreItem, 0, len(input)),
 		index: make(map[string]*EndpointStoreItem, len(input)),
-		mutex: sync.RWMutex{},
+		mutex: &sync.RWMutex{},
 	}
 	endpoints.mutex.Lock()
 	defer endpoints.mutex.Unlock()
