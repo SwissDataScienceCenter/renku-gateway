@@ -98,7 +98,7 @@ func (c *oidcClient) startDeviceFlow(ctx context.Context) (*oauth2.DeviceAuthRes
 	return c.client.OAuthConfig().DeviceAuth(ctx)
 }
 
-// Verifies the signature, checks the token is not expired, parses the claims and returns them
+// Verifies the signature only if the token is signed with RS256, checks the token is not expired, parses the claims and returns them
 // NOTE: For Gitlab only the ID tokens can be parsed like this, access and refresh tokens are not JWTs
 // NOTE: This will and should return a list of 3 tokens in the order in which they are defined in the function
 func (c *oidcClient) verifyTokens(ctx context.Context, accessToken, refreshToken, idToken string) ([]models.OauthToken, error) {
@@ -108,13 +108,17 @@ func (c *oidcClient) verifyTokens(ctx context.Context, accessToken, refreshToken
 		if err != nil {
 			return models.OauthToken{}, err
 		}
-		err = oidc.CheckSignature(ctx, val, payload, claims, []string{"RS256"}, ks)
-		if err != nil {
-			return models.OauthToken{}, err
+		if claims.SignatureAlg == "RS256" {
+			err = oidc.CheckSignature(ctx, val, payload, claims, []string{"RS256"}, ks)
+			if err != nil {
+				return models.OauthToken{}, err
+			}
 		}
-		err = oidc.CheckExpiration(claims, 0)
-		if err != nil {
-			return models.OauthToken{}, err
+		if tokenType != models.RefreshTokenType {
+			err = oidc.CheckExpiration(claims, 0)
+			if err != nil {
+				return models.OauthToken{}, err
+			}
 		}
 		output := models.OauthToken{ID: tokenID, Type: tokenType, Value: val, ExpiresAt: claims.GetExpiration(), TokenURL: c.client.OAuthConfig().Endpoint.TokenURL, ProviderID: c.getID()}
 		return output, nil
@@ -127,10 +131,12 @@ func (c *oidcClient) verifyTokens(ctx context.Context, accessToken, refreshToken
 	}
 	accessTokenParsed, err := checkToken(accessToken, tokenID, models.AccessTokenType, ks)
 	if err != nil {
+		slog.Info("OIDC", "error", err, "message", "cannot verify access token")
 		return []models.OauthToken{}, err
 	}
 	refreshTokenParsed, err := checkToken(refreshToken, tokenID, models.RefreshTokenType, ks)
 	if err != nil {
+		slog.Info("OIDC", "error", err, "message", "cannot verify refresh token")
 		return []models.OauthToken{}, err
 	}
 	if idToken == "" {
@@ -138,6 +144,7 @@ func (c *oidcClient) verifyTokens(ctx context.Context, accessToken, refreshToken
 	}
 	idTokenParsed, err := checkToken(idToken, tokenID, models.IDTokenType, ks)
 	if err != nil {
+		slog.Info("OIDC", "error", err, "message", "cannot verify ID token")
 		return []models.OauthToken{}, err
 	}
 	return []models.OauthToken{accessTokenParsed, refreshTokenParsed, idTokenParsed}, nil

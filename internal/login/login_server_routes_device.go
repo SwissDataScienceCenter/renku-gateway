@@ -105,6 +105,11 @@ func (l *LoginServer) DeviceTokenProxy() ([]echo.MiddlewareFunc, error) {
 		return nil
 	}
 	responseHandler := func(r *http.Response) error {
+		// check the response from Keycloak and if it is not 200 return the whole body unchanged
+		if r.StatusCode < 200 || r.StatusCode >= 400 {
+			slog.Info("LOGIN", "message", "skipping response rewrite", "statusCode", r.StatusCode)
+			return nil
+		}
 		sessionID := r.Request.Header.Get(models.CliSessionHeaderKey)
 		if sessionID == "" {
 			sessionCookie, err := r.Request.Cookie(models.CliSessionCookieName)
@@ -112,10 +117,6 @@ func (l *LoginServer) DeviceTokenProxy() ([]echo.MiddlewareFunc, error) {
 				return err
 			}
 			sessionID = sessionCookie.Value
-		}
-		// check the response from Keycloak and if it is not 200 return the whole body unchanged
-		if r.StatusCode < 200 || r.StatusCode >= 400 {
-			return nil
 		}
 		session, err := l.sessionStore.GetSession(r.Request.Context(), sessionID)
 		if err != nil {
@@ -165,10 +166,15 @@ func (l *LoginServer) DeviceTokenProxy() ([]echo.MiddlewareFunc, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse the issuer URL of the OIDC config") 
 	}
+	// NOTE: the proxying will fail if the url that is being proxied to does not have a blank path,
+	// this is because there is another middleware that handles the path rewrititng before the proxy kicks in
+	issuerURLBlankPath := *issuerURL
+	issuerURLBlankPath.Path = ""
+	issuerURLBlankPath.RawPath = ""
 	proxy := middleware.ProxyWithConfig(middleware.ProxyConfig{
 		ModifyResponse: responseHandler,
 		Balancer: middleware.NewRandomBalancer([]*middleware.ProxyTarget{
-			{URL: issuerURL},
+			{URL: &issuerURLBlankPath},
 		}),
 	})
 	gwDeviceTokenURL := l.config.RenkuBaseURL.JoinPath(l.config.EndpointsBasePath, "/device/token")

@@ -731,7 +731,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 				Path:                   "/test",
 				VisitedServerIDs:       []string{"gitlab"},
 				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization: "Basic oauth2:gitlabAccessTokenValue",
+					echo.HeaderAuthorization: "Basic b2F1dGgyOmdpdGxhYkFjY2Vzc1Rva2VuVmFsdWU=",  // the content of the header is base64 encoding of oauth2:gitlabAccessTokenValue
 				}},
 			},
 			Tokens: []models.OauthToken{
@@ -759,7 +759,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 				Path:                   "/gitlab/test",
 				VisitedServerIDs:       []string{"upstream"},
 				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization: "Basic oauth2:gitlabAccessTokenValue",
+					echo.HeaderAuthorization: "Basic b2F1dGgyOmdpdGxhYkFjY2Vzc1Rva2VuVmFsdWU=",  // the content of the header is base64 encoding of oauth2:gitlabAccessTokenValue
 				}},
 			},
 			Tokens: []models.OauthToken{
