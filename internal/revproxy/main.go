@@ -50,6 +50,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	e.Group("/api/notebooks", append(commonMiddlewares, notebooksAuthAccessToken, notebooksAuthIDToken, notebooksAuthRefreshToken, notebooksGitlabAccessToken, notebooksAnonymousID, noCookies, stripPrefix("/api"), notebooksProxy)...)
 	// /api/projects/:projectID/graph will is being deprecated in favour of /api/kg/webhooks, the old endpoint will remain for some time for backward compatibility
 	e.Group("/api/projects/:projectID/graph", append(commonMiddlewares, gitlabAuth, noCookies, kgProjectsGraphRewrites, webhookProxy)...)
+	e.Group("/knowledge-graph", append(commonMiddlewares, gitlabAuth, coreSvcIdToken, noCookies, kgProxy)...) 
 	e.Group("/api/kg/webhooks", append(commonMiddlewares, gitlabAuth, noCookies, stripPrefix("/api/kg/webhooks"), webhookProxy)...)
 	e.Group("/api/datasets", append(commonMiddlewares, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)...)
 	e.Group("/api/kg", append(commonMiddlewares, gitlabAuth, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)...)
