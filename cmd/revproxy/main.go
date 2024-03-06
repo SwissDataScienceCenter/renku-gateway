@@ -72,7 +72,7 @@ func setupServer(ctx context.Context, config revProxyConfig) *echo.Echo {
 	e.Group("/api/datasets", logger, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)
 	e.Group("/api/kg", logger, gitlabAuth, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)
 	e.Group("/api/data", logger, dataAuth, noCookies, dataServiceProxy)
-	e.Group("/api/search", logger, searchAuth, noCookies, stripPrefix("/api/search"), searchProxy)
+	e.Group("/api/search", logger, searchAuth, noCookies, stripPrefix("/api"), searchProxy)
 	// /api/kc is used only by the ui and no one else, will be removed when the gateway is in charge of user sessions
 	e.Group("/api/kc", logger, stripPrefix("/api/kc"), keycloakProxyHost, keycloakProxy)
 
