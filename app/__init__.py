@@ -42,6 +42,7 @@ from .auth import (
     web,
     notebook_auth,
     keycloak_gitlab_auth,
+    search_auth,
 )
 from .auth.oauth_redis import OAuthRedis
 from .auth.utils import decode_keycloak_jwt
@@ -135,6 +136,7 @@ def auth():
         "gitlab": gitlab_auth.GitlabUserToken,
         "renku": renku_auth.RenkuCoreAuthHeaders,
         "notebook": notebook_auth.NotebookAuthHeaders,
+        "search": search_auth.SearchHeaders,
         "cli-gitlab": cli_auth.RenkuCLIGitlabAuthHeaders,
         "keycloak_gitlab": keycloak_gitlab_auth.KeycloakGitlabAuthHeaders,
     }

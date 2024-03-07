@@ -81,7 +81,8 @@ func setupTestRevproxy(ctx context.Context, upstreamServerURL *url.URL, upstream
 			KG:               upstreamServerURL,
 			Webhook:          upstreamServerURL,
 			Auth:             authURL,
-			DataService: 	  upstreamServerURL,
+			DataService:      upstreamServerURL,
+			Search:           upstreamServerURL,
 			Keycloak:         upstreamServerURL,
 		},
 		Debug: true,
@@ -189,7 +190,7 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 		if scenario.Expected.Path != "" && len(reqs) > 0 {
 			assert.Equal(t, scenario.Expected.Path, reqs[len(reqs)-1].URL.EscapedPath())
 		}
-		if len(scenario.QueryParams) > 0 && len(reqs) > 0  {
+		if len(scenario.QueryParams) > 0 && len(reqs) > 0 {
 			assert.Equal(t, reqURLQuery.Encode(), reqs[len(reqs)-1].URL.RawQuery)
 		}
 	}
@@ -217,6 +218,19 @@ func TestInternalSvcRoutes(t *testing.T) {
 		{
 			Path:     "/api/notebooks",
 			Expected: TestResults{Path: "/notebooks", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
+			Path:                         "/api/search/test/rejectedAuth",
+			Non200AuthResponseStatusCode: 401,
+			Expected:                     TestResults{VisitedServerIDs: []string{"auth"}, Non200ResponseStatusCode: 401},
+		},
+		{
+			Path:     "/api/search/test/acceptedAuth",
+			Expected: TestResults{Path: "/search/test/acceptedAuth", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
+			Path:     "/api/search",
+			Expected: TestResults{Path: "/search", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
 			Path:     "/api/projects/123456/graph/status/something/else",
@@ -419,8 +433,8 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Expected:    TestResults{Path: "/projects/123456/webhooks", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
-			Path:        "/api/kc/auth/realms/Renku/protocol/openid-connect/userinfo",
-			Expected:    TestResults{Path: "/auth/realms/Renku/protocol/openid-connect/userinfo", VisitedServerIDs: []string{"upstream"}},
+			Path:     "/api/kc/auth/realms/Renku/protocol/openid-connect/userinfo",
+			Expected: TestResults{Path: "/auth/realms/Renku/protocol/openid-connect/userinfo", VisitedServerIDs: []string{"upstream"}},
 		},
 	}
 	for _, testCase := range testCases {

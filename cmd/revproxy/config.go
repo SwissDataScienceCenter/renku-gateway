@@ -20,6 +20,7 @@ type renkuServicesConfig struct {
 	CoreServicePaths []string `mapstructure:"renku_services_core_service_paths"`
 	Auth             *url.URL `mapstructure:"renku_services_auth"`
 	DataService      *url.URL `mapstructure:"renku_services_data_service"`
+	Search           *url.URL `mapstructure:"renku_services_search"`
 	Keycloak         *url.URL `mapstructure:"renku_services_keycloak"`
 }
 
@@ -109,7 +110,7 @@ func getConfig() revProxyConfig {
 		viper.DecodeHook(
 			mapstructure.ComposeDecodeHookFunc(
 				parseStringAsURL(),
-            	mapstructure.StringToSliceHookFunc(","),
+				mapstructure.StringToSliceHookFunc(","),
 			),
 		),
 	)
