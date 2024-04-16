@@ -169,8 +169,8 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 }
 
 var notebooksGitlabAccessTokenHandler TokenHandler = func(c echo.Context, accessToken models.OauthToken) error {
-	// NOTE: As long as the token comes from the database we can trust it and do nto have to validate it.
-	// Each service that the request ultimately goes to will also validate before it users the token
+	// NOTE: As long as the token comes from the database we can trust it and do not have to validate it.
+	// Each service that the request ultimately goes to will also validate before it uses the token
 	type gitCredentials struct {
 		Provider             string `json:"provider"`
 		AuthorizationHeader  string
