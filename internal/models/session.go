@@ -74,7 +74,7 @@ func (s *Session) SaveTokens(ctx context.Context, accessToken OauthToken, refres
 	if state != "" {
 		_, found := s.ProviderIDs.Delete(state)
 		if !found {
-			return fmt.Errorf("could not find a matching state parameter in the session")
+			return fmt.Errorf("the session does not contain the state parameter that was provided")
 		}
 	}
 	if accessToken.ID != refreshToken.ID || accessToken.ID != idToken.ID {

@@ -19,7 +19,7 @@ func TestSerializableIntText(t *testing.T) {
 
 func TestSerializableIntBinary(t *testing.T) {
 	var a SerializableInt = 10
-	data, err := a.MarshalBinary()
+	data, err := SerializableInt.MarshalBinary(a)
 	require.NoError(t, err)
 	var b SerializableInt
 	err = b.UnmarshalBinary(data)

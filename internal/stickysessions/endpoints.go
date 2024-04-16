@@ -86,6 +86,8 @@ func NewEndpointStoreFromEndpointItems(input []EndpointStoreItem, includeNonRead
 func NewEndpointStoreFromEndpointSlices(input []*discoveryV1.EndpointSlice, containerPortName string) *EndpointStore {
 	items := []EndpointStoreItem{}
 	for _, endpointSlice := range input {
+		// the loop variable is a pointer in Go, so as the loop progresses the same pointer is used
+		// and it points to different things every iteration. That is why we have to make a copy here.
 		es := endpointSlice
 		items = append(items, NewEndpointStoreItems(es, containerPortName)...)
 	}

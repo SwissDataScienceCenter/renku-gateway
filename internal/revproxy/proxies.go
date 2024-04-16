@@ -34,6 +34,11 @@ func proxyFromURL(url *url.URL) echo.MiddlewareFunc {
 	return middleware.ProxyWithConfig(mwconfig)
 }
 
+// registerCoreSvcProxies creates and registers all proxies for the core service. The core service is special
+// because it runs multiple API versions of itself at the same time and the gateway has to route between them.
+// In addition, and even more importantly, the core service requires sticky sessions between different pods of
+// a deployment that runs the same version of the API. So we have to implement our own custom load balancer that
+// can distinguish between different pods that sit behind a K8s service and consistently send requests to the same pod.
 func registerCoreSvcProxies(ctx context.Context, e *echo.Echo, revproxyConfig *config.RevproxyConfig, mwFuncs ...echo.MiddlewareFunc) {
 	if len(revproxyConfig.RenkuServices.Core.ServicePaths) != len(revproxyConfig.RenkuServices.Core.ServiceNames) {
 		e.Logger.Fatalf("Failed proxy setup for core service, number of paths (%d) and services (%d) provided does not match", len(revproxyConfig.RenkuServices.Core.ServicePaths), len(revproxyConfig.RenkuServices.Core.ServiceNames))

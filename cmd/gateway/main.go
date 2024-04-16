@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
@@ -64,7 +65,11 @@ func main() {
 		return c.NoContent(http.StatusOK)
 	})
 	// Version endpoint
-	version := os.Getenv("VERSION")
+	buildInfo, ok := debug.ReadBuildInfo()
+	version := ""
+	if ok && buildInfo != nil {
+		version = buildInfo.Main.Version
+	}
 	e.GET("/version", func(c echo.Context) error {
 		return c.String(http.StatusOK, version)
 	})

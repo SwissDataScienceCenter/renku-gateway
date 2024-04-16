@@ -29,7 +29,7 @@ login:
     enabled: true
     secretKey:
   providers:
-    id1:
+    renku:
       default: true
       issuer: https://renkulab.io/auth/realms/Renku
       clientID: renku

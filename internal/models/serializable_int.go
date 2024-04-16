@@ -1,15 +1,18 @@
 package models
 
-import "strconv"
+import (
+	"encoding/json"
+	"strconv"
+)
 
 type SerializableInt int
 
 func (s SerializableInt) MarshalBinary() (data []byte, err error) {
-	return s.MarshalText()
+	return json.Marshal(s)
 }
 
 func (s *SerializableInt) UnmarshalBinary(data []byte) error {
-	return s.UnmarshalText(data)
+	return json.Unmarshal(data, s)
 }
 
 func (s SerializableInt) MarshalText() (data []byte, err error) {
@@ -24,4 +27,3 @@ func (s *SerializableInt) UnmarshalText(data []byte) error {
 	*s = SerializableInt(val)
 	return nil
 }
-

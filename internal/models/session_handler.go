@@ -11,7 +11,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-
 type SessionHandlerOption func(*SessionHandler)
 
 type SessionHandler struct {
@@ -23,7 +22,7 @@ type SessionHandler struct {
 	recreateSessionIfExpired bool
 	contextKey               string
 	headerKey                string
-	idQueryKey                 string
+	idQueryKey               string
 }
 
 func (s *SessionHandler) Cookie(session *Session) *http.Cookie {
@@ -43,7 +42,7 @@ func (s *SessionHandler) Remove(c echo.Context) error {
 	if s.sessionStore == nil {
 		return fmt.Errorf("cannot remove a session when the session store is not defined")
 	}
-	sessionIDs := mapset.NewSet[string]() 
+	sessionIDs := mapset.NewSet[string]()
 	sessionID := c.Request().Header.Get(s.headerKey)
 	// remove the request header if set
 	if sessionID != "" {
@@ -76,7 +75,7 @@ func (s *SessionHandler) Remove(c echo.Context) error {
 			err = nil
 		}
 	}
-	return err 
+	return err
 }
 
 func (s *SessionHandler) Load(c echo.Context) (Session, error) {
@@ -97,7 +96,7 @@ func (s *SessionHandler) Load(c echo.Context) (Session, error) {
 	}
 	var sessionID string = ""
 	// the CLI will pass in the session ID as Basic Auth to access Gitlab, try to see if that is the case
-	basicAuthUser, basicAuthPwd, ok := c.Request().BasicAuth()	
+	basicAuthUser, basicAuthPwd, ok := c.Request().BasicAuth()
 	if ok {
 		switch basicAuthUser {
 		case "renku":
@@ -152,7 +151,7 @@ func (s *SessionHandler) Create(c echo.Context) (Session, error) {
 	c.Set(s.contextKey, session)
 	c.SetCookie(s.Cookie(&session))
 	c.Request().AddCookie(s.Cookie(&session))
-	return session, nil 
+	return session, nil
 }
 
 func (s *SessionHandler) Middleware() echo.MiddlewareFunc {

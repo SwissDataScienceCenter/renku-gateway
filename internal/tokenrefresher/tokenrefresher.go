@@ -83,7 +83,7 @@ func refreshExpiringTokens(
 		slog.Error("GetExpiringAccessTokenIDs failed", "error", err)
 		return err
 	}
-
+	errorTokenIDs := []string{}
 	// For each token id expiring in the next minsToExpiration minutes
 	for _, expiringTokenID := range expiringTokenIDs {
 
@@ -91,13 +91,15 @@ func refreshExpiringTokens(
 		myRefreshToken, err := tokenStore.GetRefreshToken(ctx, expiringTokenID)
 		if err != nil {
 			slog.Error("GetRefreshToken failed", "error", err)
-			return err
+			errorTokenIDs = append(errorTokenIDs, expiringTokenID)
+			continue
 		}
 
 		myAccessToken, err := tokenStore.GetAccessToken(ctx, expiringTokenID)
 		if err != nil {
 			slog.Error("GetAccessToken failed", "error", err)
-			return err
+			errorTokenIDs = append(errorTokenIDs, expiringTokenID)
+			continue
 		}
 
 		// Set the parameters required to refresh the tokens
@@ -109,18 +111,22 @@ func refreshExpiringTokens(
 
 		// Send the POST request to refresh the tokens
 		resp, err := http.PostForm(myAccessToken.TokenURL, params)
+		if resp != nil {
+			defer resp.Body.Close()
+		}
 		if err != nil {
 			slog.Error("Request Failed", "error", err)
-			return err
+			errorTokenIDs = append(errorTokenIDs, expiringTokenID)
+			continue
 		}
-		defer resp.Body.Close()
 
 		// Decode JSON returned from the POST refresh request into a tokenResponse
 		token := tokenResponse{}
 		err = json.NewDecoder(resp.Body).Decode(&token)
 		if err != nil {
 			slog.Error("Decoding body failed", "error", err)
-			return err
+			errorTokenIDs = append(errorTokenIDs, expiringTokenID)
+			continue
 		}
 
 		slog.Info("New token received")
@@ -151,20 +157,33 @@ func refreshExpiringTokens(
 			TokenURL:  myAccessToken.TokenURL,
 			Type:      myAccessToken.Type,
 		})
+		if err != nil {
+			errorTokenIDs = append(errorTokenIDs, expiringTokenID)
+			continue
+		}
 
 		err = tokenStore.SetRefreshToken(ctx, models.OauthToken{
 			ID:        myRefreshToken.ID,
 			Value:     token.RefreshToken,
 			ExpiresAt: refreshTokenExpiration,
 		})
+		if err != nil {
+			errorTokenIDs = append(errorTokenIDs, expiringTokenID)
+			continue
+		}
 	}
 
 	slog.Info(
 		fmt.Sprintf(
-			"%v expiring access tokens refreshed, evaluating again in %v minutes",
+			"%v/%v expiring access tokens refreshed, evaluating again in %v minutes",
+			len(expiringTokenIDs) - len(errorTokenIDs),
 			len(expiringTokenIDs),
 			minsToExpiration,
 		),
 	)
-	return err
+
+	if len(errorTokenIDs) != 0 {
+		return fmt.Errorf("some token IDs could not be refreshed %v", errorTokenIDs)
+	}
+	return nil
 }
