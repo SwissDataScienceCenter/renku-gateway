@@ -13,7 +13,7 @@ flowchart TB
     models --> config
     config --> other[every other package]
     models -.-> other
-    gwerrors -.-> othermermaid
+    gwerrors -.-> other
 ```
 
 The arrows point in the direction in which a module is imported. So an arrow pointing from 
@@ -44,7 +44,7 @@ sequenceDiagram
     GW ->> GW: Generate state parameters for all providers
     GW ->> KC: /authz?client_id=renku&redirect_uri=/callback&state=123random
     KC ->> KC: User enters credentials, approves access
-    KC ->> GW: /callback?state=123radnom&code=secret123
+    KC ->> GW: /callback?state=123random&code=secret123
     GW ->> GW: Validate state parameter
     GW -->> KC: [Exchange code for access token]
     GW ->> GL: /authorize?client_id=renku&redirect_uri=/callback&state=456random

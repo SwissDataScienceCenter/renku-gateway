@@ -68,7 +68,7 @@ func main() {
 	e.GET("/version", func(c echo.Context) error {
 		return c.String(http.StatusOK, version)
 	})
-	// Initialize shared moduels like db adapter
+	// Initialize shared models like db adapter
 	dbOptions := []db.RedisAdapterOption{db.WithRedisConfig(gwConfig.Redis)}
 	if gwConfig.Login.TokenEncryption.Enabled && gwConfig.Login.TokenEncryption.SecretKey != "" {
 		dbOptions = append(dbOptions, db.WithEcryption(string(gwConfig.Login.TokenEncryption.SecretKey)))
