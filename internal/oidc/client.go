@@ -71,7 +71,7 @@ func (c *oidcClient) getCodeExchangeCallback(tokensCallback models.TokensHandler
 }
 
 // authHandler returns a http handler that can start the login flow and redirect
-// to the identity provider /authorization page, setting all reaquired paramters
+// to the identity provider /authorization page, setting all required parameters
 // like state, client ID, secret, etc. We store the oAuth state values in the session
 // in Redis so the function here just forwards the state that was provided from the session.
 func (c *oidcClient) authHandler(state string) http.HandlerFunc {

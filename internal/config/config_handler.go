@@ -57,7 +57,7 @@ func NewConfigHandler() *ConfigHandler {
 		main.AddConfigPath(path)
 		secret.AddConfigPath(path)
 	}
-	// Set the deafults to the main config
+	// Set the defaults to the main config
 	var def map[string]any
 	err := mapstructure.Decode(Config{}, &def)
 	if err != nil {
