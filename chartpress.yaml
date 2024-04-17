@@ -16,3 +16,7 @@ charts:
         contextPath: .
         dockerfilePath: Dockerfile.revproxy
         valuesPath: gateway.reverseProxy.image
+        paths:
+          - cmd
+          - internal
+          - "."
