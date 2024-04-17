@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    volumes:
+      - ../..:/workspaces:cached
+    entrypoint: sleep infinity
+    environment:
+      REDIS_HOST: redis
+      REDIS_PASSWORD: renku
+      KEYCLOAK_URL: http://127.0.0.1:8080/auth
+      OIDC_CLIENT_ID: renku
+      OIDC_CLIENT_SECRET: kfclJaMDwcUIUSx3vSRRZLxXtALLOLzz
+      GITLAB_URL: https://gitlab.dev.renku.ch
+      GATEWAY_SECRET_KEY: 8cdd6e7afbc6eeba6ae9f6230a8af5415e02e6e630d01e6edb461d42c57a2d59
+      GITLAB_CLIENT_ID: ${GITLAB_CLIENT_ID}
+      GITLAB_CLIENT_SECRET: ${GITLAB_CLIENT_SECRET}
+      OAUTHLIB_INSECURE_TRANSPORT: 1
+      HOST_NAME: http://127.0.0.1:5000
+    network_mode: service:redis
+    depends_on:
+      - redis
+
+  redis:
+    image: bitnami/redis
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: renku
+    volumes:
+      - redis-data:/bitnami/redis
+    ports:
+      - "5000:5000"
+      - "8080:8080"
+      - "6379:6379"
+      - "5432:5432"
+
+  keycloak:
+    image: bitnami/keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: renku
+      KEYCLOAK_DATABASE_USER: postgres
+      KEYCLOAK_DATABASE_PASSWORD: renku
+      KEYCLOAK_DATABASE_NAME: postgres
+      KEYCLOAK_HTTP_RELATIVE_PATH: /auth
+      KEYCLOAK_DATABASE_HOST: 127.0.0.1
+    network_mode: service:redis
+    depends_on:
+      - postgresql
+
+  postgresql:
+    image: bitnami/postgresql
+    volumes:
+      - postgresql-data:/bitnami/postgresql
+    environment:
+      POSTGRESQL_PASSWORD: renku
+    network_mode: service:redis
+
+volumes:
+  redis-data:
+  postgresql-data:

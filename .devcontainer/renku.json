@@ -1,0 +1,73 @@
+{
+  "clientId": "renku",
+  "name": "renku",
+  "description": "",
+  "rootUrl": "http://127.0.0.1:5000",
+  "adminUrl": "http://127.0.0.1:5000",
+  "baseUrl": "http://127.0.0.1:5000",
+  "surrogateAuthRequired": false,
+  "enabled": true,
+  "alwaysDisplayInConsole": false,
+  "clientAuthenticatorType": "client-secret",
+  "secret": "kfclJaMDwcUIUSx3vSRRZLxXtALLOLzz",
+  "redirectUris": [
+    "",
+    "http://127.0.0.1:5000/*"
+  ],
+  "webOrigins": [
+    "http://127.0.0.1:5000"
+  ],
+  "notBefore": 0,
+  "bearerOnly": false,
+  "consentRequired": false,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": true,
+  "serviceAccountsEnabled": false,
+  "publicClient": false,
+  "frontchannelLogout": true,
+  "protocol": "openid-connect",
+  "attributes": {
+    "oidc.ciba.grant.enabled": "false",
+    "client.secret.creation.time": "1713360798",
+    "backchannel.logout.session.required": "true",
+    "post.logout.redirect.uris": "http://127.0.0.1:5000/*",
+    "oauth2.device.authorization.grant.enabled": "false",
+    "backchannel.logout.revoke.offline.tokens": "false"
+  },
+  "authenticationFlowBindingOverrides": {},
+  "fullScopeAllowed": true,
+  "nodeReRegistrationTimeout": -1,
+  "defaultClientScopes": [
+    "web-origins",
+    "acr",
+    "roles",
+    "profile",
+    "email"
+  ],
+  "optionalClientScopes": [
+    "address",
+    "phone",
+    "offline_access",
+    "microprofile-jwt"
+  ],
+  "access": {
+    "view": true,
+    "configure": true,
+    "manage": true
+  },
+  "protocolMappers": [
+    {
+      "name": "audience for renku",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-audience-mapper",
+      "consentRequired": false,
+      "config": {
+        "included.client.audience": "renku",
+        "id.token.claim": "false",
+        "access.token.claim": "true",
+        "userinfo.token.claim": "false"
+      }
+    }
+  ]
+}
