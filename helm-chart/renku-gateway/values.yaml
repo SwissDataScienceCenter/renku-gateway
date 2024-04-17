@@ -1,4 +1,11 @@
 gateway:
   image:
-    repository: renku/renku-gateway
-    tag: "latest"
+    ## Define the image for the auth middleware
+    auth:
+      repository: renku/renku-gateway
+      tag: "latest"
+
+  reverseProxy:
+    image:
+      repository: renku/renku-revproxy
+      tag: "latest"

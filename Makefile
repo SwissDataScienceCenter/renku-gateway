@@ -2,6 +2,10 @@ PKG_NAME=github.com/SwissDataScienceCenter/renku-gateway
 
 .PHONY: build clean tests
 
+auth_tests:
+	poetry run flake8 -v
+	poetry run pytest
+
 build: internal/login/spec.gen.go
 	go mod download
 	go build -o gateway $(PKG_NAME)/cmd/gateway 

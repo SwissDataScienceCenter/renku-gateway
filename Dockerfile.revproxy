@@ -1,0 +1,13 @@
+FROM golang:1.21.6-alpine3.19 as builder
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY cmd/revproxy cmd/revproxy
+COPY internal internal 
+RUN go build -o /revproxy github.com/SwissDataScienceCenter/renku-gateway/cmd/revproxy 
+
+FROM alpine:3.19
+USER 1000:1000
+COPY --from=builder /revproxy /revproxy
+ENTRYPOINT [ "/revproxy" ]
+
