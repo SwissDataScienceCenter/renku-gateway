@@ -40,7 +40,7 @@ func (m *MockInformer) TriggerAdd(obj *discoveryV1.EndpointSlice) {
 		defer m.mutex.Unlock()
 		m.store = append(m.store, obj)
 	}()
-	m.eventHandler.OnAdd(obj)
+	m.eventHandler.OnAdd(obj, true)
 }
 
 func (m *MockInformer) TriggerDelete(obj *discoveryV1.EndpointSlice) {
@@ -164,7 +164,7 @@ func TestUpstreamSelection(t *testing.T) {
 		e.Group("/").Use(proxy)
 		go e.Start(fmt.Sprintf(":%d", proxyPort))
 		defer e.Close()
-		req, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/", proxyPort), nil)
+		req, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", proxyPort), nil)
 		assert.NoError(t, err)
 		for _, c := range testCase.RequestCookies {
 			aCookie := c

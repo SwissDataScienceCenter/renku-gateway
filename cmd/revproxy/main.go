@@ -1,158 +1,164 @@
-// Package main contains the definition of all routes, proxying and authentication
-// performed by the reverse proxy that is part of the Renku gateway.
 package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"time"
 
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/db"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/login"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/revproxy"
 	"github.com/getsentry/sentry-go"
+	sentryecho "github.com/getsentry/sentry-go/echo"
+	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"golang.org/x/time/rate"
 )
 
-func setupServer(ctx context.Context, config revProxyConfig) *echo.Echo {
-	// Intialize common reverse proxy middlewares
-	fallbackProxy := proxyFromURL(config.RenkuBaseURL)
-	renkuBaseProxyHost := setHost(config.RenkuBaseURL.Host)
-	var gitlabProxy, gitlabProxyHost echo.MiddlewareFunc
-	if config.ExternalGitlabURL != nil {
-		gitlabProxy = proxyFromURL(config.ExternalGitlabURL)
-		gitlabProxyHost = setHost(config.ExternalGitlabURL.Host)
-	} else {
-		gitlabProxy = fallbackProxy
-		gitlabProxyHost = setHost(config.RenkuBaseURL.Host)
-	}
-	notebooksProxy := proxyFromURL(config.RenkuServices.Notebooks)
-	authSvcProxy := proxyFromURL(config.RenkuServices.Auth)
-	kgProxy := proxyFromURL(config.RenkuServices.KG)
-	webhookProxy := proxyFromURL(config.RenkuServices.Webhook)
-	keycloakProxy := proxyFromURL(config.RenkuServices.Keycloak)
-	keycloakProxyHost := setHost(config.RenkuServices.Keycloak.Host)
-	dataServiceProxy := proxyFromURL(config.RenkuServices.DataService)
-	searchProxy := proxyFromURL(config.RenkuServices.Search)
-	logger := middleware.Logger()
-
-	// Initialize common authentication middleware
-	notebooksAuth := authenticate(AddQueryParams(config.RenkuServices.Auth, map[string]string{"auth": "notebook"}), "Renku-Auth-Access-Token", "Renku-Auth-Id-Token", "Renku-Auth-Git-Credentials", "Renku-Auth-Anon-Id", "Renku-Auth-Refresh-Token")
-	searchAuth := authenticate(AddQueryParams(config.RenkuServices.Auth, map[string]string{"auth": "search"}), "Renku-Auth-Id-Token", "Renku-Auth-Anon-Id")
-	dataAuth := authenticate(AddQueryParams(config.RenkuServices.Auth, map[string]string{"auth": "keycloak_gitlab"}), "Authorization", "Gitlab-Access-Token")
-	renkuAuth := authenticate(AddQueryParams(config.RenkuServices.Auth, map[string]string{"auth": "renku"}), "Authorization", "Renku-user-id", "Renku-user-fullname", "Renku-user-email")
-	gitlabAuth := authenticate(AddQueryParams(config.RenkuServices.Auth, map[string]string{"auth": "gitlab"}), "Authorization")
-	cliGitlabAuth := authenticate(AddQueryParams(config.RenkuServices.Auth, map[string]string{"auth": "cli-gitlab"}), "Authorization")
-
-	// Server instance
+func main() {
+	// Setup
 	e := echo.New()
-	e.Pre(middleware.RemoveTrailingSlash())
+	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
 	e.Use(middleware.Recover())
-	if config.RateLimits.Enabled {
+	// The banner and the port do not respect the logger formatting we set below so we remove them
+	// the port will be logged further down when the server starts.
+	e.HideBanner = true
+	e.HidePort = true
+	// Logging setup
+	slog.SetDefault(jsonLogger)
+	// Load configuration
+	ch := config.NewConfigHandler()
+	gwConfig, err := ch.Config()
+	if err != nil {
+		slog.Error("loading the configuration failed", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("loaded config", "config", gwConfig)
+	err = gwConfig.Validate()
+	if err != nil {
+		slog.Error("the config validation failed", "error", err)
+		os.Exit(1)
+	}
+	ch.Watch()
+	var restart bool = false
+	ch.HandleChanges(func(c config.Config, err error) {
+		// when the config changes we flip the restart flag to true and cause the health endpoint to
+		// fail which will cause K8s to kill the pod
+		slog.Info("config file changed, making health check return status 500")
+		restart = true
+	})
+	// Health check
+	e.GET("/health", func(c echo.Context) error {
+		if restart {
+			slog.Warn("responding with error status to the health endpoint, server restart is imminent")
+			return c.NoContent(http.StatusInternalServerError)
+		}
+		return c.NoContent(http.StatusOK)
+	})
+	// Version endpoint
+	buildInfo, ok := debug.ReadBuildInfo()
+	version := ""
+	if ok && buildInfo != nil {
+		version = buildInfo.Main.Version
+	}
+	e.GET("/version", func(c echo.Context) error {
+		return c.String(http.StatusOK, version)
+	})
+	// Initialize shared models like db adapter
+	dbOptions := []db.RedisAdapterOption{db.WithRedisConfig(gwConfig.Redis)}
+	if gwConfig.Login.TokenEncryption.Enabled && gwConfig.Login.TokenEncryption.SecretKey != "" {
+		dbOptions = append(dbOptions, db.WithEcryption(string(gwConfig.Login.TokenEncryption.SecretKey)))
+	}
+	dbAdapter, err := db.NewRedisAdapter(dbOptions...)
+	if err != nil {
+		slog.Error("DB adapter initialization failed", "error", err)
+		os.Exit(1)
+	}
+	sessionHandler := models.NewSessionHandler(models.WithSessionStore(&dbAdapter), models.WithTokenStore(&dbAdapter))
+	// Initialize the reverse proxy
+	revproxy := revproxy.NewServer(&gwConfig.Revproxy)
+	revProxyMiddlewares := append(commonMiddlewares, sessionHandler.Middleware())
+	revproxy.RegisterHandlers(e, revProxyMiddlewares...)
+	// Initialize login server
+	loginServer, err := login.NewLoginServer(login.WithConfig(gwConfig.Login), login.WithTokenStore(&dbAdapter), login.WithSessionStore(&dbAdapter))
+	if err != nil {
+		slog.Error("login handlers initialization failed", "error", err)
+		os.Exit(1)
+	}
+	loginServer.RegisterHandlers(e, commonMiddlewares...)
+	// Rate limiting
+	if gwConfig.Server.RateLimits.Enabled {
 		e.Use(middleware.RateLimiter(
 			middleware.NewRateLimiterMemoryStoreWithConfig(
 				middleware.RateLimiterMemoryStoreConfig{
-					Rate:      rate.Limit(config.RateLimits.Rate),
-					Burst:     config.RateLimits.Burst,
+					Rate:      rate.Limit(gwConfig.Server.RateLimits.Rate),
+					Burst:     gwConfig.Server.RateLimits.Burst,
 					ExpiresIn: 3 * time.Minute,
 				}),
 		),
 		)
 	}
-
-	// Routing for Renku services
-	e.Group("/api/auth", logger, authSvcProxy)
-	e.Group("/api/notebooks", logger, notebooksAuth, noCookies, stripPrefix("/api"), notebooksProxy)
-	// /api/projects/:projectID/graph will is being deprecated in favour of /api/kg/webhooks, the old endpoint will remain for some time for backward compatibility
-	e.Group("/api/projects/:projectID/graph", logger, gitlabAuth, noCookies, kgProjectsGraphRewrites, webhookProxy)
-	e.Group("/api/kg/webhooks", logger, gitlabAuth, noCookies, stripPrefix("/api/kg/webhooks"), webhookProxy)
-	e.Group("/api/datasets", logger, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)
-	e.Group("/api/kg", logger, gitlabAuth, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)
-	e.Group("/api/data", logger, dataAuth, noCookies, dataServiceProxy)
-	e.Group("/api/search", logger, searchAuth, noCookies, stripPrefix("/api"), searchProxy)
-	// /api/kc is used only by the ui and no one else, will be removed when the gateway is in charge of user sessions
-	e.Group("/api/kc", logger, stripPrefix("/api/kc"), keycloakProxyHost, keycloakProxy)
-
-	registerCoreSvcProxies(ctx, e, config, logger, checkCoreServiceMetadataVersion(config.RenkuServices.CoreServicePaths), renkuAuth, noCookies, regexRewrite(`^/api/renku(?:/\d+)?((/|\?).*)??$`, "/renku$1"))
-
-	// Routes that end up proxied to Gitlab
-	if config.ExternalGitlabURL != nil {
-		// Redirect "old" style bundled /gitlab pathing if an external Gitlab is used
-		e.Group("/gitlab", logger, gitlabRedirect(config.ExternalGitlabURL.Host))
-		e.Group("/api/graphql", logger, gitlabAuth, gitlabProxyHost, gitlabProxy)
-		e.Group("/api/direct", logger, stripPrefix("/api/direct"), gitlabProxyHost, gitlabProxy)
-		e.Group("/repos", logger, cliGitlabAuth, noCookies, stripPrefix("/repos"), gitlabProxyHost, gitlabProxy)
-		// If nothing is matched in any other more specific /api route then fall back to Gitlab
-		e.Group("/api", logger, gitlabAuth, noCookies, regexRewrite("^/api(.*)", "/api/v4$1"), gitlabProxyHost, gitlabProxy)
-	} else {
-		e.Group("/api/graphql", logger, gitlabAuth, regexRewrite("^(.*)", "/gitlab$1"), gitlabProxyHost, gitlabProxy)
-		e.Group("/api/direct", logger, regexRewrite("^/api/direct(.*)", "/gitlab$1"), gitlabProxyHost, gitlabProxy)
-		e.Group("/repos", logger, cliGitlabAuth, noCookies, regexRewrite("^/repos(.*)", "/gitlab$1"), gitlabProxyHost, gitlabProxy)
-		// If nothing is matched in any other more specific /api route then fall back to Gitlab
-		e.Group("/api", logger, gitlabAuth, noCookies, regexRewrite("^/api(.*)", "/gitlab/api/v4$1"), gitlabProxyHost, gitlabProxy)
+	// CORS
+	if len(gwConfig.Server.AllowOrigin) > 0 {
+		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{AllowOrigins: gwConfig.Server.AllowOrigin}))
 	}
-
-	// If nothing is matched from any of the routes above then fall back to the UI
-	e.Group("/", logger, renkuBaseProxyHost, fallbackProxy)
-
-	// Reverse proxy specific endpoints
-	rp := e.Group("/revproxy")
-	rp.GET("/health", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
-	})
-
-	return e
-}
-
-func main() {
-	config := getConfig()
-	shutdownCtx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// setup sentry
-	if config.Sentry.Enabled {
+	// Sentry
+	if gwConfig.Monitoring.Sentry.Enabled {
 		err := sentry.Init(sentry.ClientOptions{
-			Dsn:         config.Sentry.Dsn,
-			Environment: config.Sentry.Environment,
-			SampleRate:  config.Sentry.SampleRate,
+			Dsn: string(gwConfig.Monitoring.Sentry.Dsn),
+			TracesSampleRate: gwConfig.Monitoring.Sentry.SampleRate, 
+			Environment: gwConfig.Monitoring.Sentry.Environment,	
 		})
 		if err != nil {
-			log.Printf("sentry.Init: %s", err)
+			slog.Error("sentry initialization failed", "error", err)
 		}
-		defer sentry.Flush(2 * time.Second)
+		e.Use(sentryecho.New(sentryecho.Options{}))
 	}
-
-	e := setupServer(shutdownCtx, config)
-	// Start API server
-	e.Logger.Printf("Starting server with config: %+v", config)
-	go func() {
-		if err := e.Start(fmt.Sprintf(":%d", config.Port)); err != nil && err != http.ErrServerClosed {
-			e.Logger.Fatal(err)
-		}
-	}()
-	// Start metrics server if enabled
-	var metricsServer *echo.Echo
-	if config.Metrics.Enabled {
-		metricsServer = getMetricsServer(e, config.Metrics.Port)
+	// Prometheus
+	if gwConfig.Monitoring.Prometheus.Enabled {
+		e.Use(echoprometheus.NewMiddleware("gateway"))
 		go func() {
-			if err := metricsServer.Start(fmt.Sprintf(":%d", config.Metrics.Port)); err != nil && err != http.ErrServerClosed {
-				metricsServer.Logger.Fatal(err)
+			metrics := echo.New()
+			metrics.HideBanner = true
+			metrics.HidePort = true
+			metrics.GET("/metrics", echoprometheus.NewHandler())
+			err := metrics.Start(fmt.Sprintf(":%d", gwConfig.Monitoring.Prometheus.Port))
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				slog.Error("prometheus server failed to start", "error", err)
+				os.Exit(1)
 			}
 		}()
 	}
+	// Start server
+	address := fmt.Sprintf("%s:%d", gwConfig.Server.Host, gwConfig.Server.Port)
+	slog.Info("starting the server on address " + address)
+	go func() {
+		err := e.Start(address)
+		if err != nil && err != http.ErrServerClosed {
+			slog.Error("shutting down the server gracefuly failed", "error", err)
+			os.Exit(1)
+		}
+	}()
+	// Wait for interrupt signal to gracefully shutdown the server with a timeout of 10 seconds.
+	// Use a buffered channel to avoid missing signals as recommended for signal.Notify
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
-	<-quit // Wait for interrupt signal from OS
-	// Start shutting down servers
-	if err := e.Shutdown(shutdownCtx); err != nil {
-		e.Logger.Fatal(err)
-	}
-	if config.Metrics.Enabled {
-		if err := metricsServer.Shutdown(shutdownCtx); err != nil {
-			metricsServer.Logger.Fatal(err)
-		}
+	<-quit
+	slog.Info("received signal to shut down the server")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := e.Shutdown(ctx); err != nil {
+		slog.Error("shutting down the server gracefully failed", "error", err)
+		os.Exit(1)
 	}
 }
+
