@@ -19,7 +19,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	// Intialize common reverse proxy middlewares
 	fallbackProxy := proxyFromURL(r.config.RenkuBaseURL)
 	// TODO: add config entry for this
-	gatewayAuthProxy := proxyFromURL(r.config.RenkuBaseURL.JoinPath("/api/auth"))
+	gatewayAuthProxy := proxyFromURL(r.config.RenkuServices.GatewayAuth)
 	renkuBaseProxyHost := setHost(r.config.RenkuBaseURL.Host)
 	var gitlabProxy, gitlabProxyHost echo.MiddlewareFunc
 	if r.config.ExternalGitlabURL != nil {
@@ -53,7 +53,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	e.Group("/api/notebooks", append(commonMiddlewares, notebooksAuthAccessToken, notebooksAuthIDToken, notebooksAuthRefreshToken, notebooksGitlabAccessToken, notebooksAnonymousID, noCookies, stripPrefix("/api"), notebooksProxy)...)
 	// /api/projects/:projectID/graph will is being deprecated in favour of /api/kg/webhooks, the old endpoint will remain for some time for backward compatibility
 	e.Group("/api/projects/:projectID/graph", append(commonMiddlewares, gitlabAuth, noCookies, kgProjectsGraphRewrites, webhookProxy)...)
-	e.Group("/knowledge-graph", append(commonMiddlewares, gitlabAuth, coreSvcIdToken, noCookies, kgProxy)...) 
+	e.Group("/knowledge-graph", append(commonMiddlewares, gitlabAuth, coreSvcIdToken, noCookies, kgProxy)...)
 	e.Group("/api/kg/webhooks", append(commonMiddlewares, gitlabAuth, noCookies, stripPrefix("/api/kg/webhooks"), webhookProxy)...)
 	e.Group("/api/datasets", append(commonMiddlewares, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)...)
 	e.Group("/api/kg", append(commonMiddlewares, gitlabAuth, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)...)
@@ -99,4 +99,3 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 func NewServer(revproxyConfig *config.RevproxyConfig) Revproxy {
 	return Revproxy{config: revproxyConfig}
 }
-
