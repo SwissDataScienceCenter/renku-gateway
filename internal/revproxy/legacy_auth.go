@@ -2,6 +2,7 @@ package revproxy
 
 import (
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 
@@ -34,6 +35,13 @@ func legacyAuth(authURL *url.URL, keycloakURL *url.URL) echo.MiddlewareFunc {
 				return err
 			}
 			req.Header = c.Request().Header.Clone()
+			slog.Info(
+				"LEGACY AUTH MIDDLEWARE",
+				"message",
+				"getting tokens",
+				"authURL",
+				authURL.String(),
+			)
 			res, err := http.DefaultClient.Do(req)
 			if err != nil {
 				return err
@@ -46,8 +54,24 @@ func legacyAuth(authURL *url.URL, keycloakURL *url.URL) echo.MiddlewareFunc {
 				}
 				c.Response().WriteHeader(res.StatusCode)
 				_, err = io.Copy(c.Response().Writer, res.Body)
+				slog.Info(
+					"LEGACY AUTH MIDDLEWARE",
+					"message",
+					"auth failed",
+					"statusCode",
+					res.StatusCode,
+				)
 				return err
 			}
+
+			slog.Info(
+				"LEGACY AUTH MIDDLEWARE",
+				"message",
+				"response headers",
+				"Renku-Auth-Id-Token",
+				res.Header.Get("Renku-Auth-Id-Token"),
+			)
+
 			// The authentication request was successful, save tokens to session
 			renkuAccessTokenRaw := res.Header.Get("Renku-Auth-Access-Token")
 			var renkuAccessToken models.OauthToken
@@ -97,6 +121,14 @@ func legacyAuth(authURL *url.URL, keycloakURL *url.URL) echo.MiddlewareFunc {
 					Type:       models.IDTokenType,
 				}
 			}
+
+			slog.Info(
+				"LEGACY AUTH MIDDLEWARE",
+				"message",
+				"got renku tokens",
+				"sub",
+				claims.GetSubject(),
+			)
 
 			// accessToken := models.OauthToken{
 			// 	ID:         id,
