@@ -4,6 +4,7 @@ package revproxy
 
 import (
 	"context"
+	"net/url"
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
@@ -56,7 +57,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	e.Group("/api/kg/webhooks", append(commonMiddlewares, gitlabAuth, noCookies, stripPrefix("/api/kg/webhooks"), webhookProxy)...)
 	e.Group("/api/datasets", append(commonMiddlewares, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)...)
 	e.Group("/api/kg", append(commonMiddlewares, gitlabAuth, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)...)
-	e.Group("/api/data", append(commonMiddlewares, dataRenkuAccessToken, dataGitlabAccessToken, legacyAuth(r.config.RenkuServices.GatewayAuth, r.config.RenkuServices.Keycloak), noCookies, dataServiceProxy)...)
+	e.Group("/api/data", append(commonMiddlewares, dataRenkuAccessToken, dataGitlabAccessToken, legacyAuth(AddQueryParams(r.config.RenkuServices.GatewayAuth, map[string]string{"auth": "revproxy"}), r.config.RenkuServices.Keycloak), noCookies, dataServiceProxy)...)
 	// /api/kc is used only by the ui and no one else, will be removed when the gateway is in charge of user sessions
 	e.Group("/api/kc", append(commonMiddlewares, stripPrefix("/api/kc"), keycloakProxyHost, keycloakProxy)...)
 
@@ -97,4 +98,16 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 
 func NewServer(revproxyConfig *config.RevproxyConfig) Revproxy {
 	return Revproxy{config: revproxyConfig}
+}
+
+// AddQueryParams makes a copy of the provided URL, adds the query parameters
+// and returns a url with the added parameters. The original URL is left unchanged.
+func AddQueryParams(url *url.URL, params map[string]string) *url.URL {
+	newURL := *url
+	query := newURL.Query()
+	for k, v := range params {
+		query.Add(k, v)
+	}
+	newURL.RawQuery = query.Encode()
+	return &newURL
 }
