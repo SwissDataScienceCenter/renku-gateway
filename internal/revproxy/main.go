@@ -18,6 +18,8 @@ type Revproxy struct {
 func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.MiddlewareFunc) {
 	// Intialize common reverse proxy middlewares
 	fallbackProxy := proxyFromURL(r.config.RenkuBaseURL)
+	// TODO: add config entry for this
+	gatewayAuthProxy := proxyFromURL(r.config.RenkuBaseURL.JoinPath("/api/auth"))
 	renkuBaseProxyHost := setHost(r.config.RenkuBaseURL.Host)
 	var gitlabProxy, gitlabProxyHost echo.MiddlewareFunc
 	if r.config.ExternalGitlabURL != nil {
@@ -47,6 +49,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	gitlabCliAuth := NewAuth(WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), WithTokenHandler(gitlabCliTokenHandler)).Middleware()
 
 	// Routing for Renku services
+	e.Group(("/api/auth"), append(commonMiddlewares, gatewayAuthProxy)...)
 	e.Group("/api/notebooks", append(commonMiddlewares, notebooksAuthAccessToken, notebooksAuthIDToken, notebooksAuthRefreshToken, notebooksGitlabAccessToken, notebooksAnonymousID, noCookies, stripPrefix("/api"), notebooksProxy)...)
 	// /api/projects/:projectID/graph will is being deprecated in favour of /api/kg/webhooks, the old endpoint will remain for some time for backward compatibility
 	e.Group("/api/projects/:projectID/graph", append(commonMiddlewares, gitlabAuth, noCookies, kgProjectsGraphRewrites, webhookProxy)...)
