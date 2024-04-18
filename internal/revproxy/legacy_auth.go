@@ -68,6 +68,10 @@ func legacyAuth(authURL *url.URL, keycloakURL *url.URL) echo.MiddlewareFunc {
 				"LEGACY AUTH MIDDLEWARE",
 				"message",
 				"response headers",
+				"statusCode",
+				res.StatusCode,
+				"Authorization",
+				res.Header.Get(echo.HeaderAuthorization),
 				"Renku-Auth-Id-Token",
 				res.Header.Get("Renku-Auth-Id-Token"),
 			)
