@@ -41,6 +41,8 @@ func legacyAuth(authURL *url.URL, keycloakURL *url.URL) echo.MiddlewareFunc {
 				"getting tokens",
 				"authURL",
 				authURL.String(),
+				"Authorization",
+				req.Header.Get(echo.HeaderAuthorization),
 			)
 			res, err := http.DefaultClient.Do(req)
 			if err != nil {
