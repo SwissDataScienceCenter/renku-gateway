@@ -1,0 +1,16 @@
+{
+	"name": "gateway",
+	"service": "api",
+	"dockerComposeFile": "docker-compose.yaml",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"features": {
+		"ghcr.io/devcontainers-contrib/features/poetry:2": {},
+		"ghcr.io/devcontainers/features/git:1": {},
+		"ghcr.io/jungaretti/features/make:1": {},
+		"ghcr.io/devcontainers/features/go:1": {},
+		"ghcr.io/devcontainers-contrib/features/bash-command:1": {
+			"command": "mkdir -p /go/pkg && chmod -R a+w /go/pkg"
+		}
+	},
+	"postCreateCommand": "poetry install --with dev && go mod download"
+}
