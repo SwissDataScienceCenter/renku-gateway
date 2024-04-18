@@ -115,6 +115,6 @@ helm-chart/renku-gateway/charts/**
 
 .DS_Store
 
-revproxy
+/revproxy
 covprofile
 

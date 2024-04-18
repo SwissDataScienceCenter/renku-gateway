@@ -43,6 +43,7 @@ from .auth import (
     notebook_auth,
     keycloak_gitlab_auth,
     search_auth,
+    revproxy_auth,
 )
 from .auth.oauth_redis import OAuthRedis
 from .auth.utils import decode_keycloak_jwt
@@ -139,6 +140,7 @@ def auth():
         "search": search_auth.SearchHeaders,
         "cli-gitlab": cli_auth.RenkuCLIGitlabAuthHeaders,
         "keycloak_gitlab": keycloak_gitlab_auth.KeycloakGitlabAuthHeaders,
+        "revproxy": revproxy_auth.RevProxyAuthHeaders,
     }
 
     # Keycloak public key is not defined so error

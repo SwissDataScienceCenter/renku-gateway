@@ -213,7 +213,8 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 		rpConfig := config.RevproxyConfig{
 			RenkuBaseURL: upstreamURL,
 			RenkuServices: config.RenkuServicesConfig{
-				Notebooks: upstreamURL,
+				GatewayAuth: upstreamURL,
+				Notebooks:   upstreamURL,
 				Core: config.CoreSvcConfig{
 					ServiceNames: []string{upstreamURL.String(), upstreamURL.String(), upstreamURL2.String()},
 					ServicePaths: []string{"/api/renku", "/api/renku/10", "/api/renku/9"},
@@ -457,7 +458,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 			},
 		},
 		{
-			Path:     "/api/datasets/test",
+			Path: "/api/datasets/test",
 			Expected: TestResults{
 				Path:                   "/knowledge-graph/datasets/test",
 				VisitedServerIDs:       []string{"upstream"},
@@ -474,10 +475,10 @@ func TestInternalSvcRoutes(t *testing.T) {
 			},
 		},
 		{
-			Path:     "/api/kg/test",
+			Path: "/api/kg/test",
 			Expected: TestResults{
-				Path:                   "/knowledge-graph/test",
-				VisitedServerIDs:       []string{"upstream"},
+				Path:             "/knowledge-graph/test",
+				VisitedServerIDs: []string{"upstream"},
 				UpstreamRequestHeaders: []map[string]string{{
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
@@ -505,15 +506,15 @@ func TestInternalSvcRoutes(t *testing.T) {
 			},
 		},
 		{
-			Path:     "/api/renku/test",
+			Path: "/api/renku/test",
 			Expected: TestResults{
-				Path:                   "/renku/test",
-				VisitedServerIDs:       []string{"upstream"},
+				Path:             "/renku/test",
+				VisitedServerIDs: []string{"upstream"},
 				UpstreamRequestHeaders: []map[string]string{{
 					echo.HeaderAuthorization: "",
-					"Renku-user-id": "",
-					"Renku-user-fullname": "",
-					"renku-user-email": "",
+					"Renku-user-id":          "",
+					"Renku-user-fullname":    "",
+					"renku-user-email":       "",
 				}},
 			},
 		},
@@ -521,11 +522,11 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Path:        "/api/renku",
 			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
 			Expected: TestResults{
-				Path:                   "/renku",
-				VisitedServerIDs:       []string{"upstream"},
+				Path:             "/renku",
+				VisitedServerIDs: []string{"upstream"},
 				UpstreamRequestHeaders: []map[string]string{{
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
-					"Renku-User": "renkuIDTokenValue",
+					"Renku-User":             "renkuIDTokenValue",
 				}},
 			},
 			Tokens: []models.OauthToken{
@@ -596,8 +597,8 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Path:           "/api/user/test/something",
 			ExternalGitlab: true,
 			Expected: TestResults{
-				Path:                   "/api/v4/user/test/something",
-				VisitedServerIDs:       []string{"gitlab"},
+				Path:             "/api/v4/user/test/something",
+				VisitedServerIDs: []string{"gitlab"},
 				UpstreamRequestHeaders: []map[string]string{{
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
@@ -619,8 +620,8 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Path:           "/api/user/test/something",
 			ExternalGitlab: false,
 			Expected: TestResults{
-				Path:                   "/gitlab/api/v4/user/test/something",
-				VisitedServerIDs:       []string{"upstream"},
+				Path:             "/gitlab/api/v4/user/test/something",
+				VisitedServerIDs: []string{"upstream"},
 				UpstreamRequestHeaders: []map[string]string{{
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
@@ -672,8 +673,8 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Path:           "/api/graphql/test",
 			ExternalGitlab: true,
 			Expected: TestResults{
-				Path:                   "/api/graphql/test",
-				VisitedServerIDs:       []string{"gitlab"},
+				Path:             "/api/graphql/test",
+				VisitedServerIDs: []string{"gitlab"},
 				UpstreamRequestHeaders: []map[string]string{{
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
@@ -700,8 +701,8 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Path:           "/api/graphql/test",
 			ExternalGitlab: false,
 			Expected: TestResults{
-				Path:                   "/gitlab/api/graphql/test",
-				VisitedServerIDs:       []string{"upstream"},
+				Path:             "/gitlab/api/graphql/test",
+				VisitedServerIDs: []string{"upstream"},
 				UpstreamRequestHeaders: []map[string]string{{
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
@@ -728,10 +729,10 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Path:           "/repos/test",
 			ExternalGitlab: true,
 			Expected: TestResults{
-				Path:                   "/test",
-				VisitedServerIDs:       []string{"gitlab"},
+				Path:             "/test",
+				VisitedServerIDs: []string{"gitlab"},
 				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization: "Basic b2F1dGgyOmdpdGxhYkFjY2Vzc1Rva2VuVmFsdWU=",  // the content of the header is base64 encoding of oauth2:gitlabAccessTokenValue
+					echo.HeaderAuthorization: "Basic b2F1dGgyOmdpdGxhYkFjY2Vzc1Rva2VuVmFsdWU=", // the content of the header is base64 encoding of oauth2:gitlabAccessTokenValue
 				}},
 			},
 			Tokens: []models.OauthToken{
@@ -756,10 +757,10 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Path:           "/repos/test",
 			ExternalGitlab: false,
 			Expected: TestResults{
-				Path:                   "/gitlab/test",
-				VisitedServerIDs:       []string{"upstream"},
+				Path:             "/gitlab/test",
+				VisitedServerIDs: []string{"upstream"},
 				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization: "Basic b2F1dGgyOmdpdGxhYkFjY2Vzc1Rva2VuVmFsdWU=",  // the content of the header is base64 encoding of oauth2:gitlabAccessTokenValue
+					echo.HeaderAuthorization: "Basic b2F1dGgyOmdpdGxhYkFjY2Vzc1Rva2VuVmFsdWU=", // the content of the header is base64 encoding of oauth2:gitlabAccessTokenValue
 				}},
 			},
 			Tokens: []models.OauthToken{
@@ -793,10 +794,10 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Expected:       TestResults{Path: "/gitlab/api/v4/projects/some.username%2Ftest-project", VisitedServerIDs: []string{"upstream"}},
 		},
 		{
-			Path:     "/api/kg/webhooks/projects/123456/events/status/something/else",
+			Path: "/api/kg/webhooks/projects/123456/events/status/something/else",
 			Expected: TestResults{
-				Path:                   "/projects/123456/events/status/something/else",
-				VisitedServerIDs:       []string{"upstream"},
+				Path:             "/projects/123456/events/status/something/else",
+				VisitedServerIDs: []string{"upstream"},
 				UpstreamRequestHeaders: []map[string]string{{
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
