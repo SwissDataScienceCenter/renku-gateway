@@ -28,7 +28,7 @@ func (r RedactedString) MarshalBinary() ([]byte, error) {
 type Config struct {
 	Server     ServerConfig
 	Revproxy   RevproxyConfig
-	Login      LoginConfig
+	// Login      LoginConfig
 	Redis      RedisConfig
 	Monitoring MonitoringConfig
 }
@@ -52,11 +52,11 @@ var CLISessionCookieOpt = models.WithCookieTemplate(http.Cookie{Name: "_renku_cl
 var UISessionCookieOpt = models.WithCookieTemplate(http.Cookie{Name: "_renku_ui_session", Secure: true, HttpOnly: true, Path: "/"})
 
 func (c *Config) Validate() error {
-	err := c.Login.Validate()
-	if err != nil {
-		return err
-	}
-	err = c.Revproxy.Validate()
+	// err := c.Login.Validate()
+	// if err != nil {
+	// 	return err
+	// }
+	err := c.Revproxy.Validate()
 	if err != nil {
 		return err
 	}

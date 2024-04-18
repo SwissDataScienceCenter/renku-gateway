@@ -11,9 +11,9 @@ import (
 	"runtime/debug"
 	"time"
 
+	// "github.com/SwissDataScienceCenter/renku-gateway/internal/login"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/db"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/login"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/revproxy"
 	"github.com/getsentry/sentry-go"
@@ -75,9 +75,9 @@ func main() {
 	})
 	// Initialize shared models like db adapter
 	dbOptions := []db.RedisAdapterOption{db.WithRedisConfig(gwConfig.Redis)}
-	if gwConfig.Login.TokenEncryption.Enabled && gwConfig.Login.TokenEncryption.SecretKey != "" {
-		dbOptions = append(dbOptions, db.WithEcryption(string(gwConfig.Login.TokenEncryption.SecretKey)))
-	}
+	// if gwConfig.Login.TokenEncryption.Enabled && gwConfig.Login.TokenEncryption.SecretKey != "" {
+	// 	dbOptions = append(dbOptions, db.WithEcryption(string(gwConfig.Login.TokenEncryption.SecretKey)))
+	// }
 	dbAdapter, err := db.NewRedisAdapter(dbOptions...)
 	if err != nil {
 		slog.Error("DB adapter initialization failed", "error", err)
@@ -88,13 +88,15 @@ func main() {
 	revproxy := revproxy.NewServer(&gwConfig.Revproxy)
 	revProxyMiddlewares := append(commonMiddlewares, sessionHandler.Middleware())
 	revproxy.RegisterHandlers(e, revProxyMiddlewares...)
+	
 	// Initialize login server
-	loginServer, err := login.NewLoginServer(login.WithConfig(gwConfig.Login), login.WithTokenStore(&dbAdapter), login.WithSessionStore(&dbAdapter))
-	if err != nil {
-		slog.Error("login handlers initialization failed", "error", err)
-		os.Exit(1)
-	}
-	loginServer.RegisterHandlers(e, commonMiddlewares...)
+	// loginServer, err := login.NewLoginServer(login.WithConfig(gwConfig.Login), login.WithTokenStore(&dbAdapter), login.WithSessionStore(&dbAdapter))
+	// if err != nil {
+	// 	slog.Error("login handlers initialization failed", "error", err)
+	// 	os.Exit(1)
+	// }
+	// loginServer.RegisterHandlers(e, commonMiddlewares...)
+	
 	// Rate limiting
 	if gwConfig.Server.RateLimits.Enabled {
 		e.Use(middleware.RateLimiter(

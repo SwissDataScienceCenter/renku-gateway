@@ -1,6 +1,6 @@
 PKG_NAME=github.com/SwissDataScienceCenter/renku-gateway
 
-.PHONY: build clean tests
+.PHONY: build clean tests auth_tests run_revproxy
 
 auth_tests:
 	poetry run flake8 -v
@@ -8,12 +8,12 @@ auth_tests:
 
 build: internal/login/spec.gen.go
 	go mod download
-	go build -o gateway $(PKG_NAME)/cmd/gateway 
+	go build -o revproxy $(PKG_NAME)/cmd/revproxy 
 
 clean:
 	go clean
 	go clean -testcache
-	rm -f gateway covprofile
+	rm -f revproxy covprofile
 
 tests:
 	go mod download
@@ -22,3 +22,5 @@ tests:
 internal/login/spec.gen.go: apispec.yaml
 	oapi-codegen -generate types,server,spec -package login $< > $@ 
 
+run_revproxy:
+	go run $(PKG_NAME)/cmd/revproxy
