@@ -61,5 +61,9 @@ func (c *Config) Validate() error {
 	if err != nil {
 		return err
 	}
+	err = c.OAuthClients.Validate()
+	if err != nil {
+		return err
+	}
 	return nil
 }
