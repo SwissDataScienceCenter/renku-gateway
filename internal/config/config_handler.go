@@ -52,7 +52,7 @@ func NewConfigHandler() *ConfigHandler {
 	if configPathEnv != "" {
 		configPaths = append(configPaths, configPathEnv)
 	}
-	configPaths = append(configPaths, "/etc/gateway", ".")
+	configPaths = append(configPaths, "/etc/gateway", "/etc/gateway-secret", ".")
 	for _, path := range configPaths {
 		main.AddConfigPath(path)
 		secret.AddConfigPath(path)
@@ -70,11 +70,11 @@ func NewConfigHandler() *ConfigHandler {
 }
 
 func (c *ConfigHandler) getConfig() (Config, error) {
-	// NOTE: returning the error is avoided on purpose in most cases here because the error could 
-	// contain sensitive data from the config file or data that is being read in 
+	// NOTE: returning the error is avoided on purpose in most cases here because the error could
+	// contain sensitive data from the config file or data that is being read in
 	err := c.mainViper.MergeInConfig()
 	if err != nil {
-		return Config{}, fmt.Errorf("could not read the main configuration file") 
+		return Config{}, fmt.Errorf("could not read the main configuration file")
 	}
 	// read secret config
 	err = c.secretViper.ReadInConfig()
@@ -88,7 +88,7 @@ func (c *ConfigHandler) getConfig() (Config, error) {
 	}
 	err = c.mainViper.MergeConfigMap(c.secretViper.AllSettings())
 	if err != nil {
-		return Config{}, fmt.Errorf("could not merge the secret file config") 
+		return Config{}, fmt.Errorf("could not merge the secret file config")
 	}
 	// read environment variables
 	envVarsFiltered := []string{}
@@ -103,7 +103,7 @@ func (c *ConfigHandler) getConfig() (Config, error) {
 	envViper.SetConfigType("env")
 	err = envViper.ReadConfig(envBuf)
 	if err != nil {
-		return Config{}, fmt.Errorf("could not read the environment variables into a config") 
+		return Config{}, fmt.Errorf("could not read the environment variables into a config")
 	}
 	envData := envViper.AllSettings()
 	prefix := strings.ToLower(c.envPrefix)
@@ -121,7 +121,7 @@ func (c *ConfigHandler) getConfig() (Config, error) {
 	)
 	err = c.mainViper.Unmarshal(&output, dh)
 	if err != nil {
-		return Config{}, fmt.Errorf("cannot unmarshal the combined config into a struct") 
+		return Config{}, fmt.Errorf("cannot unmarshal the combined config into a struct")
 	}
 	// NOTE: websockets proxying does not work if the port of the uiserver is not explicitly set
 	if output.Revproxy.RenkuServices.UIServer != nil && output.Revproxy.RenkuServices.UIServer.Port() == "" {
@@ -129,7 +129,7 @@ func (c *ConfigHandler) getConfig() (Config, error) {
 			output.Revproxy.RenkuServices.UIServer.Host += ":80"
 		} else if output.Revproxy.RenkuServices.UIServer.Scheme == "https" {
 			output.Revproxy.RenkuServices.UIServer.Host += ":443"
-		} 
+		}
 	}
 	return output, nil
 }
