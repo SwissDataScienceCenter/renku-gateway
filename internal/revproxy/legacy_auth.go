@@ -6,167 +6,229 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/labstack/echo/v4"
-	"github.com/zitadel/oidc/v2/pkg/oidc"
 )
 
-// Retrieves tokens from "gateway-auth"
-func legacyAuth(authURL *url.URL, keycloakURL *url.URL) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			sessionRaw := c.Get(models.SessionCtxKey)
-			if sessionRaw == nil {
-				return gwerrors.ErrSessionNotFound
-			}
-			session, ok := sessionRaw.(models.Session)
-			if !ok {
-				return gwerrors.ErrSessionParse
-			}
-			// Send token request to "gateway-auth"
-			req, err := http.NewRequestWithContext(
-				c.Request().Context(),
-				"GET",
-				authURL.String(),
-				nil,
-			)
-			if err != nil {
-				return err
-			}
-			req.Header = c.Request().Header.Clone()
-			slog.Info(
-				"LEGACY AUTH MIDDLEWARE",
-				"message",
-				"getting tokens",
-				"authURL",
-				authURL.String(),
-				"Authorization",
-				req.Header.Get(echo.HeaderAuthorization),
-			)
-			res, err := http.DefaultClient.Do(req)
-			if err != nil {
-				return err
-			}
-			// The authentication request was rejected, return the authentication service response and status code
-			if res.StatusCode >= 300 || res.StatusCode < 200 {
-				defer res.Body.Close()
-				for name, values := range res.Header {
-					c.Response().Header()[name] = values
+// Creates a middleware which injects credentials in headers;
+// the credentials are fetched from the "gateway-auth" service.
+func LegacyAuth(baseAuthURL *url.URL) func(queryParam string, injectedHeaders ...string) echo.MiddlewareFunc {
+	return func(queryParam string, injectedHeaders ...string) echo.MiddlewareFunc {
+		authURL := addQueryParams(baseAuthURL, map[string]string{"auth": queryParam})
+
+		return func(next echo.HandlerFunc) echo.HandlerFunc {
+			return func(c echo.Context) error {
+				// Send GET request to the "gateway-auth" service
+				req, err := http.NewRequestWithContext(
+					c.Request().Context(),
+					"GET",
+					authURL.String(),
+					nil,
+				)
+				if err != nil {
+					return err
 				}
-				c.Response().WriteHeader(res.StatusCode)
-				_, err = io.Copy(c.Response().Writer, res.Body)
+				req.Header = c.Request().Header.Clone()
 				slog.Info(
 					"LEGACY AUTH MIDDLEWARE",
 					"message",
-					"auth failed",
-					"statusCode",
-					res.StatusCode,
+					"getting tokens",
+					"authURL",
+					authURL.String(),
 				)
-				return err
-			}
-
-			slog.Info(
-				"LEGACY AUTH MIDDLEWARE",
-				"message",
-				"response headers",
-				"statusCode",
-				res.StatusCode,
-				"Authorization",
-				res.Header.Get(echo.HeaderAuthorization),
-				"Renku-Auth-Id-Token",
-				res.Header.Get("Renku-Auth-Id-Token"),
-			)
-
-			// The authentication request was successful, save tokens to session
-			renkuAccessTokenRaw := res.Header.Get("Renku-Auth-Access-Token")
-			var renkuAccessToken models.OauthToken
-			claims := new(oidc.TokenClaims)
-			_, err = oidc.ParseToken(renkuAccessTokenRaw, claims)
-			if err != nil {
-				renkuAccessToken = models.OauthToken{}
-			} else {
-				renkuAccessToken = models.OauthToken{
-					ID:         claims.ClientID,
-					Value:      renkuAccessTokenRaw,
-					ExpiresAt:  claims.GetExpiration(),
-					TokenURL:   keycloakURL.String(),
-					ProviderID: "renku",
-					Type:       models.AccessTokenType,
+				res, err := http.DefaultClient.Do(req)
+				if err != nil {
+					return err
 				}
-			}
-			renkuRefreshTokenRaw := res.Header.Get("Renku-Auth-Refresh-Token")
-			var renkuRefreshToken models.OauthToken
-			claims = new(oidc.TokenClaims)
-			_, err = oidc.ParseToken(renkuRefreshTokenRaw, claims)
-			if err != nil {
-				renkuRefreshToken = models.OauthToken{}
-			} else {
-				renkuRefreshToken = models.OauthToken{
-					ID:         claims.ClientID,
-					Value:      renkuRefreshTokenRaw,
-					ExpiresAt:  claims.GetExpiration(),
-					TokenURL:   keycloakURL.String(),
-					ProviderID: "renku",
-					Type:       models.RefreshTokenType,
+				// The request was rejected, return the "gateway-auth" service response and status code
+				if res.StatusCode >= 300 || res.StatusCode < 200 {
+					defer res.Body.Close()
+					for name, values := range res.Header {
+						c.Response().Header()[name] = values
+					}
+					c.Response().WriteHeader(res.StatusCode)
+					_, err = io.Copy(c.Response().Writer, res.Body)
+					return err
 				}
-			}
-			renkuIdTokenRaw := res.Header.Get("Renku-Auth-Id-Token")
-			var renkuIdToken models.OauthToken
-			claims = new(oidc.TokenClaims)
-			_, err = oidc.ParseToken(renkuIdTokenRaw, claims)
-			if err != nil {
-				renkuIdToken = models.OauthToken{}
-			} else {
-				renkuIdToken = models.OauthToken{
-					ID:         claims.ClientID,
-					Value:      renkuIdTokenRaw,
-					ExpiresAt:  claims.GetExpiration(),
-					TokenURL:   keycloakURL.String(),
-					ProviderID: "renku",
-					Type:       models.IDTokenType,
+				// The request was successful, inject headers and go to next middleware
+				for _, hdr := range injectedHeaders {
+					hdrValue := res.Header.Get(hdr)
+					if hdrValue != "" {
+						c.Request().Header.Set(hdr, hdrValue)
+					}
 				}
+				return next(c)
 			}
-
-			slog.Info(
-				"LEGACY AUTH MIDDLEWARE",
-				"message",
-				"got renku tokens",
-				"sub",
-				claims.GetSubject(),
-			)
-
-			// accessToken := models.OauthToken{
-			// 	ID:         id,
-			// 	Type:       models.AccessTokenType,
-			// 	Value:      tokens.AccessToken,
-			// 	TokenURL:   client.OAuthConfig().Endpoint.TokenURL,
-			// 	ExpiresAt:  tokens.Expiry,
-			// 	ProviderID: c.getID(),
-			// }
-			// refreshToken := models.OauthToken{
-			// 	ID:         id,
-			// 	Type:       models.RefreshTokenType,
-			// 	Value:      tokens.RefreshToken,
-			// 	TokenURL:   client.OAuthConfig().Endpoint.TokenURL,
-			// 	ProviderID: c.getID(),
-			// }
-			// idToken := models.OauthToken{
-			// 	ID:         id,
-			// 	Type:       models.IDTokenType,
-			// 	Value:      tokens.IDToken,
-			// 	ExpiresAt:  tokens.IDTokenClaims.GetExpiration(),
-			// 	ProviderID: c.getID(),
-			// }
-
-			// headers["Authorization"] = f"Bearer {access_token}"
-			// headers["Renku-Auth-Access-Token"] = access_token
-			// headers["Renku-Auth-Refresh-Token"] = keycloak_oidc_client.refresh_token
-			// headers["Renku-Auth-Id-Token"] = keycloak_oidc_client.token["id_token"]
-			// headers["Gitlab-Access-Token"] = gitlab_oauth_client.access_token
-			session.SaveTokens(c.Request().Context(), renkuAccessToken, renkuRefreshToken, renkuIdToken, "")
-
-			return next(c)
 		}
 	}
 }
+
+// AddQueryParams makes a copy of the provided URL, adds the query parameters
+// and returns a url with the added parameters. The original URL is left unchanged.
+func addQueryParams(url *url.URL, params map[string]string) *url.URL {
+	newURL := *url
+	query := newURL.Query()
+	for k, v := range params {
+		query.Add(k, v)
+	}
+	newURL.RawQuery = query.Encode()
+	return &newURL
+}
+
+// // Retrieves tokens from "gateway-auth"
+// func legacyAuth(authURL *url.URL, keycloakURL *url.URL) echo.MiddlewareFunc {
+// 	return func(next echo.HandlerFunc) echo.HandlerFunc {
+// 		return func(c echo.Context) error {
+// 			sessionRaw := c.Get(models.SessionCtxKey)
+// 			if sessionRaw == nil {
+// 				return gwerrors.ErrSessionNotFound
+// 			}
+// 			session, ok := sessionRaw.(models.Session)
+// 			if !ok {
+// 				return gwerrors.ErrSessionParse
+// 			}
+// 			// Send token request to "gateway-auth"
+// 			req, err := http.NewRequestWithContext(
+// 				c.Request().Context(),
+// 				"GET",
+// 				authURL.String(),
+// 				nil,
+// 			)
+// 			if err != nil {
+// 				return err
+// 			}
+// 			req.Header = c.Request().Header.Clone()
+// 			slog.Info(
+// 				"LEGACY AUTH MIDDLEWARE",
+// 				"message",
+// 				"getting tokens",
+// 				"authURL",
+// 				authURL.String(),
+// 				"Authorization",
+// 				req.Header.Get(echo.HeaderAuthorization),
+// 			)
+// 			res, err := http.DefaultClient.Do(req)
+// 			if err != nil {
+// 				return err
+// 			}
+// 			// The authentication request was rejected, return the authentication service response and status code
+// 			if res.StatusCode >= 300 || res.StatusCode < 200 {
+// 				defer res.Body.Close()
+// 				for name, values := range res.Header {
+// 					c.Response().Header()[name] = values
+// 				}
+// 				c.Response().WriteHeader(res.StatusCode)
+// 				_, err = io.Copy(c.Response().Writer, res.Body)
+// 				slog.Info(
+// 					"LEGACY AUTH MIDDLEWARE",
+// 					"message",
+// 					"auth failed",
+// 					"statusCode",
+// 					res.StatusCode,
+// 				)
+// 				return err
+// 			}
+
+// 			slog.Info(
+// 				"LEGACY AUTH MIDDLEWARE",
+// 				"message",
+// 				"response headers",
+// 				"statusCode",
+// 				res.StatusCode,
+// 				"Authorization",
+// 				res.Header.Get(echo.HeaderAuthorization),
+// 				"Renku-Auth-Id-Token",
+// 				res.Header.Get("Renku-Auth-Id-Token"),
+// 			)
+
+// 			// The authentication request was successful, save tokens to session
+// 			renkuAccessTokenRaw := res.Header.Get("Renku-Auth-Access-Token")
+// 			var renkuAccessToken models.OauthToken
+// 			claims := new(oidc.TokenClaims)
+// 			_, err = oidc.ParseToken(renkuAccessTokenRaw, claims)
+// 			if err != nil {
+// 				renkuAccessToken = models.OauthToken{}
+// 			} else {
+// 				renkuAccessToken = models.OauthToken{
+// 					ID:         claims.ClientID,
+// 					Value:      renkuAccessTokenRaw,
+// 					ExpiresAt:  claims.GetExpiration(),
+// 					TokenURL:   keycloakURL.String(),
+// 					ProviderID: "renku",
+// 					Type:       models.AccessTokenType,
+// 				}
+// 			}
+// 			renkuRefreshTokenRaw := res.Header.Get("Renku-Auth-Refresh-Token")
+// 			var renkuRefreshToken models.OauthToken
+// 			claims = new(oidc.TokenClaims)
+// 			_, err = oidc.ParseToken(renkuRefreshTokenRaw, claims)
+// 			if err != nil {
+// 				renkuRefreshToken = models.OauthToken{}
+// 			} else {
+// 				renkuRefreshToken = models.OauthToken{
+// 					ID:         claims.ClientID,
+// 					Value:      renkuRefreshTokenRaw,
+// 					ExpiresAt:  claims.GetExpiration(),
+// 					TokenURL:   keycloakURL.String(),
+// 					ProviderID: "renku",
+// 					Type:       models.RefreshTokenType,
+// 				}
+// 			}
+// 			renkuIdTokenRaw := res.Header.Get("Renku-Auth-Id-Token")
+// 			var renkuIdToken models.OauthToken
+// 			claims = new(oidc.TokenClaims)
+// 			_, err = oidc.ParseToken(renkuIdTokenRaw, claims)
+// 			if err != nil {
+// 				renkuIdToken = models.OauthToken{}
+// 			} else {
+// 				renkuIdToken = models.OauthToken{
+// 					ID:         claims.ClientID,
+// 					Value:      renkuIdTokenRaw,
+// 					ExpiresAt:  claims.GetExpiration(),
+// 					TokenURL:   keycloakURL.String(),
+// 					ProviderID: "renku",
+// 					Type:       models.IDTokenType,
+// 				}
+// 			}
+
+// 			slog.Info(
+// 				"LEGACY AUTH MIDDLEWARE",
+// 				"message",
+// 				"got renku tokens",
+// 				"sub",
+// 				claims.GetSubject(),
+// 			)
+
+// 			// accessToken := models.OauthToken{
+// 			// 	ID:         id,
+// 			// 	Type:       models.AccessTokenType,
+// 			// 	Value:      tokens.AccessToken,
+// 			// 	TokenURL:   client.OAuthConfig().Endpoint.TokenURL,
+// 			// 	ExpiresAt:  tokens.Expiry,
+// 			// 	ProviderID: c.getID(),
+// 			// }
+// 			// refreshToken := models.OauthToken{
+// 			// 	ID:         id,
+// 			// 	Type:       models.RefreshTokenType,
+// 			// 	Value:      tokens.RefreshToken,
+// 			// 	TokenURL:   client.OAuthConfig().Endpoint.TokenURL,
+// 			// 	ProviderID: c.getID(),
+// 			// }
+// 			// idToken := models.OauthToken{
+// 			// 	ID:         id,
+// 			// 	Type:       models.IDTokenType,
+// 			// 	Value:      tokens.IDToken,
+// 			// 	ExpiresAt:  tokens.IDTokenClaims.GetExpiration(),
+// 			// 	ProviderID: c.getID(),
+// 			// }
+
+// 			// headers["Authorization"] = f"Bearer {access_token}"
+// 			// headers["Renku-Auth-Access-Token"] = access_token
+// 			// headers["Renku-Auth-Refresh-Token"] = keycloak_oidc_client.refresh_token
+// 			// headers["Renku-Auth-Id-Token"] = keycloak_oidc_client.token["id_token"]
+// 			// headers["Gitlab-Access-Token"] = gitlab_oauth_client.access_token
+// 			session.SaveTokens(c.Request().Context(), renkuAccessToken, renkuRefreshToken, renkuIdToken, "")
+
+// 			return next(c)
+// 		}
+// 	}
+// }
