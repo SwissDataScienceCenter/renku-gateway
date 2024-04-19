@@ -35,17 +35,6 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	dataServiceProxy := proxyFromURL(r.config.RenkuServices.DataService)
 	searchProxy := proxyFromURL(r.config.RenkuServices.Search)
 
-	// // Initialize common authentication middleware
-	// notebooksAuthAccessToken := NewAuth(WithTokenType(models.AccessTokenType), WithProviderID("renku"), InjectInHeader("Renku-Auth-Access-Token")).Middleware()
-	// notebooksAuthIDToken := NewAuth(WithTokenType(models.IDTokenType), WithProviderID("renku"), InjectInHeader("Renku-Auth-Id-Token")).Middleware()
-	// notebooksAuthRefreshToken := NewAuth(WithTokenType(models.RefreshTokenType), WithProviderID("renku"), InjectInHeader("Renku-Auth-Refresh-Token")).Middleware()
-	// notebooksGitlabAccessToken := NewAuth(WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), WithTokenHandler(notebooksGitlabAccessTokenHandler)).Middleware()
-	// dataRenkuAccessToken := NewAuth(WithTokenType(models.AccessTokenType), WithProviderID("renku"), InjectInHeader(echo.HeaderAuthorization)).Middleware()
-	// dataGitlabAccessToken := NewAuth(WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), InjectInHeader("Gitlab-Access-Token")).Middleware()
-	// coreSvcIdToken := NewAuth(WithTokenType(models.IDTokenType), WithProviderID("renku"), InjectInHeader("Renku-User")).Middleware()
-	// gitlabAuth := NewAuth(WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), InjectBearerToken()).Middleware()
-	// gitlabCliAuth := NewAuth(WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), WithTokenHandler(gitlabCliTokenHandler)).Middleware()
-
 	// Initialize legacy authentication middleware
 	baseAuth := LegacyAuth(r.config.RenkuServices.GatewayAuth)
 	notebooksAuth := baseAuth("notebook", "Renku-Auth-Access-Token", "Renku-Auth-Id-Token", "Renku-Auth-Git-Credentials", "Renku-Auth-Anon-Id", "Renku-Auth-Refresh-Token")
@@ -89,14 +78,6 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 		e.Group("/api", append(commonMiddlewares, gitlabAuth, noCookies, regexRewrite("^/api(.*)", "/gitlab/api/v4$1"), gitlabProxyHost, gitlabProxy)...)
 	}
 
-	// // UI server webssockets
-	// e.Group("/ui-server/ws", append(commonMiddlewares, uiServerProxy)...)
-	// // Some routes need to go to the UI server before they go to the specific Renku service
-	// e.Group("/ui-server/api/last-searches/:length", append(commonMiddlewares, uiServerProxy)...)
-	// e.Group("/ui-server/api/last-projects/:length", append(commonMiddlewares, uiServerProxy)...)
-	// // e.Group("/ui-server/api/renku/cache.files_upload", uiServerUpstreamCoreLocation(r.config.RenkuServices.Core.ServicePaths[0].Host), uiServerProxy)
-	// e.Group("/ui-server/api/kg/entities", append(commonMiddlewares, uiServerUpstreamKgLocation(r.config.RenkuServices.KG.Host), uiServerProxy)...)
-
 	// If nothing is matched from any of the routes above then fall back to the UI
 	e.Group("/", append(commonMiddlewares, renkuBaseProxyHost, fallbackProxy)...)
 }
@@ -104,15 +85,3 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 func NewServer(revproxyConfig *config.RevproxyConfig) Revproxy {
 	return Revproxy{config: revproxyConfig}
 }
-
-// // AddQueryParams makes a copy of the provided URL, adds the query parameters
-// // and returns a url with the added parameters. The original URL is left unchanged.
-// func AddQueryParams(url *url.URL, params map[string]string) *url.URL {
-// 	newURL := *url
-// 	query := newURL.Query()
-// 	for k, v := range params {
-// 		query.Add(k, v)
-// 	}
-// 	newURL.RawQuery = query.Encode()
-// 	return &newURL
-// }

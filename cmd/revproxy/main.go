@@ -15,6 +15,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/db"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/oauth"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/revproxy"
 	"github.com/getsentry/sentry-go"
 	sentryecho "github.com/getsentry/sentry-go/echo"
@@ -88,7 +89,7 @@ func main() {
 	revproxy := revproxy.NewServer(&gwConfig.Revproxy)
 	revProxyMiddlewares := append(commonMiddlewares, sessionHandler.Middleware())
 	revproxy.RegisterHandlers(e, revProxyMiddlewares...)
-	
+
 	// Initialize login server
 	// loginServer, err := login.NewLoginServer(login.WithConfig(gwConfig.Login), login.WithTokenStore(&dbAdapter), login.WithSessionStore(&dbAdapter))
 	// if err != nil {
@@ -96,7 +97,11 @@ func main() {
 	// 	os.Exit(1)
 	// }
 	// loginServer.RegisterHandlers(e, commonMiddlewares...)
-	
+
+	// Initialize the OAuth server
+	oauthServer := oauth.NewServer(&gwConfig.OAuthClients)
+	oauthServer.RegisterHandlers(e)
+
 	// Rate limiting
 	if gwConfig.Server.RateLimits.Enabled {
 		e.Use(middleware.RateLimiter(
@@ -116,9 +121,9 @@ func main() {
 	// Sentry
 	if gwConfig.Monitoring.Sentry.Enabled {
 		err := sentry.Init(sentry.ClientOptions{
-			Dsn: string(gwConfig.Monitoring.Sentry.Dsn),
-			TracesSampleRate: gwConfig.Monitoring.Sentry.SampleRate, 
-			Environment: gwConfig.Monitoring.Sentry.Environment,	
+			Dsn:              string(gwConfig.Monitoring.Sentry.Dsn),
+			TracesSampleRate: gwConfig.Monitoring.Sentry.SampleRate,
+			Environment:      gwConfig.Monitoring.Sentry.Environment,
 		})
 		if err != nil {
 			slog.Error("sentry initialization failed", "error", err)
@@ -163,4 +168,3 @@ func main() {
 		os.Exit(1)
 	}
 }
-

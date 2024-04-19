@@ -26,11 +26,12 @@ func (r RedactedString) MarshalBinary() ([]byte, error) {
 }
 
 type Config struct {
-	Server     ServerConfig
-	Revproxy   RevproxyConfig
+	Server   ServerConfig
+	Revproxy RevproxyConfig
 	// Login      LoginConfig
-	Redis      RedisConfig
-	Monitoring MonitoringConfig
+	OAuthClients OAuthClientsConfig
+	Redis        RedisConfig
+	Monitoring   MonitoringConfig
 }
 
 type DBAdapter interface {
@@ -62,4 +63,3 @@ func (c *Config) Validate() error {
 	}
 	return nil
 }
-
