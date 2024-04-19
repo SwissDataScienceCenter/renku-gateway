@@ -4,6 +4,8 @@
 package oauth
 
 import (
+	"net/http"
+
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/labstack/echo/v4"
 )
@@ -12,13 +14,19 @@ type OAuthServer struct {
 	config *config.OAuthClientsConfig
 }
 
-func (r *OAuthServer) RegisterHandlers(server *echo.Echo, commonMiddlewares ...echo.MiddlewareFunc) {
+func (s *OAuthServer) RegisterHandlers(server *echo.Echo, commonMiddlewares ...echo.MiddlewareFunc) {
 	e := server.Group("/api/oauth")
 	e.Use(commonMiddlewares...)
 
 	e.GET("/hello", func(c echo.Context) error {
-		return c.String(200, "Hello")
+		return c.String(http.StatusOK, "Hello")
 	})
+
+	wrapper := ServerInterfaceWrapper{Handler: s}
+	e.GET(
+		"/providers",
+		wrapper.GetProviders,
+	)
 }
 
 func NewServer(config *config.OAuthClientsConfig) OAuthServer {

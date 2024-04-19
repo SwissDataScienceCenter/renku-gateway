@@ -1,0 +1,45 @@
+openapi: 3.0.2
+info:
+  title: Renku gateway OAuth2 clients management
+  version: 1.0.0
+servers:
+  - url: /api/oauth
+  - url: /ui-server/api/oauth
+paths:
+  /providers:
+    get:
+      description: The list of available third-party resource servers.
+      responses:
+        '200':
+          description: The list of providers.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderList"
+components:
+  schemas:
+    ProviderList:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          id:
+            type: string
+            example: "example.org"
+          provider:
+            $ref: "#/components/schemas/Provider"
+    Provider:
+      type: object
+      additionalProperties: false
+      properties:
+        clientId:
+          $ref: "#/components/schemas/ClientId"
+        displayName:
+          $ref: "#/components/schemas/DisplayName"
+    ClientId:
+      type: string
+      example: "some-client-id"
+    DisplayName:
+      type: string
+      example: "my oauth2 application"
