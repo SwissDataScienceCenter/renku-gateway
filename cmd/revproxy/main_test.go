@@ -269,6 +269,14 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Expected:    TestResults{Path: "/knowledge-graph", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
+			Path:     "/api/data/user/secret_key",
+			Expected: TestResults{Path: "/api/data/user/secret_key", Non200ResponseStatusCode: 404},
+		},
+		{
+			Path:     "/api/data/user",
+			Expected: TestResults{Path: "/api/data/user", VisitedServerIDs: []string{"auth", "upstream"}},
+		},
+		{
 			Path:     "/api/renku/test",
 			Expected: TestResults{Path: "/renku/test", VisitedServerIDs: []string{"auth", "upstream"}},
 		},

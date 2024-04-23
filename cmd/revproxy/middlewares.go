@@ -81,6 +81,15 @@ func authenticate(authURL *url.URL, injectedHeaders ...string) echo.MiddlewareFu
 	}
 }
 
+func deny() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			c.Response().WriteHeader(404)
+			return fmt.Errorf("access denied")
+		}
+	}
+}
+
 // kgProjectsGraphStatusPathRewrite middleware
 var kgProjectsGraphRewrites echo.MiddlewareFunc = middleware.RewriteWithConfig(middleware.RewriteConfig{
 	RegexRules: map[*regexp.Regexp]string{
@@ -104,7 +113,7 @@ func stripPrefix(prefix string) echo.MiddlewareFunc {
 	return middleware.RewriteWithConfig(middleware.RewriteConfig{
 		RegexRules: map[*regexp.Regexp]string{
 			regexp.MustCompile(fmt.Sprintf("^%s/(.+)", prefix)): "/$1",
-			regexp.MustCompile(fmt.Sprintf("^%s$", prefix)): "/",
+			regexp.MustCompile(fmt.Sprintf("^%s$", prefix)):     "/",
 		},
 	})
 }
