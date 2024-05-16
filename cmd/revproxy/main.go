@@ -62,6 +62,9 @@ func setupServer(ctx context.Context, config revProxyConfig) *echo.Echo {
 		),
 		)
 	}
+	// Deny rules
+	sk := e.Group("/api/data/user/secret_key", logger)
+	sk.GET("/", echo.NotFoundHandler)
 
 	// Routing for Renku services
 	e.Group("/api/auth", logger, authSvcProxy)
