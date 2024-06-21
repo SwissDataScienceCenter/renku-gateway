@@ -44,7 +44,7 @@ from .utils import (
 
 blueprint = Blueprint("web_auth", __name__, url_prefix="/auth")
 
-SCOPE = ["profile", "email", "openid", "offline_access"]
+SCOPE = ["profile", "email", "openid", "offline_access", "microprofile-jwt"]
 
 
 def get_valid_token(headers):
