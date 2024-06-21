@@ -226,11 +226,11 @@ func TestInternalSvcRoutes(t *testing.T) {
 		},
 		{
 			Path:     "/api/search/test/acceptedAuth",
-			Expected: TestResults{Path: "/search/test/acceptedAuth", VisitedServerIDs: []string{"auth", "upstream"}},
+			Expected: TestResults{Path: "/api/search/test/acceptedAuth", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
 			Path:     "/api/search",
-			Expected: TestResults{Path: "/search", VisitedServerIDs: []string{"auth", "upstream"}},
+			Expected: TestResults{Path: "/api/search", VisitedServerIDs: []string{"auth", "upstream"}},
 		},
 		{
 			Path:     "/api/projects/123456/graph/status/something/else",
