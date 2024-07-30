@@ -114,9 +114,9 @@ func main() {
 	// Sentry
 	if gwConfig.Monitoring.Sentry.Enabled {
 		err := sentry.Init(sentry.ClientOptions{
-			Dsn: string(gwConfig.Monitoring.Sentry.Dsn),
-			TracesSampleRate: gwConfig.Monitoring.Sentry.SampleRate, 
-			Environment: gwConfig.Monitoring.Sentry.Environment,	
+			Dsn:              string(gwConfig.Monitoring.Sentry.Dsn),
+			TracesSampleRate: gwConfig.Monitoring.Sentry.SampleRate,
+			Environment:      gwConfig.Monitoring.Sentry.Environment,
 		})
 		if err != nil {
 			slog.Error("sentry initialization failed", "error", err)
@@ -161,4 +161,3 @@ func main() {
 		os.Exit(1)
 	}
 }
-
