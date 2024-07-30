@@ -3,7 +3,7 @@ package models
 import (
 	"encoding/json"
 
-	"github.com/wk8/go-ordered-map/v2"
+	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
 type SerializableOrderedMap struct {
@@ -21,17 +21,19 @@ func (s *SerializableOrderedMap) UnmarshalBinary(data []byte) error {
 	if s.OrderedMap == nil {
 		s.OrderedMap = orderedmap.New[string, string]()
 	}
-	return json.Unmarshal(data, s)
+	return json.Unmarshal(data, &s.OrderedMap)
 }
 
 func (s SerializableOrderedMap) MarshalText() (data []byte, err error) {
-	if s.OrderedMap == nil {
-		s.OrderedMap = orderedmap.New[string, string]()
-	}
-	return json.Marshal(s)
+	// if s.OrderedMap == nil {
+	// 	s.OrderedMap = orderedmap.New[string, string]()
+	// }
+	// return json.Marshal(s)
+	return s.MarshalBinary()
 }
 
 func (s *SerializableOrderedMap) UnmarshalText(data []byte) error {
+	// return s.UnmarshalBinary(data)
 	return s.UnmarshalBinary(data)
 }
 
