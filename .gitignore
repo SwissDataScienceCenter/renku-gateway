@@ -115,6 +115,4 @@ helm-chart/renku-gateway/charts/**
 
 .DS_Store
 
-gateway
 covprofile
-
