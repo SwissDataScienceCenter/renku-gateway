@@ -16,7 +16,7 @@ import (
 // noCookies middleware removes all cookies from a request
 func noCookies(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		c.Request().Header.Set(http.CanonicalHeaderKey("cookies"), "")
+		c.Request().Header.Set("cookie", "")
 		return next(c)
 	}
 }
