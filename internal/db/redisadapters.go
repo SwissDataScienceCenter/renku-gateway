@@ -3,6 +3,7 @@ package db
 
 import (
 	"context"
+	"encoding"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -56,7 +57,17 @@ func (RedisAdapter) serializeStruct(strct any) []any {
 		}
 		fieldName := t.Field(i).Name
 		fieldValue := v.Field(i).Interface()
-		output = append(output, fieldName, fieldValue)
+		marshaller, ok := fieldValue.(encoding.TextMarshaler)
+		if !ok {
+			output = append(output, fieldName, fieldValue)
+			continue
+		}
+		rawBytes, err := marshaller.MarshalText()
+		if err != nil {
+			output = append(output, fieldName, fieldValue)
+			continue
+		}
+		output = append(output, fieldName, rawBytes)
 	}
 	return output
 }
