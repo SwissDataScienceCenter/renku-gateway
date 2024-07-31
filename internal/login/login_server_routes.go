@@ -12,10 +12,16 @@ import (
 
 // GetLogin is a handler for the initiation of a authorization code flow login for Renku
 func (l *LoginServer) GetLogin(c echo.Context, params GetLoginParams) error {
-	session, ok := c.Get(models.SessionCtxKey).(models.Session)
-	if !ok {
-		return gwerrors.ErrSessionParse
+	// session, ok := c.Get(models.SessionCtxKey).(models.Session)
+	// if !ok {
+	// 	return gwerrors.ErrSessionParse
+	// }
+
+	session, err := l.sessionHandler.Load(c)
+	if err != nil {
+		return err
 	}
+
 	var appRedirectURL string
 	var providerIDs models.SerializableStringSlice
 	// Check redirect parameters
@@ -32,7 +38,7 @@ func (l *LoginServer) GetLogin(c echo.Context, params GetLoginParams) error {
 	}
 	// Set the providers and redirect
 	// TODO: check if the session already has logged in with the provider
-	err := session.SetRedirectURL(c.Request().Context(), appRedirectURL)
+	err = session.SetRedirectURL(c.Request().Context(), appRedirectURL)
 	if err != nil {
 		return err
 	}
@@ -115,14 +121,14 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 	return l.oAuthNext(c, session)
 }
 
-// GetLogout logs the user out of the current session, 
+// GetLogout logs the user out of the current session,
 func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
 	// figure out redirectURL
 	var redirectURL = l.config.RenkuBaseURL.String()
 	if params.RedirectUrl != nil {
 		redirectURL = *params.RedirectUrl
 	}
-	// remove the session from store, cookie, context, request header 
+	// remove the session from store, cookie, context, request header
 	err := l.sessionHandler.Remove(c)
 	if err != nil {
 		return err
@@ -147,4 +153,12 @@ func (*LoginServer) PostLogout(c echo.Context) error {
 	// TODO: validate logout token (see https://openid.net/specs/openid-connect-backchannel-1_0.html#Validation)
 	// TODO: remove session in redis
 	return c.NoContent(http.StatusOK)
+}
+
+func (l *LoginServer) GetAuthTest(c echo.Context) error {
+	session, err := l.sessionHandler.Load(c)
+	if err != nil {
+		return err
+	}
+	return c.JSON(200, session)
 }

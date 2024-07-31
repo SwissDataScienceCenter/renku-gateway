@@ -29,11 +29,12 @@ type SessionStore interface {
 
 // Note the UI and CLI depend on some of these values, changing them will cause breaking changes
 const SessionCookieName = "_renku_session"
-const SessionCtxKey = "_renku_session"
+const SessionCtxKey = "renku_session"
 const SessionHeaderKey = "Renku-Session"
 const CliSessionCookieName = "_renku_cli_session"
-const CliSessionCtxKey = "_renku_cli_session"
+const CliSessionCtxKey = "renku_cli_session"
 const CliSessionHeaderKey = "Renku-Cli-Session"
+
 // BasicAuthUsername is used as the username in the Basic Auth authorization header when the CLI
 // sends session IDs for Git requests.
 const BasicAuthUsername = "Renku-Session"
@@ -301,4 +302,3 @@ func NewSession(options ...SessionOption) (Session, error) {
 	}
 	return session, nil
 }
-

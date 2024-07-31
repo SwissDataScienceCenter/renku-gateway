@@ -13,12 +13,12 @@ import (
 )
 
 type LoginServer struct {
-	sessionStore   models.SessionStore
-	providerStore  oidc.ClientStore
-	tokenStore     models.TokenStore
-	sessionHandler models.SessionHandler
+	sessionStore      models.SessionStore
+	providerStore     oidc.ClientStore
+	tokenStore        models.TokenStore
+	sessionHandler    models.SessionHandler
 	cliSessionHandler models.SessionHandler
-	config         *config.LoginConfig
+	config            *config.LoginConfig
 }
 
 func (l *LoginServer) RegisterHandlers(server *echo.Echo, commonMiddlewares ...echo.MiddlewareFunc) {
@@ -53,6 +53,7 @@ func (l *LoginServer) RegisterHandlers(server *echo.Echo, commonMiddlewares ...e
 		NoCaching,
 		l.sessionHandler.Middleware(),
 	)
+	e.GET("/test", l.GetAuthTest, NoCaching, l.sessionHandler.Middleware())
 	e.GET(
 		"/device/login",
 		wrapper.GetDeviceLogin,
@@ -71,7 +72,7 @@ func (l *LoginServer) RegisterHandlers(server *echo.Echo, commonMiddlewares ...e
 	)
 	tokenProxyMiddlewares, err := l.DeviceTokenProxy()
 	if err != nil {
-		slog.Error("LOGIN SERVER INITIALIZATION", "error", err)	
+		slog.Error("LOGIN SERVER INITIALIZATION", "error", err)
 		os.Exit(1)
 	}
 	// /device/token is just proxied - it does not need a handler on this server
@@ -110,14 +111,14 @@ func WithDBConfig(dbConfig config.RedisConfig) LoginServerOption {
 
 func WithTokenStore(store models.TokenStore) LoginServerOption {
 	return func(l *LoginServer) error {
-		l.tokenStore = store 
+		l.tokenStore = store
 		return nil
 	}
 }
 
 func WithSessionStore(store models.SessionStore) LoginServerOption {
 	return func(l *LoginServer) error {
-		l.sessionStore = store 
+		l.sessionStore = store
 		return nil
 	}
 }

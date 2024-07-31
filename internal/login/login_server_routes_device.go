@@ -69,19 +69,19 @@ func (l *LoginServer) GetDeviceLogin(c echo.Context, params GetDeviceLoginParams
 		slog.Error("DEVICE LOGIN", "error", err, "sessionID", *params.SessionId)
 		return err
 	}
-	// NOTE: You have to use a cookie here because setting a session ID in the headers would not 
+	// NOTE: You have to use a cookie here because setting a session ID in the headers would not
 	// "survive" all the redirects that happen during the oauth login flows
 	cookie := l.cliSessionHandler.Cookie(&session)
 	c.SetCookie(cookie)
 	return l.oAuthNext(c, session)
 }
 
-// PostDeviceToken is just here to satisfy the requirements of the code generation from the openapi 
+// PostDeviceToken is just here to satisfy the requirements of the code generation from the openapi
 // spec. If this is removed then the endpoint has to be removed from the openapi spec and it is better
-// to have information about this in the spec. This endpoint is never used because it is always 
+// to have information about this in the spec. This endpoint is never used because it is always
 // proxied to Keycloak and handled there.
 func (l *LoginServer) PostDeviceToken(c echo.Context) error {
-	return fmt.Errorf("This should never be reached beacuse it is proxied to Keycloak")
+	return fmt.Errorf("this should never be reached beacuse it is proxied to Keycloak")
 }
 
 // Destroy the session and log the user user out of all the places where they logged in
@@ -164,7 +164,7 @@ func (l *LoginServer) DeviceTokenProxy() ([]echo.MiddlewareFunc, error) {
 	}
 	issuerURL, err := url.Parse(providerConfig.Issuer)
 	if err != nil {
-		return nil, fmt.Errorf("cannot parse the issuer URL of the OIDC config") 
+		return nil, fmt.Errorf("cannot parse the issuer URL of the OIDC config")
 	}
 	// NOTE: the proxying will fail if the url that is being proxied to does not have a blank path,
 	// this is because there is another middleware that handles the path rewrititng before the proxy kicks in
@@ -184,4 +184,3 @@ func (l *LoginServer) DeviceTokenProxy() ([]echo.MiddlewareFunc, error) {
 	})
 	return []echo.MiddlewareFunc{pathRewrite, setHost(issuerURL.Host), proxy}, nil
 }
-

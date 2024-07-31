@@ -67,7 +67,7 @@ func (RedisAdapter) serializeStruct(strct any) []any {
 			output = append(output, fieldName, fieldValue)
 			continue
 		}
-		output = append(output, fieldName, rawBytes)
+		output = append(output, fieldName, string(rawBytes))
 	}
 	return output
 }
@@ -340,9 +340,9 @@ func (r RedisAdapter) getOauthTokens(
 			lock.Lock()
 			defer lock.Unlock()
 			tokens[token.ProviderID] = token
-			if err != nil {
-				tokenErr = err
-			}
+			// if err != nil {
+			// 	tokenErr = err
+			// }
 		}(tokenID)
 	}
 	wg.Wait()

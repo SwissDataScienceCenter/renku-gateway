@@ -41,7 +41,7 @@ func getTestConfig(loginServerPort int, authServers ...testAuthServer) (config.L
 		return config.LoginConfig{}, err
 	}
 	testConfig := config.LoginConfig{
-		RenkuBaseURL: renkuBaseURL, 
+		RenkuBaseURL: renkuBaseURL,
 		TokenEncryption: config.TokenEncryptionConfig{
 			Enabled:   true,
 			SecretKey: "1b195c6329ba7df1c1adf6975c71910d",
@@ -72,20 +72,20 @@ func TestGetLogin(t *testing.T) {
 	loginServerPort := loginServerListener.Addr().(*net.TCPAddr).Port
 	defer loginServerListener.Close()
 	kcAuthServer := testAuthServer{
-		Authorized:   true,
-		RefreshToken: "refresh-token-value",
-		ClientID:     "renku",
-		CallbackURI:  fmt.Sprintf("http://127.0.0.1:%d/callback", loginServerPort),
+		Authorized:      true,
+		RefreshToken:    "refresh-token-value",
+		ClientID:        "renku",
+		CallbackURI:     fmt.Sprintf("http://127.0.0.1:%d/callback", loginServerPort),
 		DefaultProvider: true,
-		IssuedTokens: []string{},
+		IssuedTokens:    []string{},
 	}
 	kcAuthServerCli := testAuthServer{
-		Authorized:   true,
-		RefreshToken: "refresh-token-value",
-		ClientID:     "renkucli",
-		CallbackURI:  fmt.Sprintf("http://127.0.0.1:%d/callback", loginServerPort),
+		Authorized:      true,
+		RefreshToken:    "refresh-token-value",
+		ClientID:        "renkucli",
+		CallbackURI:     fmt.Sprintf("http://127.0.0.1:%d/callback", loginServerPort),
 		DefaultProvider: false,
-		IssuedTokens: []string{},
+		IssuedTokens:    []string{},
 	}
 	kcAuthServer.Start()
 	kcAuthServerCli.Start()
@@ -156,22 +156,22 @@ func TestGetLogin2Steps(t *testing.T) {
 	defer loginServerListener.Close()
 
 	kcAuthServer1 := testAuthServer{
-		Authorized:   true,
-		RefreshToken: "refresh-token-value",
-		ClientID:     "renku1",
-		CallbackURI:  fmt.Sprintf("http://127.0.0.1:%d/callback", loginServerPort),
+		Authorized:      true,
+		RefreshToken:    "refresh-token-value",
+		ClientID:        "renku1",
+		CallbackURI:     fmt.Sprintf("http://127.0.0.1:%d/callback", loginServerPort),
 		DefaultProvider: true,
-		IssuedTokens: []string{},
+		IssuedTokens:    []string{},
 	}
 	kcAuthServer1.Start()
 	defer kcAuthServer1.Server().Close()
 	kcAuthServer2 := testAuthServer{
-		Authorized:   true,
-		RefreshToken: "refresh-token-value",
-		ClientID:     "renkucli",
-		CallbackURI:  fmt.Sprintf("http://127.0.0.1:%d/callback", loginServerPort),
+		Authorized:      true,
+		RefreshToken:    "refresh-token-value",
+		ClientID:        "renkucli",
+		CallbackURI:     fmt.Sprintf("http://127.0.0.1:%d/callback", loginServerPort),
 		DefaultProvider: true,
-		IssuedTokens: []string{},
+		IssuedTokens:    []string{},
 	}
 	kcAuthServer2.Start()
 	defer kcAuthServer2.Server().Close()
@@ -179,6 +179,7 @@ func TestGetLogin2Steps(t *testing.T) {
 	require.NoError(t, err)
 
 	api, err := NewLoginServer(WithConfig(testConfig))
+	require.NoError(t, err)
 	apiServer, err := startTestServer(api, loginServerListener)
 	require.NoError(t, err)
 	defer apiServer.Close()
@@ -241,22 +242,22 @@ func TestLoginCLI(t *testing.T) {
 	defer loginServerListener.Close()
 
 	gitlabAuth := testAuthServer{
-		Authorized:   true,
-		RefreshToken: "refresh-token-value",
-		ClientID:     "gitlab",
-		CallbackURI:  fmt.Sprintf("http://127.0.0.1:%d/callback", loginServerPort),
+		Authorized:      true,
+		RefreshToken:    "refresh-token-value",
+		ClientID:        "gitlab",
+		CallbackURI:     fmt.Sprintf("http://127.0.0.1:%d/callback", loginServerPort),
 		DefaultProvider: true,
-		IssuedTokens: []string{},
+		IssuedTokens:    []string{},
 	}
 	gitlabAuth.Start()
 	defer gitlabAuth.Server().Close()
 	kcAuthServer := testAuthServer{
-		Authorized:   true,
-		RefreshToken: "refresh-token-value",
-		ClientID:     "renkucli",
-		CallbackURI:  fmt.Sprintf("http://127.0.0.1:%d/callback", loginServerPort),
+		Authorized:      true,
+		RefreshToken:    "refresh-token-value",
+		ClientID:        "renkucli",
+		CallbackURI:     fmt.Sprintf("http://127.0.0.1:%d/callback", loginServerPort),
 		DefaultProvider: false,
-		IssuedTokens: []string{},
+		IssuedTokens:    []string{},
 	}
 	kcAuthServer.Start()
 	defer kcAuthServer.Server().Close()
@@ -264,6 +265,7 @@ func TestLoginCLI(t *testing.T) {
 	require.NoError(t, err)
 
 	api, err := NewLoginServer(WithConfig(testConfig))
+	require.NoError(t, err)
 	apiServer, err := startTestServer(api, loginServerListener)
 	require.NoError(t, err)
 	defer apiServer.Close()
@@ -313,7 +315,7 @@ func TestLoginCLI(t *testing.T) {
 	verificationURL, err := url.Parse(credentials.VerificationURI)
 	require.NoError(t, err)
 	assert.Equal(t, sessionCookie.Value, verificationURL.Query().Get(cliLoginSessionIDQueryParam))
-	
+
 	// The user visits the login URL that the CLI displayed
 	req, err = http.NewRequest(http.MethodGet, verificationURL.String(), nil)
 	require.NoError(t, err)
@@ -348,6 +350,5 @@ func TestLoginCLI(t *testing.T) {
 	assert.Equal(t, "redacted", tokenResponse.RefreshToken)
 	assert.Equal(t, "redacted", tokenResponse.IDToken)
 
-	// After the CLI has checked and received the credentials it 
+	// After the CLI has checked and received the credentials it
 }
-
