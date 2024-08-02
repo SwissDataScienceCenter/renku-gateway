@@ -72,6 +72,7 @@ func (sh *SessionHandler) Create(c echo.Context) (Session, error) {
 	}
 	c.SetCookie(&http.Cookie{
 		Name:     SessionCookieName,
+		Value:    session.ID,
 		Secure:   true,
 		HttpOnly: true,
 		Path:     "/",
