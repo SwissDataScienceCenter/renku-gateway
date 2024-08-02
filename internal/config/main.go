@@ -28,6 +28,7 @@ func (r RedactedString) MarshalBinary() ([]byte, error) {
 type Config struct {
 	RunningEnvironment
 	Server     ServerConfig
+	Session    SessionConfig
 	Revproxy   RevproxyConfig
 	Login      LoginConfig
 	Redis      RedisConfig
