@@ -59,7 +59,11 @@ var CLISessionCookieOpt = models.WithCookieTemplate(http.Cookie{Name: "_renku_cl
 var UISessionCookieOpt = models.WithCookieTemplate(http.Cookie{Name: "_renku_ui_session", Secure: true, HttpOnly: true, Path: "/"})
 
 func (c *Config) Validate() error {
-	err := c.Login.Validate(c.RunningEnvironment)
+	err := c.Session.Validate()
+	if err != nil {
+		return err
+	}
+	err = c.Login.Validate(c.RunningEnvironment)
 	if err != nil {
 		return err
 	}

@@ -15,19 +15,6 @@ type Session struct {
 	ExpiresAt      time.Time
 	IdleTTLSeconds models.SerializableInt
 	MaxTTLSeconds  models.SerializableInt
-
-	// Type SessionType
-	// // TokenIDs represent the Redis keys where the acccess and refresh tokens will be stored
-	// TokenIDs SerializableStringSlice
-	// // Mapping of state values to OIDC provider IDs
-	// ProviderIDs SerializableOrderedMap
-	// // The url to redirect to when the login flow is complete (i.e. Renku homepage)
-	// RedirectURL string
-	// // UTC timestamp for when the session was created
-	// CreatedAt    time.Time
-	// TTLSeconds   SerializableInt
-	// tokenStore   TokenStore
-	// sessionStore SessionStore
 }
 
 func (s *Session) Expired() bool {

@@ -43,7 +43,11 @@ func main() {
 		os.Exit(1)
 	}
 	// Create session handler
-	sessionHandler := sessions.NewSessionHandler()
+	sessionHandler, err := sessions.NewSessionHandler()
+	if err != nil {
+		slog.Error("failed to initialize sessions", "error", err)
+		os.Exit(1)
+	}
 	// Setup
 	e := echo.New()
 	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())

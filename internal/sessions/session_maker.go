@@ -6,14 +6,18 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 )
 
-type SessionMaker struct {
+type SessionMaker interface {
+	NewSession() (Session, error)
+}
+
+type SessionMakerImpl struct {
 	idleSessionTTLSeconds int
 	maxSessionTTLSeconds  int
 }
 
 var randomIDGenerator models.IDGenerator = models.RandomGenerator{Length: 24}
 
-func (sm *SessionMaker) NewSession() (Session, error) {
+func (sm *SessionMakerImpl) NewSession() (Session, error) {
 	id, err := randomIDGenerator.ID()
 	if err != nil {
 		return Session{}, err
@@ -28,26 +32,26 @@ func (sm *SessionMaker) NewSession() (Session, error) {
 	return session, nil
 }
 
-type SessionMakerOption func(*SessionMaker) error
+type SessionMakerOption func(*SessionMakerImpl) error
 
 func WithIdleSessionTTLSeconds(s int) SessionMakerOption {
-	return func(sm *SessionMaker) error {
+	return func(sm *SessionMakerImpl) error {
 		sm.idleSessionTTLSeconds = s
 		return nil
 	}
 }
 
 func WithMaxSessionTTLSeconds(s int) SessionMakerOption {
-	return func(sm *SessionMaker) error {
+	return func(sm *SessionMakerImpl) error {
 		sm.maxSessionTTLSeconds = s
 		return nil
 	}
 }
 
 func NewSessionMaker(options ...SessionMakerOption) SessionMaker {
-	sm := SessionMaker{idleSessionTTLSeconds: 0, maxSessionTTLSeconds: 0}
+	sm := SessionMakerImpl{idleSessionTTLSeconds: 0, maxSessionTTLSeconds: 0}
 	for _, opt := range options {
 		opt(&sm)
 	}
-	return sm
+	return &sm
 }
