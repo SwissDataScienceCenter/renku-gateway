@@ -81,4 +81,3 @@ func TestReadConfigWithEnvVarsNoSecretFile(t *testing.T) {
 	assert.Equal(t, RedactedString("token-encryption-key-12345678910"), config.Login.TokenEncryption.SecretKey)
 	assert.Equal(t, true, config.Login.Providers[providerID].Default)
 }
-

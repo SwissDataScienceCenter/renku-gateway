@@ -161,7 +161,7 @@ func (s *StickySessionBalancer) Next(c echo.Context) *middleware.ProxyTarget {
 		slog.Info(
 			fmt.Sprintf(
 				"Receiving sticky session request (%s/%s), no cookie found, assigned upstream with uid %s",
-				s.Namespace, 
+				s.Namespace,
 				s.Service,
 				upstream.UID,
 			),
@@ -192,7 +192,7 @@ func (s *StickySessionBalancer) Next(c echo.Context) *middleware.ProxyTarget {
 		c.SetCookie(cookie)
 		slog.Info(
 			fmt.Sprintf(
-				"Receiving sticky session request (%s/%s), cookie found but not upstream, assigned upstream with uid %s",s.Namespace,
+				"Receiving sticky session request (%s/%s), cookie found but not upstream, assigned upstream with uid %s", s.Namespace,
 				s.Service,
 				upstream.UID,
 			),

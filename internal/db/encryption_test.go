@@ -24,4 +24,3 @@ func TestEncryptDecrypt(t *testing.T) {
 	assert.NotEqual(t, valDec, valEnc)
 	assert.Equal(t, val, valDec)
 }
-

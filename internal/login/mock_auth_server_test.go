@@ -96,14 +96,14 @@ AB/gJ7aFKm6tfD9SnZAc1Nb+Cll5Ouf2Ffvim2jNR3wHStsr4Kip5RjThejHs4oh
 // testAuthServer is a simple oauth2 server which mocks/implements the same functionality
 // provided by Keycloak and needed for testing.
 type testAuthServer struct {
-	Authorized   bool
-	RefreshToken string
-	ClientID     string
-	JWTSecretKey string
-	CallbackURI  string
+	Authorized      bool
+	RefreshToken    string
+	ClientID        string
+	JWTSecretKey    string
+	CallbackURI     string
 	DefaultProvider bool
-	IssuedTokens []string
-	server       *httptest.Server
+	IssuedTokens    []string
+	server          *httptest.Server
 }
 
 func (*testAuthServer) jwksEndpoint(c echo.Context) error {
@@ -112,26 +112,26 @@ func (*testAuthServer) jwksEndpoint(c echo.Context) error {
 
 func (t *testAuthServer) wktEndpoint(c echo.Context) error {
 	type wkt struct {
-		Issuer                string   `json:"issuer,omitempty"`
-		AuthorizationEndpoint string   `json:"authorization_endpoint,omitempty"`
-		TokenEndpoint         string   `json:"token_endpoint,omitempty"`
-		JWKSUri               string   `json:"jwks_uri,omitempty"`
-		ResponseTypesSup      []string `json:"response_types_supported,omitempty"`
-		SubjectTypes          []string `json:"subject_types,omitempty"`
-		IdTokenSignAlgs       []string `json:"id_token_signing_alg_values_supported,omitempty"`
-		DeviceAuthorizationEndpoint string `json:"device_authorization_endpoint,omitempty"`
-		GrantTypesSupported []string `json:"grant_types_supported,omitempty"`
+		Issuer                      string   `json:"issuer,omitempty"`
+		AuthorizationEndpoint       string   `json:"authorization_endpoint,omitempty"`
+		TokenEndpoint               string   `json:"token_endpoint,omitempty"`
+		JWKSUri                     string   `json:"jwks_uri,omitempty"`
+		ResponseTypesSup            []string `json:"response_types_supported,omitempty"`
+		SubjectTypes                []string `json:"subject_types,omitempty"`
+		IdTokenSignAlgs             []string `json:"id_token_signing_alg_values_supported,omitempty"`
+		DeviceAuthorizationEndpoint string   `json:"device_authorization_endpoint,omitempty"`
+		GrantTypesSupported         []string `json:"grant_types_supported,omitempty"`
 	}
 	res := wkt{
-		Issuer:                t.Server().URL,
-		AuthorizationEndpoint: t.Server().URL + "/authorize",
-		TokenEndpoint:         t.Server().URL + "/token",
-		JWKSUri:               t.Server().URL + "/jwks",
-		ResponseTypesSup:      []string{"code", "id_token", "token id_token"},
-		SubjectTypes:          []string{"public"},
-		IdTokenSignAlgs:       []string{"RS256"},
+		Issuer:                      t.Server().URL,
+		AuthorizationEndpoint:       t.Server().URL + "/authorize",
+		TokenEndpoint:               t.Server().URL + "/token",
+		JWKSUri:                     t.Server().URL + "/jwks",
+		ResponseTypesSup:            []string{"code", "id_token", "token id_token"},
+		SubjectTypes:                []string{"public"},
+		IdTokenSignAlgs:             []string{"RS256"},
 		DeviceAuthorizationEndpoint: t.Server().URL + "/authorize/device",
-		GrantTypesSupported: []string{"authorization_code", "urn:ietf:params:oauth:grant-type:device_code"},
+		GrantTypesSupported:         []string{"authorization_code", "urn:ietf:params:oauth:grant-type:device_code"},
 	}
 	return c.JSON(http.StatusOK, res)
 }
@@ -185,12 +185,12 @@ func (t *testAuthServer) tokenEndpoint(c echo.Context) error {
 
 func (t *testAuthServer) authDevicePost(c echo.Context) error {
 	return c.JSON(http.StatusOK, oidc.DeviceAuthorizationResponse{
-		DeviceCode: "device_code",
+		DeviceCode:      "device_code",
 		VerificationURI: t.Server().URL + "/authorize/device",
-		UserCode: "user_code",
-		ExpiresIn: 1800,
-		Interval: 5,
-	})	
+		UserCode:        "user_code",
+		ExpiresIn:       1800,
+		Interval:        5,
+	})
 }
 
 func (t *testAuthServer) authDeviceGet(c echo.Context) error {

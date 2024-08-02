@@ -188,7 +188,7 @@ var notebooksGitlabAccessTokenHandler TokenHandler = func(c echo.Context, access
 	if err != nil {
 		return err
 	}
-	// The notebook service expects a specific format for the headers where we have to provide the 
+	// The notebook service expects a specific format for the headers where we have to provide the
 	// base URL for gitlab. That is why we strip out all the things from the token URL.
 	issuerURL := tokenURL
 	issuerURL.Fragment = ""
@@ -246,12 +246,11 @@ var coreSvcRenkuAccessTokenHandler TokenHandler = func(c echo.Context, accessTok
 	return nil
 }
 
-// Sets up Basic Auth for Gitlab 
+// Sets up Basic Auth for Gitlab
 var gitlabCliTokenHandler TokenHandler = func(c echo.Context, accessToken models.OauthToken) error {
 	if accessToken.Value == "" {
-		return nil 
+		return nil
 	}
 	c.Request().SetBasicAuth("oauth2", accessToken.Value)
 	return nil
 }
-

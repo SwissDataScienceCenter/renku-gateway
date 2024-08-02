@@ -12,7 +12,7 @@ type TokenEncryptionConfig struct {
 }
 
 type LoginConfig struct {
-	RenkuBaseURL      *url.URL 
+	RenkuBaseURL      *url.URL
 	EndpointsBasePath string
 	TokenEncryption   TokenEncryptionConfig
 	Providers         map[string]OIDCClient

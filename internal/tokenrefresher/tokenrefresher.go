@@ -176,7 +176,7 @@ func refreshExpiringTokens(
 	slog.Info(
 		fmt.Sprintf(
 			"%v/%v expiring access tokens refreshed, evaluating again in %v minutes",
-			len(expiringTokenIDs) - len(errorTokenIDs),
+			len(expiringTokenIDs)-len(errorTokenIDs),
 			len(expiringTokenIDs),
 			minsToExpiration,
 		),

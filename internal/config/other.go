@@ -4,21 +4,21 @@ type RedisConfig struct {
 	Type       string
 	Addresses  []string
 	IsSentinel bool
-	Password   RedactedString 
+	Password   RedactedString
 	MasterName string
 	DBIndex    int
 }
 
 type ServerConfig struct {
-	Host       string
-	Port       int
-	RateLimits RateLimits
+	Host        string
+	Port        int
+	RateLimits  RateLimits
 	AllowOrigin []string
 }
 
 type SentryConfig struct {
 	Enabled     bool
-	Dsn			RedactedString 
+	Dsn         RedactedString
 	Environment string
 	SampleRate  float64
 }

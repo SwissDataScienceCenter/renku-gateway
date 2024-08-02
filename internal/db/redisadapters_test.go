@@ -132,4 +132,3 @@ func TestSetGetAccessTokenWithEncryption(t *testing.T) {
 		cmp.Diff(myAccessToken, accessToken, compareOptions...),
 	)
 }
-

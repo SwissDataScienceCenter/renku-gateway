@@ -88,16 +88,16 @@ func TestClientReturnsID(t *testing.T) {
 }
 
 type TestTokenCallbackScenario struct {
-	Name                  string
-	Error                 error
-	ProviderID            string
-	AccessToken           string
-	RefreshToken          string
-	IDToken               string
-	State                 string
-	AccessTokenExpiresIn  int
-	Now                   time.Time
-	TokenURL              string
+	Name                 string
+	Error                error
+	ProviderID           string
+	AccessToken          string
+	RefreshToken         string
+	IDToken              string
+	State                string
+	AccessTokenExpiresIn int
+	Now                  time.Time
+	TokenURL             string
 }
 
 func TestTokenCallback(t *testing.T) {
@@ -170,4 +170,3 @@ func TestTokenCallback(t *testing.T) {
 	}
 
 }
-

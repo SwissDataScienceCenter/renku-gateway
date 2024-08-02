@@ -217,4 +217,3 @@ func newClient(id string, options ...clientOption) (oidcClient, error) {
 	}
 	return client, nil
 }
-

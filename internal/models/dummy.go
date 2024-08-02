@@ -12,7 +12,7 @@ type DummyDBAdapter struct {
 	lock          *sync.RWMutex
 	accessTokens  map[string]OauthToken
 	refreshTokens map[string]OauthToken
-	idTokens       map[string]OauthToken
+	idTokens      map[string]OauthToken
 	sessions      map[string]Session
 }
 
@@ -212,4 +212,3 @@ func (d *DummyDBAdapter) RemoveIDToken(ctx context.Context, token OauthToken) er
 	delete(d.idTokens, token.ID)
 	return nil
 }
-

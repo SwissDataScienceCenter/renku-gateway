@@ -12,4 +12,3 @@ var ErrNotFound = fmt.Errorf("the requested resource cannot be found")
 var ErrMissingCredentials = fmt.Errorf("the required credentials cannot be found")
 var ErrMissingDBResource = fmt.Errorf("the requested resource cannot be found in the DB")
 var ErrUnsupportedCLI = fmt.Errorf("you are using an older Renku CLI version that is not supported by this version of Renku")
-

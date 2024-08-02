@@ -6,13 +6,13 @@ import (
 )
 
 type RenkuServicesConfig struct {
-	Notebooks        *url.URL
-	KG               *url.URL
-	Webhook          *url.URL
-	Core             CoreSvcConfig
-	DataService      *url.URL
-	Keycloak         *url.URL
-	UIServer         *url.URL
+	Notebooks   *url.URL
+	KG          *url.URL
+	Webhook     *url.URL
+	Core        CoreSvcConfig
+	DataService *url.URL
+	Keycloak    *url.URL
+	UIServer    *url.URL
 }
 
 type metricsConfig struct {
@@ -30,7 +30,7 @@ type RevproxyConfig struct {
 type CoreSvcConfig struct {
 	ServiceNames []string
 	ServicePaths []string
-	Sticky bool
+	Sticky       bool
 }
 
 func (r *RevproxyConfig) Validate() error {
@@ -54,4 +54,3 @@ func (r *RevproxyConfig) Validate() error {
 	}
 	return nil
 }
-

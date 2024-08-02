@@ -52,4 +52,3 @@ func NewGCMEncryptor(secret string) (GCMEncryptor, error) {
 	}
 	return GCMEncryptor{aesgcm}, nil
 }
-
