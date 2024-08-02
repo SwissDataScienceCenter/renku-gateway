@@ -10,15 +10,15 @@ import (
 
 type DummyDBAdapter struct {
 	lock          *sync.RWMutex
-	accessTokens  map[string]OauthToken
-	refreshTokens map[string]OauthToken
-	idTokens      map[string]OauthToken
+	accessTokens  map[string]AuthToken
+	refreshTokens map[string]AuthToken
+	idTokens      map[string]AuthToken
 	sessions      map[string]Session
 }
 
 type DummyAdapterOption func(*DummyDBAdapter)
 
-func WithAccessTokens(tokens ...OauthToken) DummyAdapterOption {
+func WithAccessTokens(tokens ...AuthToken) DummyAdapterOption {
 	return func(d *DummyDBAdapter) {
 		for _, token := range tokens {
 			d.accessTokens[token.ID] = token
@@ -26,7 +26,7 @@ func WithAccessTokens(tokens ...OauthToken) DummyAdapterOption {
 	}
 }
 
-func WithRefreshTokens(tokens ...OauthToken) DummyAdapterOption {
+func WithRefreshTokens(tokens ...AuthToken) DummyAdapterOption {
 	return func(d *DummyDBAdapter) {
 		for _, token := range tokens {
 			d.refreshTokens[token.ID] = token
@@ -43,7 +43,7 @@ func WithSessions(sessions ...Session) DummyAdapterOption {
 }
 
 func NewDummyDBAdapter(options ...DummyAdapterOption) DummyDBAdapter {
-	db := DummyDBAdapter{lock: &sync.RWMutex{}, accessTokens: map[string]OauthToken{}, refreshTokens: map[string]OauthToken{}, idTokens: map[string]OauthToken{}, sessions: map[string]Session{}}
+	db := DummyDBAdapter{lock: &sync.RWMutex{}, accessTokens: map[string]AuthToken{}, refreshTokens: map[string]AuthToken{}, idTokens: map[string]AuthToken{}, sessions: map[string]Session{}}
 	for _, opt := range options {
 		opt(&db)
 	}
@@ -78,20 +78,20 @@ func (d *DummyDBAdapter) RemoveSession(ctx context.Context, id string) error {
 	return nil
 }
 
-func (d *DummyDBAdapter) GetAccessToken(ctx context.Context, id string) (OauthToken, error) {
+func (d *DummyDBAdapter) GetAccessToken(ctx context.Context, id string) (AuthToken, error) {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 	token, found := d.accessTokens[id]
 	if !found {
-		return OauthToken{}, gwerrors.ErrTokenNotFound
+		return AuthToken{}, gwerrors.ErrTokenNotFound
 	}
 	return token, nil
 }
 
-func (d *DummyDBAdapter) GetAccessTokens(ctx context.Context, ids ...string) (map[string]OauthToken, error) {
+func (d *DummyDBAdapter) GetAccessTokens(ctx context.Context, ids ...string) (map[string]AuthToken, error) {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
-	tokens := map[string]OauthToken{}
+	tokens := map[string]AuthToken{}
 	for _, id := range ids {
 		token, found := d.accessTokens[id]
 		if found {
@@ -101,20 +101,20 @@ func (d *DummyDBAdapter) GetAccessTokens(ctx context.Context, ids ...string) (ma
 	return tokens, nil
 }
 
-func (d *DummyDBAdapter) GetRefreshToken(ctx context.Context, id string) (OauthToken, error) {
+func (d *DummyDBAdapter) GetRefreshToken(ctx context.Context, id string) (AuthToken, error) {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 	token, found := d.refreshTokens[id]
 	if !found {
-		return OauthToken{}, gwerrors.ErrTokenNotFound
+		return AuthToken{}, gwerrors.ErrTokenNotFound
 	}
 	return token, nil
 }
 
-func (d *DummyDBAdapter) GetRefreshTokens(ctx context.Context, ids ...string) (map[string]OauthToken, error) {
+func (d *DummyDBAdapter) GetRefreshTokens(ctx context.Context, ids ...string) (map[string]AuthToken, error) {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
-	tokens := map[string]OauthToken{}
+	tokens := map[string]AuthToken{}
 	for _, id := range ids {
 		token, found := d.refreshTokens[id]
 		if found {
@@ -124,20 +124,20 @@ func (d *DummyDBAdapter) GetRefreshTokens(ctx context.Context, ids ...string) (m
 	return tokens, nil
 }
 
-func (d *DummyDBAdapter) GetIDToken(ctx context.Context, id string) (OauthToken, error) {
+func (d *DummyDBAdapter) GetIDToken(ctx context.Context, id string) (AuthToken, error) {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 	token, found := d.idTokens[id]
 	if !found {
-		return OauthToken{}, gwerrors.ErrTokenNotFound
+		return AuthToken{}, gwerrors.ErrTokenNotFound
 	}
 	return token, nil
 }
 
-func (d *DummyDBAdapter) GetIDTokens(ctx context.Context, ids ...string) (map[string]OauthToken, error) {
+func (d *DummyDBAdapter) GetIDTokens(ctx context.Context, ids ...string) (map[string]AuthToken, error) {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
-	tokens := map[string]OauthToken{}
+	tokens := map[string]AuthToken{}
 	for _, id := range ids {
 		token, found := d.idTokens[id]
 		if found {
@@ -159,28 +159,28 @@ func (d *DummyDBAdapter) GetExpiringAccessTokenIDs(ctx context.Context, start ti
 	return ids, nil
 }
 
-func (d *DummyDBAdapter) SetAccessToken(ctx context.Context, token OauthToken) error {
+func (d *DummyDBAdapter) SetAccessToken(ctx context.Context, token AuthToken) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	d.accessTokens[token.ID] = token
 	return nil
 }
 
-func (d *DummyDBAdapter) SetRefreshToken(ctx context.Context, token OauthToken) error {
+func (d *DummyDBAdapter) SetRefreshToken(ctx context.Context, token AuthToken) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	d.refreshTokens[token.ID] = token
 	return nil
 }
 
-func (d *DummyDBAdapter) SetIDToken(ctx context.Context, token OauthToken) error {
+func (d *DummyDBAdapter) SetIDToken(ctx context.Context, token AuthToken) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	d.idTokens[token.ID] = token
 	return nil
 }
 
-func (d *DummyDBAdapter) RemoveAccessToken(ctx context.Context, token OauthToken) error {
+func (d *DummyDBAdapter) RemoveAccessToken(ctx context.Context, token AuthToken) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	_, found := d.accessTokens[token.ID]
@@ -202,7 +202,7 @@ func (d *DummyDBAdapter) RemoveRefreshToken(ctx context.Context, id string) erro
 	return nil
 }
 
-func (d *DummyDBAdapter) RemoveIDToken(ctx context.Context, token OauthToken) error {
+func (d *DummyDBAdapter) RemoveIDToken(ctx context.Context, token AuthToken) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	_, found := d.idTokens[token.ID]

@@ -15,11 +15,11 @@ import (
 
 type AuthOption func(*Auth)
 
-type TokenHandler func(c echo.Context, token models.OauthToken) error
+type TokenHandler func(c echo.Context, token models.AuthToken) error
 
 func InjectInHeader(headerKey string) AuthOption {
 	return func(a *Auth) {
-		a.tokenHandler = func(c echo.Context, token models.OauthToken) error {
+		a.tokenHandler = func(c echo.Context, token models.AuthToken) error {
 			slog.Info(
 				"PROXY AUTH MIDDLEWARE",
 				"message",
@@ -43,7 +43,7 @@ func InjectInHeader(headerKey string) AuthOption {
 
 func InjectBearerToken() AuthOption {
 	return func(a *Auth) {
-		a.tokenHandler = func(c echo.Context, token models.OauthToken) error {
+		a.tokenHandler = func(c echo.Context, token models.AuthToken) error {
 			slog.Info(
 				"PROXY AUTH MIDDLEWARE",
 				"message",
@@ -109,7 +109,7 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 			if !ok {
 				return gwerrors.ErrSessionParse
 			}
-			var token models.OauthToken
+			var token models.AuthToken
 			var err error
 			if a.tokenType == models.AccessTokenType {
 				token, err = session.GetAccessToken(c.Request().Context(), a.providerID)
@@ -168,7 +168,7 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 	}
 }
 
-var notebooksGitlabAccessTokenHandler TokenHandler = func(c echo.Context, accessToken models.OauthToken) error {
+var notebooksGitlabAccessTokenHandler TokenHandler = func(c echo.Context, accessToken models.AuthToken) error {
 	// NOTE: As long as the token comes from the database we can trust it and do not have to validate it.
 	// Each service that the request ultimately goes to will also validate before it uses the token
 	type gitCredentials struct {
@@ -206,7 +206,7 @@ var notebooksGitlabAccessTokenHandler TokenHandler = func(c echo.Context, access
 	return nil
 }
 
-var coreSvcRenkuAccessTokenHandler TokenHandler = func(c echo.Context, accessToken models.OauthToken) error {
+var coreSvcRenkuAccessTokenHandler TokenHandler = func(c echo.Context, accessToken models.AuthToken) error {
 	extractClaim := func(claims jwt.MapClaims, key string) (string, error) {
 		valRaw, found := claims["email"]
 		if !found {
@@ -247,7 +247,7 @@ var coreSvcRenkuAccessTokenHandler TokenHandler = func(c echo.Context, accessTok
 }
 
 // Sets up Basic Auth for Gitlab
-var gitlabCliTokenHandler TokenHandler = func(c echo.Context, accessToken models.OauthToken) error {
+var gitlabCliTokenHandler TokenHandler = func(c echo.Context, accessToken models.AuthToken) error {
 	if accessToken.Value == "" {
 		return nil
 	}

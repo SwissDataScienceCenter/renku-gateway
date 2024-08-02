@@ -30,10 +30,10 @@ func (c ClientStore) AuthHandler(providerID string, state string) (http.HandlerF
 	return client.authHandler(state), nil
 }
 
-func (c ClientStore) VerifyTokens(ctx context.Context, providerID, accessToken, refreshToken, idToken string) ([]models.OauthToken, error) {
+func (c ClientStore) VerifyTokens(ctx context.Context, providerID, accessToken, refreshToken, idToken string) ([]models.AuthToken, error) {
 	client, clientFound := c[providerID]
 	if !clientFound {
-		return []models.OauthToken{}, fmt.Errorf("cannot find the provider with ID %s", providerID)
+		return []models.AuthToken{}, fmt.Errorf("cannot find the provider with ID %s", providerID)
 	}
 	return client.verifyTokens(ctx, accessToken, refreshToken, idToken)
 }

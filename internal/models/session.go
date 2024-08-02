@@ -68,7 +68,7 @@ func (s *Session) TTL() time.Duration {
 	return time.Duration(s.TTLSeconds) * time.Second
 }
 
-func (s *Session) SaveTokens(ctx context.Context, accessToken OauthToken, refreshToken OauthToken, idToken OauthToken, state string) error {
+func (s *Session) SaveTokens(ctx context.Context, accessToken AuthToken, refreshToken AuthToken, idToken AuthToken, state string) error {
 	if s.tokenStore == nil {
 		return fmt.Errorf("cannot save tokens when the token store is nil")
 	}
@@ -144,56 +144,56 @@ func (s *Session) PeekOauthState() string {
 	return pair.Key
 }
 
-func (s *Session) GetAccessToken(ctx context.Context, providerID string) (OauthToken, error) {
+func (s *Session) GetAccessToken(ctx context.Context, providerID string) (AuthToken, error) {
 	if s.tokenStore == nil {
-		return OauthToken{}, fmt.Errorf("cannot get a token when the token store is not defined")
+		return AuthToken{}, fmt.Errorf("cannot get a token when the token store is not defined")
 	}
 	tokens, err := s.tokenStore.GetAccessTokens(ctx, s.TokenIDs...)
 	if err != nil {
-		return OauthToken{}, err
+		return AuthToken{}, err
 	}
 	token, found := tokens[providerID]
 	if !found {
-		return OauthToken{}, gwerrors.ErrTokenNotFound
+		return AuthToken{}, gwerrors.ErrTokenNotFound
 	}
 	if token.Expired() {
-		return OauthToken{}, gwerrors.ErrTokenExpired
+		return AuthToken{}, gwerrors.ErrTokenExpired
 	}
 	return token, nil
 }
 
-func (s *Session) GetIDToken(ctx context.Context, providerID string) (OauthToken, error) {
+func (s *Session) GetIDToken(ctx context.Context, providerID string) (AuthToken, error) {
 	if s.tokenStore == nil {
-		return OauthToken{}, fmt.Errorf("cannot get a token when the token store is not defined")
+		return AuthToken{}, fmt.Errorf("cannot get a token when the token store is not defined")
 	}
 	tokens, err := s.tokenStore.GetIDTokens(ctx, s.TokenIDs...)
 	if err != nil {
-		return OauthToken{}, err
+		return AuthToken{}, err
 	}
 	token, found := tokens[providerID]
 	if !found {
-		return OauthToken{}, gwerrors.ErrTokenNotFound
+		return AuthToken{}, gwerrors.ErrTokenNotFound
 	}
 	if token.Expired() {
-		return OauthToken{}, gwerrors.ErrTokenExpired
+		return AuthToken{}, gwerrors.ErrTokenExpired
 	}
 	return token, nil
 }
 
-func (s *Session) GetRefreshToken(ctx context.Context, providerID string) (OauthToken, error) {
+func (s *Session) GetRefreshToken(ctx context.Context, providerID string) (AuthToken, error) {
 	if s.tokenStore == nil {
-		return OauthToken{}, fmt.Errorf("cannot get a token when the token store is not defined")
+		return AuthToken{}, fmt.Errorf("cannot get a token when the token store is not defined")
 	}
 	tokens, err := s.tokenStore.GetRefreshTokens(ctx, s.TokenIDs...)
 	if err != nil {
-		return OauthToken{}, err
+		return AuthToken{}, err
 	}
 	token, found := tokens[providerID]
 	if !found {
-		return OauthToken{}, gwerrors.ErrTokenNotFound
+		return AuthToken{}, gwerrors.ErrTokenNotFound
 	}
 	if token.Expired() {
-		return OauthToken{}, gwerrors.ErrTokenExpired
+		return AuthToken{}, gwerrors.ErrTokenExpired
 	}
 	return token, nil
 }

@@ -17,13 +17,13 @@ func TestClientStore(t *testing.T) {
 		id:     "id2",
 	}
 	clientStore := ClientStore{client1.id: client1, client2.id: client2}
-	_, err := clientStore.CallbackHandler("id1", func(accessToken, refreshToken, idToken models.OauthToken) error { return nil })
+	_, err := clientStore.CallbackHandler("id1", func(accessToken, refreshToken, idToken models.AuthToken) error { return nil })
 	assert.NoError(t, err)
-	_, err = clientStore.CallbackHandler("id2", func(accessToken, refreshToken, idToken models.OauthToken) error { return nil })
+	_, err = clientStore.CallbackHandler("id2", func(accessToken, refreshToken, idToken models.AuthToken) error { return nil })
 	assert.NoError(t, err)
 	_, err = clientStore.CallbackHandler(
 		"missing",
-		func(accessToken, refreshToken, idToken models.OauthToken) error { return nil },
+		func(accessToken, refreshToken, idToken models.AuthToken) error { return nil },
 	)
 	assert.Error(t, err)
 }

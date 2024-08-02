@@ -102,7 +102,7 @@ func (r RedisAdapter) SetSession(ctx context.Context, session models.Session) er
 	).Err()
 }
 
-func (r RedisAdapter) setOauthToken(ctx context.Context, token models.OauthToken) error {
+func (r RedisAdapter) setOauthToken(ctx context.Context, token models.AuthToken) error {
 	err := validateTokenType(token.Type)
 	if err != nil {
 		return err
@@ -115,10 +115,10 @@ func (r RedisAdapter) setOauthToken(ctx context.Context, token models.OauthToken
 		}
 	}
 
-	if r.encryptor != nil {
-		token = token.SetEncryptor(r.encryptor)
-	}
-	encToken, err := token.Encrypt()
+	// if r.encryptor != nil {
+	// 	token = token.SetEncryptor(r.encryptor)
+	// }
+	encToken, err := token.Encrypt(r.encryptor)
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (r RedisAdapter) setOauthToken(ctx context.Context, token models.OauthToken
 
 // SetAccessToken writes the associated ID, access token value, expiration, tokenID and refresh URL
 // of an access token to Redis.
-func (r RedisAdapter) SetAccessToken(ctx context.Context, accessToken models.OauthToken) error {
+func (r RedisAdapter) SetAccessToken(ctx context.Context, accessToken models.AuthToken) error {
 	if accessToken.Type != models.AccessTokenType {
 		return fmt.Errorf("token is not of the right type")
 	}
@@ -140,14 +140,14 @@ func (r RedisAdapter) SetAccessToken(ctx context.Context, accessToken models.Oau
 }
 
 // SetRefreshToken writes the associated ID, access token value, expiration and tokenID of a refresh token to Redis
-func (r RedisAdapter) SetRefreshToken(ctx context.Context, refreshToken models.OauthToken) error {
+func (r RedisAdapter) SetRefreshToken(ctx context.Context, refreshToken models.AuthToken) error {
 	if refreshToken.Type != models.RefreshTokenType {
 		return fmt.Errorf("token is not of the right type")
 	}
 	return r.setOauthToken(ctx, refreshToken)
 }
 
-func (r RedisAdapter) SetIDToken(ctx context.Context, idToken models.OauthToken) error {
+func (r RedisAdapter) SetIDToken(ctx context.Context, idToken models.AuthToken) error {
 	if idToken.Type != models.IDTokenType {
 		return fmt.Errorf("token is not of the right type")
 	}
@@ -155,7 +155,7 @@ func (r RedisAdapter) SetIDToken(ctx context.Context, idToken models.OauthToken)
 }
 
 // SetToIndexExpiringTokens writes the associated expiration and tokenID of an access token to Redis
-func (r RedisAdapter) setToIndexExpiringTokens(ctx context.Context, token models.OauthToken) error {
+func (r RedisAdapter) setToIndexExpiringTokens(ctx context.Context, token models.AuthToken) error {
 	var z1 redis.Z
 	z1.Score = float64(token.ExpiresAt.Unix())
 	z1.Member = prefixForTokenType(token.Type) + token.ID
@@ -168,7 +168,7 @@ func (r RedisAdapter) setToIndexExpiringTokens(ctx context.Context, token models
 }
 
 // SetProjectToken writes the project ID and associated expiration and tokenID of a project to Redis
-func (r RedisAdapter) SetProjectToken(ctx context.Context, projectID int, accessToken models.OauthToken) error {
+func (r RedisAdapter) SetProjectToken(ctx context.Context, projectID int, accessToken models.AuthToken) error {
 	z1 := redis.Z{
 		Score:  float64(accessToken.ExpiresAt.Unix()),
 		Member: accessToken.ID,
@@ -192,7 +192,7 @@ func (r RedisAdapter) RemoveSession(ctx context.Context, sessionID string) error
 }
 
 // RemoveAccessToken removes an access token entry from Redis
-func (r RedisAdapter) RemoveAccessToken(ctx context.Context, accessToken models.OauthToken) error {
+func (r RedisAdapter) RemoveAccessToken(ctx context.Context, accessToken models.AuthToken) error {
 	err := r.removeFromIndexExpiringTokens(ctx, accessToken)
 	if err != nil {
 		return err
@@ -212,7 +212,7 @@ func (r RedisAdapter) RemoveRefreshToken(ctx context.Context, refreshTokenID str
 	).Err()
 }
 
-func (r RedisAdapter) RemoveIDToken(ctx context.Context, idToken models.OauthToken) error {
+func (r RedisAdapter) RemoveIDToken(ctx context.Context, idToken models.AuthToken) error {
 	err := r.removeFromIndexExpiringTokens(ctx, idToken)
 	if err != nil {
 		return err
@@ -225,7 +225,7 @@ func (r RedisAdapter) RemoveIDToken(ctx context.Context, idToken models.OauthTok
 }
 
 // removeFromIndexExpiringTokens removes a token entry in the indexExpiringTokens sorted set from Redis
-func (r RedisAdapter) removeFromIndexExpiringTokens(ctx context.Context, token models.OauthToken) error {
+func (r RedisAdapter) removeFromIndexExpiringTokens(ctx context.Context, token models.AuthToken) error {
 	var z1 redis.Z
 	z1.Score = float64(token.ExpiresAt.Unix())
 	z1.Member = prefixForTokenType(token.Type) + token.ID
@@ -238,7 +238,7 @@ func (r RedisAdapter) removeFromIndexExpiringTokens(ctx context.Context, token m
 }
 
 // RemoveProjectToken removes an access token entry in a projectTokens sorted set from Redis
-func (r RedisAdapter) RemoveProjectToken(ctx context.Context, projectID int, accessToken models.OauthToken) error {
+func (r RedisAdapter) RemoveProjectToken(ctx context.Context, projectID int, accessToken models.AuthToken) error {
 	var z1 redis.Z
 	z1.Score = float64(accessToken.ExpiresAt.Unix())
 	z1.Member = accessToken.ID
@@ -278,8 +278,8 @@ func (r RedisAdapter) GetSession(ctx context.Context, sessionID string) (models.
 }
 
 // getOauthToken reads a specific token from redis, decrypting if necessary.
-func (r RedisAdapter) getOauthToken(ctx context.Context, keyPrefix string, tokenID string) (models.OauthToken, error) {
-	output := models.OauthToken{}
+func (r RedisAdapter) getOauthToken(ctx context.Context, keyPrefix string, tokenID string) (models.AuthToken, error) {
+	output := models.AuthToken{}
 	raw, err := r.rdb.HGetAll(
 		ctx,
 		keyPrefix+tokenID,
@@ -293,15 +293,15 @@ func (r RedisAdapter) getOauthToken(ctx context.Context, keyPrefix string, token
 		if err == gwerrors.ErrMissingDBResource {
 			err = gwerrors.ErrTokenNotFound
 		}
-		return models.OauthToken{}, err
+		return models.AuthToken{}, err
 	}
 
-	if r.encryptor != nil {
-		output = output.SetEncryptor(r.encryptor)
-	}
-	decToken, err := output.Decrypt()
+	// if r.encryptor != nil {
+	// 	output = output.SetEncryptor(r.encryptor)
+	// }
+	decToken, err := output.Decrypt(r.encryptor)
 	if err != nil {
-		return models.OauthToken{}, err
+		return models.AuthToken{}, err
 	}
 	return decToken, nil
 }
@@ -311,15 +311,15 @@ func (r RedisAdapter) getOauthTokens(
 	ctx context.Context,
 	keyPrefix string,
 	tokenIDs ...string,
-) (map[string]models.OauthToken, error) {
+) (map[string]models.AuthToken, error) {
 	if len(tokenIDs) == 0 {
-		return map[string]models.OauthToken{}, nil
+		return map[string]models.AuthToken{}, nil
 	}
 	wg := sync.WaitGroup{}
 	lock := sync.Mutex{}
 	wg.Add(len(tokenIDs))
 	var tokenErr error
-	tokens := make(map[string]models.OauthToken, len(tokenIDs))
+	tokens := make(map[string]models.AuthToken, len(tokenIDs))
 	for _, tokenID := range tokenIDs {
 		go func(tokenID string) {
 			defer wg.Done()
@@ -347,37 +347,37 @@ func (r RedisAdapter) getOauthTokens(
 	}
 	wg.Wait()
 	if tokenErr != nil {
-		return map[string]models.OauthToken{}, tokenErr
+		return map[string]models.AuthToken{}, tokenErr
 	}
 	return tokens, nil
 }
 
 // GetAccessToken reads the associated ID, access token value, expiration, tokenID and refresh URL
 // of an access token from Redis
-func (r RedisAdapter) GetAccessToken(ctx context.Context, tokenID string) (models.OauthToken, error) {
+func (r RedisAdapter) GetAccessToken(ctx context.Context, tokenID string) (models.AuthToken, error) {
 	return r.getOauthToken(ctx, accessTokenPrefix, tokenID)
 }
 
 // GetAccessTokens reads the associated IDs, and returns the tokens in a map keyed by the provider IDs
-func (r RedisAdapter) GetAccessTokens(ctx context.Context, tokenIDs ...string) (map[string]models.OauthToken, error) {
+func (r RedisAdapter) GetAccessTokens(ctx context.Context, tokenIDs ...string) (map[string]models.AuthToken, error) {
 	return r.getOauthTokens(ctx, accessTokenPrefix, tokenIDs...)
 }
 
 // GetRefreshToken reads the associated ID, refresh token value, expiration and tokenID of a refresh token from Redis
-func (r RedisAdapter) GetRefreshToken(ctx context.Context, tokenID string) (models.OauthToken, error) {
+func (r RedisAdapter) GetRefreshToken(ctx context.Context, tokenID string) (models.AuthToken, error) {
 	return r.getOauthToken(ctx, refreshTokenPrefix, tokenID)
 }
 
-func (r RedisAdapter) GetIDToken(ctx context.Context, tokenID string) (models.OauthToken, error) {
+func (r RedisAdapter) GetIDToken(ctx context.Context, tokenID string) (models.AuthToken, error) {
 	return r.getOauthToken(ctx, idTokenPrefix, tokenID)
 }
 
-func (r RedisAdapter) GetIDTokens(ctx context.Context, tokenIDs ...string) (map[string]models.OauthToken, error) {
+func (r RedisAdapter) GetIDTokens(ctx context.Context, tokenIDs ...string) (map[string]models.AuthToken, error) {
 	return r.getOauthTokens(ctx, idTokenPrefix, tokenIDs...)
 }
 
 // GetRefreshTokens reads the associated IDs, and returns the tokens in map keyed by the provider IDs
-func (r RedisAdapter) GetRefreshTokens(ctx context.Context, tokenIDs ...string) (map[string]models.OauthToken, error) {
+func (r RedisAdapter) GetRefreshTokens(ctx context.Context, tokenIDs ...string) (map[string]models.AuthToken, error) {
 	return r.getOauthTokens(ctx, refreshTokenPrefix, tokenIDs...)
 }
 

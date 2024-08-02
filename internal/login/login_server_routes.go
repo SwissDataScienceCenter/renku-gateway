@@ -108,7 +108,7 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 	if !found {
 		return fmt.Errorf("provider not found %s", providerID)
 	}
-	tokenCallback := func(accessToken, refreshToken, idToken models.OauthToken) error {
+	tokenCallback := func(accessToken, refreshToken, idToken models.AuthToken) error {
 		return session.SaveTokens(c.Request().Context(), accessToken, refreshToken, idToken, state)
 	}
 	// Exchange the authorization code for credentials

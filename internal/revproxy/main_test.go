@@ -56,16 +56,16 @@ func newTestSesssion(options ...models.SessionOption) models.Session {
 	return session
 }
 
-type tokenOption func(*models.OauthToken)
+type tokenOption func(*models.AuthToken)
 
 func tokenID(id string) tokenOption {
-	return func(t *models.OauthToken) {
+	return func(t *models.AuthToken) {
 		t.ID = id
 	}
 }
 
 func tokenPlainValue(val string) tokenOption {
-	return func(t *models.OauthToken) {
+	return func(t *models.AuthToken) {
 		t.Value = val
 	}
 }
@@ -77,7 +77,7 @@ type customClaims struct {
 }
 
 func tokenJWTValue(claims customClaims) tokenOption {
-	return func(t *models.OauthToken) {
+	return func(t *models.AuthToken) {
 		if claims.ExpiresAt == nil {
 			claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Hour * 5))
 		}
@@ -91,19 +91,19 @@ func tokenJWTValue(claims customClaims) tokenOption {
 }
 
 func tokenExpired(val string) tokenOption {
-	return func(t *models.OauthToken) {
+	return func(t *models.AuthToken) {
 		t.ExpiresAt = time.Now().UTC().Add(time.Hour * -5)
 	}
 }
 
 func tokenProviderID(id string) tokenOption {
-	return func(t *models.OauthToken) {
+	return func(t *models.AuthToken) {
 		t.ProviderID = id
 	}
 }
 
-func newTestToken(tokenType models.OauthTokenType, options ...tokenOption) models.OauthToken {
-	token := models.OauthToken{
+func newTestToken(tokenType models.OauthTokenType, options ...tokenOption) models.AuthToken {
+	token := models.AuthToken{
 		Type:      tokenType,
 		ID:        "tokenID",
 		Value:     "tokenValue",
@@ -191,7 +191,7 @@ type TestResults struct {
 type TestCase struct {
 	Path           string
 	QueryParams    map[string]string
-	Tokens         []models.OauthToken
+	Tokens         []models.AuthToken
 	Sessions       []models.Session
 	ExternalGitlab bool
 	Expected       TestResults
@@ -363,7 +363,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 					"Renku-Auth-Anon-Id":       "",
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
 					tokenID("accessTokenID"),
@@ -411,7 +411,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
 					tokenID("accessTokenID"),
@@ -482,7 +482,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
 					tokenID("gitlabAccessTokenID"),
@@ -528,7 +528,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 					"Renku-User":             "renkuIDTokenValue",
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.IDTokenType,
 					tokenID("renkuIDTokenID"),
@@ -602,7 +602,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
 					tokenID("gitlabAccessTokenID"),
@@ -625,7 +625,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
 					tokenID("gitlabAccessTokenID"),
@@ -678,7 +678,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
 					tokenID("gitlabAccessTokenID"),
@@ -706,7 +706,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
 					tokenID("gitlabAccessTokenID"),
@@ -734,7 +734,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 					echo.HeaderAuthorization: "Basic b2F1dGgyOmdpdGxhYkFjY2Vzc1Rva2VuVmFsdWU=", // the content of the header is base64 encoding of oauth2:gitlabAccessTokenValue
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
 					tokenID("gitlabAccessTokenID"),
@@ -762,7 +762,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 					echo.HeaderAuthorization: "Basic b2F1dGgyOmdpdGxhYkFjY2Vzc1Rva2VuVmFsdWU=", // the content of the header is base64 encoding of oauth2:gitlabAccessTokenValue
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
 					tokenID("gitlabAccessTokenID"),
@@ -801,7 +801,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
 					tokenID("gitlabAccessTokenID"),

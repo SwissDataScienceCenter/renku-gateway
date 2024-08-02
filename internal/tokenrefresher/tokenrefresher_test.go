@@ -16,22 +16,22 @@ var ctx = context.Background()
 
 type DummyAdapter struct {
 	err          error
-	accessToken  models.OauthToken
-	refreshToken models.OauthToken
+	accessToken  models.AuthToken
+	refreshToken models.AuthToken
 	tokenID      string
 }
 
-func (d *DummyAdapter) GetRefreshToken(context.Context, string) (models.OauthToken, error) {
+func (d *DummyAdapter) GetRefreshToken(context.Context, string) (models.AuthToken, error) {
 	return d.refreshToken, d.err
 }
-func (d *DummyAdapter) GetAccessToken(context.Context, string) (models.OauthToken, error) {
+func (d *DummyAdapter) GetAccessToken(context.Context, string) (models.AuthToken, error) {
 	return d.accessToken, d.err
 }
-func (d *DummyAdapter) SetRefreshToken(ctx context.Context, aRefreshToken models.OauthToken) error {
+func (d *DummyAdapter) SetRefreshToken(ctx context.Context, aRefreshToken models.AuthToken) error {
 	d.refreshToken = aRefreshToken
 	return d.err
 }
-func (d *DummyAdapter) SetAccessToken(ctx context.Context, anAccessToken models.OauthToken) error {
+func (d *DummyAdapter) SetAccessToken(ctx context.Context, anAccessToken models.AuthToken) error {
 	d.accessToken = anAccessToken
 	return d.err
 }
@@ -114,7 +114,7 @@ func TestRefreshExpiringTokensGitlab(t *testing.T) {
 	var myRefresherTokenStore RefresherTokenStore = &DummyAdapter{}
 
 	// Create a refresh and access token in our dummy token store with the pre-refresh token values
-	err := myRefresherTokenStore.SetAccessToken(ctx, models.OauthToken{
+	err := myRefresherTokenStore.SetAccessToken(ctx, models.AuthToken{
 		ID:        tokenID,
 		Value:     accessTokenValue,
 		ExpiresAt: time.Now().Add(time.Minute * 5),
@@ -125,7 +125,7 @@ func TestRefreshExpiringTokensGitlab(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = myRefresherTokenStore.SetRefreshToken(ctx, models.OauthToken{
+	err = myRefresherTokenStore.SetRefreshToken(ctx, models.AuthToken{
 		ID:    tokenID,
 		Value: refreshTokenValue,
 	})
@@ -256,7 +256,7 @@ func TestRefreshExpiringTokensKeycloak(t *testing.T) {
 	var myRefresherTokenStore RefresherTokenStore = &DummyAdapter{}
 
 	// Create a refresh and access token in our dummy token store with the pre-refresh token values
-	err := myRefresherTokenStore.SetAccessToken(ctx, models.OauthToken{
+	err := myRefresherTokenStore.SetAccessToken(ctx, models.AuthToken{
 		ID:        tokenID,
 		Value:     accessTokenValue,
 		ExpiresAt: time.Now().Add(time.Minute * 5),
@@ -267,7 +267,7 @@ func TestRefreshExpiringTokensKeycloak(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = myRefresherTokenStore.SetRefreshToken(ctx, models.OauthToken{
+	err = myRefresherTokenStore.SetRefreshToken(ctx, models.AuthToken{
 		ID:    tokenID,
 		Value: refreshTokenValue,
 	})

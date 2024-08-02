@@ -39,7 +39,7 @@ func (c *oidcClient) getCodeExchangeCallback(tokensCallback models.TokensHandler
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		accessToken := models.OauthToken{
+		accessToken := models.AuthToken{
 			ID:         id,
 			Type:       models.AccessTokenType,
 			Value:      tokens.AccessToken,
@@ -47,14 +47,14 @@ func (c *oidcClient) getCodeExchangeCallback(tokensCallback models.TokensHandler
 			ExpiresAt:  tokens.Expiry,
 			ProviderID: c.getID(),
 		}
-		refreshToken := models.OauthToken{
+		refreshToken := models.AuthToken{
 			ID:         id,
 			Type:       models.RefreshTokenType,
 			Value:      tokens.RefreshToken,
 			TokenURL:   client.OAuthConfig().Endpoint.TokenURL,
 			ProviderID: c.getID(),
 		}
-		idToken := models.OauthToken{
+		idToken := models.AuthToken{
 			ID:         id,
 			Type:       models.IDTokenType,
 			Value:      tokens.IDToken,
@@ -101,53 +101,53 @@ func (c *oidcClient) startDeviceFlow(ctx context.Context) (*oauth2.DeviceAuthRes
 // Verifies the signature only if the token is signed with RS256, checks the token is not expired, parses the claims and returns them
 // NOTE: For Gitlab only the ID tokens can be parsed like this, access and refresh tokens are not JWTs
 // NOTE: This will and should return a list of 3 tokens in the order in which they are defined in the function
-func (c *oidcClient) verifyTokens(ctx context.Context, accessToken, refreshToken, idToken string) ([]models.OauthToken, error) {
-	checkToken := func(val string, tokenID string, tokenType models.OauthTokenType, ks oidc.KeySet) (models.OauthToken, error) {
+func (c *oidcClient) verifyTokens(ctx context.Context, accessToken, refreshToken, idToken string) ([]models.AuthToken, error) {
+	checkToken := func(val string, tokenID string, tokenType models.OauthTokenType, ks oidc.KeySet) (models.AuthToken, error) {
 		claims := new(oidc.TokenClaims)
 		payload, err := oidc.ParseToken(val, claims)
 		if err != nil {
-			return models.OauthToken{}, err
+			return models.AuthToken{}, err
 		}
 		if claims.SignatureAlg == "RS256" {
 			err = oidc.CheckSignature(ctx, val, payload, claims, []string{"RS256"}, ks)
 			if err != nil {
-				return models.OauthToken{}, err
+				return models.AuthToken{}, err
 			}
 		}
 		if tokenType != models.RefreshTokenType {
 			err = oidc.CheckExpiration(claims, 0)
 			if err != nil {
-				return models.OauthToken{}, err
+				return models.AuthToken{}, err
 			}
 		}
-		output := models.OauthToken{ID: tokenID, Type: tokenType, Value: val, ExpiresAt: claims.GetExpiration(), TokenURL: c.client.OAuthConfig().Endpoint.TokenURL, ProviderID: c.getID()}
+		output := models.AuthToken{ID: tokenID, Type: tokenType, Value: val, ExpiresAt: claims.GetExpiration(), TokenURL: c.client.OAuthConfig().Endpoint.TokenURL, ProviderID: c.getID()}
 		return output, nil
 	}
 
 	ks := c.client.IDTokenVerifier().KeySet()
 	tokenID, err := models.ULIDGenerator{}.ID()
 	if err != nil {
-		return []models.OauthToken{}, err
+		return []models.AuthToken{}, err
 	}
 	accessTokenParsed, err := checkToken(accessToken, tokenID, models.AccessTokenType, ks)
 	if err != nil {
 		slog.Info("OIDC", "error", err, "message", "cannot verify access token")
-		return []models.OauthToken{}, err
+		return []models.AuthToken{}, err
 	}
 	refreshTokenParsed, err := checkToken(refreshToken, tokenID, models.RefreshTokenType, ks)
 	if err != nil {
 		slog.Info("OIDC", "error", err, "message", "cannot verify refresh token")
-		return []models.OauthToken{}, err
+		return []models.AuthToken{}, err
 	}
 	if idToken == "" {
-		return []models.OauthToken{accessTokenParsed, refreshTokenParsed, {}}, nil
+		return []models.AuthToken{accessTokenParsed, refreshTokenParsed, {}}, nil
 	}
 	idTokenParsed, err := checkToken(idToken, tokenID, models.IDTokenType, ks)
 	if err != nil {
 		slog.Info("OIDC", "error", err, "message", "cannot verify ID token")
-		return []models.OauthToken{}, err
+		return []models.AuthToken{}, err
 	}
-	return []models.OauthToken{accessTokenParsed, refreshTokenParsed, idTokenParsed}, nil
+	return []models.AuthToken{accessTokenParsed, refreshTokenParsed, idTokenParsed}, nil
 }
 
 type clientOption func(*oidcClient) error

@@ -37,10 +37,10 @@ func (t tokenResponse) String() string {
 
 // RefresherTokenStore is an interface used for refreshing tokens stored by the gateway
 type RefresherTokenStore interface {
-	GetRefreshToken(context.Context, string) (models.OauthToken, error)
-	GetAccessToken(context.Context, string) (models.OauthToken, error)
-	SetRefreshToken(context.Context, models.OauthToken) error
-	SetAccessToken(context.Context, models.OauthToken) error
+	GetRefreshToken(context.Context, string) (models.AuthToken, error)
+	GetAccessToken(context.Context, string) (models.AuthToken, error)
+	SetRefreshToken(context.Context, models.AuthToken) error
+	SetAccessToken(context.Context, models.AuthToken) error
 	GetExpiringAccessTokenIDs(context.Context, time.Time, time.Time) ([]string, error)
 }
 
@@ -150,7 +150,7 @@ func refreshExpiringTokens(
 		}
 
 		// Set the refreshed access and refresh token values into the token store
-		err = tokenStore.SetAccessToken(ctx, models.OauthToken{
+		err = tokenStore.SetAccessToken(ctx, models.AuthToken{
 			ID:        myAccessToken.ID,
 			Value:     token.AccessToken,
 			ExpiresAt: accessTokenExpiration,
@@ -162,7 +162,7 @@ func refreshExpiringTokens(
 			continue
 		}
 
-		err = tokenStore.SetRefreshToken(ctx, models.OauthToken{
+		err = tokenStore.SetRefreshToken(ctx, models.AuthToken{
 			ID:        myRefreshToken.ID,
 			Value:     token.RefreshToken,
 			ExpiresAt: refreshTokenExpiration,

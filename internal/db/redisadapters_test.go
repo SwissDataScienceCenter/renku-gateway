@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var compareOptions []cmp.Option = []cmp.Option{cmpopts.IgnoreUnexported(models.OauthToken{})}
+var compareOptions []cmp.Option = []cmp.Option{cmpopts.IgnoreUnexported(models.AuthToken{})}
 
 func decomposeStructToMap(strct any) (map[string]string, error) {
 	v := reflect.ValueOf(strct)
@@ -79,7 +79,7 @@ func TestRemoveSession(t *testing.T) {
 func TestSetGetRemoveAccessToken(t *testing.T) {
 	ctx := context.Background()
 	adapter := NewMockRedisAdapter()
-	myAccessToken := models.OauthToken{
+	myAccessToken := models.AuthToken{
 		ID:        "12345",
 		Value:     "6789",
 		ExpiresAt: time.Now().Add(time.Hour * 24),
@@ -114,7 +114,7 @@ func TestSetGetAccessTokenWithEncryption(t *testing.T) {
 	_, err := io.ReadFull(rand.Reader, secretKey)
 	require.NoError(t, err)
 	adapter := NewMockRedisAdapter(WithEncryption(string(secretKey)))
-	myAccessToken := models.OauthToken{
+	myAccessToken := models.AuthToken{
 		ID:        "12345",
 		Value:     "6789",
 		ExpiresAt: time.Now().Add(time.Hour * 24),
