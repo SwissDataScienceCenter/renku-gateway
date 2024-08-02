@@ -1,6 +1,7 @@
 package sessions
 
 import (
+	"log/slog"
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
@@ -29,6 +30,7 @@ func (sm *SessionMakerImpl) NewSession() (Session, error) {
 		MaxTTLSeconds:  models.SerializableInt(sm.maxSessionTTLSeconds),
 	}
 	session.ExpiresAt = session.ExpiresAt.Add(session.IdleTTL())
+	slog.Info("NEW SESSION", "session", session)
 	return session, nil
 }
 

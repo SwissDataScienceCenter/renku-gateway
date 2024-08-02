@@ -26,6 +26,8 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 					"SESSION MIDDLEWARE",
 					"message",
 					"could not load session",
+					"error",
+					loadErr,
 					"requestID",
 					c.Request().Header.Get("X-Request-ID"),
 				)
@@ -39,6 +41,8 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 					"SESSION MIDDLEWARE",
 					"message",
 					"could not save session",
+					"error",
+					saveErr,
 					"sessionID",
 					session.ID,
 					"requestID",
