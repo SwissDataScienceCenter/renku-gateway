@@ -12,9 +12,11 @@ import (
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/db"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/login"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
+
+	// "github.com/SwissDataScienceCenter/renku-gateway/internal/db"
+	// "github.com/SwissDataScienceCenter/renku-gateway/internal/login"
+	// "github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/revproxy"
 	"github.com/getsentry/sentry-go"
 	sentryecho "github.com/getsentry/sentry-go/echo"
@@ -25,14 +27,6 @@ import (
 )
 
 func main() {
-	// Setup
-	e := echo.New()
-	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
-	e.Use(middleware.Recover())
-	// The banner and the port do not respect the logger formatting we set below so we remove them
-	// the port will be logged further down when the server starts.
-	e.HideBanner = true
-	e.HidePort = true
 	// Logging setup
 	slog.SetDefault(jsonLogger)
 	// Load configuration
@@ -48,6 +42,17 @@ func main() {
 		slog.Error("the config validation failed", "error", err)
 		os.Exit(1)
 	}
+	// Create session handler
+	sessionHandler := sessions.NewSessionHandler()
+	// Setup
+	e := echo.New()
+	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
+	e.Use(middleware.Recover(), sessionHandler.Middleware())
+	// The banner and the port do not respect the logger formatting we set below so we remove them
+	// the port will be logged further down when the server starts.
+	e.HideBanner = true
+	e.HidePort = true
+	// Handle configuration changes
 	ch.Watch()
 	var restart bool = false
 	ch.HandleChanges(func(c config.Config, err error) {
@@ -73,28 +78,30 @@ func main() {
 	e.GET("/version", func(c echo.Context) error {
 		return c.String(http.StatusOK, version)
 	})
-	// Initialize shared models like db adapter
-	dbOptions := []db.RedisAdapterOption{db.WithRedisConfig(gwConfig.Redis)}
-	if gwConfig.Login.TokenEncryption.Enabled && gwConfig.Login.TokenEncryption.SecretKey != "" {
-		dbOptions = append(dbOptions, db.WithEcryption(string(gwConfig.Login.TokenEncryption.SecretKey)))
-	}
-	dbAdapter, err := db.NewRedisAdapter(dbOptions...)
-	if err != nil {
-		slog.Error("DB adapter initialization failed", "error", err)
-		os.Exit(1)
-	}
-	sessionHandler := models.NewSessionHandler(models.WithSessionStore(&dbAdapter), models.WithTokenStore(&dbAdapter))
-	// Initialize the reverse proxy
-	revproxy := revproxy.NewServer(&gwConfig.Revproxy)
-	revProxyMiddlewares := append(commonMiddlewares, sessionHandler.Middleware())
-	revproxy.RegisterHandlers(e, revProxyMiddlewares...)
-	// Initialize login server
-	loginServer, err := login.NewLoginServer(login.WithConfig(gwConfig.Login), login.WithTokenStore(&dbAdapter), login.WithSessionStore(&dbAdapter))
-	if err != nil {
-		slog.Error("login handlers initialization failed", "error", err)
-		os.Exit(1)
-	}
-	loginServer.RegisterHandlers(e, commonMiddlewares...)
+
+	// // Initialize shared models like db adapter
+	// dbOptions := []db.RedisAdapterOption{db.WithRedisConfig(gwConfig.Redis)}
+	// if gwConfig.Login.TokenEncryption.Enabled && gwConfig.Login.TokenEncryption.SecretKey != "" {
+	// 	dbOptions = append(dbOptions, db.WithEcryption(string(gwConfig.Login.TokenEncryption.SecretKey)))
+	// }
+	// dbAdapter, err := db.NewRedisAdapter(dbOptions...)
+	// if err != nil {
+	// 	slog.Error("DB adapter initialization failed", "error", err)
+	// 	os.Exit(1)
+	// }
+	// sessionHandler := models.NewSessionHandler(models.WithSessionStore(&dbAdapter), models.WithTokenStore(&dbAdapter))
+	// // Initialize the reverse proxy
+	// revproxy := revproxy.NewServer(&gwConfig.Revproxy)
+	// revProxyMiddlewares := append(commonMiddlewares, sessionHandler.Middleware())
+	// revproxy.RegisterHandlers(e, revProxyMiddlewares...)
+	// // Initialize login server
+	// loginServer, err := login.NewLoginServer(login.WithConfig(gwConfig.Login), login.WithTokenStore(&dbAdapter), login.WithSessionStore(&dbAdapter))
+	// if err != nil {
+	// 	slog.Error("login handlers initialization failed", "error", err)
+	// 	os.Exit(1)
+	// }
+	// loginServer.RegisterHandlers(e, commonMiddlewares...)
+
 	// Rate limiting
 	if gwConfig.Server.RateLimits.Enabled {
 		e.Use(middleware.RateLimiter(
