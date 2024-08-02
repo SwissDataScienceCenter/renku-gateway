@@ -26,12 +26,18 @@ func (r RedactedString) MarshalBinary() ([]byte, error) {
 }
 
 type Config struct {
+	RunningEnvironment
 	Server     ServerConfig
 	Revproxy   RevproxyConfig
 	Login      LoginConfig
 	Redis      RedisConfig
 	Monitoring MonitoringConfig
 }
+
+type RunningEnvironment string
+
+const Development RunningEnvironment = "development"
+const Production RunningEnvironment = "production"
 
 type DBAdapter interface {
 	models.AccessTokenGetter
@@ -52,7 +58,7 @@ var CLISessionCookieOpt = models.WithCookieTemplate(http.Cookie{Name: "_renku_cl
 var UISessionCookieOpt = models.WithCookieTemplate(http.Cookie{Name: "_renku_ui_session", Secure: true, HttpOnly: true, Path: "/"})
 
 func (c *Config) Validate() error {
-	err := c.Login.Validate()
+	err := c.Login.Validate(c.RunningEnvironment)
 	if err != nil {
 		return err
 	}
