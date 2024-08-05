@@ -5,6 +5,7 @@ import (
 	"encoding"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/db"
@@ -18,6 +19,8 @@ import (
 const (
 	sessionPrefix string = "session"
 )
+
+const expiresAtLeeway time.Duration = 10 * time.Second
 
 type RedisAdapterNew struct {
 	rdb       db.LimitedRedisClient
@@ -55,7 +58,7 @@ func (r RedisAdapterNew) SetSession(ctx context.Context, session sessions.Sessio
 	if err != nil {
 		return nil
 	}
-	return r.rdb.PExpireAt(ctx, key, session.ExpiresAt).Err()
+	return r.rdb.PExpireAt(ctx, key, session.ExpiresAt.Add(expiresAtLeeway)).Err()
 }
 
 func (r RedisAdapterNew) RemoveSession(ctx context.Context, sessionID string) error {
