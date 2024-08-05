@@ -188,14 +188,16 @@ type SessionHandlerOption func(*SessionHandler) error
 // 	}
 // }
 
-func WithConfig(c config.SessionConfig, e config.RunningEnvironment) SessionHandlerOption {
+func WithSessionStore(store SessionStore2) SessionHandlerOption {
+	return func(sh *SessionHandler) error {
+		sh.sessionStore = store
+		return nil
+	}
+}
+
+func WithConfig(c config.SessionConfig) SessionHandlerOption {
 	return func(sh *SessionHandler) error {
 		sh.sessionMaker = NewSessionMaker(WithIdleSessionTTLSeconds(c.IdleSessionTTLSeconds), WithMaxSessionTTLSeconds(c.MaxSessionTTLSeconds))
-		store := NewInMemorySessionStore()
-		sh.sessionStore = &store
-
-		// TODO: fail if in memory store and production
-
 		return nil
 	}
 }

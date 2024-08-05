@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/dbnew"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 
 	// "github.com/SwissDataScienceCenter/renku-gateway/internal/db"
@@ -42,8 +43,18 @@ func main() {
 		slog.Error("the config validation failed", "error", err)
 		os.Exit(1)
 	}
+	// Initialize the db adapters
+	dbOptions := []dbnew.RedisAdapterNewOption{dbnew.WithRedisConfig(gwConfig.Redis)}
+	if gwConfig.Login.TokenEncryption.Enabled && gwConfig.Login.TokenEncryption.SecretKey != "" {
+		dbOptions = append(dbOptions, dbnew.WithEcryption(string(gwConfig.Login.TokenEncryption.SecretKey)))
+	}
+	dbAdapter, err := dbnew.NewRedisAdapterNew(dbOptions...)
+	if err != nil {
+		slog.Error("DB adapter initialization failed", "error", err)
+		os.Exit(1)
+	}
 	// Create session handler
-	sessionHandler, err := sessions.NewSessionHandler(sessions.WithConfig(gwConfig.Session, gwConfig.RunningEnvironment))
+	sessionHandler, err := sessions.NewSessionHandler(sessions.WithSessionStore(dbAdapter), sessions.WithConfig(gwConfig.Session))
 	if err != nil {
 		slog.Error("failed to initialize sessions", "error", err)
 		os.Exit(1)

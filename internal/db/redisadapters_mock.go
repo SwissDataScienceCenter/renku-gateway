@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -151,5 +152,11 @@ func (m *MockRedisClient) ZRangeArgsWithScores(_ context.Context, zrange redis.Z
 	}
 	output := redis.ZSliceCmd{}
 	output.SetVal(res)
+	return &output
+}
+
+func (m *MockRedisClient) PExpireAt(ctx context.Context, key string, tm time.Time) *redis.BoolCmd {
+	output := redis.BoolCmd{}
+	output.SetVal(true)
 	return &output
 }

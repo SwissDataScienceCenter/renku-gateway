@@ -36,6 +36,8 @@ type LimitedRedisClient interface {
 	ZRem(ctx context.Context, key string, members ...any) *redis.IntCmd
 	HGetAll(ctx context.Context, key string) *redis.MapStringStringCmd
 	ZRangeArgsWithScores(ctx context.Context, z redis.ZRangeArgs) *redis.ZSliceCmd
+
+	PExpireAt(ctx context.Context, key string, tm time.Time) *redis.BoolCmd
 }
 
 // RedisAdapter contains a redis client
