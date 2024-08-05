@@ -51,6 +51,29 @@ func (sh *SessionHandler) GetAccessToken(c echo.Context, session Session, provid
 	return token, nil
 }
 
+func (sh *SessionHandler) SaveTokens(c echo.Context, session Session, tokens AuthTokenSet) error {
+	err := tokens.ValidateTokensType()
+	if err != nil {
+		return err
+	}
+	// Update the session's token IDs
+	providerID := tokens.AccessToken.ProviderID
+	session.TokenIDs[providerID] = tokens.AccessToken.ID
+	err = sh.tokenStore.SetAccessToken(c.Request().Context(), tokens.AccessToken)
+	if err != nil {
+		return err
+	}
+	err = sh.tokenStore.SetRefreshToken(c.Request().Context(), tokens.RefreshToken)
+	if err != nil {
+		return err
+	}
+	err = sh.tokenStore.SetIDToken(c.Request().Context(), tokens.IDToken)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (SessionHandler) accessTokenKey(tokenID string) string {
 	return AccessTokenCtxKey + ":" + tokenID
 }

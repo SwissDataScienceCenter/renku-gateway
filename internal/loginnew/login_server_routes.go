@@ -37,6 +37,49 @@ func (l *LoginServer2) GetLogin(c echo.Context, params login.GetLoginParams) err
 	return l.nextAuthStep(c, session)
 }
 
+func (l *LoginServer2) GetCallback(c echo.Context, params login.GetCallbackParams) error {
+	// Load both the regular and the cli session (if present), see which fits
+	state := c.Request().URL.Query().Get("state")
+	if state == "" {
+		return fmt.Errorf("a state parameter is required")
+	}
+	session, err := l.sessionHandler.Get(c)
+	if err != nil {
+		return err
+	}
+	sessionState := session.LoginState
+	if state != sessionState {
+		return fmt.Errorf("state cannot be found in the existing session")
+	}
+	// Load the provider from the session
+	if len(session.LoginSequence) == 0 {
+		return fmt.Errorf("login sequence is invalid")
+	}
+	providerID := session.LoginSequence[0]
+	session.LoginSequence = session.LoginSequence[1:]
+	provider, found := l.providerStore[providerID]
+	if !found {
+		return fmt.Errorf("provider not found %s", providerID)
+	}
+	tokenCallback := func(accessToken, refreshToken, idToken models.AuthToken) error {
+		// Clear the state value before saving the tokens
+		session.LoginState = ""
+		return l.sessionHandler.SaveTokens(c, session, sessions.AuthTokenSet{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+			IDToken:      idToken,
+		})
+	}
+	// Exchange the authorization code for credentials
+	err = echo.WrapHandler(provider.CodeExchangeHandler(tokenCallback))(c)
+	if err != nil {
+		slog.Error("code exchange handler failed", "error", err, "requestID", c.Request().Header.Get("X-Request-ID"))
+		return err
+	}
+	// Continue to the next authentication step
+	return l.nextAuthStep(c, session)
+}
+
 // nextAuthStep sets up the beginning of the oauth flow and ends with
 // the redirect of the user to the Provider's login and authorization page.
 // Adapted from oauth2-proxy code.
@@ -69,46 +112,4 @@ func (l *LoginServer2) nextAuthStep(
 	}
 	err = echo.WrapHandler(handler)(c)
 	return err
-}
-
-func (l *LoginServer2) GetCallback(c echo.Context, params login.GetCallbackParams) error {
-	// Load both the regular and the cli session (if present), see which fits
-	state := c.Request().URL.Query().Get("state")
-	if state == "" {
-		return fmt.Errorf("a state parameter is required")
-	}
-	session, err := l.sessionHandler.Get(c)
-	if err != nil {
-		return err
-	}
-	sessionState := session.LoginState
-	if state != sessionState {
-		return fmt.Errorf("state cannot be found in the existing session")
-	}
-	// Load the provider from the session
-	if len(session.LoginSequence) == 0 {
-		return fmt.Errorf("login sequence is invalid")
-	}
-	providerID := session.LoginSequence[0]
-	session.LoginSequence = session.LoginSequence[1:]
-	provider, found := l.providerStore[providerID]
-	if !found {
-		return fmt.Errorf("provider not found %s", providerID)
-	}
-	tokenCallback := func(accessToken, refreshToken, idToken models.AuthToken) error {
-		// TODO
-		// Update the session's token IDs
-		session.TokenIDs[providerID] = accessToken.ID
-		// Clear the state value
-		session.LoginState = ""
-		return nil
-	}
-	// Exchange the authorization code for credentials
-	err = echo.WrapHandler(provider.CodeExchangeHandler(tokenCallback))(c)
-	if err != nil {
-		slog.Error("code exchange handler failed", "error", err, "requestID", c.Request().Header.Get("X-Request-ID"))
-		return err
-	}
-	// Continue to the next authentication step
-	return l.nextAuthStep(c, session)
 }

@@ -9,13 +9,13 @@ import (
 type TokenStore2 interface {
 	AccessTokenGetter
 	AccessTokenSetter
-	AccessTokenRemover
-	RefreshTokenGetter
+	// AccessTokenRemover
+	// RefreshTokenGetter
 	RefreshTokenSetter
-	RefreshTokenRemover
-	IDTokenGetter
+	// RefreshTokenRemover
+	// IDTokenGetter
 	IDTokenSetter
-	IDTokenRemover
+	// IDTokenRemover
 }
 
 type AccessTokenGetter interface {
@@ -23,7 +23,7 @@ type AccessTokenGetter interface {
 }
 
 type AccessTokenSetter interface {
-	SetAccessToken(ctx context.Context, token models.AuthToken) (models.AuthToken, error)
+	SetAccessToken(ctx context.Context, token models.AuthToken) error
 }
 
 type AccessTokenRemover interface {
@@ -35,7 +35,7 @@ type RefreshTokenGetter interface {
 }
 
 type RefreshTokenSetter interface {
-	SetRefreshToken(ctx context.Context, token models.AuthToken) (models.AuthToken, error)
+	SetRefreshToken(ctx context.Context, token models.AuthToken) error
 }
 
 type RefreshTokenRemover interface {
@@ -47,7 +47,7 @@ type IDTokenGetter interface {
 }
 
 type IDTokenSetter interface {
-	SetIDToken(ctx context.Context, token models.AuthToken) (models.AuthToken, error)
+	SetIDToken(ctx context.Context, token models.AuthToken) error
 }
 
 type IDTokenRemover interface {
