@@ -5,6 +5,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// GetSession retrieves a session from the current context
 func GetSession(key string, c echo.Context) (Session, error) {
 	sessionRaw := c.Get(key)
 	if sessionRaw != nil {

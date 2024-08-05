@@ -12,8 +12,9 @@ import (
 )
 
 type SessionHandler struct {
-	sessionMaker SessionMaker
-	sessionStore SessionStore2
+	cookieTemplate func() http.Cookie
+	sessionMaker   SessionMaker
+	sessionStore   SessionStore2
 }
 
 func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
@@ -74,14 +75,8 @@ func (sh *SessionHandler) Create(c echo.Context) (Session, error) {
 	if err != nil {
 		return Session{}, err
 	}
-	c.SetCookie(&http.Cookie{
-		Name:     SessionCookieName,
-		Value:    session.ID,
-		Secure:   true,
-		HttpOnly: true,
-		Path:     "/",
-		Expires:  session.ExpiresAt,
-	})
+	cookie := sh.Cookie(session)
+	c.SetCookie(&cookie)
 	return session, nil
 }
 
@@ -173,6 +168,12 @@ func (sh *SessionHandler) Save(c echo.Context) error {
 	return err
 }
 
+func (sh *SessionHandler) Cookie(session Session) http.Cookie {
+	cookie := sh.cookieTemplate()
+	cookie.Value = session.ID
+	return cookie
+}
+
 type SessionHandlerOption func(*SessionHandler) error
 
 // func WithConfig(loginConfig config.LoginConfig) LoginServerOption {
@@ -200,9 +201,21 @@ func WithConfig(c config.SessionConfig, e config.RunningEnvironment) SessionHand
 }
 
 func NewSessionHandler(options ...SessionHandlerOption) (SessionHandler, error) {
-	sh := SessionHandler{}
+	sh := SessionHandler{
+		cookieTemplate: func() http.Cookie {
+			return http.Cookie{
+				Name:     SessionCookieName,
+				Path:     "/",
+				Secure:   true,
+				HttpOnly: true,
+				SameSite: http.SameSiteLaxMode}
+		},
+	}
 	for _, opt := range options {
 		opt(&sh)
+	}
+	if sh.cookieTemplate == nil {
+		return SessionHandler{}, fmt.Errorf("cookie template is not initialized")
 	}
 	if sh.sessionMaker == nil {
 		return SessionHandler{}, fmt.Errorf("session maker is not initialized")
