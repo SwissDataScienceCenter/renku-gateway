@@ -9,13 +9,13 @@ type SessionStore2 interface {
 }
 
 type SessionGetter interface {
-	GetSession(context.Context, string) (Session, error)
+	GetSession(ctx context.Context, sessionID string) (Session, error)
 }
 
 type SessionSetter interface {
-	SetSession(context.Context, Session) error
+	SetSession(ctx context.Context, session Session) error
 }
 
 type SessionRemover interface {
-	RemoveSession(context.Context, string) error
+	RemoveSession(ctx context.Context, sessionID string) error
 }

@@ -7,3 +7,5 @@ const SessionHeaderKey = "Renku-Session"
 const CliSessionCookieName = "_renku_cli_session"
 const CliSessionCtxKey = "renku_cli_session"
 const CliSessionHeaderKey = "Renku-Cli-Session"
+
+const AccessTokenCtxKey = "access_token"

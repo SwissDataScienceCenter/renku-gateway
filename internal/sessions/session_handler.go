@@ -15,13 +15,14 @@ type SessionHandler struct {
 	cookieTemplate func() http.Cookie
 	sessionMaker   SessionMaker
 	sessionStore   SessionStore2
+	tokenStore     TokenStore2
 }
 
 func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			slog.Info("SessionHandler: before")
-			session, loadErr := sh.LoadOrCreate(c)
+			session, loadErr := sh.Get(c)
 			if loadErr != nil {
 				slog.Info(
 					"SESSION MIDDLEWARE",
@@ -66,26 +67,9 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 	}
 }
 
-func (sh *SessionHandler) Get(c echo.Context) (Session, error) {
-	return GetSession(SessionCtxKey, c)
-}
-
-func (sh *SessionHandler) Create(c echo.Context) (Session, error) {
-	session, err := sh.sessionMaker.NewSession()
-	if err != nil {
-		return Session{}, err
-	}
-	cookie := sh.Cookie(session)
-	c.SetCookie(&cookie)
-	return session, nil
-}
-
-func (sh *SessionHandler) Load(c echo.Context) (Session, error) {
-	if sh.sessionStore == nil {
-		return Session{}, fmt.Errorf("cannot load a session when the session store is not defined")
-	}
-	// check if the session is already in the request context
-	sessionRaw := c.Get(SessionCtxKey)
+// GetFromContext retrieves a session from the current context
+func (sh *SessionHandler) GetFromContext(key string, c echo.Context) (Session, error) {
+	sessionRaw := c.Get(key)
 	if sessionRaw != nil {
 		session, ok := sessionRaw.(Session)
 		if !ok {
@@ -94,6 +78,15 @@ func (sh *SessionHandler) Load(c echo.Context) (Session, error) {
 		if session.Expired() {
 			return Session{}, gwerrors.ErrSessionExpired
 		}
+		return session, nil
+	}
+	return Session{}, gwerrors.ErrSessionNotFound
+}
+
+func (sh *SessionHandler) Get(c echo.Context) (Session, error) {
+	// check if the session is already in the request context
+	session, err := sh.GetFromContext(SessionCtxKey, c)
+	if err == nil {
 		return session, nil
 	}
 
@@ -109,7 +102,7 @@ func (sh *SessionHandler) Load(c echo.Context) (Session, error) {
 	sessionID = cookie.Value
 
 	// load the session from the store
-	session, err := sh.sessionStore.GetSession(c.Request().Context(), sessionID)
+	session, err = sh.sessionStore.GetSession(c.Request().Context(), sessionID)
 	if err != nil {
 		if err == redis.Nil {
 			return Session{}, gwerrors.ErrSessionNotFound
@@ -124,30 +117,23 @@ func (sh *SessionHandler) Load(c echo.Context) (Session, error) {
 	return session, nil
 }
 
-func (sh *SessionHandler) LoadOrCreate(c echo.Context) (Session, error) {
-	session, err := sh.Load(c)
+func (sh *SessionHandler) Create(c echo.Context) (Session, error) {
+	session, err := sh.sessionMaker.NewSession()
+	if err != nil {
+		return Session{}, err
+	}
+	cookie := sh.Cookie(session)
+	c.SetCookie(&cookie)
+	return session, nil
+}
+
+func (sh *SessionHandler) GetOrCreate(c echo.Context) (Session, error) {
+	session, err := sh.Get(c)
 	if err != nil {
 		switch err {
 		case gwerrors.ErrSessionExpired:
-			// if !sh.recreateSessionIfExpired {
-			// 	return next(c)
-			// }
-			// _, err := s.Create(c)
-			// if err != nil {
-			// 	return err
-			// }
-			// return next(c)
 			return sh.Create(c)
-
 		case gwerrors.ErrSessionNotFound:
-			// if !s.createSessionIfMissing {
-			// 	return next(c)
-			// }
-			// _, err := s.Create(c)
-			// if err != nil {
-			// 	return err
-			// }
-			// return next(c)
 			return sh.Create(c)
 		default:
 			return Session{}, err
@@ -157,9 +143,6 @@ func (sh *SessionHandler) LoadOrCreate(c echo.Context) (Session, error) {
 }
 
 func (sh *SessionHandler) Save(c echo.Context) error {
-	if sh.sessionStore == nil {
-		return fmt.Errorf("cannot save a session when the session store is not defined")
-	}
 	session, err := sh.Get(c)
 	if err != nil {
 		return err
@@ -195,6 +178,13 @@ func WithSessionStore(store SessionStore2) SessionHandlerOption {
 	}
 }
 
+func WithTokenStore(store TokenStore2) SessionHandlerOption {
+	return func(sh *SessionHandler) error {
+		sh.tokenStore = store
+		return nil
+	}
+}
+
 func WithConfig(c config.SessionConfig) SessionHandlerOption {
 	return func(sh *SessionHandler) error {
 		sh.sessionMaker = NewSessionMaker(WithIdleSessionTTLSeconds(c.IdleSessionTTLSeconds), WithMaxSessionTTLSeconds(c.MaxSessionTTLSeconds))
@@ -224,6 +214,9 @@ func NewSessionHandler(options ...SessionHandlerOption) (SessionHandler, error) 
 	}
 	if sh.sessionStore == nil {
 		return SessionHandler{}, fmt.Errorf("session store is not initialized")
+	}
+	if sh.tokenStore == nil {
+		return SessionHandler{}, fmt.Errorf("token store is not initialized")
 	}
 	return sh, nil
 }

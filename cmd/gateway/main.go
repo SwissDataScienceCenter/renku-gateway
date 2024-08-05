@@ -54,7 +54,11 @@ func main() {
 		os.Exit(1)
 	}
 	// Create session handler
-	sessionHandler, err := sessions.NewSessionHandler(sessions.WithSessionStore(dbAdapter), sessions.WithConfig(gwConfig.Session))
+	sessionHandler, err := sessions.NewSessionHandler(
+		sessions.WithSessionStore(dbAdapter),
+		sessions.WithTokenStore(dbAdapter),
+		sessions.WithConfig(gwConfig.Session),
+	)
 	if err != nil {
 		slog.Error("failed to initialize sessions", "error", err)
 		os.Exit(1)

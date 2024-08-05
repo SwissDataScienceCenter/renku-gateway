@@ -15,6 +15,8 @@ type Session struct {
 	ExpiresAt      time.Time
 	IdleTTLSeconds models.SerializableInt
 	MaxTTLSeconds  models.SerializableInt
+	// Map of providerID to tokenID
+	TokenIDs models.SerializableMap
 }
 
 func (s *Session) Expired() bool {
