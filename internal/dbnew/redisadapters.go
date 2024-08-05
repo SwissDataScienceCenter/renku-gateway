@@ -30,7 +30,7 @@ func (r RedisAdapterNew) GetSession(ctx context.Context, sessionID string) (sess
 	// then this is deserialized as an empty (zero-valued) struct
 	raw, err := r.rdb.HGetAll(
 		ctx,
-		sessionPrefix+sessionID,
+		r.sessionKey(sessionID),
 	).Result()
 	if err != nil {
 		return output, err
@@ -46,7 +46,7 @@ func (r RedisAdapterNew) GetSession(ctx context.Context, sessionID string) (sess
 }
 
 func (r RedisAdapterNew) SetSession(ctx context.Context, session sessions.Session) error {
-	key := r.sessionKey(session)
+	key := r.sessionKey(session.ID)
 	err := r.rdb.HSet(
 		ctx,
 		key,
@@ -61,12 +61,12 @@ func (r RedisAdapterNew) SetSession(ctx context.Context, session sessions.Sessio
 func (r RedisAdapterNew) RemoveSession(ctx context.Context, sessionID string) error {
 	return r.rdb.Del(
 		ctx,
-		sessionPrefix+sessionID,
+		r.sessionKey(sessionID),
 	).Err()
 }
 
-func (RedisAdapterNew) sessionKey(session sessions.Session) string {
-	return sessionPrefix + ":" + session.ID
+func (RedisAdapterNew) sessionKey(sessionID string) string {
+	return sessionPrefix + ":" + sessionID
 }
 
 func (RedisAdapterNew) serializeStruct(strct any) []any {
