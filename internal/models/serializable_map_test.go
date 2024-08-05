@@ -8,7 +8,7 @@ import (
 )
 
 func TestSerializableMapText(t *testing.T) {
-	a := NewSerializableMap()
+	a := SerializableMap{}
 	a["A"] = "1"
 	a["B"] = "2"
 	data, err := a.MarshalText()

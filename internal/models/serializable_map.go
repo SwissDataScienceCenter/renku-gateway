@@ -7,19 +7,16 @@ import (
 type SerializableMap map[string]string
 
 func (s SerializableMap) MarshalBinary() (data []byte, err error) {
-	if s == nil {
-		s = SerializableMap(map[string]string{})
-	}
 	return json.Marshal(map[string]string(s))
 }
 
 func (s *SerializableMap) UnmarshalBinary(data []byte) error {
-	m := new(map[string]string)
-	err := json.Unmarshal(data, m)
+	var res map[string]string
+	err := json.Unmarshal(data, &res)
 	if err != nil {
 		return err
 	}
-	*s = SerializableMap(*m)
+	*s = res
 	return nil
 }
 
@@ -29,8 +26,4 @@ func (s SerializableMap) MarshalText() (data []byte, err error) {
 
 func (s *SerializableMap) UnmarshalText(data []byte) error {
 	return s.UnmarshalBinary(data)
-}
-
-func NewSerializableMap() SerializableMap {
-	return SerializableMap(map[string]string{})
 }

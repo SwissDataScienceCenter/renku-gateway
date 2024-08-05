@@ -122,6 +122,7 @@ func (sh *SessionHandler) Create(c echo.Context) (Session, error) {
 	if err != nil {
 		return Session{}, err
 	}
+	c.Set(SessionCtxKey, session)
 	cookie := sh.Cookie(session)
 	c.SetCookie(&cookie)
 	return session, nil

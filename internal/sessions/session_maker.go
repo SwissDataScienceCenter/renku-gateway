@@ -16,8 +16,6 @@ type SessionMakerImpl struct {
 	maxSessionTTLSeconds  int
 }
 
-var randomIDGenerator models.IDGenerator = models.RandomGenerator{Length: 24}
-
 func (sm *SessionMakerImpl) NewSession() (Session, error) {
 	id, err := randomIDGenerator.ID()
 	if err != nil {
