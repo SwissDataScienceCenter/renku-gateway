@@ -86,6 +86,9 @@ func (sh *SessionHandler) GetFromContext(key string, c echo.Context) (*Session, 
 	sessionRaw := c.Get(key)
 	if sessionRaw != nil {
 		session, ok := sessionRaw.(*Session)
+		if session == nil {
+			return nil, gwerrors.ErrSessionNotFound
+		}
 		if !ok {
 			return nil, gwerrors.ErrSessionParse
 		}
