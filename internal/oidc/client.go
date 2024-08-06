@@ -150,6 +150,15 @@ func (c *oidcClient) verifyTokens(ctx context.Context, accessToken, refreshToken
 	return []models.AuthToken{accessTokenParsed, refreshTokenParsed, idTokenParsed}, nil
 }
 
+// TODO
+func (c *oidcClient) RefreshAccessToken(refreshToken models.AuthToken) error {
+	_, err := rp.RefreshAccessToken(c.client, refreshToken.Value, "", "")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 type clientOption func(*oidcClient) error
 
 func withOIDCConfig(clientConfig config.OIDCClient) clientOption {

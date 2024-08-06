@@ -21,6 +21,7 @@ const (
 	accessTokenPrefix  string = "accessToken"
 	refreshTokenPrefix string = "refreshToken"
 	idTokenPrefix      string = "idToken"
+	expiringTokensKey  string = "expiringTokens"
 )
 
 const expiresAtLeeway time.Duration = 10 * time.Second
@@ -170,11 +171,11 @@ func (r RedisAdapterNew) setAuthToken(ctx context.Context, token models.AuthToke
 		return err
 	}
 
-	// if token.Type == models.AccessTokenType {
-	// 	if err := r.setToIndexExpiringTokens(ctx, token); err != nil {
-	// 		return err
-	// 	}
-	// }
+	if token.Type == models.AccessTokenType {
+		if err := r.setAccessTokenExpiry(ctx, token); err != nil {
+			return err
+		}
+	}
 
 	encToken, err := token.Encrypt(r.encryptor)
 	if err != nil {
@@ -199,6 +200,14 @@ func validateTokenType(tokenType models.OauthTokenType) error {
 	default:
 		return fmt.Errorf("unknown token type: %s", tokenType)
 	}
+}
+
+func (r RedisAdapterNew) setAccessTokenExpiry(ctx context.Context, token models.AuthToken) error {
+	z := redis.Z{
+		Score:  float64(token.ExpiresAt.Unix()),
+		Member: r.accessTokenKey(token.ID),
+	}
+	return r.rdb.ZAdd(ctx, expiringTokensKey, z).Err()
 }
 
 func (RedisAdapterNew) serializeStruct(strct any) []any {
