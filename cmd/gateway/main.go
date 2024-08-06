@@ -13,6 +13,7 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/dbnew"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/loginnew"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 
 	// "github.com/SwissDataScienceCenter/renku-gateway/internal/db"
@@ -113,13 +114,13 @@ func main() {
 	// revproxy := revproxy.NewServer(&gwConfig.Revproxy)
 	// revProxyMiddlewares := append(commonMiddlewares, sessionHandler.Middleware())
 	// revproxy.RegisterHandlers(e, revProxyMiddlewares...)
-	// // Initialize login server
-	// loginServer, err := login.NewLoginServer(login.WithConfig(gwConfig.Login), login.WithTokenStore(&dbAdapter), login.WithSessionStore(&dbAdapter))
-	// if err != nil {
-	// 	slog.Error("login handlers initialization failed", "error", err)
-	// 	os.Exit(1)
-	// }
-	// loginServer.RegisterHandlers(e, commonMiddlewares...)
+	// Initialize login server
+	loginServer, err := loginnew.NewLoginServer(loginnew.WithConfig(gwConfig.Login), loginnew.WithSessionHandler(&sessionHandler))
+	if err != nil {
+		slog.Error("login handlers initialization failed", "error", err)
+		os.Exit(1)
+	}
+	loginServer.RegisterHandlers(e, commonMiddlewares...)
 
 	// Rate limiting
 	if gwConfig.Server.RateLimits.Enabled {

@@ -31,7 +31,7 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 					"error",
 					loadErr,
 					"requestID",
-					c.Request().Header.Get("X-Request-ID"),
+					c.Request().Header.Get(echo.HeaderXRequestID),
 				)
 			}
 			c.Set(SessionCtxKey, session)
@@ -48,7 +48,7 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 					"sessionID",
 					session.ID,
 					"requestID",
-					c.Request().Header.Get("X-Request-ID"),
+					c.Request().Header.Get(echo.HeaderXRequestID),
 				)
 			}
 			slog.Info(
@@ -60,7 +60,7 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 				"ExpiresAt",
 				session.ExpiresAt,
 				"requestID",
-				c.Request().Header.Get("X-Request-ID"),
+				c.Request().Header.Get(echo.HeaderXRequestID),
 			)
 			return err
 		}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/login"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/oidc"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/labstack/echo/v4"
@@ -19,6 +20,17 @@ func (l *LoginServer2) RegisterHandlers(server *echo.Echo, commonMiddlewares ...
 	e := server.Group(l.config.EndpointsBasePath)
 	e.Use(commonMiddlewares...)
 
+	wrapper := login.ServerInterfaceWrapper{Handler: l}
+	e.GET(
+		"/login",
+		wrapper.GetLogin,
+		login.NoCaching,
+	)
+	e.GET(
+		"/callback",
+		wrapper.GetCallback,
+		login.NoCaching,
+	)
 }
 
 type LoginServer2Option func(*LoginServer2) error

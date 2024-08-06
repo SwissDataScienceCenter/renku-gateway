@@ -113,3 +113,34 @@ func (l *LoginServer2) nextAuthStep(
 	err = echo.WrapHandler(handler)(c)
 	return err
 }
+
+// TODO
+
+func (l *LoginServer2) GetLogout(c echo.Context, params login.GetLogoutParams) error {
+	return fmt.Errorf("not implemented")
+}
+
+func (*LoginServer2) GetHealth(c echo.Context) error {
+	return c.String(http.StatusOK, "Running")
+}
+
+func (*LoginServer2) PostLogout(c echo.Context) error {
+	return fmt.Errorf("not implemented")
+}
+
+func (l *LoginServer2) PostDeviceLogin(c echo.Context) error {
+	return fmt.Errorf("not implemented")
+}
+
+// The CLI tells to user to go here to start the login flow
+func (l *LoginServer2) GetDeviceLogin(c echo.Context, params login.GetDeviceLoginParams) error {
+	return fmt.Errorf("not implemented")
+}
+
+func (l *LoginServer2) PostDeviceToken(c echo.Context) error {
+	return fmt.Errorf("not implemented")
+}
+
+func (l *LoginServer2) PostDeviceLogout(c echo.Context) error {
+	return fmt.Errorf("not implemented")
+}
