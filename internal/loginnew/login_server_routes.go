@@ -17,6 +17,19 @@ func (l *LoginServer2) GetLogin(c echo.Context, params login.GetLoginParams) err
 	if err != nil {
 		return err
 	}
+	slog.Info(
+		"GetLogin",
+		"message",
+		"session print",
+		"session",
+		session.ID,
+		"ExpiresAt",
+		session.ExpiresAt,
+		"sessionData",
+		session,
+		"requestID",
+		c.Response().Header().Get(echo.HeaderXRequestID),
+	)
 	// Check redirect parameters
 	var appRedirectURL string
 	if params.RedirectUrl != nil && *params.RedirectUrl != "" {
@@ -119,6 +132,19 @@ func (l *LoginServer2) nextAuthStep(
 		return err
 	}
 	err = echo.WrapHandler(handler)(c)
+	slog.Info(
+		"nextAuthStep",
+		"message",
+		"session print",
+		"session",
+		session.ID,
+		"ExpiresAt",
+		session.ExpiresAt,
+		"sessionData",
+		session,
+		"requestID",
+		c.Response().Header().Get(echo.HeaderXRequestID),
+	)
 	return err
 }
 

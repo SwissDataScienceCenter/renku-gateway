@@ -27,6 +27,9 @@ func (sh *SessionHandler) GetAccessTokenFromContext(key string, c echo.Context) 
 }
 
 func (sh *SessionHandler) GetAccessToken(c echo.Context, session Session, providerID string) (models.AuthToken, error) {
+	if session.TokenIDs == nil {
+		session.TokenIDs = models.SerializableMap{}
+	}
 	tokenID, tokenExists := session.TokenIDs[providerID]
 	if !tokenExists {
 		return models.AuthToken{}, gwerrors.ErrTokenNotFound
@@ -58,6 +61,9 @@ func (sh *SessionHandler) SaveTokens(c echo.Context, session *Session, tokens Au
 	}
 	// Update the session's token IDs
 	providerID := tokens.AccessToken.ProviderID
+	if session.TokenIDs == nil {
+		session.TokenIDs = models.SerializableMap{}
+	}
 	session.TokenIDs[providerID] = tokens.AccessToken.ID
 	err = sh.tokenStore.SetAccessToken(c.Request().Context(), tokens.AccessToken)
 	if err != nil {
