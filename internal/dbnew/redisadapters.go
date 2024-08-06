@@ -17,7 +17,10 @@ import (
 )
 
 const (
-	sessionPrefix string = "session"
+	sessionPrefix      string = "session"
+	accessTokenPrefix  string = "accessToken"
+	refreshTokenPrefix string = "refreshToken"
+	idTokenPrefix      string = "idToken"
 )
 
 const expiresAtLeeway time.Duration = 10 * time.Second
@@ -70,6 +73,132 @@ func (r RedisAdapterNew) RemoveSession(ctx context.Context, sessionID string) er
 
 func (RedisAdapterNew) sessionKey(sessionID string) string {
 	return sessionPrefix + ":" + sessionID
+}
+
+// GetAccessToken reads the associated ID, access token value, expiration, tokenID and refresh URL
+// of an access token from Redis
+func (r RedisAdapterNew) GetAccessToken(ctx context.Context, tokenID string) (models.AuthToken, error) {
+	return r.getAuthToken(ctx, r.accessTokenKey(tokenID))
+}
+
+// GetRefreshToken reads the associated ID, refresh token value, expiration and tokenID of a refresh token from Redis
+func (r RedisAdapterNew) GetRefreshToken(ctx context.Context, tokenID string) (models.AuthToken, error) {
+	return r.getAuthToken(ctx, r.refreshTokenKey(tokenID))
+}
+
+func (r RedisAdapterNew) GetIDToken(ctx context.Context, tokenID string) (models.AuthToken, error) {
+	return r.getAuthToken(ctx, r.idTokenKey(tokenID))
+}
+
+// SetAccessToken writes the associated ID, access token value, expiration, tokenID and refresh URL
+// of an access token to Redis.
+func (r RedisAdapterNew) SetAccessToken(ctx context.Context, token models.AuthToken) error {
+	if token.Type != models.AccessTokenType {
+		return fmt.Errorf("token is not of the right type")
+	}
+	return r.setAuthToken(ctx, token)
+}
+
+// SetRefreshToken writes the associated ID, access token value, expiration and tokenID of a refresh token to Redis
+func (r RedisAdapterNew) SetRefreshToken(ctx context.Context, refreshToken models.AuthToken) error {
+	if refreshToken.Type != models.RefreshTokenType {
+		return fmt.Errorf("token is not of the right type")
+	}
+	return r.setAuthToken(ctx, refreshToken)
+}
+
+func (r RedisAdapterNew) SetIDToken(ctx context.Context, idToken models.AuthToken) error {
+	if idToken.Type != models.IDTokenType {
+		return fmt.Errorf("token is not of the right type")
+	}
+	return r.setAuthToken(ctx, idToken)
+}
+
+func (RedisAdapterNew) accessTokenKey(tokenID string) string {
+	return accessTokenPrefix + ":" + tokenID
+}
+
+func (RedisAdapterNew) refreshTokenKey(tokenID string) string {
+	return refreshTokenPrefix + ":" + tokenID
+}
+
+func (RedisAdapterNew) idTokenKey(tokenID string) string {
+	return idTokenPrefix + ":" + tokenID
+}
+
+func (r RedisAdapterNew) getTokenKey(token models.AuthToken) string {
+	switch token.Type {
+	case models.AccessTokenType:
+		return r.accessTokenKey(token.ID)
+	case models.RefreshTokenType:
+		return r.refreshTokenKey(token.ID)
+	case models.IDTokenType:
+		return r.idTokenKey(token.ID)
+	default:
+		return "unknown:" + token.ID
+	}
+}
+
+// getAuthToken reads a specific token from redis, decrypting if necessary.
+func (r RedisAdapterNew) getAuthToken(ctx context.Context, key string) (models.AuthToken, error) {
+	output := models.AuthToken{}
+	raw, err := r.rdb.HGetAll(
+		ctx,
+		key,
+	).Result()
+	if err != nil {
+		return output, err
+	}
+
+	err = r.deserializeToStruct(raw, &output)
+	if err != nil {
+		if err == gwerrors.ErrMissingDBResource {
+			err = gwerrors.ErrTokenNotFound
+		}
+		return models.AuthToken{}, err
+	}
+
+	decToken, err := output.Decrypt(r.encryptor)
+	if err != nil {
+		return models.AuthToken{}, err
+	}
+	return decToken, nil
+}
+func (r RedisAdapterNew) setAuthToken(ctx context.Context, token models.AuthToken) error {
+	err := validateTokenType(token.Type)
+	if err != nil {
+		return err
+	}
+
+	// if token.Type == models.AccessTokenType {
+	// 	if err := r.setToIndexExpiringTokens(ctx, token); err != nil {
+	// 		return err
+	// 	}
+	// }
+
+	encToken, err := token.Encrypt(r.encryptor)
+	if err != nil {
+		return err
+	}
+
+	return r.rdb.HSet(
+		ctx,
+		r.getTokenKey(token),
+		r.serializeStruct(encToken)...,
+	).Err()
+}
+
+func validateTokenType(tokenType models.OauthTokenType) error {
+	switch tokenType {
+	case models.AccessTokenType:
+		return nil
+	case models.RefreshTokenType:
+		return nil
+	case models.IDTokenType:
+		return nil
+	default:
+		return fmt.Errorf("unknown token type: %s", tokenType)
+	}
 }
 
 func (RedisAdapterNew) serializeStruct(strct any) []any {
