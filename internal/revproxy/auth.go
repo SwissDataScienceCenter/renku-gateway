@@ -9,18 +9,19 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 )
 
 type AuthOption func(*Auth)
 
-type TokenHandler func(c echo.Context, token models.AuthToken) error
+type TokenInjector func(c echo.Context, token models.AuthToken) error
 
 func InjectInHeader(headerKey string) AuthOption {
 	return func(a *Auth) {
-		a.tokenHandler = func(c echo.Context, token models.AuthToken) error {
-			slog.Info(
+		a.tokenInjector = func(c echo.Context, token models.AuthToken) error {
+			slog.Debug(
 				"PROXY AUTH MIDDLEWARE",
 				"message",
 				"injected token in header",
@@ -33,7 +34,7 @@ func InjectInHeader(headerKey string) AuthOption {
 				"tokenType",
 				token.Type,
 				"requestID",
-				c.Request().Header.Get("X-Request-ID"),
+				c.Response().Header().Get(echo.HeaderXRequestID),
 			)
 			c.Request().Header.Set(headerKey, token.Value)
 			return nil
@@ -43,8 +44,8 @@ func InjectInHeader(headerKey string) AuthOption {
 
 func InjectBearerToken() AuthOption {
 	return func(a *Auth) {
-		a.tokenHandler = func(c echo.Context, token models.AuthToken) error {
-			slog.Info(
+		a.tokenInjector = func(c echo.Context, token models.AuthToken) error {
+			slog.Debug(
 				"PROXY AUTH MIDDLEWARE",
 				"message",
 				"injected token in header",
@@ -57,7 +58,7 @@ func InjectBearerToken() AuthOption {
 				"tokenType",
 				token.Type,
 				"requestID",
-				c.Request().Header.Get("X-Request-ID"),
+				c.Response().Header().Get(echo.HeaderXRequestID),
 			)
 			c.Request().Header.Set(echo.HeaderAuthorization, fmt.Sprintf("Bearer %s", token.Value))
 			return nil
@@ -65,9 +66,9 @@ func InjectBearerToken() AuthOption {
 	}
 }
 
-func WithTokenHandler(handler TokenHandler) AuthOption {
+func WithTokenInjector(handler TokenInjector) AuthOption {
 	return func(a *Auth) {
-		a.tokenHandler = handler
+		a.tokenInjector = handler
 	}
 }
 
@@ -83,50 +84,73 @@ func WithTokenType(tokenType models.OauthTokenType) AuthOption {
 	}
 }
 
-// Auth generates middleware that will inject tokens in the proxied http requests
-type Auth struct {
-	tokenHandler TokenHandler
-	providerID   string
-	tokenType    models.OauthTokenType
+func AuthWithSessionHandler(sh *sessions.SessionHandler) AuthOption {
+	return func(a *Auth) {
+		a.sessionHandler = sh
+	}
 }
 
-func NewAuth(options ...AuthOption) *Auth {
+// Auth generates middleware that will inject tokens in the proxied http requests
+type Auth struct {
+	sessionHandler *sessions.SessionHandler
+	tokenInjector  TokenInjector
+	providerID     string
+	tokenType      models.OauthTokenType
+}
+
+func NewAuth(options ...AuthOption) (Auth, error) {
 	auth := Auth{providerID: "renku", tokenType: models.AccessTokenType}
 	for _, opt := range options {
 		opt(&auth)
 	}
-	return &auth
+	if auth.sessionHandler == nil {
+		return Auth{}, fmt.Errorf("session handler not initialized")
+	}
+	if auth.tokenInjector == nil {
+		return Auth{}, fmt.Errorf("token injector not initialized")
+	}
+	if auth.tokenType != models.AccessTokenType && auth.tokenType != models.RefreshTokenType && auth.tokenType != models.IDTokenType {
+		return Auth{}, fmt.Errorf("unknown token type in authentication middleware %s", auth.tokenType)
+	}
+	return auth, nil
 }
 
 func (a *Auth) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			sessionRaw := c.Get(models.SessionCtxKey)
-			if sessionRaw == nil {
-				return gwerrors.ErrSessionNotFound
+			session, err := a.sessionHandler.Get(c)
+			if err != nil {
+				slog.Debug(
+					"PROXY AUTH MIDDLEWARE",
+					"message",
+					"session not available, continuing with middleware chain",
+					"providerID",
+					a.providerID,
+					"tokenType",
+					a.tokenType,
+					"requestID",
+					c.Response().Header().Get(echo.HeaderXRequestID),
+				)
+				return next(c)
 			}
-			session, ok := sessionRaw.(models.Session)
-			if !ok {
-				return gwerrors.ErrSessionParse
-			}
+
 			var token models.AuthToken
-			var err error
 			if a.tokenType == models.AccessTokenType {
-				token, err = session.GetAccessToken(c.Request().Context(), a.providerID)
-			} else if a.tokenType == models.IDTokenType {
-				token, err = session.GetIDToken(c.Request().Context(), a.providerID)
-			} else if a.tokenType == models.RefreshTokenType {
-				token, err = session.GetRefreshToken(c.Request().Context(), a.providerID)
+				token, err = a.sessionHandler.GetAccessToken(c, *session, a.providerID)
+				// } else if a.tokenType == models.IDTokenType {
+				// token, err = session.GetIDToken(c.Request().Context(), a.providerID)
+				// } else if a.tokenType == models.RefreshTokenType {
+				// token, err = session.GetRefreshToken(c.Request().Context(), a.providerID)
 			} else {
 				return fmt.Errorf("unknown token type in authentication middleware %s", a.tokenType)
 			}
 			if err != nil {
 				switch err {
 				case gwerrors.ErrTokenNotFound:
-					slog.Info(
+					slog.Debug(
 						"PROXY AUTH MIDDLEWARE",
 						"message",
-						"token not found continuing with middleware chain",
+						"token not found, continuing with middleware chain",
 						"sessionID",
 						session.ID,
 						"providerID",
@@ -134,14 +158,14 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 						"tokenType",
 						a.tokenType,
 						"requestID",
-						c.Request().Header.Get("X-Request-ID"),
+						c.Response().Header().Get(echo.HeaderXRequestID),
 					)
 					return next(c)
 				case gwerrors.ErrTokenExpired:
-					slog.Info(
+					slog.Debug(
 						"PROXY AUTH MIDDLEWARE",
 						"message",
-						"token expired continuing with middleware chain",
+						"token expired, continuing with middleware chain",
 						"sessionID",
 						session.ID,
 						"providerID",
@@ -149,17 +173,29 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 						"tokenType",
 						a.tokenType,
 						"requestID",
-						c.Request().Header.Get("X-Request-ID"),
+						c.Response().Header().Get(echo.HeaderXRequestID),
 					)
 					return next(c)
 				default:
-					return err
+					slog.Info(
+						"PROXY AUTH MIDDLEWARE",
+						"message",
+						"token could not be loaded, continuing with middleware chain",
+						"error",
+						err,
+						"sessionID",
+						session.ID,
+						"providerID",
+						a.providerID,
+						"tokenType",
+						a.tokenType,
+						"requestID",
+						c.Response().Header().Get(echo.HeaderXRequestID),
+					)
+					return next(c)
 				}
 			}
-			if a.tokenHandler == nil {
-				return fmt.Errorf("missing token handler for the authenitcation middelware")
-			}
-			err = a.tokenHandler(c, token)
+			err = a.tokenInjector(c, token)
 			if err != nil {
 				return err
 			}
@@ -168,7 +204,7 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 	}
 }
 
-var notebooksGitlabAccessTokenHandler TokenHandler = func(c echo.Context, accessToken models.AuthToken) error {
+var notebooksGitlabAccessTokenHandler TokenInjector = func(c echo.Context, accessToken models.AuthToken) error {
 	// NOTE: As long as the token comes from the database we can trust it and do not have to validate it.
 	// Each service that the request ultimately goes to will also validate before it uses the token
 	type gitCredentials struct {
@@ -206,7 +242,7 @@ var notebooksGitlabAccessTokenHandler TokenHandler = func(c echo.Context, access
 	return nil
 }
 
-var coreSvcRenkuAccessTokenHandler TokenHandler = func(c echo.Context, accessToken models.AuthToken) error {
+var coreSvcRenkuAccessTokenHandler TokenInjector = func(c echo.Context, accessToken models.AuthToken) error {
 	extractClaim := func(claims jwt.MapClaims, key string) (string, error) {
 		valRaw, found := claims["email"]
 		if !found {
@@ -247,7 +283,7 @@ var coreSvcRenkuAccessTokenHandler TokenHandler = func(c echo.Context, accessTok
 }
 
 // Sets up Basic Auth for Gitlab
-var gitlabCliTokenHandler TokenHandler = func(c echo.Context, accessToken models.AuthToken) error {
+var gitlabCliTokenHandler TokenInjector = func(c echo.Context, accessToken models.AuthToken) error {
 	if accessToken.Value == "" {
 		return nil
 	}

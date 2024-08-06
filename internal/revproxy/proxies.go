@@ -22,7 +22,7 @@ func proxyFromURL(url *url.URL) echo.MiddlewareFunc {
 	mwconfig := middleware.ProxyConfig{
 		// the skipper is used to log only
 		Skipper: func(c echo.Context) bool {
-			slog.Info("PROXY", "requestID", c.Request().Header.Get("X-Request-ID"), "destination", url.String())
+			slog.Info("PROXY", "requestID", c.Response().Header().Get(echo.HeaderXRequestID), "destination", url.String())
 			return false
 		},
 		Balancer: middleware.NewRoundRobinBalancer([]*middleware.ProxyTarget{

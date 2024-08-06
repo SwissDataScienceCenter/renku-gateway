@@ -112,10 +112,15 @@ func main() {
 	// 	os.Exit(1)
 	// }
 	// sessionHandler := models.NewSessionHandler(models.WithSessionStore(&dbAdapter), models.WithTokenStore(&dbAdapter))
-	// // Initialize the reverse proxy
-	// revproxy := revproxy.NewServer(&gwConfig.Revproxy)
+
+	// Initialize the reverse proxy
+	revproxy, err := revproxy.NewServer(revproxy.WithConfig(gwConfig.Revproxy), revproxy.WithSessionHandler(&sessionHandler))
+	if err != nil {
+		slog.Error("revproxy handlers initialization failed", "error", err)
+		os.Exit(1)
+	}
 	// revProxyMiddlewares := append(commonMiddlewares, sessionHandler.Middleware())
-	// revproxy.RegisterHandlers(e, revProxyMiddlewares...)
+	revproxy.RegisterHandlers(e, commonMiddlewares...)
 	// Initialize login server
 	loginServer, err := loginnew.NewLoginServer(loginnew.WithConfig(gwConfig.Login), loginnew.WithSessionHandler(&sessionHandler))
 	if err != nil {

@@ -166,7 +166,10 @@ func setupTestAuthServer(
 }
 
 func setupTestRevproxy(rpConfig *config.RevproxyConfig, sh *models.SessionHandler) (*httptest.Server, *url.URL) {
-	proxy := NewServer(rpConfig)
+	proxy, err := NewServer(WithConfig(*rpConfig), WithSessionHandler(sh))
+	if err != nil {
+		log.Fatal(err)
+	}
 	e := echo.New()
 	e.Pre(middleware.RemoveTrailingSlash(), UiServerPathRewrite())
 	e.Use(middleware.Recover(), middleware.Logger())
