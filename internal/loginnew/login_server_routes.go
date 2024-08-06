@@ -80,12 +80,20 @@ func (l *LoginServer2) GetCallback(c echo.Context, params login.GetCallbackParam
 	return l.nextAuthStep(c, session)
 }
 
+func (l *LoginServer2) GetAuthTest(c echo.Context) error {
+	session, err := l.sessionHandler.Get(c)
+	if err != nil {
+		return err
+	}
+	return c.JSON(200, session)
+}
+
 // nextAuthStep sets up the beginning of the oauth flow and ends with
 // the redirect of the user to the Provider's login and authorization page.
 // Adapted from oauth2-proxy code.
 func (l *LoginServer2) nextAuthStep(
 	c echo.Context,
-	session sessions.Session,
+	session *sessions.Session,
 ) error {
 	// Get the next provider to authenticate with
 	if session.LoginSequence == nil || len(session.LoginSequence) == 0 {

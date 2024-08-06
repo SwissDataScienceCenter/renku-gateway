@@ -51,7 +51,7 @@ func (sh *SessionHandler) GetAccessToken(c echo.Context, session Session, provid
 	return token, nil
 }
 
-func (sh *SessionHandler) SaveTokens(c echo.Context, session Session, tokens AuthTokenSet) error {
+func (sh *SessionHandler) SaveTokens(c echo.Context, session *Session, tokens AuthTokenSet) error {
 	err := tokens.ValidateTokensType()
 	if err != nil {
 		return err

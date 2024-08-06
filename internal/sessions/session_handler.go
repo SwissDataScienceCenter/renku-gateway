@@ -46,7 +46,6 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 					c.Response().Header().Get(echo.HeaderXRequestID),
 				)
 			}
-
 			c.Set(SessionCtxKey, session)
 			err := next(c)
 			slog.Info("SessionHandler: after")
@@ -83,22 +82,22 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 }
 
 // GetFromContext retrieves a session from the current context
-func (sh *SessionHandler) GetFromContext(key string, c echo.Context) (Session, error) {
+func (sh *SessionHandler) GetFromContext(key string, c echo.Context) (*Session, error) {
 	sessionRaw := c.Get(key)
 	if sessionRaw != nil {
-		session, ok := sessionRaw.(Session)
+		session, ok := sessionRaw.(*Session)
 		if !ok {
-			return Session{}, gwerrors.ErrSessionParse
+			return nil, gwerrors.ErrSessionParse
 		}
 		if session.Expired() {
-			return Session{}, gwerrors.ErrSessionExpired
+			return nil, gwerrors.ErrSessionExpired
 		}
 		return session, nil
 	}
-	return Session{}, gwerrors.ErrSessionNotFound
+	return nil, gwerrors.ErrSessionNotFound
 }
 
-func (sh *SessionHandler) Get(c echo.Context) (Session, error) {
+func (sh *SessionHandler) Get(c echo.Context) (*Session, error) {
 	// check if the session is already in the request context
 	session, err := sh.GetFromContext(SessionCtxKey, c)
 	if err == nil {
@@ -110,40 +109,41 @@ func (sh *SessionHandler) Get(c echo.Context) (Session, error) {
 	cookie, err := c.Cookie(SessionCookieName)
 	if err != nil {
 		if err == http.ErrNoCookie {
-			return Session{}, gwerrors.ErrSessionNotFound
+			return nil, gwerrors.ErrSessionNotFound
 		}
-		return Session{}, err
+		return nil, err
 	}
 	sessionID = cookie.Value
 
 	// load the session from the store
-	session, err = sh.sessionStore.GetSession(c.Request().Context(), sessionID)
+	sessionFromStore, err := sh.sessionStore.GetSession(c.Request().Context(), sessionID)
 	if err != nil {
 		if err == redis.Nil {
-			return Session{}, gwerrors.ErrSessionNotFound
+			return nil, gwerrors.ErrSessionNotFound
 		} else {
-			return Session{}, err
+			return nil, err
 		}
 	}
+	session = &sessionFromStore
 	if session.Expired() {
-		return Session{}, gwerrors.ErrSessionExpired
+		return nil, gwerrors.ErrSessionExpired
 	}
 	session.Touch()
 	return session, nil
 }
 
-func (sh *SessionHandler) Create(c echo.Context) (Session, error) {
+func (sh *SessionHandler) Create(c echo.Context) (*Session, error) {
 	session, err := sh.sessionMaker.NewSession()
 	if err != nil {
-		return Session{}, err
+		return nil, err
 	}
-	c.Set(SessionCtxKey, session)
+	c.Set(SessionCtxKey, &session)
 	cookie := sh.Cookie(session)
 	c.SetCookie(&cookie)
-	return session, nil
+	return &session, nil
 }
 
-func (sh *SessionHandler) GetOrCreate(c echo.Context) (Session, error) {
+func (sh *SessionHandler) GetOrCreate(c echo.Context) (*Session, error) {
 	session, err := sh.Get(c)
 	if err != nil {
 		switch err {
@@ -152,7 +152,7 @@ func (sh *SessionHandler) GetOrCreate(c echo.Context) (Session, error) {
 		case gwerrors.ErrSessionNotFound:
 			return sh.Create(c)
 		default:
-			return Session{}, err
+			return nil, err
 		}
 	}
 	return session, nil
@@ -163,7 +163,7 @@ func (sh *SessionHandler) Save(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	err = sh.sessionStore.SetSession(c.Request().Context(), session)
+	err = sh.sessionStore.SetSession(c.Request().Context(), *session)
 	return err
 }
 
@@ -174,18 +174,6 @@ func (sh *SessionHandler) Cookie(session Session) http.Cookie {
 }
 
 type SessionHandlerOption func(*SessionHandler) error
-
-// func WithConfig(loginConfig config.LoginConfig) LoginServerOption {
-// 	return func(l *LoginServer) error {
-// 		l.config = &loginConfig
-// 		providerStore, err := oidc.NewClientStore(loginConfig.Providers)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		l.providerStore = providerStore
-// 		return nil
-// 	}
-// }
 
 func WithSessionStore(store SessionStore2) SessionHandlerOption {
 	return func(sh *SessionHandler) error {

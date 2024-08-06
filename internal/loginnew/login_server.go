@@ -21,16 +21,9 @@ func (l *LoginServer2) RegisterHandlers(server *echo.Echo, commonMiddlewares ...
 	e.Use(commonMiddlewares...)
 
 	wrapper := login.ServerInterfaceWrapper{Handler: l}
-	e.GET(
-		"/login",
-		wrapper.GetLogin,
-		login.NoCaching,
-	)
-	e.GET(
-		"/callback",
-		wrapper.GetCallback,
-		login.NoCaching,
-	)
+	e.GET("/login", wrapper.GetLogin, login.NoCaching)
+	e.GET("/callback", wrapper.GetCallback, login.NoCaching)
+	e.GET("/test", l.GetAuthTest, login.NoCaching)
 }
 
 type LoginServer2Option func(*LoginServer2) error
