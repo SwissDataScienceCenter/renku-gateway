@@ -31,9 +31,22 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 					"error",
 					loadErr,
 					"requestID",
-					c.Request().Header.Get(echo.HeaderXRequestID),
+					c.Response().Header().Get(echo.HeaderXRequestID),
+				)
+			} else {
+				slog.Info(
+					"SESSION MIDDLEWARE",
+					"message",
+					"session print",
+					"session",
+					session.ID,
+					"sessionData",
+					session,
+					"requestID",
+					c.Response().Header().Get(echo.HeaderXRequestID),
 				)
 			}
+
 			c.Set(SessionCtxKey, session)
 			err := next(c)
 			slog.Info("SessionHandler: after")
@@ -48,7 +61,7 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 					"sessionID",
 					session.ID,
 					"requestID",
-					c.Request().Header.Get(echo.HeaderXRequestID),
+					c.Response().Header().Get(echo.HeaderXRequestID),
 				)
 			}
 			slog.Info(
@@ -59,8 +72,10 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 				session.ID,
 				"ExpiresAt",
 				session.ExpiresAt,
+				"sessionData",
+				session,
 				"requestID",
-				c.Request().Header.Get(echo.HeaderXRequestID),
+				c.Response().Header().Get(echo.HeaderXRequestID),
 			)
 			return err
 		}
