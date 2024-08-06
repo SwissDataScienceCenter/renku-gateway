@@ -44,6 +44,8 @@ func main() {
 		slog.Error("the config validation failed", "error", err)
 		os.Exit(1)
 	}
+	// TODO: configure log level
+	logLevel.Set(slog.LevelDebug)
 	// Initialize the db adapters
 	dbOptions := []dbnew.RedisAdapterNewOption{dbnew.WithRedisConfig(gwConfig.Redis)}
 	if gwConfig.Login.TokenEncryption.Enabled && gwConfig.Login.TokenEncryption.SecretKey != "" {

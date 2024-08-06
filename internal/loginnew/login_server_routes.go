@@ -17,19 +17,6 @@ func (l *LoginServer2) GetLogin(c echo.Context, params login.GetLoginParams) err
 	if err != nil {
 		return err
 	}
-	slog.Info(
-		"GetLogin",
-		"message",
-		"session print",
-		"session",
-		session.ID,
-		"ExpiresAt",
-		session.ExpiresAt,
-		"sessionData",
-		session,
-		"requestID",
-		c.Response().Header().Get(echo.HeaderXRequestID),
-	)
 	// Check redirect parameters
 	var appRedirectURL string
 	if params.RedirectUrl != nil && *params.RedirectUrl != "" {
@@ -116,7 +103,7 @@ func (l *LoginServer2) nextAuthStep(
 		if url == "" {
 			url = l.config.RenkuBaseURL.String()
 		}
-		slog.Info("login completed", "requestID", c.Request().Header.Get("X-Request-ID"), "appRedirectURL", url)
+		slog.Info("login completed", "requestID", c.Response().Header().Get(echo.HeaderXRequestID), "appRedirectURL", url)
 		return c.Redirect(http.StatusFound, url)
 	}
 	providerID := session.LoginSequence[0]
@@ -128,24 +115,10 @@ func (l *LoginServer2) nextAuthStep(
 	// Handle the login
 	handler, err := l.providerStore.AuthHandler(providerID, session.LoginState)
 	if err != nil {
-		slog.Error("auth handler failed", "error", err, "requestID", c.Request().Header.Get("X-Request-ID"))
+		slog.Error("auth handler failed", "error", err, "requestID", c.Response().Header().Get(echo.HeaderXRequestID))
 		return err
 	}
-	err = echo.WrapHandler(handler)(c)
-	slog.Info(
-		"nextAuthStep",
-		"message",
-		"session print",
-		"session",
-		session.ID,
-		"ExpiresAt",
-		session.ExpiresAt,
-		"sessionData",
-		session,
-		"requestID",
-		c.Response().Header().Get(echo.HeaderXRequestID),
-	)
-	return err
+	return echo.WrapHandler(handler)(c)
 }
 
 // TODO

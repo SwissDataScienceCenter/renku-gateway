@@ -9,7 +9,8 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
-var jsonLogger *slog.Logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+var logLevel *slog.LevelVar = new(slog.LevelVar)
+var jsonLogger *slog.Logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 	LogStatus:    true,
 	LogURI:       true,

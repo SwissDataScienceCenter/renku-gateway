@@ -21,9 +21,8 @@ type SessionHandler struct {
 func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			slog.Info("SessionHandler: before")
 			session, loadErr := sh.Get(c)
-			if loadErr != nil {
+			if loadErr != nil && loadErr != gwerrors.ErrSessionNotFound && loadErr != gwerrors.ErrSessionExpired {
 				slog.Info(
 					"SESSION MIDDLEWARE",
 					"message",
@@ -33,24 +32,24 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 					"requestID",
 					c.Response().Header().Get(echo.HeaderXRequestID),
 				)
-			} else {
-				slog.Info(
-					"SESSION MIDDLEWARE",
-					"message",
-					"session print",
-					"session",
-					session.ID,
-					"sessionData",
-					session,
-					"requestID",
-					c.Response().Header().Get(echo.HeaderXRequestID),
-				)
 			}
+			slog.Debug(
+				"SESSION MIDDLEWARE",
+				"message",
+				"session print (before)",
+				"session",
+				session,
+				"requestID",
+				c.Response().Header().Get(echo.HeaderXRequestID),
+			)
 			c.Set(SessionCtxKey, session)
 			err := next(c)
-			slog.Info("SessionHandler: after")
 			saveErr := sh.Save(c)
-			if saveErr != nil {
+			if saveErr != nil && saveErr != gwerrors.ErrSessionNotFound && saveErr != gwerrors.ErrSessionExpired {
+				sessionID := ""
+				if session != nil {
+					sessionID = session.ID
+				}
 				slog.Info(
 					"SESSION MIDDLEWARE",
 					"message",
@@ -58,20 +57,16 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 					"error",
 					saveErr,
 					"sessionID",
-					session.ID,
+					sessionID,
 					"requestID",
 					c.Response().Header().Get(echo.HeaderXRequestID),
 				)
 			}
-			slog.Info(
+			slog.Debug(
 				"SESSION MIDDLEWARE",
 				"message",
-				"session print",
+				"session print (after)",
 				"session",
-				session.ID,
-				"ExpiresAt",
-				session.ExpiresAt,
-				"sessionData",
 				session,
 				"requestID",
 				c.Response().Header().Get(echo.HeaderXRequestID),
@@ -140,12 +135,27 @@ func (sh *SessionHandler) Create(c echo.Context) (*Session, error) {
 	if err != nil {
 		return &Session{}, err
 	}
-	c.Set(SessionCtxKey, &session)
+
+	// Overwrite the existing context object if it exists
+	sessionRaw := c.Get(SessionCtxKey)
+	if sessionRaw != nil {
+		sessionPtr, ok := sessionRaw.(*Session)
+		if sessionPtr != nil && ok {
+			*sessionPtr = session
+		} else {
+			c.Set(SessionCtxKey, &session)
+		}
+	} else {
+		c.Set(SessionCtxKey, &session)
+	}
+
 	cookie := sh.Cookie(session)
 	c.SetCookie(&cookie)
 	return &session, nil
 }
 
+// GetOrCreate will get the current session or create a new one if there is no session
+// or the current one has expired.
 func (sh *SessionHandler) GetOrCreate(c echo.Context) (*Session, error) {
 	session, err := sh.Get(c)
 	if err != nil {
@@ -166,8 +176,7 @@ func (sh *SessionHandler) Save(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	err = sh.sessionStore.SetSession(c.Request().Context(), *session)
-	return err
+	return sh.sessionStore.SetSession(c.Request().Context(), *session)
 }
 
 func (sh *SessionHandler) Cookie(session Session) http.Cookie {
