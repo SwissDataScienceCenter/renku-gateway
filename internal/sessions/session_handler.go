@@ -87,17 +87,17 @@ func (sh *SessionHandler) GetFromContext(key string, c echo.Context) (*Session, 
 	if sessionRaw != nil {
 		session, ok := sessionRaw.(*Session)
 		if session == nil {
-			return nil, gwerrors.ErrSessionNotFound
+			return &Session{}, gwerrors.ErrSessionNotFound
 		}
 		if !ok {
-			return nil, gwerrors.ErrSessionParse
+			return &Session{}, gwerrors.ErrSessionParse
 		}
 		if session.Expired() {
-			return nil, gwerrors.ErrSessionExpired
+			return &Session{}, gwerrors.ErrSessionExpired
 		}
 		return session, nil
 	}
-	return nil, gwerrors.ErrSessionNotFound
+	return &Session{}, gwerrors.ErrSessionNotFound
 }
 
 func (sh *SessionHandler) Get(c echo.Context) (*Session, error) {
@@ -112,9 +112,9 @@ func (sh *SessionHandler) Get(c echo.Context) (*Session, error) {
 	cookie, err := c.Cookie(SessionCookieName)
 	if err != nil {
 		if err == http.ErrNoCookie {
-			return nil, gwerrors.ErrSessionNotFound
+			return &Session{}, gwerrors.ErrSessionNotFound
 		}
-		return nil, err
+		return &Session{}, err
 	}
 	sessionID = cookie.Value
 
@@ -122,14 +122,14 @@ func (sh *SessionHandler) Get(c echo.Context) (*Session, error) {
 	sessionFromStore, err := sh.sessionStore.GetSession(c.Request().Context(), sessionID)
 	if err != nil {
 		if err == redis.Nil {
-			return nil, gwerrors.ErrSessionNotFound
+			return &Session{}, gwerrors.ErrSessionNotFound
 		} else {
-			return nil, err
+			return &Session{}, err
 		}
 	}
 	session = &sessionFromStore
 	if session.Expired() {
-		return nil, gwerrors.ErrSessionExpired
+		return &Session{}, gwerrors.ErrSessionExpired
 	}
 	session.Touch()
 	return session, nil
@@ -138,7 +138,7 @@ func (sh *SessionHandler) Get(c echo.Context) (*Session, error) {
 func (sh *SessionHandler) Create(c echo.Context) (*Session, error) {
 	session, err := sh.sessionMaker.NewSession()
 	if err != nil {
-		return nil, err
+		return &Session{}, err
 	}
 	c.Set(SessionCtxKey, &session)
 	cookie := sh.Cookie(session)
@@ -155,7 +155,7 @@ func (sh *SessionHandler) GetOrCreate(c echo.Context) (*Session, error) {
 		case gwerrors.ErrSessionNotFound:
 			return sh.Create(c)
 		default:
-			return nil, err
+			return &Session{}, err
 		}
 	}
 	return session, nil
