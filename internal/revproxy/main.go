@@ -15,6 +15,8 @@ type Revproxy struct {
 	config         *config.RevproxyConfig
 	sessionHandler *sessions.SessionHandler
 
+	// Auth instances
+
 	dataRenkuAccessTokenAuth  Auth
 	dataGitlabAccessTokenAuth Auth
 }

@@ -21,6 +21,23 @@ type TokenInjector func(c echo.Context, token models.AuthToken) error
 func InjectInHeader(headerKey string) AuthOption {
 	return func(a *Auth) {
 		a.tokenInjector = func(c echo.Context, token models.AuthToken) error {
+			existingToken := c.Request().Header.Get(headerKey)
+			if existingToken != "" {
+				slog.Debug(
+					"PROXY AUTH MIDDLEWARE",
+					"message",
+					"token already present in header, skipping",
+					"header",
+					headerKey,
+					"providerID",
+					a.providerID,
+					"tokenType",
+					token.Type,
+					"requestID",
+					c.Response().Header().Get(echo.HeaderXRequestID),
+				)
+				return nil
+			}
 			slog.Debug(
 				"PROXY AUTH MIDDLEWARE",
 				"message",
@@ -45,6 +62,23 @@ func InjectInHeader(headerKey string) AuthOption {
 func InjectBearerToken() AuthOption {
 	return func(a *Auth) {
 		a.tokenInjector = func(c echo.Context, token models.AuthToken) error {
+			existingToken := c.Request().Header.Get(echo.HeaderAuthorization)
+			if existingToken != "" {
+				slog.Debug(
+					"PROXY AUTH MIDDLEWARE",
+					"message",
+					"token already present in header, skipping",
+					"header",
+					echo.HeaderAuthorization,
+					"providerID",
+					a.providerID,
+					"tokenType",
+					token.Type,
+					"requestID",
+					c.Response().Header().Get(echo.HeaderXRequestID),
+				)
+				return nil
+			}
 			slog.Debug(
 				"PROXY AUTH MIDDLEWARE",
 				"message",
