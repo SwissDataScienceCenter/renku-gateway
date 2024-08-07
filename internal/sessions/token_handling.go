@@ -65,15 +65,15 @@ func (sh *SessionHandler) SaveTokens(c echo.Context, session *Session, tokens Au
 		session.TokenIDs = models.SerializableMap{}
 	}
 	session.TokenIDs[providerID] = tokens.AccessToken.ID
-	err = sh.tokenStore.SetAccessToken(c.Request().Context(), tokens.AccessToken)
+	err = sh.tokenStore.SetAccessToken(c.Request().Context(), *session, tokens.AccessToken)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenStore.SetRefreshToken(c.Request().Context(), tokens.RefreshToken)
+	err = sh.tokenStore.SetRefreshToken(c.Request().Context(), *session, tokens.RefreshToken)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenStore.SetIDToken(c.Request().Context(), tokens.IDToken)
+	err = sh.tokenStore.SetIDToken(c.Request().Context(), *session, tokens.IDToken)
 	if err != nil {
 		return err
 	}

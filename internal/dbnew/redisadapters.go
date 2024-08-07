@@ -93,26 +93,26 @@ func (r RedisAdapterNew) GetIDToken(ctx context.Context, tokenID string) (models
 
 // SetAccessToken writes the associated ID, access token value, expiration, tokenID and refresh URL
 // of an access token to Redis.
-func (r RedisAdapterNew) SetAccessToken(ctx context.Context, token models.AuthToken) error {
+func (r RedisAdapterNew) SetAccessToken(ctx context.Context, session sessions.Session, token models.AuthToken) error {
 	if token.Type != models.AccessTokenType {
 		return fmt.Errorf("token is not of the right type")
 	}
-	return r.setAuthToken(ctx, token)
+	return r.setAuthToken(ctx, session, token)
 }
 
 // SetRefreshToken writes the associated ID, access token value, expiration and tokenID of a refresh token to Redis
-func (r RedisAdapterNew) SetRefreshToken(ctx context.Context, refreshToken models.AuthToken) error {
+func (r RedisAdapterNew) SetRefreshToken(ctx context.Context, session sessions.Session, refreshToken models.AuthToken) error {
 	if refreshToken.Type != models.RefreshTokenType {
 		return fmt.Errorf("token is not of the right type")
 	}
-	return r.setAuthToken(ctx, refreshToken)
+	return r.setAuthToken(ctx, session, refreshToken)
 }
 
-func (r RedisAdapterNew) SetIDToken(ctx context.Context, idToken models.AuthToken) error {
+func (r RedisAdapterNew) SetIDToken(ctx context.Context, session sessions.Session, idToken models.AuthToken) error {
 	if idToken.Type != models.IDTokenType {
 		return fmt.Errorf("token is not of the right type")
 	}
-	return r.setAuthToken(ctx, idToken)
+	return r.setAuthToken(ctx, session, idToken)
 }
 
 func (RedisAdapterNew) accessTokenKey(tokenID string) string {
@@ -165,7 +165,7 @@ func (r RedisAdapterNew) getAuthToken(ctx context.Context, key string) (models.A
 	}
 	return decToken, nil
 }
-func (r RedisAdapterNew) setAuthToken(ctx context.Context, token models.AuthToken) error {
+func (r RedisAdapterNew) setAuthToken(ctx context.Context, session sessions.Session, token models.AuthToken) error {
 	err := validateTokenType(token.Type)
 	if err != nil {
 		return err
@@ -182,11 +182,16 @@ func (r RedisAdapterNew) setAuthToken(ctx context.Context, token models.AuthToke
 		return err
 	}
 
-	return r.rdb.HSet(
+	key := r.getTokenKey(token)
+	err = r.rdb.HSet(
 		ctx,
-		r.getTokenKey(token),
+		key,
 		r.serializeStruct(encToken)...,
 	).Err()
+	if err != nil {
+		return nil
+	}
+	return r.rdb.PExpireAt(ctx, key, session.CreatedAt.Add(session.MaxTTL()).Add(expiresAtLeeway)).Err()
 }
 
 func validateTokenType(tokenType models.OauthTokenType) error {
@@ -253,6 +258,29 @@ func (RedisAdapterNew) deserializeToStruct(hash map[string]string, output any) e
 		return err
 	}
 	return decoder.Decode(hash)
+}
+
+// GetExpiringAccessTokenIDs reads the associated expiration and tokenID of an access token from Redis
+func (r RedisAdapterNew) GetExpiringAccessTokenIDs(ctx context.Context, expiryEnd time.Time) ([]string, error) {
+	var expiringTokens []string
+
+	zrangeargs := redis.ZRangeArgs{
+		Key:     expiringTokensKey,
+		Start:   "-inf",
+		Stop:    float64(expiryEnd.Unix()),
+		ByScore: true,
+	}
+
+	zrange, err := r.rdb.ZRangeArgsWithScores(
+		ctx,
+		zrangeargs,
+	).Result()
+
+	for _, expiringToken := range zrange {
+		expiringTokens = append(expiringTokens, fmt.Sprintf("%v", expiringToken.Member))
+	}
+
+	return expiringTokens, err
 }
 
 type RedisAdapterNewOption func(*RedisAdapterNew) error

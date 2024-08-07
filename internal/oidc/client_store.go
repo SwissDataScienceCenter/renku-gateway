@@ -46,6 +46,15 @@ func (c ClientStore) StartDeviceFlow(ctx context.Context, providerID string) (*o
 	return client.startDeviceFlow(ctx)
 }
 
+func (c ClientStore) RefreshAccessToken(refreshToken models.AuthToken) (models.AuthToken, models.AuthToken, error) {
+	providerID := refreshToken.ProviderID
+	client, clientFound := c[providerID]
+	if !clientFound {
+		return models.AuthToken{}, models.AuthToken{}, fmt.Errorf("cannot find the provider with ID %s", providerID)
+	}
+	return client.refreshAccessToken(refreshToken)
+}
+
 func NewClientStore(configs map[string]config.OIDCClient) (ClientStore, error) {
 	var clients = ClientStore{}
 	for id, config := range configs {

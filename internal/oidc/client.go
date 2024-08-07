@@ -150,13 +150,36 @@ func (c *oidcClient) verifyTokens(ctx context.Context, accessToken, refreshToken
 	return []models.AuthToken{accessTokenParsed, refreshTokenParsed, idTokenParsed}, nil
 }
 
-// TODO
-func (c *oidcClient) RefreshAccessToken(refreshToken models.AuthToken) error {
-	_, err := rp.RefreshAccessToken(c.client, refreshToken.Value, "", "")
+func (c *oidcClient) refreshAccessToken(refreshToken models.AuthToken) (models.AuthToken, models.AuthToken, error) {
+	oAuth2Token, err := rp.RefreshAccessToken(c.client, refreshToken.Value, "", "")
 	if err != nil {
-		return err
+		return models.AuthToken{}, models.AuthToken{}, err
 	}
-	return nil
+	// TODO: maybe verify tokens?
+	id, err := models.ULIDGenerator{}.ID()
+	if err != nil {
+		return models.AuthToken{}, models.AuthToken{}, err
+	}
+	newAccessToken := models.AuthToken{
+		ID:         id,
+		Type:       models.AccessTokenType,
+		Value:      oAuth2Token.AccessToken,
+		TokenURL:   c.client.OAuthConfig().Endpoint.TokenURL,
+		ExpiresAt:  oAuth2Token.Expiry,
+		ProviderID: c.getID(),
+	}
+	var newRefreshToken models.AuthToken = refreshToken
+	if oAuth2Token.RefreshToken != "" {
+		newRefreshToken = models.AuthToken{
+			ID:         id,
+			Type:       models.RefreshTokenType,
+			Value:      oAuth2Token.RefreshToken,
+			TokenURL:   c.client.OAuthConfig().Endpoint.TokenURL,
+			ProviderID: c.getID(),
+		}
+	}
+	// TODO: handle getting a new ID token?
+	return newAccessToken, newRefreshToken, err
 }
 
 type clientOption func(*oidcClient) error

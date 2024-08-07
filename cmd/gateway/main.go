@@ -14,12 +14,9 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/dbnew"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/loginnew"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
-
-	// "github.com/SwissDataScienceCenter/renku-gateway/internal/db"
-	// "github.com/SwissDataScienceCenter/renku-gateway/internal/login"
-	// "github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/revproxy"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/tokenrefresher"
 	"github.com/getsentry/sentry-go"
 	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/labstack/echo-contrib/echoprometheus"
@@ -100,26 +97,12 @@ func main() {
 	e.GET("/version", func(c echo.Context) error {
 		return c.String(http.StatusOK, version)
 	})
-
-	// // Initialize shared models like db adapter
-	// dbOptions := []db.RedisAdapterOption{db.WithRedisConfig(gwConfig.Redis)}
-	// if gwConfig.Login.TokenEncryption.Enabled && gwConfig.Login.TokenEncryption.SecretKey != "" {
-	// 	dbOptions = append(dbOptions, db.WithEcryption(string(gwConfig.Login.TokenEncryption.SecretKey)))
-	// }
-	// dbAdapter, err := db.NewRedisAdapter(dbOptions...)
-	// if err != nil {
-	// 	slog.Error("DB adapter initialization failed", "error", err)
-	// 	os.Exit(1)
-	// }
-	// sessionHandler := models.NewSessionHandler(models.WithSessionStore(&dbAdapter), models.WithTokenStore(&dbAdapter))
-
 	// Initialize the reverse proxy
 	revproxy, err := revproxy.NewServer(revproxy.WithConfig(gwConfig.Revproxy), revproxy.WithSessionHandler(&sessionHandler))
 	if err != nil {
 		slog.Error("revproxy handlers initialization failed", "error", err)
 		os.Exit(1)
 	}
-	// revProxyMiddlewares := append(commonMiddlewares, sessionHandler.Middleware())
 	revproxy.RegisterHandlers(e, commonMiddlewares...)
 	// Initialize login server
 	loginServer, err := loginnew.NewLoginServer(loginnew.WithConfig(gwConfig.Login), loginnew.WithSessionHandler(&sessionHandler))
@@ -128,7 +111,17 @@ func main() {
 		os.Exit(1)
 	}
 	loginServer.RegisterHandlers(e, commonMiddlewares...)
-
+	// Initialize the token refresher
+	tokenRefresher, err := tokenrefresher.NewTokenRefresher(tokenrefresher.WithExpiresSoonMinutes(3), tokenrefresher.WithConfig(gwConfig.Login), tokenrefresher.WithSessionStore(dbAdapter), tokenrefresher.WithTokenStore(dbAdapter))
+	if err != nil {
+		slog.Error("token refresher initialization failed", "error", err)
+		os.Exit(1)
+	}
+	tokenRefresherScheduler, err := tokenRefresher.GetScheduler()
+	if err != nil {
+		slog.Error("token refresher initialization failed", "error", err)
+		os.Exit(1)
+	}
 	// Rate limiting
 	if gwConfig.Server.RateLimits.Enabled {
 		e.Use(middleware.RateLimiter(
@@ -176,6 +169,7 @@ func main() {
 	address := fmt.Sprintf("%s:%d", gwConfig.Server.Host, gwConfig.Server.Port)
 	slog.Info("starting the server on address " + address)
 	go func() {
+		tokenRefresherScheduler.StartAsync()
 		err := e.Start(address)
 		if err != nil && err != http.ErrServerClosed {
 			slog.Error("shutting down the server gracefuly failed", "error", err)
@@ -190,6 +184,7 @@ func main() {
 	slog.Info("received signal to shut down the server")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+	tokenRefresherScheduler.Stop()
 	if err := e.Shutdown(ctx); err != nil {
 		slog.Error("shutting down the server gracefully failed", "error", err)
 		os.Exit(1)
