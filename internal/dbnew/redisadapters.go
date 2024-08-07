@@ -210,7 +210,7 @@ func validateTokenType(tokenType models.OauthTokenType) error {
 func (r RedisAdapterNew) setAccessTokenExpiry(ctx context.Context, token models.AuthToken) error {
 	z := redis.Z{
 		Score:  float64(token.ExpiresAt.Unix()),
-		Member: r.accessTokenKey(token.ID),
+		Member: token.ID,
 	}
 	return r.rdb.ZAdd(ctx, expiringTokensKey, z).Err()
 }
