@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding"
 	"fmt"
+	"log/slog"
 	"reflect"
 	"time"
 
@@ -181,6 +182,14 @@ func (r RedisAdapterNew) setAuthToken(ctx context.Context, session sessions.Sess
 	if err != nil {
 		return err
 	}
+
+	slog.Debug(
+		"TOKEN STORE",
+		"message",
+		"saving token",
+		"token",
+		token,
+	)
 
 	key := r.getTokenKey(token)
 	err = r.rdb.HSet(

@@ -64,11 +64,16 @@ func (l *LoginServer2) GetCallback(c echo.Context, params login.GetCallbackParam
 	tokenCallback := func(accessToken, refreshToken, idToken models.AuthToken) error {
 		// Clear the state value before saving the tokens
 		session.LoginState = ""
-		return l.sessionHandler.SaveTokens(c, session, sessions.AuthTokenSet{
+		// Make the token set and set the tokens' session ID
+		tokenSet := sessions.AuthTokenSet{
 			AccessToken:  accessToken,
 			RefreshToken: refreshToken,
 			IDToken:      idToken,
-		})
+		}
+		tokenSet.AccessToken.SessionID = session.ID
+		tokenSet.RefreshToken.SessionID = session.ID
+		tokenSet.IDToken.SessionID = session.ID
+		return l.sessionHandler.SaveTokens(c, session, tokenSet)
 	}
 	// Exchange the authorization code for credentials
 	err = echo.WrapHandler(provider.CodeExchangeHandler(tokenCallback))(c)
