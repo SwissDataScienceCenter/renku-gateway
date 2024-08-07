@@ -62,6 +62,7 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 					c.Response().Header().Get(echo.HeaderXRequestID),
 				)
 			}
+			session, _ = sh.Get(c)
 			slog.Debug(
 				"SESSION MIDDLEWARE",
 				"message",
@@ -135,20 +136,7 @@ func (sh *SessionHandler) Create(c echo.Context) (*Session, error) {
 	if err != nil {
 		return &Session{}, err
 	}
-
-	// Overwrite the existing context object if it exists
-	sessionRaw := c.Get(SessionCtxKey)
-	if sessionRaw != nil {
-		sessionPtr, ok := sessionRaw.(*Session)
-		if sessionPtr != nil && ok {
-			*sessionPtr = session
-		} else {
-			c.Set(SessionCtxKey, &session)
-		}
-	} else {
-		c.Set(SessionCtxKey, &session)
-	}
-
+	c.Set(SessionCtxKey, &session)
 	cookie := sh.Cookie(session)
 	c.SetCookie(&cookie)
 	return &session, nil
