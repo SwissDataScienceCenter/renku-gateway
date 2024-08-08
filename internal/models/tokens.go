@@ -10,6 +10,7 @@ type AuthToken struct {
 	ID         string
 	Value      string
 	ExpiresAt  time.Time
+	Subject    string
 	TokenURL   string
 	ProviderID string
 	Type       OauthTokenType

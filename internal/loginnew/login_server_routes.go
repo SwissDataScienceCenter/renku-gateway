@@ -68,7 +68,14 @@ func (l *LoginServer2) GetCallback(c echo.Context, params login.GetCallbackParam
 		tokenSet.AccessToken.SessionID = session.ID
 		tokenSet.RefreshToken.SessionID = session.ID
 		tokenSet.IDToken.SessionID = session.ID
-		// TODO: set user ID, set token ID
+		if providerID == "renku" {
+			session.UserID = tokenSet.IDToken.Subject
+		} else if providerID == "gitlab" && session.UserID != "" {
+			tokenID := "gitlab:" + session.UserID
+			tokenSet.AccessToken.ID = tokenID
+			tokenSet.RefreshToken.ID = tokenID
+			tokenSet.IDToken.ID = tokenID
+		}
 		return l.sessionHandler.SaveTokens(c, session, tokenSet)
 	}
 	// Exchange the authorization code for credentials

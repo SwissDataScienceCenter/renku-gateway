@@ -61,6 +61,7 @@ func (c *oidcClient) getCodeExchangeCallback(callback TokenSetCallback) func(
 			Type:       models.IDTokenType,
 			Value:      tokens.IDToken,
 			ExpiresAt:  tokens.IDTokenClaims.GetExpiration(),
+			Subject:    tokens.IDTokenClaims.Subject,
 			ProviderID: c.getID(),
 		}
 		tokenSet := sessions.AuthTokenSet{
