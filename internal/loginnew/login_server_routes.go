@@ -61,15 +61,10 @@ func (l *LoginServer2) GetCallback(c echo.Context, params login.GetCallbackParam
 	if !found {
 		return fmt.Errorf("provider not found %s", providerID)
 	}
-	tokenCallback := func(accessToken, refreshToken, idToken models.AuthToken) error {
+	tokenCallback := func(tokenSet sessions.AuthTokenSet) error {
 		// Clear the state value before saving the tokens
 		session.LoginState = ""
 		// Make the token set and set the tokens' session ID
-		tokenSet := sessions.AuthTokenSet{
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
-			IDToken:      idToken,
-		}
 		tokenSet.AccessToken.SessionID = session.ID
 		tokenSet.RefreshToken.SessionID = session.ID
 		tokenSet.IDToken.SessionID = session.ID

@@ -7,6 +7,7 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/labstack/echo/v4"
 )
 
@@ -108,8 +109,8 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 	if !found {
 		return fmt.Errorf("provider not found %s", providerID)
 	}
-	tokenCallback := func(accessToken, refreshToken, idToken models.AuthToken) error {
-		return session.SaveTokens(c.Request().Context(), accessToken, refreshToken, idToken, state)
+	tokenCallback := func(tokenSet sessions.AuthTokenSet) error {
+		return session.SaveTokens(c.Request().Context(), tokenSet.AccessToken, tokenSet.RefreshToken, tokenSet.IDToken, state)
 	}
 	// Exchange the authorization code for credentials
 	err = echo.WrapHandler(provider.CodeExchangeHandler(tokenCallback))(c)

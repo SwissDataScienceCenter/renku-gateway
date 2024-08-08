@@ -15,11 +15,6 @@ type RenkuServicesConfig struct {
 	UIServer    *url.URL
 }
 
-type metricsConfig struct {
-	Enabled bool
-	Port    int
-}
-
 type RevproxyConfig struct {
 	RenkuBaseURL      *url.URL
 	ExternalGitlabURL *url.URL

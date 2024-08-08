@@ -43,6 +43,9 @@ func (c *LoginConfig) Validate(e RunningEnvironment) error {
 	}
 	if e != Development {
 		for k, v := range c.Providers {
+			if k != "renku" && k != "renkucli" && k != "gitlab" {
+				return fmt.Errorf("unknown provider id %s (must be one of renku, renkucli, gitlab)", k)
+			}
 			if v.UnsafeNoCookieHandler {
 				return fmt.Errorf("provider %s cannot be configured without a cookie handler in production", k)
 			}

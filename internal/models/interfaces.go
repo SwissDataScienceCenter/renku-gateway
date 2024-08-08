@@ -2,7 +2,6 @@ package models
 
 import (
 	"context"
-	"net/http"
 	"time"
 )
 
@@ -67,15 +66,15 @@ type SessionRemover interface {
 	RemoveSession(context.Context, string) error
 }
 
-type TokensHandler func(accessToken, refreshToken, idToken AuthToken) error
+// type TokensHandler func(accessToken, refreshToken, idToken AuthToken) error
 
-type OIDCProviderStore interface {
-	CallbackHandler(providerID string, tokensHandler TokensHandler) (http.HandlerFunc, error)
-	AuthHandler(providerID string, state string) (http.HandlerFunc, error)
-}
+// type OIDCProviderStore interface {
+// 	CallbackHandler(providerID string, tokensHandler TokensHandler) (http.HandlerFunc, error)
+// 	AuthHandler(providerID string, state string) (http.HandlerFunc, error)
+// }
 
-type OIDCProvider interface {
-	AuthHandler(state string) http.HandlerFunc
-	CodeExchangeHandler(tokensHandler TokensHandler) http.HandlerFunc
-	ID() string
-}
+// type OIDCProvider interface {
+// 	AuthHandler(state string) http.HandlerFunc
+// 	CodeExchangeHandler(tokensHandler TokensHandler) http.HandlerFunc
+// 	ID() string
+// }

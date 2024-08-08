@@ -12,13 +12,13 @@ import (
 
 type ClientStore map[string]oidcClient
 
-func (c ClientStore) CallbackHandler(providerID string, tokensHandler models.TokensHandler) (http.HandlerFunc, error) {
+func (c ClientStore) CallbackHandler(providerID string, callback TokenSetCallback) (http.HandlerFunc, error) {
 	client, clientFound := c[providerID]
 	if !clientFound {
 		return nil, fmt.Errorf("cannot find the provider with ID %s", providerID)
 	}
 	return func(rw http.ResponseWriter, r *http.Request) {
-		client.CodeExchangeHandler(tokensHandler)(rw, r)
+		client.CodeExchangeHandler(callback)(rw, r)
 	}, nil
 }
 

@@ -8,6 +8,8 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
+	"github.com/labstack/echo/v4"
 	"github.com/zitadel/oidc/v2/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v2/pkg/http"
 	"github.com/zitadel/oidc/v2/pkg/oidc"
@@ -19,7 +21,7 @@ type oidcClient struct {
 	id     string
 }
 
-func (c *oidcClient) getCodeExchangeCallback(tokensCallback models.TokensHandler) func(
+func (c *oidcClient) getCodeExchangeCallback(callback TokenSetCallback) func(
 	w http.ResponseWriter,
 	r *http.Request,
 	tokens *oidc.Tokens[*oidc.IDTokenClaims],
@@ -61,9 +63,15 @@ func (c *oidcClient) getCodeExchangeCallback(tokensCallback models.TokensHandler
 			ExpiresAt:  tokens.IDTokenClaims.GetExpiration(),
 			ProviderID: c.getID(),
 		}
-		err = tokensCallback(accessToken, refreshToken, idToken)
+		tokenSet := sessions.AuthTokenSet{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+			IDToken:      idToken,
+		}
+		slog.Debug("OIDC CLIENT", "requestID", r.Header.Get(echo.HeaderXRequestID))
+		err = callback(tokenSet)
 		if err != nil {
-			slog.Error("error when running tokens callback", "error", err, "requestID", r.Header.Get("X-Request-ID"))
+			slog.Error("error when running tokens callback", "error", err, "requestID", r.Header.Get(echo.HeaderXRequestID))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -83,8 +91,8 @@ func (c *oidcClient) authHandler(state string) http.HandlerFunc {
 
 // Returns a http handler that will receive the authorization code from the identity provider.
 // swap it for an access token and then pass the access and refresh token to the callback function.
-func (c *oidcClient) CodeExchangeHandler(tokensCallback models.TokensHandler) http.HandlerFunc {
-	return rp.CodeExchangeHandler(c.getCodeExchangeCallback(tokensCallback), c.client)
+func (c *oidcClient) CodeExchangeHandler(callback TokenSetCallback) http.HandlerFunc {
+	return rp.CodeExchangeHandler(c.getCodeExchangeCallback(callback), c.client)
 }
 
 func (c *oidcClient) getID() string {
@@ -190,13 +198,13 @@ func withOIDCConfig(clientConfig config.OIDCClient) clientOption {
 		cookieHashKey := []byte(clientConfig.CookieHashKey)
 		if len(cookieEncKey) > 0 && !(len(cookieEncKey) == 16 || len(cookieEncKey) == 32) {
 			return fmt.Errorf(
-				"Invalid length for oauth2 state cookie encryption key, got %d, but allowed sizes are 16 or 32",
+				"invalid length for oauth2 state cookie encryption key, got %d, but allowed sizes are 16 or 32",
 				len(cookieEncKey),
 			)
 		}
 		if len(cookieHashKey) > 0 && len(cookieHashKey) != 32 {
 			return fmt.Errorf(
-				"Invalid length for oauth2 state cookie hash key, got %d, allowed size is 32",
+				"invalid length for oauth2 state cookie hash key, got %d, allowed size is 32",
 				len(cookieHashKey),
 			)
 		}
