@@ -68,6 +68,7 @@ func (l *LoginServer2) GetCallback(c echo.Context, params login.GetCallbackParam
 		tokenSet.AccessToken.SessionID = session.ID
 		tokenSet.RefreshToken.SessionID = session.ID
 		tokenSet.IDToken.SessionID = session.ID
+		// TODO: set user ID, set token ID
 		return l.sessionHandler.SaveTokens(c, session, tokenSet)
 	}
 	// Exchange the authorization code for credentials

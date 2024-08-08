@@ -155,7 +155,13 @@ func (m *MockRedisClient) ZRangeArgsWithScores(_ context.Context, zrange redis.Z
 	return &output
 }
 
-func (m *MockRedisClient) PExpireAt(ctx context.Context, key string, tm time.Time) *redis.BoolCmd {
+func (m *MockRedisClient) ExpireAt(ctx context.Context, key string, tm time.Time) *redis.BoolCmd {
+	output := redis.BoolCmd{}
+	output.SetVal(true)
+	return &output
+}
+
+func (m *MockRedisClient) Persist(ctx context.Context, key string) *redis.BoolCmd {
 	output := redis.BoolCmd{}
 	output.SetVal(true)
 	return &output

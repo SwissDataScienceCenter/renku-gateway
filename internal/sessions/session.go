@@ -17,6 +17,7 @@ type Session struct {
 	ExpiresAt      time.Time
 	IdleTTLSeconds models.SerializableInt
 	MaxTTLSeconds  models.SerializableInt
+	UserID         string
 	// Map of providerID to tokenID
 	TokenIDs models.SerializableMap
 	// The url to redirect to when the login flow is complete (i.e. Renku homepage)

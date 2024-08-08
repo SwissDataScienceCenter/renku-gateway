@@ -1,6 +1,8 @@
 package sessions
 
 import (
+	"time"
+
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/labstack/echo/v4"
@@ -65,15 +67,19 @@ func (sh *SessionHandler) SaveTokens(c echo.Context, session *Session, tokens Au
 		session.TokenIDs = models.SerializableMap{}
 	}
 	session.TokenIDs[providerID] = tokens.AccessToken.ID
-	err = sh.tokenStore.SetAccessToken(c.Request().Context(), *session, tokens.AccessToken)
+	// err = sh.tokenStore.SetAccessToken(c.Request().Context(), *session, tokens.AccessToken)
+	expiresAt := sh.getTokenExpiration(tokens, *session)
+	err = sh.tokenStore.SetAccessToken(c.Request().Context(), tokens.AccessToken, expiresAt)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenStore.SetRefreshToken(c.Request().Context(), *session, tokens.RefreshToken)
+	// err = sh.tokenStore.SetRefreshToken(c.Request().Context(), *session, tokens.RefreshToken)
+	err = sh.tokenStore.SetRefreshToken(c.Request().Context(), tokens.RefreshToken, expiresAt)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenStore.SetIDToken(c.Request().Context(), *session, tokens.IDToken)
+	// err = sh.tokenStore.SetIDToken(c.Request().Context(), *session, tokens.IDToken)
+	err = sh.tokenStore.SetIDToken(c.Request().Context(), tokens.IDToken, expiresAt)
 	if err != nil {
 		return err
 	}
@@ -82,4 +88,13 @@ func (sh *SessionHandler) SaveTokens(c echo.Context, session *Session, tokens Au
 
 func (SessionHandler) accessTokenKey(tokenID string) string {
 	return AccessTokenCtxKey + ":" + tokenID
+}
+
+// getTokenExpiration returns the max session expiration unless the provider is GitLab, in which case there is no expiration
+func (SessionHandler) getTokenExpiration(tokens AuthTokenSet, session Session) time.Time {
+	providerID := tokens.AccessToken.ProviderID
+	if providerID == "gitlab" {
+		return time.Time{}
+	}
+	return session.CreatedAt.Add(session.MaxTTL())
 }
