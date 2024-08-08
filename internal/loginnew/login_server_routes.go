@@ -13,7 +13,7 @@ import (
 
 // GetLogin is a handler for the initiation of a authorization code flow login for Renku
 func (l *LoginServer2) GetLogin(c echo.Context, params login.GetLoginParams) error {
-	session, err := l.sessionHandler.GetOrCreate(c)
+	session, err := l.sessionHandler.Create(c)
 	if err != nil {
 		return err
 	}

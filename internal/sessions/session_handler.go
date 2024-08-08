@@ -131,6 +131,7 @@ func (sh *SessionHandler) Get(c echo.Context) (*Session, error) {
 	return session, nil
 }
 
+// Create will create a new session.
 func (sh *SessionHandler) Create(c echo.Context) (*Session, error) {
 	session, err := sh.sessionMaker.NewSession()
 	if err != nil {
@@ -140,23 +141,6 @@ func (sh *SessionHandler) Create(c echo.Context) (*Session, error) {
 	cookie := sh.Cookie(session)
 	c.SetCookie(&cookie)
 	return &session, nil
-}
-
-// GetOrCreate will get the current session or create a new one if there is no session
-// or the current one has expired.
-func (sh *SessionHandler) GetOrCreate(c echo.Context) (*Session, error) {
-	session, err := sh.Get(c)
-	if err != nil {
-		switch err {
-		case gwerrors.ErrSessionExpired:
-			return sh.Create(c)
-		case gwerrors.ErrSessionNotFound:
-			return sh.Create(c)
-		default:
-			return &Session{}, err
-		}
-	}
-	return session, nil
 }
 
 func (sh *SessionHandler) Save(c echo.Context) error {
