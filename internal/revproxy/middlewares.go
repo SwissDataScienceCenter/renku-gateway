@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -212,11 +212,11 @@ func UiServerPathRewrite() echo.MiddlewareFunc {
 // chain after all other token injection middelwares have run.
 func notebooksAnonymousID(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		sessionRaw := c.Get(models.SessionCtxKey)
+		sessionRaw := c.Get(sessions.SessionCtxKey)
 		if sessionRaw == nil {
 			return gwerrors.ErrSessionNotFound
 		}
-		session, ok := sessionRaw.(models.Session)
+		session, ok := sessionRaw.(sessions.Session)
 		if !ok {
 			return gwerrors.ErrSessionParse
 		}

@@ -9,6 +9,10 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
+type IDGenerator interface {
+	ID() (string, error)
+}
+
 // ULIDGenerator implements models.IDGenerator and generates ULIDs for tokenIDs
 type ULIDGenerator struct{}
 

@@ -24,7 +24,6 @@ type AccessTokenGetter interface {
 }
 
 type AccessTokenSetter interface {
-	// SetAccessToken(ctx context.Context, session Session, token models.AuthToken) error
 	SetAccessToken(ctx context.Context, token models.AuthToken) error
 	SetAccessTokenExpiry(ctx context.Context, token models.AuthToken, expiresAt time.Time) error
 }
@@ -38,7 +37,6 @@ type RefreshTokenGetter interface {
 }
 
 type RefreshTokenSetter interface {
-	// SetRefreshToken(ctx context.Context, session Session, token models.AuthToken) error
 	SetRefreshToken(ctx context.Context, token models.AuthToken) error
 	SetRefreshTokenExpiry(ctx context.Context, token models.AuthToken, expiresAt time.Time) error
 }
@@ -52,7 +50,6 @@ type IDTokenGetter interface {
 }
 
 type IDTokenSetter interface {
-	// SetIDToken(ctx context.Context, session Session, token models.AuthToken) error
 	SetIDToken(ctx context.Context, token models.AuthToken) error
 	SetIDTokenExpiry(ctx context.Context, token models.AuthToken, expiresAt time.Time) error
 }

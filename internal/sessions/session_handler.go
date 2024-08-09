@@ -15,7 +15,7 @@ import (
 type SessionHandler struct {
 	cookieTemplate func() http.Cookie
 	sessionMaker   SessionMaker
-	sessionStore   SessionStore2
+	sessionStore   SessionRepository
 	tokenRefresher TokenRefresher
 	tokenStore     TokenStore2
 }
@@ -161,7 +161,7 @@ func (sh *SessionHandler) Cookie(session Session) http.Cookie {
 
 type SessionHandlerOption func(*SessionHandler) error
 
-func WithSessionStore(store SessionStore2) SessionHandlerOption {
+func WithSessionStore(store SessionRepository) SessionHandlerOption {
 	return func(sh *SessionHandler) error {
 		sh.sessionStore = store
 		return nil

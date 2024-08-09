@@ -2,7 +2,8 @@ package sessions
 
 import "context"
 
-type SessionStore2 interface {
+// TODO: move to models
+type SessionRepository interface {
 	SessionGetter
 	SessionSetter
 	SessionRemover

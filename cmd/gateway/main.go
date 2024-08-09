@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/dbnew"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/db"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/loginnew"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/revproxy"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
@@ -44,11 +44,11 @@ func main() {
 	// TODO: configure log level
 	logLevel.Set(slog.LevelDebug)
 	// Initialize the db adapters
-	dbOptions := []dbnew.RedisAdapterNewOption{dbnew.WithRedisConfig(gwConfig.Redis)}
+	dbOptions := []db.RedisAdapterOption{db.WithRedisConfig(gwConfig.Redis)}
 	if gwConfig.Login.TokenEncryption.Enabled && gwConfig.Login.TokenEncryption.SecretKey != "" {
-		dbOptions = append(dbOptions, dbnew.WithEcryption(string(gwConfig.Login.TokenEncryption.SecretKey)))
+		dbOptions = append(dbOptions, db.WithEcryption(string(gwConfig.Login.TokenEncryption.SecretKey)))
 	}
-	dbAdapter, err := dbnew.NewRedisAdapterNew(dbOptions...)
+	dbAdapter, err := db.NewRedisAdapter(dbOptions...)
 	if err != nil {
 		slog.Error("DB adapter initialization failed", "error", err)
 		os.Exit(1)
