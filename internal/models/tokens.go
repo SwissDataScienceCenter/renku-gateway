@@ -73,3 +73,11 @@ func (o AuthToken) Expired() bool {
 	}
 	return time.Now().UTC().After(o.ExpiresAt)
 }
+
+func (o AuthToken) ExpiresSoon(margin time.Duration) bool {
+	if o.ExpiresAt.IsZero() {
+		// IF the expiry date is missing we assume the token is not expired
+		return false
+	}
+	return time.Now().UTC().After(o.ExpiresAt.Add(-margin))
+}

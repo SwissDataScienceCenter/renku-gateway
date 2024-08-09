@@ -1,13 +1,17 @@
 package sessions
 
 import (
+	"log/slog"
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 )
+
+const tokenExpiryMargin time.Duration = time.Duration(3) * time.Minute
 
 // GetAccessTokenFromContext retrieves an access token from the current context
 func (sh *SessionHandler) GetAccessTokenFromContext(key string, c echo.Context) (models.AuthToken, error) {
@@ -49,6 +53,21 @@ func (sh *SessionHandler) GetAccessToken(c echo.Context, session Session, provid
 		} else {
 			return models.AuthToken{}, err
 		}
+	}
+	if token.ExpiresSoon(tokenExpiryMargin) {
+		slog.Debug(
+			"SESSION HANDLER",
+			"message",
+			"token expires soon",
+			"tokenID",
+			tokenID,
+			"session",
+			session,
+			"providerID",
+			providerID,
+			"requestID",
+			utils.GetRequestID(c),
+		)
 	}
 	if token.Expired() {
 		return models.AuthToken{}, gwerrors.ErrTokenExpired

@@ -68,20 +68,21 @@ func (tr *TokenRefresher) refreshExpiringTokens(ctx context.Context) error {
 			continue
 		}
 		// Call the refresh endpoint
-		newAccessToken, newRefreshToken, err := tr.providerStore.RefreshAccessToken(refreshToken)
+		// newAccessToken, newRefreshToken, err := tr.providerStore.RefreshAccessToken(refreshToken)
+		_, _, err = tr.providerStore.RefreshAccessToken(refreshToken)
 		if err != nil {
 			slog.Error("TOKEN REFRESHER", "message", "RefreshAccessToken failed", "error", err)
 			errorTokenIDs = append(errorTokenIDs, tokenID)
 			continue
 		}
 		// Set the refreshed access and refresh token values into the token store
-		err = tr.tokenStore.SetAccessToken(ctx, session, newAccessToken)
+		// err = tr.tokenStore.SetAccessToken(ctx, session, newAccessToken)
 		if err != nil {
 			slog.Error("TOKEN REFRESHER", "message", "SetAccessToken failed", "error", err)
 			errorTokenIDs = append(errorTokenIDs, tokenID)
 			continue
 		}
-		err = tr.tokenStore.SetRefreshToken(ctx, session, newRefreshToken)
+		// err = tr.tokenStore.SetRefreshToken(ctx, session, newRefreshToken)
 		if err != nil {
 			slog.Error("TOKEN REFRESHER", "message", "SetRefreshToken failed", "error", err)
 			errorTokenIDs = append(errorTokenIDs, tokenID)
