@@ -10,6 +10,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 )
@@ -34,7 +35,7 @@ func InjectInHeader(headerKey string) AuthOption {
 					"tokenType",
 					token.Type,
 					"requestID",
-					c.Response().Header().Get(echo.HeaderXRequestID),
+					utils.GetRequestID(c),
 				)
 				return nil
 			}
@@ -51,7 +52,7 @@ func InjectInHeader(headerKey string) AuthOption {
 				"tokenType",
 				token.Type,
 				"requestID",
-				c.Response().Header().Get(echo.HeaderXRequestID),
+				utils.GetRequestID(c),
 			)
 			c.Request().Header.Set(headerKey, token.Value)
 			return nil
@@ -75,7 +76,7 @@ func InjectBearerToken() AuthOption {
 					"tokenType",
 					token.Type,
 					"requestID",
-					c.Response().Header().Get(echo.HeaderXRequestID),
+					utils.GetRequestID(c),
 				)
 				return nil
 			}
@@ -92,7 +93,7 @@ func InjectBearerToken() AuthOption {
 				"tokenType",
 				token.Type,
 				"requestID",
-				c.Response().Header().Get(echo.HeaderXRequestID),
+				utils.GetRequestID(c),
 			)
 			c.Request().Header.Set(echo.HeaderAuthorization, fmt.Sprintf("Bearer %s", token.Value))
 			return nil
@@ -163,7 +164,7 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 					"tokenType",
 					a.tokenType,
 					"requestID",
-					c.Response().Header().Get(echo.HeaderXRequestID),
+					utils.GetRequestID(c),
 				)
 				return next(c)
 			}
@@ -192,7 +193,7 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 						"tokenType",
 						a.tokenType,
 						"requestID",
-						c.Response().Header().Get(echo.HeaderXRequestID),
+						utils.GetRequestID(c),
 					)
 					return next(c)
 				case gwerrors.ErrTokenExpired:
@@ -207,7 +208,7 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 						"tokenType",
 						a.tokenType,
 						"requestID",
-						c.Response().Header().Get(echo.HeaderXRequestID),
+						utils.GetRequestID(c),
 					)
 					return next(c)
 				default:
@@ -224,7 +225,7 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 						"tokenType",
 						a.tokenType,
 						"requestID",
-						c.Response().Header().Get(echo.HeaderXRequestID),
+						utils.GetRequestID(c),
 					)
 					return next(c)
 				}

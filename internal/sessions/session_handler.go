@@ -7,6 +7,7 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 )
@@ -30,7 +31,7 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 					"error",
 					loadErr,
 					"requestID",
-					c.Response().Header().Get(echo.HeaderXRequestID),
+					utils.GetRequestID(c),
 				)
 			}
 			slog.Debug(
@@ -40,7 +41,7 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 				"session",
 				session,
 				"requestID",
-				c.Response().Header().Get(echo.HeaderXRequestID),
+				utils.GetRequestID(c),
 			)
 			c.Set(SessionCtxKey, session)
 			err := next(c)
@@ -59,7 +60,7 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 					"sessionID",
 					sessionID,
 					"requestID",
-					c.Response().Header().Get(echo.HeaderXRequestID),
+					utils.GetRequestID(c),
 				)
 			}
 			session, _ = sh.Get(c)
@@ -70,7 +71,7 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 				"session",
 				session,
 				"requestID",
-				c.Response().Header().Get(echo.HeaderXRequestID),
+				utils.GetRequestID(c),
 			)
 			return err
 		}

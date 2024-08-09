@@ -8,6 +8,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/login"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/labstack/echo/v4"
 )
 
@@ -111,7 +112,7 @@ func (l *LoginServer2) nextAuthStep(
 		if url == "" {
 			url = l.config.RenkuBaseURL.String()
 		}
-		slog.Info("login completed", "requestID", c.Response().Header().Get(echo.HeaderXRequestID), "appRedirectURL", url)
+		slog.Info("login completed", "requestID", utils.GetRequestID(c), "appRedirectURL", url)
 		return c.Redirect(http.StatusFound, url)
 	}
 	providerID := session.LoginSequence[0]
@@ -123,7 +124,7 @@ func (l *LoginServer2) nextAuthStep(
 	// Handle the login
 	handler, err := l.providerStore.AuthHandler(providerID, session.LoginState)
 	if err != nil {
-		slog.Error("auth handler failed", "error", err, "requestID", c.Response().Header().Get(echo.HeaderXRequestID))
+		slog.Error("auth handler failed", "error", err, "requestID", utils.GetRequestID(c))
 		return err
 	}
 	return echo.WrapHandler(handler)(c)
