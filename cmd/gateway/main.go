@@ -16,7 +16,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/loginnew"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/revproxy"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/tokenrefresher2"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/tokenstore"
 	"github.com/getsentry/sentry-go"
 	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/labstack/echo-contrib/echoprometheus"
@@ -53,8 +53,8 @@ func main() {
 		slog.Error("DB adapter initialization failed", "error", err)
 		os.Exit(1)
 	}
-	// Initialize the token refresher
-	tokenRefresher, err := tokenrefresher2.NewTokenRefresher(tokenrefresher2.WithExpiryMarginMinutes(3), tokenrefresher2.WithConfig(gwConfig.Login), tokenrefresher2.WithTokenStore(dbAdapter))
+	// Initialize the token store
+	tokenStore, err := tokenstore.NewTokenRefresher(tokenstore.WithExpiryMarginMinutes(3), tokenstore.WithConfig(gwConfig.Login), tokenstore.WithTokenRepository(dbAdapter))
 	if err != nil {
 		slog.Error("token refresher initialization failed", "error", err)
 		os.Exit(1)
@@ -62,7 +62,7 @@ func main() {
 	// Create session handler
 	sessionHandler, err := sessions.NewSessionHandler(
 		sessions.WithSessionStore(dbAdapter),
-		sessions.WithTokenRefresher(&tokenRefresher),
+		sessions.WithTokenRefresher(&tokenStore),
 		sessions.WithTokenStore(dbAdapter),
 		sessions.WithConfig(gwConfig.Session),
 	)
