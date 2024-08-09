@@ -65,7 +65,8 @@ func main() {
 	// Setup
 	e := echo.New()
 	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
-	e.Use(middleware.Recover(), sessionHandler.Middleware())
+	// e.Use(middleware.Recover(), sessionHandler.Middleware())
+	e.Use(middleware.Recover())
 	// The banner and the port do not respect the logger formatting we set below so we remove them
 	// the port will be logged further down when the server starts.
 	e.HideBanner = true
@@ -96,20 +97,21 @@ func main() {
 	e.GET("/version", func(c echo.Context) error {
 		return c.String(http.StatusOK, version)
 	})
+	gwMiddlewares := append(commonMiddlewares, sessionHandler.Middleware())
 	// Initialize the reverse proxy
 	revproxy, err := revproxy.NewServer(revproxy.WithConfig(gwConfig.Revproxy), revproxy.WithSessionHandler(&sessionHandler))
 	if err != nil {
 		slog.Error("revproxy handlers initialization failed", "error", err)
 		os.Exit(1)
 	}
-	revproxy.RegisterHandlers(e, commonMiddlewares...)
+	revproxy.RegisterHandlers(e, gwMiddlewares...)
 	// Initialize login server
 	loginServer, err := loginnew.NewLoginServer(loginnew.WithConfig(gwConfig.Login), loginnew.WithSessionHandler(&sessionHandler))
 	if err != nil {
 		slog.Error("login handlers initialization failed", "error", err)
 		os.Exit(1)
 	}
-	loginServer.RegisterHandlers(e, commonMiddlewares...)
+	loginServer.RegisterHandlers(e, gwMiddlewares...)
 	// Initialize the token refresher
 	// tokenRefresher, err := tokenrefresher.NewTokenRefresher(tokenrefresher.WithExpiresSoonMinutes(3), tokenrefresher.WithConfig(gwConfig.Login), tokenrefresher.WithSessionStore(dbAdapter), tokenrefresher.WithTokenStore(dbAdapter))
 	// if err != nil {
