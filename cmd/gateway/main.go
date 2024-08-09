@@ -16,6 +16,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/loginnew"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/revproxy"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/tokenrefresher2"
 	"github.com/getsentry/sentry-go"
 	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/labstack/echo-contrib/echoprometheus"
@@ -52,9 +53,16 @@ func main() {
 		slog.Error("DB adapter initialization failed", "error", err)
 		os.Exit(1)
 	}
+	// Initialize the token refresher
+	tokenRefresher, err := tokenrefresher2.NewTokenRefresher(tokenrefresher2.WithExpiryMarginMinutes(3), tokenrefresher2.WithConfig(gwConfig.Login), tokenrefresher2.WithTokenStore(dbAdapter))
+	if err != nil {
+		slog.Error("token refresher initialization failed", "error", err)
+		os.Exit(1)
+	}
 	// Create session handler
 	sessionHandler, err := sessions.NewSessionHandler(
 		sessions.WithSessionStore(dbAdapter),
+		sessions.WithTokenRefresher(&tokenRefresher),
 		sessions.WithTokenStore(dbAdapter),
 		sessions.WithConfig(gwConfig.Session),
 	)
@@ -97,6 +105,7 @@ func main() {
 	e.GET("/version", func(c echo.Context) error {
 		return c.String(http.StatusOK, version)
 	})
+	// Add the session handler to the common middlewares
 	gwMiddlewares := append(commonMiddlewares, sessionHandler.Middleware())
 	// Initialize the reverse proxy
 	revproxy, err := revproxy.NewServer(revproxy.WithConfig(gwConfig.Revproxy), revproxy.WithSessionHandler(&sessionHandler))

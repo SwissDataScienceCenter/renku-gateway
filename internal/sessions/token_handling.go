@@ -1,12 +1,10 @@
 package sessions
 
 import (
-	"log/slog"
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 )
@@ -46,28 +44,14 @@ func (sh *SessionHandler) GetAccessToken(c echo.Context, session Session, provid
 		return token, nil
 	}
 
-	token, err = sh.tokenStore.GetAccessToken(c.Request().Context(), tokenID)
+	// token, err = sh.tokenStore.GetAccessToken(c.Request().Context(), tokenID)
+	token, err = sh.tokenRefresher.GetFreshAccessToken(c.Request().Context(), tokenID)
 	if err != nil {
 		if err == redis.Nil {
 			return models.AuthToken{}, gwerrors.ErrTokenNotFound
 		} else {
 			return models.AuthToken{}, err
 		}
-	}
-	if token.ExpiresSoon(tokenExpiryMargin) {
-		slog.Debug(
-			"SESSION HANDLER",
-			"message",
-			"token expires soon",
-			"tokenID",
-			tokenID,
-			"session",
-			session,
-			"providerID",
-			providerID,
-			"requestID",
-			utils.GetRequestID(c),
-		)
 	}
 	if token.Expired() {
 		return models.AuthToken{}, gwerrors.ErrTokenExpired
@@ -88,17 +72,29 @@ func (sh *SessionHandler) SaveTokens(c echo.Context, session *Session, tokens Au
 	session.TokenIDs[providerID] = tokens.AccessToken.ID
 	// err = sh.tokenStore.SetAccessToken(c.Request().Context(), *session, tokens.AccessToken)
 	expiresAt := sh.getTokenExpiration(tokens, *session)
-	err = sh.tokenStore.SetAccessToken(c.Request().Context(), tokens.AccessToken, expiresAt)
+	err = sh.tokenStore.SetAccessToken(c.Request().Context(), tokens.AccessToken)
+	if err != nil {
+		return err
+	}
+	err = sh.tokenStore.SetAccessTokenExpiry(c.Request().Context(), tokens.AccessToken, expiresAt)
 	if err != nil {
 		return err
 	}
 	// err = sh.tokenStore.SetRefreshToken(c.Request().Context(), *session, tokens.RefreshToken)
-	err = sh.tokenStore.SetRefreshToken(c.Request().Context(), tokens.RefreshToken, expiresAt)
+	err = sh.tokenStore.SetRefreshToken(c.Request().Context(), tokens.RefreshToken)
+	if err != nil {
+		return err
+	}
+	err = sh.tokenStore.SetRefreshTokenExpiry(c.Request().Context(), tokens.RefreshToken, expiresAt)
 	if err != nil {
 		return err
 	}
 	// err = sh.tokenStore.SetIDToken(c.Request().Context(), *session, tokens.IDToken)
-	err = sh.tokenStore.SetIDToken(c.Request().Context(), tokens.IDToken, expiresAt)
+	err = sh.tokenStore.SetIDToken(c.Request().Context(), tokens.IDToken)
+	if err != nil {
+		return err
+	}
+	err = sh.tokenStore.SetIDTokenExpiry(c.Request().Context(), tokens.RefreshToken, expiresAt)
 	if err != nil {
 		return err
 	}

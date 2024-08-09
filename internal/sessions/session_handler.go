@@ -16,6 +16,7 @@ type SessionHandler struct {
 	cookieTemplate func() http.Cookie
 	sessionMaker   SessionMaker
 	sessionStore   SessionStore2
+	tokenRefresher TokenRefresher
 	tokenStore     TokenStore2
 }
 
@@ -167,6 +168,13 @@ func WithSessionStore(store SessionStore2) SessionHandlerOption {
 	}
 }
 
+func WithTokenRefresher(tr TokenRefresher) SessionHandlerOption {
+	return func(sh *SessionHandler) error {
+		sh.tokenRefresher = tr
+		return nil
+	}
+}
+
 func WithTokenStore(store TokenStore2) SessionHandlerOption {
 	return func(sh *SessionHandler) error {
 		sh.tokenStore = store
@@ -203,6 +211,9 @@ func NewSessionHandler(options ...SessionHandlerOption) (SessionHandler, error) 
 	}
 	if sh.sessionStore == nil {
 		return SessionHandler{}, fmt.Errorf("session store is not initialized")
+	}
+	if sh.tokenRefresher == nil {
+		return SessionHandler{}, fmt.Errorf("token refresher is not initialized")
 	}
 	if sh.tokenStore == nil {
 		return SessionHandler{}, fmt.Errorf("token store is not initialized")
