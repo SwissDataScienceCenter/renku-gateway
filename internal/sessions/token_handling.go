@@ -9,8 +9,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-const tokenExpiryMargin time.Duration = time.Duration(3) * time.Minute
-
 // GetAccessTokenFromContext retrieves an access token from the current context
 func (sh *SessionHandler) GetAccessTokenFromContext(key string, c echo.Context) (models.AuthToken, error) {
 	tokenRaw := c.Get(key)
