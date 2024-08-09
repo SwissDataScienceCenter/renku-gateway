@@ -1,59 +1,15 @@
 package sessions
 
-import (
-	"context"
-	"time"
+import "github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
-)
-
-type TokenStore2 interface {
-	AccessTokenGetter
-	AccessTokenSetter
+type SessionTokenRepository interface {
+	models.AccessTokenGetter
+	models.AccessTokenSetter
 	// AccessTokenRemover
 	// RefreshTokenGetter
-	RefreshTokenSetter
+	models.RefreshTokenSetter
 	// RefreshTokenRemover
 	// IDTokenGetter
-	IDTokenSetter
+	models.IDTokenSetter
 	// IDTokenRemover
-}
-
-type AccessTokenGetter interface {
-	GetAccessToken(ctx context.Context, tokenID string) (models.AuthToken, error)
-}
-
-type AccessTokenSetter interface {
-	SetAccessToken(ctx context.Context, token models.AuthToken) error
-	SetAccessTokenExpiry(ctx context.Context, token models.AuthToken, expiresAt time.Time) error
-}
-
-type AccessTokenRemover interface {
-	RemoveAccessToken(ctx context.Context, tokenID string) error
-}
-
-type RefreshTokenGetter interface {
-	GetRefreshToken(ctx context.Context, tokenID string) (models.AuthToken, error)
-}
-
-type RefreshTokenSetter interface {
-	SetRefreshToken(ctx context.Context, token models.AuthToken) error
-	SetRefreshTokenExpiry(ctx context.Context, token models.AuthToken, expiresAt time.Time) error
-}
-
-type RefreshTokenRemover interface {
-	RemoveRefreshToken(ctx context.Context, tokenID string) error
-}
-
-type IDTokenGetter interface {
-	GetIDToken(ctx context.Context, tokenID string) (models.AuthToken, error)
-}
-
-type IDTokenSetter interface {
-	SetIDToken(ctx context.Context, token models.AuthToken) error
-	SetIDTokenExpiry(ctx context.Context, token models.AuthToken, expiresAt time.Time) error
-}
-
-type IDTokenRemover interface {
-	RemoveIDToken(ctx context.Context, tokenID string) error
 }

@@ -17,7 +17,7 @@ type SessionHandler struct {
 	sessionMaker   SessionMaker
 	sessionStore   SessionRepository
 	tokenRefresher TokenRefresher
-	tokenStore     TokenStore2
+	tokenStore     SessionTokenRepository
 }
 
 func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
@@ -175,7 +175,7 @@ func WithTokenRefresher(tr TokenRefresher) SessionHandlerOption {
 	}
 }
 
-func WithTokenStore(store TokenStore2) SessionHandlerOption {
+func WithTokenStore(store SessionTokenRepository) SessionHandlerOption {
 	return func(sh *SessionHandler) error {
 		sh.tokenStore = store
 		return nil
