@@ -43,7 +43,7 @@ func (sh *SessionHandler) GetAccessToken(c echo.Context, session models.Session,
 	}
 
 	// token, err = sh.tokenStore.GetAccessToken(c.Request().Context(), tokenID)
-	token, err = sh.tokenRefresher.GetFreshAccessToken(c.Request().Context(), tokenID)
+	token, err = sh.tokenStore.GetFreshAccessToken(c.Request().Context(), tokenID)
 	if err != nil {
 		if err == redis.Nil {
 			return models.AuthToken{}, gwerrors.ErrTokenNotFound
@@ -69,27 +69,27 @@ func (sh *SessionHandler) SaveTokens(c echo.Context, session *models.Session, to
 	}
 	session.TokenIDs[providerID] = tokens.AccessToken.ID
 	expiresAt := sh.getTokenExpiration(tokens, *session)
-	err = sh.tokenStore.SetAccessToken(c.Request().Context(), tokens.AccessToken)
+	err = sh.tokenRepo.SetAccessToken(c.Request().Context(), tokens.AccessToken)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenStore.SetAccessTokenExpiry(c.Request().Context(), tokens.AccessToken, expiresAt)
+	err = sh.tokenRepo.SetAccessTokenExpiry(c.Request().Context(), tokens.AccessToken, expiresAt)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenStore.SetRefreshToken(c.Request().Context(), tokens.RefreshToken)
+	err = sh.tokenRepo.SetRefreshToken(c.Request().Context(), tokens.RefreshToken)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenStore.SetRefreshTokenExpiry(c.Request().Context(), tokens.RefreshToken, expiresAt)
+	err = sh.tokenRepo.SetRefreshTokenExpiry(c.Request().Context(), tokens.RefreshToken, expiresAt)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenStore.SetIDToken(c.Request().Context(), tokens.IDToken)
+	err = sh.tokenRepo.SetIDToken(c.Request().Context(), tokens.IDToken)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenStore.SetIDTokenExpiry(c.Request().Context(), tokens.IDToken, expiresAt)
+	err = sh.tokenRepo.SetIDTokenExpiry(c.Request().Context(), tokens.IDToken, expiresAt)
 	if err != nil {
 		return err
 	}

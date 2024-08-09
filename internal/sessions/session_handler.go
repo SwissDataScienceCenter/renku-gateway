@@ -16,9 +16,9 @@ import (
 type SessionHandler struct {
 	cookieTemplate func() http.Cookie
 	sessionMaker   SessionMaker
-	sessionStore   models.SessionRepository
-	tokenRefresher TokenRefresher
-	tokenStore     SessionTokenRepository
+	sessionRepo    models.SessionRepository
+	tokenRepo      LimitedTokenRepository
+	tokenStore     TokenStore
 }
 
 func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
@@ -118,7 +118,7 @@ func (sh *SessionHandler) Get(c echo.Context) (*models.Session, error) {
 	sessionID = cookie.Value
 
 	// load the session from the store
-	sessionFromStore, err := sh.sessionStore.GetSession(c.Request().Context(), sessionID)
+	sessionFromStore, err := sh.sessionRepo.GetSession(c.Request().Context(), sessionID)
 	if err != nil {
 		if err == redis.Nil {
 			return &models.Session{}, gwerrors.ErrSessionNotFound
@@ -151,7 +151,7 @@ func (sh *SessionHandler) Save(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return sh.sessionStore.SetSession(c.Request().Context(), *session)
+	return sh.sessionRepo.SetSession(c.Request().Context(), *session)
 }
 
 func (sh *SessionHandler) Cookie(session models.Session) http.Cookie {
@@ -162,21 +162,21 @@ func (sh *SessionHandler) Cookie(session models.Session) http.Cookie {
 
 type SessionHandlerOption func(*SessionHandler) error
 
-func WithSessionStore(store models.SessionRepository) SessionHandlerOption {
+func WithSessionRepository(repo models.SessionRepository) SessionHandlerOption {
 	return func(sh *SessionHandler) error {
-		sh.sessionStore = store
+		sh.sessionRepo = repo
 		return nil
 	}
 }
 
-func WithTokenRefresher(tr TokenRefresher) SessionHandlerOption {
+func WithTokenRepository(repo LimitedTokenRepository) SessionHandlerOption {
 	return func(sh *SessionHandler) error {
-		sh.tokenRefresher = tr
+		sh.tokenRepo = repo
 		return nil
 	}
 }
 
-func WithTokenStore(store SessionTokenRepository) SessionHandlerOption {
+func WithTokenStore(store TokenStore) SessionHandlerOption {
 	return func(sh *SessionHandler) error {
 		sh.tokenStore = store
 		return nil
@@ -210,11 +210,11 @@ func NewSessionHandler(options ...SessionHandlerOption) (SessionHandler, error) 
 	if sh.sessionMaker == nil {
 		return SessionHandler{}, fmt.Errorf("session maker is not initialized")
 	}
-	if sh.sessionStore == nil {
-		return SessionHandler{}, fmt.Errorf("session store is not initialized")
+	if sh.sessionRepo == nil {
+		return SessionHandler{}, fmt.Errorf("session repository is not initialized")
 	}
-	if sh.tokenRefresher == nil {
-		return SessionHandler{}, fmt.Errorf("token refresher is not initialized")
+	if sh.tokenRepo == nil {
+		return SessionHandler{}, fmt.Errorf("token repository is not initialized")
 	}
 	if sh.tokenStore == nil {
 		return SessionHandler{}, fmt.Errorf("token store is not initialized")

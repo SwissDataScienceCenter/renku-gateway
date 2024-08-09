@@ -1,15 +1,11 @@
 package sessions
 
-import "github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+import (
+	"context"
 
-type SessionTokenRepository interface {
-	models.AccessTokenGetter
-	models.AccessTokenSetter
-	// AccessTokenRemover
-	// RefreshTokenGetter
-	models.RefreshTokenSetter
-	// RefreshTokenRemover
-	// IDTokenGetter
-	models.IDTokenSetter
-	// IDTokenRemover
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+)
+
+type TokenStore interface {
+	GetFreshAccessToken(ctx context.Context, tokenID string) (models.AuthToken, error)
 }

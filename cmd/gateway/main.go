@@ -54,16 +54,20 @@ func main() {
 		os.Exit(1)
 	}
 	// Initialize the token store
-	tokenStore, err := tokenstore.NewTokenRefresher(tokenstore.WithExpiryMarginMinutes(3), tokenstore.WithConfig(gwConfig.Login), tokenstore.WithTokenRepository(dbAdapter))
+	tokenStore, err := tokenstore.NewTokenStore(
+		tokenstore.WithExpiryMarginMinutes(3),
+		tokenstore.WithConfig(gwConfig.Login),
+		tokenstore.WithTokenRepository(dbAdapter),
+	)
 	if err != nil {
 		slog.Error("token refresher initialization failed", "error", err)
 		os.Exit(1)
 	}
 	// Create session handler
 	sessionHandler, err := sessions.NewSessionHandler(
-		sessions.WithSessionStore(dbAdapter),
-		sessions.WithTokenRefresher(&tokenStore),
-		sessions.WithTokenStore(dbAdapter),
+		sessions.WithSessionRepository(dbAdapter),
+		sessions.WithTokenRepository(dbAdapter),
+		sessions.WithTokenStore(&tokenStore),
 		sessions.WithConfig(gwConfig.Session),
 	)
 	if err != nil {

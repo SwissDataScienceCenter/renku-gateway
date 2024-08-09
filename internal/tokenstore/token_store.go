@@ -125,8 +125,8 @@ func WithTokenRepository(store LimitedTokenRepository) TokenRefresherOption {
 	}
 }
 
-// NewTokenRefresher creates a new TokenRefresher that handles refreshing access tokens which are expiring soon.
-func NewTokenRefresher(options ...TokenRefresherOption) (TokenStore, error) {
+// NewTokenStore creates a new TokenRefresher that handles refreshing access tokens which are expiring soon.
+func NewTokenStore(options ...TokenRefresherOption) (TokenStore, error) {
 	tr := TokenStore{}
 	for _, opt := range options {
 		err := opt(&tr)
