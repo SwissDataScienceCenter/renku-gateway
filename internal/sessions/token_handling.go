@@ -70,7 +70,6 @@ func (sh *SessionHandler) SaveTokens(c echo.Context, session *Session, tokens Au
 		session.TokenIDs = models.SerializableMap{}
 	}
 	session.TokenIDs[providerID] = tokens.AccessToken.ID
-	// err = sh.tokenStore.SetAccessToken(c.Request().Context(), *session, tokens.AccessToken)
 	expiresAt := sh.getTokenExpiration(tokens, *session)
 	err = sh.tokenStore.SetAccessToken(c.Request().Context(), tokens.AccessToken)
 	if err != nil {
@@ -80,7 +79,6 @@ func (sh *SessionHandler) SaveTokens(c echo.Context, session *Session, tokens Au
 	if err != nil {
 		return err
 	}
-	// err = sh.tokenStore.SetRefreshToken(c.Request().Context(), *session, tokens.RefreshToken)
 	err = sh.tokenStore.SetRefreshToken(c.Request().Context(), tokens.RefreshToken)
 	if err != nil {
 		return err
@@ -89,12 +87,11 @@ func (sh *SessionHandler) SaveTokens(c echo.Context, session *Session, tokens Au
 	if err != nil {
 		return err
 	}
-	// err = sh.tokenStore.SetIDToken(c.Request().Context(), *session, tokens.IDToken)
 	err = sh.tokenStore.SetIDToken(c.Request().Context(), tokens.IDToken)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenStore.SetIDTokenExpiry(c.Request().Context(), tokens.RefreshToken, expiresAt)
+	err = sh.tokenStore.SetIDTokenExpiry(c.Request().Context(), tokens.IDToken, expiresAt)
 	if err != nil {
 		return err
 	}
