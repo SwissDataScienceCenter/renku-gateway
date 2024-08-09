@@ -7,8 +7,10 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 )
 
+var randomIDGenerator models.IDGenerator = models.RandomGenerator{Length: 32}
+
 type SessionMaker interface {
-	NewSession() (Session, error)
+	NewSession() (models.Session, error)
 }
 
 type SessionMakerImpl struct {
@@ -16,12 +18,12 @@ type SessionMakerImpl struct {
 	maxSessionTTLSeconds  int
 }
 
-func (sm *SessionMakerImpl) NewSession() (Session, error) {
+func (sm *SessionMakerImpl) NewSession() (models.Session, error) {
 	id, err := randomIDGenerator.ID()
 	if err != nil {
-		return Session{}, err
+		return models.Session{}, err
 	}
-	session := Session{
+	session := models.Session{
 		ID:             id,
 		CreatedAt:      time.Now().UTC(),
 		IdleTTLSeconds: models.SerializableInt(sm.idleSessionTTLSeconds),

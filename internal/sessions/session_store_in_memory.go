@@ -5,24 +5,25 @@ import (
 	"sync"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 )
 
 type InMemorySessionStore struct {
 	lock     *sync.RWMutex
-	sessions map[string]Session
+	sessions map[string]models.Session
 }
 
-func (db *InMemorySessionStore) GetSession(ctx context.Context, id string) (Session, error) {
+func (db *InMemorySessionStore) GetSession(ctx context.Context, id string) (models.Session, error) {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 	session, found := db.sessions[id]
 	if !found {
-		return Session{}, gwerrors.ErrSessionNotFound
+		return models.Session{}, gwerrors.ErrSessionNotFound
 	}
 	return session, nil
 }
 
-func (db *InMemorySessionStore) SetSession(ctx context.Context, session Session) error {
+func (db *InMemorySessionStore) SetSession(ctx context.Context, session models.Session) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 	db.sessions[session.ID] = session
@@ -41,6 +42,6 @@ func (db *InMemorySessionStore) RemoveSession(ctx context.Context, id string) er
 }
 
 func NewInMemorySessionStore() InMemorySessionStore {
-	db := InMemorySessionStore{lock: &sync.RWMutex{}, sessions: map[string]Session{}}
+	db := InMemorySessionStore{lock: &sync.RWMutex{}, sessions: map[string]models.Session{}}
 	return db
 }

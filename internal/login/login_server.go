@@ -16,8 +16,8 @@ package login
 // 	sessionStore      models.SessionStore
 // 	providerStore     oidc.ClientStore
 // 	tokenStore        models.TokenStore
-// 	sessionHandler    models.SessionHandler
-// 	cliSessionHandler models.SessionHandler
+// 	sessionHandler    sessions.SessionHandler
+// 	cliSessionHandler sessions.SessionHandler
 // 	config            *config.LoginConfig
 // }
 

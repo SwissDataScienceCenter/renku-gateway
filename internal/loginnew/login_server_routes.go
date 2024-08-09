@@ -102,7 +102,7 @@ func (l *LoginServer2) GetAuthTest(c echo.Context) error {
 // Adapted from oauth2-proxy code.
 func (l *LoginServer2) nextAuthStep(
 	c echo.Context,
-	session *sessions.Session,
+	session *models.Session,
 ) error {
 	// Get the next provider to authenticate with
 	if session.LoginSequence == nil || len(session.LoginSequence) == 0 {

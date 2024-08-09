@@ -4,15 +4,15 @@ import (
 	"context"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 )
 
 const (
 	sessionPrefix string = "session"
 )
 
-func (r RedisAdapter) GetSession(ctx context.Context, sessionID string) (sessions.Session, error) {
-	output := sessions.Session{}
+func (r RedisAdapter) GetSession(ctx context.Context, sessionID string) (models.Session, error) {
+	output := models.Session{}
 	// NOTE: HGETALL will return an empty list of hash-keys and hash-values if the key is not found
 	// then this is deserialized as an empty (zero-valued) struct
 	raw, err := r.rdb.HGetAll(
@@ -27,12 +27,12 @@ func (r RedisAdapter) GetSession(ctx context.Context, sessionID string) (session
 		if err == gwerrors.ErrMissingDBResource {
 			err = gwerrors.ErrSessionNotFound
 		}
-		return sessions.Session{}, err
+		return models.Session{}, err
 	}
 	return output, nil
 }
 
-func (r RedisAdapter) SetSession(ctx context.Context, session sessions.Session) error {
+func (r RedisAdapter) SetSession(ctx context.Context, session models.Session) error {
 	key := r.sessionKey(session.ID)
 	err := r.rdb.HSet(
 		ctx,

@@ -15,15 +15,7 @@ type AuthToken struct {
 	ProviderID string
 	Type       OauthTokenType
 	SessionID  string
-	// encryptor  Encryptor
 }
-
-// // SetEncryptor adds encryption capabilities to the token
-// func (o OauthToken) SetEncryptor(enc Encryptor) OauthToken {
-// 	output := o
-// 	output.encryptor = enc
-// 	return output
-// }
 
 // Encrypt encrypts the value of the token if an encryptor is set
 func (o AuthToken) Encrypt(e Encryptor) (AuthToken, error) {
@@ -56,10 +48,11 @@ func (o AuthToken) Decrypt(e Encryptor) (AuthToken, error) {
 // String immplements the Stringer interface for printing the token in logs
 func (o AuthToken) String() string {
 	return fmt.Sprintf(
-		"%s<ID: %s, Value: redacted, ExpiresAt: %s, TokenURL: %s, ProviderID: %s, SessionID: %s>",
+		"%s<ID: %s, Value: redacted, ExpiresAt: %s, Subject: %s, TokenURL: %s, ProviderID: %s, SessionID: %s>",
 		o.Type,
 		o.ID,
 		o.ExpiresAt,
+		o.Subject,
 		o.TokenURL,
 		o.ProviderID,
 		o.SessionID,

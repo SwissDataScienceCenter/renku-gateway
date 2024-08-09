@@ -1,9 +1,7 @@
 package tokenrefresher
 
-import (
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
-)
+import "github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 
 type RefresherSessionStore interface {
-	sessions.SessionGetter
+	models.SessionGetter
 }

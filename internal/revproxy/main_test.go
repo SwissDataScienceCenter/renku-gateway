@@ -17,6 +17,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/db"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -165,7 +166,7 @@ func setupTestAuthServer(
 	return srv, url
 }
 
-func setupTestRevproxy(rpConfig *config.RevproxyConfig, sh *models.SessionHandler) (*httptest.Server, *url.URL) {
+func setupTestRevproxy(rpConfig *config.RevproxyConfig, sh *sessions.SessionHandler) (*httptest.Server, *url.URL) {
 	proxy, err := NewServer(WithConfig(*rpConfig), WithSessionHandler(sh))
 	if err != nil {
 		log.Fatal(err)

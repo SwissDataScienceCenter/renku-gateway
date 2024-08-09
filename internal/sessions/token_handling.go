@@ -28,7 +28,7 @@ func (sh *SessionHandler) GetAccessTokenFromContext(key string, c echo.Context) 
 	return models.AuthToken{}, gwerrors.ErrTokenNotFound
 }
 
-func (sh *SessionHandler) GetAccessToken(c echo.Context, session Session, providerID string) (models.AuthToken, error) {
+func (sh *SessionHandler) GetAccessToken(c echo.Context, session models.Session, providerID string) (models.AuthToken, error) {
 	if session.TokenIDs == nil {
 		session.TokenIDs = models.SerializableMap{}
 	}
@@ -57,7 +57,7 @@ func (sh *SessionHandler) GetAccessToken(c echo.Context, session Session, provid
 	return token, nil
 }
 
-func (sh *SessionHandler) SaveTokens(c echo.Context, session *Session, tokens AuthTokenSet) error {
+func (sh *SessionHandler) SaveTokens(c echo.Context, session *models.Session, tokens AuthTokenSet) error {
 	err := tokens.ValidateTokensType()
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func (SessionHandler) accessTokenKey(tokenID string) string {
 }
 
 // getTokenExpiration returns the max session expiration unless the provider is GitLab, in which case there is no expiration
-func (SessionHandler) getTokenExpiration(tokens AuthTokenSet, session Session) time.Time {
+func (SessionHandler) getTokenExpiration(tokens AuthTokenSet, session models.Session) time.Time {
 	providerID := tokens.AccessToken.ProviderID
 	if providerID == "gitlab" {
 		return time.Time{}

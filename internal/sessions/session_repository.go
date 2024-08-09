@@ -1,6 +1,10 @@
 package sessions
 
-import "context"
+import (
+	"context"
+
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+)
 
 // TODO: move to models
 type SessionRepository interface {
@@ -10,11 +14,11 @@ type SessionRepository interface {
 }
 
 type SessionGetter interface {
-	GetSession(ctx context.Context, sessionID string) (Session, error)
+	GetSession(ctx context.Context, sessionID string) (models.Session, error)
 }
 
 type SessionSetter interface {
-	SetSession(ctx context.Context, session Session) error
+	SetSession(ctx context.Context, session models.Session) error
 }
 
 type SessionRemover interface {

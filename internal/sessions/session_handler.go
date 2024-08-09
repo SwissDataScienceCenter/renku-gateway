@@ -7,6 +7,7 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
@@ -80,25 +81,25 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 }
 
 // GetFromContext retrieves a session from the current context
-func (sh *SessionHandler) GetFromContext(key string, c echo.Context) (*Session, error) {
+func (sh *SessionHandler) GetFromContext(key string, c echo.Context) (*models.Session, error) {
 	sessionRaw := c.Get(key)
 	if sessionRaw != nil {
-		session, ok := sessionRaw.(*Session)
+		session, ok := sessionRaw.(*models.Session)
 		if session == nil {
-			return &Session{}, gwerrors.ErrSessionNotFound
+			return &models.Session{}, gwerrors.ErrSessionNotFound
 		}
 		if !ok {
-			return &Session{}, gwerrors.ErrSessionParse
+			return &models.Session{}, gwerrors.ErrSessionParse
 		}
 		if session.Expired() {
-			return &Session{}, gwerrors.ErrSessionExpired
+			return &models.Session{}, gwerrors.ErrSessionExpired
 		}
 		return session, nil
 	}
-	return &Session{}, gwerrors.ErrSessionNotFound
+	return &models.Session{}, gwerrors.ErrSessionNotFound
 }
 
-func (sh *SessionHandler) Get(c echo.Context) (*Session, error) {
+func (sh *SessionHandler) Get(c echo.Context) (*models.Session, error) {
 	// check if the session is already in the request context
 	session, err := sh.GetFromContext(SessionCtxKey, c)
 	if err == nil {
@@ -110,9 +111,9 @@ func (sh *SessionHandler) Get(c echo.Context) (*Session, error) {
 	cookie, err := c.Cookie(SessionCookieName)
 	if err != nil {
 		if err == http.ErrNoCookie {
-			return &Session{}, gwerrors.ErrSessionNotFound
+			return &models.Session{}, gwerrors.ErrSessionNotFound
 		}
-		return &Session{}, err
+		return &models.Session{}, err
 	}
 	sessionID = cookie.Value
 
@@ -120,24 +121,24 @@ func (sh *SessionHandler) Get(c echo.Context) (*Session, error) {
 	sessionFromStore, err := sh.sessionStore.GetSession(c.Request().Context(), sessionID)
 	if err != nil {
 		if err == redis.Nil {
-			return &Session{}, gwerrors.ErrSessionNotFound
+			return &models.Session{}, gwerrors.ErrSessionNotFound
 		} else {
-			return &Session{}, err
+			return &models.Session{}, err
 		}
 	}
 	session = &sessionFromStore
 	if session.Expired() {
-		return &Session{}, gwerrors.ErrSessionExpired
+		return &models.Session{}, gwerrors.ErrSessionExpired
 	}
 	session.Touch()
 	return session, nil
 }
 
 // Create will create a new session.
-func (sh *SessionHandler) Create(c echo.Context) (*Session, error) {
+func (sh *SessionHandler) Create(c echo.Context) (*models.Session, error) {
 	session, err := sh.sessionMaker.NewSession()
 	if err != nil {
-		return &Session{}, err
+		return &models.Session{}, err
 	}
 	c.Set(SessionCtxKey, &session)
 	cookie := sh.Cookie(session)
@@ -153,7 +154,7 @@ func (sh *SessionHandler) Save(c echo.Context) error {
 	return sh.sessionStore.SetSession(c.Request().Context(), *session)
 }
 
-func (sh *SessionHandler) Cookie(session Session) http.Cookie {
+func (sh *SessionHandler) Cookie(session models.Session) http.Cookie {
 	cookie := sh.cookieTemplate()
 	cookie.Value = session.ID
 	return cookie

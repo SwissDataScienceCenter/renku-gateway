@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -216,7 +217,7 @@ func notebooksAnonymousID(next echo.HandlerFunc) echo.HandlerFunc {
 		if sessionRaw == nil {
 			return gwerrors.ErrSessionNotFound
 		}
-		session, ok := sessionRaw.(sessions.Session)
+		session, ok := sessionRaw.(models.Session)
 		if !ok {
 			return gwerrors.ErrSessionParse
 		}
