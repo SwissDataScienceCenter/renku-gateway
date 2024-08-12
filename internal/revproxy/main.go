@@ -56,8 +56,6 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	// gitlabAuth := NewAuth(WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), InjectBearerToken()).Middleware()
 	// gitlabCliAuth := NewAuth(WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), WithTokenHandler(gitlabCliTokenHandler)).Middleware()
 
-	e.Group("/api/data", append(commonMiddlewares, dataRenkuAccessToken, dataGitlabAccessToken, noCookies, dataServiceProxy)...)
-
 	// Routing for Renku services
 	e.Group("/api/notebooks", append(commonMiddlewares, notebooksRenkuAccessToken, notebooksRenkuRefreshToken, notebooksRenkuIDToken, notebooksGitlabAccessToken, notebooksAnonymousID(r.sessions), noCookies, stripPrefix("/api"), notebooksProxy)...)
 	// // /api/projects/:projectID/graph will is being deprecated in favour of /api/kg/webhooks, the old endpoint will remain for some time for backward compatibility
@@ -66,7 +64,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	// e.Group("/api/kg/webhooks", append(commonMiddlewares, gitlabAuth, noCookies, stripPrefix("/api/kg/webhooks"), webhookProxy)...)
 	// e.Group("/api/datasets", append(commonMiddlewares, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)...)
 	// e.Group("/api/kg", append(commonMiddlewares, gitlabAuth, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)...)
-	// e.Group("/api/data", append(commonMiddlewares, dataRenkuAccessToken, dataGitlabAccessToken, noCookies, dataServiceProxy)...)
+	e.Group("/api/data", append(commonMiddlewares, dataRenkuAccessToken, dataGitlabAccessToken, noCookies, dataServiceProxy)...)
 	// // /api/kc is used only by the ui and no one else, will be removed when the gateway is in charge of user sessions
 	// e.Group("/api/kc", append(commonMiddlewares, stripPrefix("/api/kc"), keycloakProxyHost, keycloakProxy)...)
 

@@ -10,6 +10,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/labstack/echo/v4"
+	"github.com/zitadel/oidc/v2/pkg/client"
 	"github.com/zitadel/oidc/v2/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v2/pkg/http"
 	"github.com/zitadel/oidc/v2/pkg/oidc"
@@ -160,7 +161,25 @@ func (c *oidcClient) verifyTokens(ctx context.Context, accessToken, refreshToken
 }
 
 func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models.AuthToken) (sessions.AuthTokenSet, error) {
-	oAuth2Token, err := rp.RefreshAccessToken(c.client, refreshToken.Value, "", "")
+	var oAuth2Token *oauth2.Token
+	var err error
+	// Special case for GitLab: we need to pass the original redirect URL
+	// Code adapted from the OIDC library
+	if c.id == "gitlab" {
+		request := gitlabRefreshTokenRequest{
+			RefreshToken: refreshToken.Value,
+			Scopes:       c.client.OAuthConfig().Scopes,
+			ClientID:     c.client.OAuthConfig().ClientID,
+			ClientSecret: c.client.OAuthConfig().ClientSecret,
+			GrantType:    oidc.GrantTypeRefreshToken,
+			RedirectUri:  c.client.OAuthConfig().RedirectURL,
+		}
+		oAuth2Token, err = client.CallTokenEndpoint(request, tokenEndpointCaller{RelyingParty: c.client})
+
+	} else {
+		oAuth2Token, err = rp.RefreshAccessToken(c.client, refreshToken.Value, "", "")
+	}
+
 	if err != nil {
 		return sessions.AuthTokenSet{}, err
 	}
@@ -211,6 +230,23 @@ func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models
 		IDToken:      newIDToken,
 	}
 	return tokenSet, err
+}
+
+type gitlabRefreshTokenRequest struct {
+	RefreshToken string                   `schema:"refresh_token"`
+	Scopes       oidc.SpaceDelimitedArray `schema:"scope"`
+	ClientID     string                   `schema:"client_id"`
+	ClientSecret string                   `schema:"client_secret"`
+	GrantType    oidc.GrantType           `schema:"grant_type"`
+	RedirectUri  string                   `schema:"redirect_uri"`
+}
+
+type tokenEndpointCaller struct {
+	rp.RelyingParty
+}
+
+func (t tokenEndpointCaller) TokenEndpoint() string {
+	return t.OAuthConfig().Endpoint.TokenURL
 }
 
 type clientOption func(*oidcClient) error
