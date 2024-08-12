@@ -60,10 +60,10 @@ func main() {
 		tokenstore.WithTokenRepository(dbAdapter),
 	)
 	if err != nil {
-		slog.Error("token refresher initialization failed", "error", err)
+		slog.Error("token store initialization failed", "error", err)
 		os.Exit(1)
 	}
-	// Create session handler
+	// Create session store
 	sessionStore, err := sessions.NewSessionStore(
 		sessions.WithSessionRepository(dbAdapter),
 		sessions.WithTokenStore(tokenStore),
@@ -76,7 +76,6 @@ func main() {
 	// Setup
 	e := echo.New()
 	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
-	// e.Use(middleware.Recover(), sessionHandler.Middleware())
 	e.Use(middleware.Recover())
 	// The banner and the port do not respect the logger formatting we set below so we remove them
 	// the port will be logged further down when the server starts.
@@ -124,17 +123,6 @@ func main() {
 		os.Exit(1)
 	}
 	loginServer.RegisterHandlers(e, gwMiddlewares...)
-	// Initialize the token refresher
-	// tokenRefresher, err := tokenrefresher.NewTokenRefresher(tokenrefresher.WithExpiresSoonMinutes(3), tokenrefresher.WithConfig(gwConfig.Login), tokenrefresher.WithSessionStore(dbAdapter), tokenrefresher.WithTokenStore(dbAdapter))
-	// if err != nil {
-	// 	slog.Error("token refresher initialization failed", "error", err)
-	// 	os.Exit(1)
-	// }
-	// tokenRefresherScheduler, err := tokenRefresher.GetScheduler()
-	// if err != nil {
-	// 	slog.Error("token refresher initialization failed", "error", err)
-	// 	os.Exit(1)
-	// }
 	// Rate limiting
 	if gwConfig.Server.RateLimits.Enabled {
 		e.Use(middleware.RateLimiter(
@@ -182,7 +170,6 @@ func main() {
 	address := fmt.Sprintf("%s:%d", gwConfig.Server.Host, gwConfig.Server.Port)
 	slog.Info("starting the server on address " + address)
 	go func() {
-		// tokenRefresherScheduler.StartAsync()
 		err := e.Start(address)
 		if err != nil && err != http.ErrServerClosed {
 			slog.Error("shutting down the server gracefuly failed", "error", err)
@@ -197,7 +184,6 @@ func main() {
 	slog.Info("received signal to shut down the server")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	// tokenRefresherScheduler.Stop()
 	if err := e.Shutdown(ctx); err != nil {
 		slog.Error("shutting down the server gracefully failed", "error", err)
 		os.Exit(1)
