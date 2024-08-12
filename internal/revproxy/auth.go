@@ -172,10 +172,10 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 			var token models.AuthToken
 			if a.tokenType == models.AccessTokenType {
 				token, err = a.sessions.GetAccessToken(c, *session, a.providerID)
-				// } else if a.tokenType == models.IDTokenType {
-				// token, err = session.GetIDToken(c.Request().Context(), a.providerID)
-				// } else if a.tokenType == models.RefreshTokenType {
-				// token, err = session.GetRefreshToken(c.Request().Context(), a.providerID)
+			} else if a.tokenType == models.RefreshTokenType {
+				token, err = a.sessions.GetRefreshToken(c, *session, a.providerID)
+			} else if a.tokenType == models.IDTokenType {
+				token, err = a.sessions.GetIDToken(c, *session, a.providerID)
 			} else {
 				return fmt.Errorf("unknown token type in authentication middleware %s", a.tokenType)
 			}

@@ -46,12 +46,12 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	// uiServerProxy := proxyFromURL(r.config.RenkuServices.UIServer)
 
 	// Initialize common authentication middleware
+	dataRenkuAccessToken := r.dataRenkuAccessTokenAuth.Middleware()
+	dataGitlabAccessToken := r.dataGitlabAccessTokenAuth.Middleware()
 	notebooksRenkuAccessToken := r.notebooksRenkuAccessTokenAuth.Middleware()
 	notebooksRenkuRefreshToken := r.notebooksRenkuRefreshTokenAuth.Middleware()
 	notebooksRenkuIDToken := r.notebooksRenkuIDTokenAuth.Middleware()
 	notebooksGitlabAccessToken := r.notebooksGitlabAccessTokenAuth.Middleware()
-	dataRenkuAccessToken := r.dataRenkuAccessTokenAuth.Middleware()
-	dataGitlabAccessToken := r.dataGitlabAccessTokenAuth.Middleware()
 	// coreSvcIdToken := NewAuth(WithTokenType(models.IDTokenType), WithProviderID("renku"), InjectInHeader("Renku-User")).Middleware()
 	// gitlabAuth := NewAuth(WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), InjectBearerToken()).Middleware()
 	// gitlabCliAuth := NewAuth(WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), WithTokenHandler(gitlabCliTokenHandler)).Middleware()
