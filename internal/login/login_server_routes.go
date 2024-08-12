@@ -88,6 +88,26 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 	return l.nextAuthStep(c, session)
 }
 
+func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
+	// Check redirect parameters
+	var redirectURL string
+	if params.RedirectUrl != nil && *params.RedirectUrl != "" {
+		redirectURL = *params.RedirectUrl
+	} else {
+		redirectURL = l.config.RenkuBaseURL.String()
+	}
+	// Delete the session from the store
+	err := l.sessions.Delete(c)
+	if err != nil {
+		return err
+	}
+	return c.Redirect(http.StatusFound, redirectURL)
+}
+
+func (*LoginServer) GetHealth(c echo.Context) error {
+	return c.NoContent(http.StatusOK)
+}
+
 func (l *LoginServer) GetAuthTest(c echo.Context) error {
 	session, err := l.sessions.Get(c)
 	if err != nil {
@@ -127,14 +147,4 @@ func (l *LoginServer) nextAuthStep(
 		return err
 	}
 	return echo.WrapHandler(handler)(c)
-}
-
-// TODO
-
-func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
-	return fmt.Errorf("not implemented")
-}
-
-func (*LoginServer) GetHealth(c echo.Context) error {
-	return c.NoContent(http.StatusOK)
 }

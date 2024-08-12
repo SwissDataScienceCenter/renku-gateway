@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
@@ -64,7 +65,7 @@ func (sessions *SessionStore) Middleware() echo.MiddlewareFunc {
 					utils.GetRequestID(c),
 				)
 			}
-			session, _ = sessions.Get(c)
+			session, _ = sessions.getFromContext(c)
 			slog.Debug(
 				"SESSION MIDDLEWARE",
 				"message",
@@ -80,8 +81,8 @@ func (sessions *SessionStore) Middleware() echo.MiddlewareFunc {
 }
 
 // getFromContext retrieves a session from the current context
-func (sessions *SessionStore) getFromContext(key string, c echo.Context) (*models.Session, error) {
-	sessionRaw := c.Get(key)
+func (sessions *SessionStore) getFromContext(c echo.Context) (*models.Session, error) {
+	sessionRaw := c.Get(SessionCtxKey)
 	if sessionRaw != nil {
 		session, ok := sessionRaw.(*models.Session)
 		if session == nil {
@@ -100,7 +101,7 @@ func (sessions *SessionStore) getFromContext(key string, c echo.Context) (*model
 
 func (sessions *SessionStore) Get(c echo.Context) (*models.Session, error) {
 	// check if the session is already in the request context
-	session, err := sessions.getFromContext(SessionCtxKey, c)
+	session, err := sessions.getFromContext(c)
 	if err == nil {
 		return session, nil
 	}
@@ -151,6 +152,25 @@ func (sessions *SessionStore) Save(c echo.Context) error {
 		return err
 	}
 	return sessions.sessionRepo.SetSession(c.Request().Context(), *session)
+}
+
+func (sessions *SessionStore) Delete(c echo.Context) error {
+	// TODO: de-duplicate code from Get()
+	var sessionID string = ""
+	// check if the session ID is in the cookie
+	cookie, err := c.Cookie(SessionCookieName)
+	if err != nil && err != http.ErrNoCookie {
+		return err
+	}
+	sessionID = cookie.Value
+
+	newCookie := sessions.cookieTemplate()
+	newCookie.Expires = time.Time{}
+	c.SetCookie(&newCookie)
+
+	c.Set(SessionCtxKey, &models.Session{})
+
+	return sessions.sessionRepo.RemoveSession(c.Request().Context(), sessionID)
 }
 
 func (sessions *SessionStore) Cookie(session models.Session) http.Cookie {
