@@ -25,9 +25,9 @@ func (l *LoginServer) RegisterHandlers(server *echo.Echo, commonMiddlewares ...e
 	e.GET("/test", l.GetAuthTest, NoCaching)
 }
 
-type LoginServer2Option func(*LoginServer) error
+type LoginServerOption func(*LoginServer) error
 
-func WithConfig(loginConfig config.LoginConfig) LoginServer2Option {
+func WithConfig(loginConfig config.LoginConfig) LoginServerOption {
 	return func(l *LoginServer) error {
 		l.config = &loginConfig
 		providerStore, err := oidc.NewClientStore(loginConfig.Providers)
@@ -39,7 +39,7 @@ func WithConfig(loginConfig config.LoginConfig) LoginServer2Option {
 	}
 }
 
-func WithSessionHandler(sh *sessions.SessionHandler) LoginServer2Option {
+func WithSessionHandler(sh *sessions.SessionHandler) LoginServerOption {
 	return func(l *LoginServer) error {
 		l.sessionHandler = sh
 		return nil
@@ -48,7 +48,7 @@ func WithSessionHandler(sh *sessions.SessionHandler) LoginServer2Option {
 
 // NewLoginServer creates a new LoginServer that handles the callbacks from oauth2
 // and initiates the login flow for users.
-func NewLoginServer(options ...LoginServer2Option) (LoginServer, error) {
+func NewLoginServer(options ...LoginServerOption) (LoginServer, error) {
 	server := LoginServer{}
 	for _, opt := range options {
 		err := opt(&server)
