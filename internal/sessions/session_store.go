@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
@@ -165,7 +164,7 @@ func (sessions *SessionStore) Delete(c echo.Context) error {
 	sessionID = cookie.Value
 
 	newCookie := sessions.cookieTemplate()
-	newCookie.Expires = time.Time{}
+	newCookie.MaxAge = -1
 	c.SetCookie(&newCookie)
 
 	c.Set(SessionCtxKey, &models.Session{})
