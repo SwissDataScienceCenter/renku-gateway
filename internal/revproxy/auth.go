@@ -239,7 +239,7 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 	}
 }
 
-var notebooksGitlabAccessTokenHandler TokenInjector = func(c echo.Context, accessToken models.AuthToken) error {
+var notebooksGitlabAccessTokenInjector TokenInjector = func(c echo.Context, accessToken models.AuthToken) error {
 	// NOTE: As long as the token comes from the database we can trust it and do not have to validate it.
 	// Each service that the request ultimately goes to will also validate before it uses the token
 	type gitCredentials struct {

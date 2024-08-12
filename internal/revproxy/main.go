@@ -17,8 +17,12 @@ type Revproxy struct {
 
 	// Auth instances
 
-	dataRenkuAccessTokenAuth  Auth
-	dataGitlabAccessTokenAuth Auth
+	dataRenkuAccessTokenAuth       Auth
+	dataGitlabAccessTokenAuth      Auth
+	notebooksRenkuAccessTokenAuth  Auth
+	notebooksRenkuRefreshTokenAuth Auth
+	notebooksRenkuIDTokenAuth      Auth
+	notebooksGitlabAccessTokenAuth Auth
 }
 
 func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.MiddlewareFunc) {
@@ -33,7 +37,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	// 	gitlabProxy = fallbackProxy
 	// 	gitlabProxyHost = setHost(r.config.RenkuBaseURL.Host)
 	// }
-	// notebooksProxy := proxyFromURL(r.config.RenkuServices.Notebooks)
+	notebooksProxy := proxyFromURL(r.config.RenkuServices.Notebooks)
 	// kgProxy := proxyFromURL(r.config.RenkuServices.KG)
 	// webhookProxy := proxyFromURL(r.config.RenkuServices.Webhook)
 	// keycloakProxy := proxyFromURL(r.config.RenkuServices.Keycloak)
@@ -42,10 +46,10 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	// uiServerProxy := proxyFromURL(r.config.RenkuServices.UIServer)
 
 	// Initialize common authentication middleware
-	// notebooksAuthAccessToken := NewAuth(WithTokenType(models.AccessTokenType), WithProviderID("renku"), InjectInHeader("Renku-Auth-Access-Token")).Middleware()
-	// notebooksAuthIDToken := NewAuth(WithTokenType(models.IDTokenType), WithProviderID("renku"), InjectInHeader("Renku-Auth-Id-Token")).Middleware()
-	// notebooksAuthRefreshToken := NewAuth(WithTokenType(models.RefreshTokenType), WithProviderID("renku"), InjectInHeader("Renku-Auth-Refresh-Token")).Middleware()
-	// notebooksGitlabAccessToken := NewAuth(WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), WithTokenHandler(notebooksGitlabAccessTokenHandler)).Middleware()
+	notebooksRenkuAccessToken := r.notebooksRenkuAccessTokenAuth.Middleware()
+	notebooksRenkuRefreshToken := r.notebooksRenkuRefreshTokenAuth.Middleware()
+	notebooksRenkuIDToken := r.notebooksRenkuIDTokenAuth.Middleware()
+	notebooksGitlabAccessToken := r.notebooksGitlabAccessTokenAuth.Middleware()
 	dataRenkuAccessToken := r.dataRenkuAccessTokenAuth.Middleware()
 	dataGitlabAccessToken := r.dataGitlabAccessTokenAuth.Middleware()
 	// coreSvcIdToken := NewAuth(WithTokenType(models.IDTokenType), WithProviderID("renku"), InjectInHeader("Renku-User")).Middleware()
@@ -54,8 +58,8 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 
 	e.Group("/api/data", append(commonMiddlewares, dataRenkuAccessToken, dataGitlabAccessToken, noCookies, dataServiceProxy)...)
 
-	// // Routing for Renku services
-	// e.Group("/api/notebooks", append(commonMiddlewares, notebooksAuthAccessToken, notebooksAuthIDToken, notebooksAuthRefreshToken, notebooksGitlabAccessToken, notebooksAnonymousID, noCookies, stripPrefix("/api"), notebooksProxy)...)
+	// Routing for Renku services
+	e.Group("/api/notebooks", append(commonMiddlewares, notebooksRenkuAccessToken, notebooksRenkuRefreshToken, notebooksRenkuIDToken, notebooksGitlabAccessToken, notebooksAnonymousID, noCookies, stripPrefix("/api"), notebooksProxy)...)
 	// // /api/projects/:projectID/graph will is being deprecated in favour of /api/kg/webhooks, the old endpoint will remain for some time for backward compatibility
 	// e.Group("/api/projects/:projectID/graph", append(commonMiddlewares, gitlabAuth, noCookies, kgProjectsGraphRewrites, webhookProxy)...)
 	// e.Group("/knowledge-graph", append(commonMiddlewares, gitlabAuth, coreSvcIdToken, noCookies, kgProxy)...)
@@ -109,6 +113,22 @@ func (r *Revproxy) initializeAuth() error {
 		return err
 	}
 	r.dataGitlabAccessTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), InjectInHeader("Gitlab-Access-Token"))
+	if err != nil {
+		return err
+	}
+	r.notebooksRenkuAccessTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.AccessTokenType), WithProviderID("renku"), InjectInHeader("Renku-Auth-Access-Token"))
+	if err != nil {
+		return err
+	}
+	r.notebooksRenkuRefreshTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.RefreshTokenType), WithProviderID("renku"), InjectInHeader("Renku-Auth-Refresh-Token"))
+	if err != nil {
+		return err
+	}
+	r.notebooksRenkuIDTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.IDTokenType), WithProviderID("renku"), InjectInHeader("Renku-Auth-Id-Token"))
+	if err != nil {
+		return err
+	}
+	r.notebooksGitlabAccessTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), WithTokenInjector(notebooksGitlabAccessTokenInjector))
 	if err != nil {
 		return err
 	}
