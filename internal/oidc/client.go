@@ -168,7 +168,6 @@ func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models
 	if c.id == "gitlab" {
 		request := gitlabRefreshTokenRequest{
 			RefreshToken: refreshToken.Value,
-			Scopes:       c.client.OAuthConfig().Scopes,
 			ClientID:     c.client.OAuthConfig().ClientID,
 			ClientSecret: c.client.OAuthConfig().ClientSecret,
 			GrantType:    oidc.GrantTypeRefreshToken,
@@ -234,12 +233,11 @@ func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models
 }
 
 type gitlabRefreshTokenRequest struct {
-	RefreshToken string                   `schema:"refresh_token"`
-	Scopes       oidc.SpaceDelimitedArray `schema:"scope"`
-	ClientID     string                   `schema:"client_id"`
-	ClientSecret string                   `schema:"client_secret"`
-	GrantType    oidc.GrantType           `schema:"grant_type"`
-	RedirectUri  string                   `schema:"redirect_uri"`
+	RefreshToken string         `schema:"refresh_token"`
+	ClientID     string         `schema:"client_id"`
+	ClientSecret string         `schema:"client_secret"`
+	GrantType    oidc.GrantType `schema:"grant_type"`
+	RedirectUri  string         `schema:"redirect_uri"`
 }
 
 type tokenEndpointCaller struct {
