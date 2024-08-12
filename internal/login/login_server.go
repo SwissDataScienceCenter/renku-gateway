@@ -10,9 +10,9 @@ import (
 )
 
 type LoginServer struct {
-	config         *config.LoginConfig
-	providerStore  oidc.ClientStore
-	sessionHandler *sessions.SessionHandler
+	config        *config.LoginConfig
+	providerStore oidc.ClientStore
+	sessions      *sessions.SessionStore
 }
 
 func (l *LoginServer) RegisterHandlers(server *echo.Echo, commonMiddlewares ...echo.MiddlewareFunc) {
@@ -39,9 +39,9 @@ func WithConfig(loginConfig config.LoginConfig) LoginServerOption {
 	}
 }
 
-func WithSessionHandler(sh *sessions.SessionHandler) LoginServerOption {
+func WithSessionHandler(sessions *sessions.SessionStore) LoginServerOption {
 	return func(l *LoginServer) error {
-		l.sessionHandler = sh
+		l.sessions = sessions
 		return nil
 	}
 }
@@ -62,8 +62,8 @@ func NewLoginServer(options ...LoginServerOption) (LoginServer, error) {
 	if server.providerStore == nil {
 		return LoginServer{}, fmt.Errorf("OIDC providers not initialized")
 	}
-	if server.sessionHandler == nil {
-		return LoginServer{}, fmt.Errorf("session handler not initialized")
+	if server.sessions == nil {
+		return LoginServer{}, fmt.Errorf("session store not initialized")
 	}
 	return server, nil
 }

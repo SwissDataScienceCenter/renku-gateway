@@ -166,15 +166,15 @@ func setupTestAuthServer(
 	return srv, url
 }
 
-func setupTestRevproxy(rpConfig *config.RevproxyConfig, sh *sessions.SessionHandler) (*httptest.Server, *url.URL) {
-	proxy, err := NewServer(WithConfig(*rpConfig), WithSessionHandler(sh))
+func setupTestRevproxy(rpConfig *config.RevproxyConfig, sessions *sessions.SessionStore) (*httptest.Server, *url.URL) {
+	proxy, err := NewServer(WithConfig(*rpConfig), WithSessionStore(sessions))
 	if err != nil {
 		log.Fatal(err)
 	}
 	e := echo.New()
 	e.Pre(middleware.RemoveTrailingSlash(), UiServerPathRewrite())
 	e.Use(middleware.Recover(), middleware.Logger())
-	proxy.RegisterHandlers(e, sh.Middleware())
+	proxy.RegisterHandlers(e, sessions.Middleware())
 	srv := httptest.NewServer(e)
 	url, err := url.Parse(srv.URL)
 	if err != nil {

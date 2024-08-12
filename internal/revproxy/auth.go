@@ -119,18 +119,18 @@ func WithTokenType(tokenType models.OauthTokenType) AuthOption {
 	}
 }
 
-func AuthWithSessionHandler(sh *sessions.SessionHandler) AuthOption {
+func AuthWithSessionStore(sessions *sessions.SessionStore) AuthOption {
 	return func(a *Auth) {
-		a.sessionHandler = sh
+		a.sessions = sessions
 	}
 }
 
 // Auth generates middleware that will inject tokens in the proxied http requests
 type Auth struct {
-	sessionHandler *sessions.SessionHandler
-	tokenInjector  TokenInjector
-	providerID     string
-	tokenType      models.OauthTokenType
+	sessions      *sessions.SessionStore
+	tokenInjector TokenInjector
+	providerID    string
+	tokenType     models.OauthTokenType
 }
 
 func NewAuth(options ...AuthOption) (Auth, error) {
@@ -138,8 +138,8 @@ func NewAuth(options ...AuthOption) (Auth, error) {
 	for _, opt := range options {
 		opt(&auth)
 	}
-	if auth.sessionHandler == nil {
-		return Auth{}, fmt.Errorf("session handler not initialized")
+	if auth.sessions == nil {
+		return Auth{}, fmt.Errorf("session store not initialized")
 	}
 	if auth.tokenInjector == nil {
 		return Auth{}, fmt.Errorf("token injector not initialized")
@@ -153,7 +153,7 @@ func NewAuth(options ...AuthOption) (Auth, error) {
 func (a *Auth) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			session, err := a.sessionHandler.Get(c)
+			session, err := a.sessions.Get(c)
 			if err != nil {
 				slog.Debug(
 					"PROXY AUTH MIDDLEWARE",
@@ -171,7 +171,7 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 
 			var token models.AuthToken
 			if a.tokenType == models.AccessTokenType {
-				token, err = a.sessionHandler.GetAccessToken(c, *session, a.providerID)
+				token, err = a.sessions.GetAccessToken(c, *session, a.providerID)
 				// } else if a.tokenType == models.IDTokenType {
 				// token, err = session.GetIDToken(c.Request().Context(), a.providerID)
 				// } else if a.tokenType == models.RefreshTokenType {

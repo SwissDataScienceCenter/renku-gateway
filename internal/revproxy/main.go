@@ -12,8 +12,8 @@ import (
 )
 
 type Revproxy struct {
-	config         *config.RevproxyConfig
-	sessionHandler *sessions.SessionHandler
+	config   *config.RevproxyConfig
+	sessions *sessions.SessionStore
 
 	// Auth instances
 
@@ -104,11 +104,11 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 func (r *Revproxy) initializeAuth() error {
 	var err error
 
-	r.dataRenkuAccessTokenAuth, err = NewAuth(AuthWithSessionHandler(r.sessionHandler), WithTokenType(models.AccessTokenType), WithProviderID("renku"), InjectBearerToken())
+	r.dataRenkuAccessTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.AccessTokenType), WithProviderID("renku"), InjectBearerToken())
 	if err != nil {
 		return err
 	}
-	r.dataGitlabAccessTokenAuth, err = NewAuth(AuthWithSessionHandler(r.sessionHandler), WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), InjectInHeader("Gitlab-Access-Token"))
+	r.dataGitlabAccessTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), InjectInHeader("Gitlab-Access-Token"))
 	if err != nil {
 		return err
 	}
@@ -123,9 +123,9 @@ func WithConfig(revproxyConfig config.RevproxyConfig) RevproxyOption {
 	}
 }
 
-func WithSessionHandler(sh *sessions.SessionHandler) RevproxyOption {
+func WithSessionStore(sessions *sessions.SessionStore) RevproxyOption {
 	return func(l *Revproxy) {
-		l.sessionHandler = sh
+		l.sessions = sessions
 	}
 }
 
@@ -137,7 +137,7 @@ func NewServer(options ...RevproxyOption) (Revproxy, error) {
 	if server.config == nil {
 		return Revproxy{}, fmt.Errorf("revproxy config not provided")
 	}
-	if server.sessionHandler == nil {
+	if server.sessions == nil {
 		return Revproxy{}, fmt.Errorf("session handler not initialized")
 	}
 	err := server.initializeAuth()

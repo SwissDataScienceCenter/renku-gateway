@@ -10,7 +10,7 @@ import (
 )
 
 // GetAccessTokenFromContext retrieves an access token from the current context
-func (sh *SessionHandler) GetAccessTokenFromContext(key string, c echo.Context) (models.AuthToken, error) {
+func (sessions *SessionStore) GetAccessTokenFromContext(key string, c echo.Context) (models.AuthToken, error) {
 	tokenRaw := c.Get(key)
 	if tokenRaw != nil {
 		token, ok := tokenRaw.(models.AuthToken)
@@ -28,7 +28,7 @@ func (sh *SessionHandler) GetAccessTokenFromContext(key string, c echo.Context) 
 	return models.AuthToken{}, gwerrors.ErrTokenNotFound
 }
 
-func (sh *SessionHandler) GetAccessToken(c echo.Context, session models.Session, providerID string) (models.AuthToken, error) {
+func (sessions *SessionStore) GetAccessToken(c echo.Context, session models.Session, providerID string) (models.AuthToken, error) {
 	if session.TokenIDs == nil {
 		session.TokenIDs = models.SerializableMap{}
 	}
@@ -37,13 +37,12 @@ func (sh *SessionHandler) GetAccessToken(c echo.Context, session models.Session,
 		return models.AuthToken{}, gwerrors.ErrTokenNotFound
 	}
 	// check if the access token is already in the request context
-	token, err := sh.GetAccessTokenFromContext(sh.accessTokenKey(tokenID), c)
+	token, err := sessions.GetAccessTokenFromContext(sessions.accessTokenKey(tokenID), c)
 	if err == nil {
 		return token, nil
 	}
 
-	// token, err = sh.tokenStore.GetAccessToken(c.Request().Context(), tokenID)
-	token, err = sh.tokenStore.GetFreshAccessToken(c.Request().Context(), tokenID)
+	token, err = sessions.tokenStore.GetFreshAccessToken(c.Request().Context(), tokenID)
 	if err != nil {
 		if err == redis.Nil {
 			return models.AuthToken{}, gwerrors.ErrTokenNotFound
@@ -57,7 +56,7 @@ func (sh *SessionHandler) GetAccessToken(c echo.Context, session models.Session,
 	return token, nil
 }
 
-func (sh *SessionHandler) SaveTokens(c echo.Context, session *models.Session, tokens AuthTokenSet) error {
+func (sessions *SessionStore) SaveTokens(c echo.Context, session *models.Session, tokens AuthTokenSet) error {
 	err := tokens.ValidateTokensType()
 	if err != nil {
 		return err
@@ -68,40 +67,40 @@ func (sh *SessionHandler) SaveTokens(c echo.Context, session *models.Session, to
 		session.TokenIDs = models.SerializableMap{}
 	}
 	session.TokenIDs[providerID] = tokens.AccessToken.ID
-	expiresAt := sh.getTokenExpiration(tokens, *session)
-	err = sh.tokenStore.SetAccessToken(c.Request().Context(), tokens.AccessToken)
+	expiresAt := sessions.getTokenExpiration(tokens, *session)
+	err = sessions.tokenStore.SetAccessToken(c.Request().Context(), tokens.AccessToken)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenStore.SetAccessTokenExpiry(c.Request().Context(), tokens.AccessToken, expiresAt)
+	err = sessions.tokenStore.SetAccessTokenExpiry(c.Request().Context(), tokens.AccessToken, expiresAt)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenStore.SetRefreshToken(c.Request().Context(), tokens.RefreshToken)
+	err = sessions.tokenStore.SetRefreshToken(c.Request().Context(), tokens.RefreshToken)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenStore.SetRefreshTokenExpiry(c.Request().Context(), tokens.RefreshToken, expiresAt)
+	err = sessions.tokenStore.SetRefreshTokenExpiry(c.Request().Context(), tokens.RefreshToken, expiresAt)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenStore.SetIDToken(c.Request().Context(), tokens.IDToken)
+	err = sessions.tokenStore.SetIDToken(c.Request().Context(), tokens.IDToken)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenStore.SetIDTokenExpiry(c.Request().Context(), tokens.IDToken, expiresAt)
+	err = sessions.tokenStore.SetIDTokenExpiry(c.Request().Context(), tokens.IDToken, expiresAt)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (SessionHandler) accessTokenKey(tokenID string) string {
+func (SessionStore) accessTokenKey(tokenID string) string {
 	return AccessTokenCtxKey + ":" + tokenID
 }
 
 // getTokenExpiration returns the max session expiration unless the provider is GitLab, in which case there is no expiration
-func (SessionHandler) getTokenExpiration(tokens AuthTokenSet, session models.Session) time.Time {
+func (SessionStore) getTokenExpiration(tokens AuthTokenSet, session models.Session) time.Time {
 	providerID := tokens.AccessToken.ProviderID
 	if providerID == "gitlab" {
 		return time.Time{}

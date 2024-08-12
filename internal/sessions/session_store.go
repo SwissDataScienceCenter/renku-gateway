@@ -13,17 +13,17 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type SessionHandler struct {
+type SessionStore struct {
 	cookieTemplate func() http.Cookie
 	sessionMaker   SessionMaker
 	sessionRepo    models.SessionRepository
 	tokenStore     models.TokenStoreInterface
 }
 
-func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
+func (sessions *SessionStore) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			session, loadErr := sh.Get(c)
+			session, loadErr := sessions.Get(c)
 			if loadErr != nil && loadErr != gwerrors.ErrSessionNotFound && loadErr != gwerrors.ErrSessionExpired {
 				slog.Info(
 					"SESSION MIDDLEWARE",
@@ -46,7 +46,7 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 			)
 			c.Set(SessionCtxKey, session)
 			err := next(c)
-			saveErr := sh.Save(c)
+			saveErr := sessions.Save(c)
 			if saveErr != nil && saveErr != gwerrors.ErrSessionNotFound && saveErr != gwerrors.ErrSessionExpired {
 				sessionID := ""
 				if session != nil {
@@ -64,7 +64,7 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 					utils.GetRequestID(c),
 				)
 			}
-			session, _ = sh.Get(c)
+			session, _ = sessions.Get(c)
 			slog.Debug(
 				"SESSION MIDDLEWARE",
 				"message",
@@ -80,7 +80,7 @@ func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
 }
 
 // GetFromContext retrieves a session from the current context
-func (sh *SessionHandler) GetFromContext(key string, c echo.Context) (*models.Session, error) {
+func (sessions *SessionStore) GetFromContext(key string, c echo.Context) (*models.Session, error) {
 	sessionRaw := c.Get(key)
 	if sessionRaw != nil {
 		session, ok := sessionRaw.(*models.Session)
@@ -98,9 +98,9 @@ func (sh *SessionHandler) GetFromContext(key string, c echo.Context) (*models.Se
 	return &models.Session{}, gwerrors.ErrSessionNotFound
 }
 
-func (sh *SessionHandler) Get(c echo.Context) (*models.Session, error) {
+func (sessions *SessionStore) Get(c echo.Context) (*models.Session, error) {
 	// check if the session is already in the request context
-	session, err := sh.GetFromContext(SessionCtxKey, c)
+	session, err := sessions.GetFromContext(SessionCtxKey, c)
 	if err == nil {
 		return session, nil
 	}
@@ -117,7 +117,7 @@ func (sh *SessionHandler) Get(c echo.Context) (*models.Session, error) {
 	sessionID = cookie.Value
 
 	// load the session from the store
-	sessionFromStore, err := sh.sessionRepo.GetSession(c.Request().Context(), sessionID)
+	sessionFromStore, err := sessions.sessionRepo.GetSession(c.Request().Context(), sessionID)
 	if err != nil {
 		if err == redis.Nil {
 			return &models.Session{}, gwerrors.ErrSessionNotFound
@@ -134,56 +134,56 @@ func (sh *SessionHandler) Get(c echo.Context) (*models.Session, error) {
 }
 
 // Create will create a new session.
-func (sh *SessionHandler) Create(c echo.Context) (*models.Session, error) {
-	session, err := sh.sessionMaker.NewSession()
+func (sessions *SessionStore) Create(c echo.Context) (*models.Session, error) {
+	session, err := sessions.sessionMaker.NewSession()
 	if err != nil {
 		return &models.Session{}, err
 	}
 	c.Set(SessionCtxKey, &session)
-	cookie := sh.Cookie(session)
+	cookie := sessions.Cookie(session)
 	c.SetCookie(&cookie)
 	return &session, nil
 }
 
-func (sh *SessionHandler) Save(c echo.Context) error {
-	session, err := sh.Get(c)
+func (sessions *SessionStore) Save(c echo.Context) error {
+	session, err := sessions.Get(c)
 	if err != nil {
 		return err
 	}
-	return sh.sessionRepo.SetSession(c.Request().Context(), *session)
+	return sessions.sessionRepo.SetSession(c.Request().Context(), *session)
 }
 
-func (sh *SessionHandler) Cookie(session models.Session) http.Cookie {
-	cookie := sh.cookieTemplate()
+func (sessions *SessionStore) Cookie(session models.Session) http.Cookie {
+	cookie := sessions.cookieTemplate()
 	cookie.Value = session.ID
 	return cookie
 }
 
-type SessionHandlerOption func(*SessionHandler) error
+type SessionHandlerOption func(*SessionStore) error
 
 func WithSessionRepository(repo models.SessionRepository) SessionHandlerOption {
-	return func(sh *SessionHandler) error {
-		sh.sessionRepo = repo
+	return func(sessions *SessionStore) error {
+		sessions.sessionRepo = repo
 		return nil
 	}
 }
 
 func WithTokenStore(store models.TokenStoreInterface) SessionHandlerOption {
-	return func(sh *SessionHandler) error {
-		sh.tokenStore = store
+	return func(sessions *SessionStore) error {
+		sessions.tokenStore = store
 		return nil
 	}
 }
 
 func WithConfig(c config.SessionConfig) SessionHandlerOption {
-	return func(sh *SessionHandler) error {
-		sh.sessionMaker = NewSessionMaker(WithIdleSessionTTLSeconds(c.IdleSessionTTLSeconds), WithMaxSessionTTLSeconds(c.MaxSessionTTLSeconds))
+	return func(sessions *SessionStore) error {
+		sessions.sessionMaker = NewSessionMaker(WithIdleSessionTTLSeconds(c.IdleSessionTTLSeconds), WithMaxSessionTTLSeconds(c.MaxSessionTTLSeconds))
 		return nil
 	}
 }
 
-func NewSessionHandler(options ...SessionHandlerOption) (SessionHandler, error) {
-	sh := SessionHandler{
+func NewSessionHandler(options ...SessionHandlerOption) (SessionStore, error) {
+	sessions := SessionStore{
 		cookieTemplate: func() http.Cookie {
 			return http.Cookie{
 				Name:     SessionCookieName,
@@ -194,19 +194,19 @@ func NewSessionHandler(options ...SessionHandlerOption) (SessionHandler, error) 
 		},
 	}
 	for _, opt := range options {
-		opt(&sh)
+		opt(&sessions)
 	}
-	if sh.cookieTemplate == nil {
-		return SessionHandler{}, fmt.Errorf("cookie template is not initialized")
+	if sessions.cookieTemplate == nil {
+		return SessionStore{}, fmt.Errorf("cookie template is not initialized")
 	}
-	if sh.sessionMaker == nil {
-		return SessionHandler{}, fmt.Errorf("session maker is not initialized")
+	if sessions.sessionMaker == nil {
+		return SessionStore{}, fmt.Errorf("session maker is not initialized")
 	}
-	if sh.sessionRepo == nil {
-		return SessionHandler{}, fmt.Errorf("session repository is not initialized")
+	if sessions.sessionRepo == nil {
+		return SessionStore{}, fmt.Errorf("session repository is not initialized")
 	}
-	if sh.tokenStore == nil {
-		return SessionHandler{}, fmt.Errorf("token store is not initialized")
+	if sessions.tokenStore == nil {
+		return SessionStore{}, fmt.Errorf("token store is not initialized")
 	}
-	return sh, nil
+	return sessions, nil
 }

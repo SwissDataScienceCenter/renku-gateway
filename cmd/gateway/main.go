@@ -111,7 +111,7 @@ func main() {
 	// Add the session handler to the common middlewares
 	gwMiddlewares := append(commonMiddlewares, sessionHandler.Middleware())
 	// Initialize the reverse proxy
-	revproxy, err := revproxy.NewServer(revproxy.WithConfig(gwConfig.Revproxy), revproxy.WithSessionHandler(&sessionHandler))
+	revproxy, err := revproxy.NewServer(revproxy.WithConfig(gwConfig.Revproxy), revproxy.WithSessionStore(&sessionHandler))
 	if err != nil {
 		slog.Error("revproxy handlers initialization failed", "error", err)
 		os.Exit(1)

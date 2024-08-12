@@ -13,7 +13,7 @@ import (
 
 // GetLogin is a handler for the initiation of a authorization code flow login for Renku
 func (l *LoginServer) GetLogin(c echo.Context, params GetLoginParams) error {
-	session, err := l.sessionHandler.Create(c)
+	session, err := l.sessions.Create(c)
 	if err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 	if state == "" {
 		return fmt.Errorf("a state parameter is required")
 	}
-	session, err := l.sessionHandler.Get(c)
+	session, err := l.sessions.Get(c)
 	if err != nil {
 		return err
 	}
@@ -76,7 +76,7 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 			tokenSet.RefreshToken.ID = tokenID
 			tokenSet.IDToken.ID = tokenID
 		}
-		return l.sessionHandler.SaveTokens(c, session, tokenSet)
+		return l.sessions.SaveTokens(c, session, tokenSet)
 	}
 	// Exchange the authorization code for credentials
 	err = echo.WrapHandler(provider.CodeExchangeHandler(tokenCallback))(c)
@@ -89,7 +89,7 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 }
 
 func (l *LoginServer) GetAuthTest(c echo.Context) error {
-	session, err := l.sessionHandler.Get(c)
+	session, err := l.sessions.Get(c)
 	if err != nil {
 		return err
 	}
