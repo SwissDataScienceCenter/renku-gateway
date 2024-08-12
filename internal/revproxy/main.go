@@ -27,8 +27,8 @@ type Revproxy struct {
 
 func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.MiddlewareFunc) {
 	// Intialize common reverse proxy middlewares
-	// fallbackProxy := proxyFromURL(r.config.RenkuBaseURL)
-	// renkuBaseProxyHost := setHost(r.config.RenkuBaseURL.Host)
+	fallbackProxy := proxyFromURL(r.config.RenkuBaseURL)
+	renkuBaseProxyHost := setHost(r.config.RenkuBaseURL.Host)
 	// var gitlabProxy, gitlabProxyHost echo.MiddlewareFunc
 	// if r.config.ExternalGitlabURL != nil {
 	// 	gitlabProxy = proxyFromURL(r.config.ExternalGitlabURL)
@@ -101,8 +101,8 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	// // e.Group("/ui-server/api/renku/cache.files_upload", uiServerUpstreamCoreLocation(r.config.RenkuServices.Core.ServicePaths[0].Host), uiServerProxy)
 	// e.Group("/ui-server/api/kg/entities", append(commonMiddlewares, uiServerUpstreamKgLocation(r.config.RenkuServices.KG.Host), uiServerProxy)...)
 
-	// // If nothing is matched from any of the routes above then fall back to the UI
-	// e.Group("/", append(commonMiddlewares, renkuBaseProxyHost, fallbackProxy)...)
+	// If nothing is matched from any of the routes above then fall back to the UI
+	e.Group("/", append(commonMiddlewares, renkuBaseProxyHost, fallbackProxy)...)
 }
 
 func (r *Revproxy) initializeAuth() error {
