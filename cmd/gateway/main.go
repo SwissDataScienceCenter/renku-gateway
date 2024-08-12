@@ -13,7 +13,7 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/db"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/loginnew"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/login"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/revproxy"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/tokenstore"
@@ -118,7 +118,7 @@ func main() {
 	}
 	revproxy.RegisterHandlers(e, gwMiddlewares...)
 	// Initialize login server
-	loginServer, err := loginnew.NewLoginServer(loginnew.WithConfig(gwConfig.Login), loginnew.WithSessionHandler(&sessionHandler))
+	loginServer, err := login.NewLoginServer(login.WithConfig(gwConfig.Login), login.WithSessionHandler(&sessionHandler))
 	if err != nil {
 		slog.Error("login handlers initialization failed", "error", err)
 		os.Exit(1)

@@ -16,7 +16,7 @@ paths:
         '200':
           description: The service is running properly.
       tags:
-        - renku 
+        - health 
   /login:
     get:
       description: Starts the login process for Renku.
@@ -35,7 +35,7 @@ paths:
         '302':
           description: The user is redirected to the proper login page.
       tags:
-        - renku
+        - authentication
   /callback:
     get:
       description: Authorization code flow callback
@@ -59,7 +59,7 @@ paths:
         '302':
           description: The token was used to acquire the access token and the request is redirected further
       tags:
-        - renku
+        - authentication
   /logout:
     get:
       description: |
@@ -74,51 +74,4 @@ paths:
         '200':
           description: The user was successfully logged out
       tags:
-        - renku
-    post:
-      description: Backchannel oauth2 logout
-      responses:
-        '200':
-          description: Successfully logged out
-      tags:
-        - renku
-  /device/login:
-    post:
-      description: Starts the login process for the the CLI, calls Keycloak to start the process, modifies the Keycloak response and sends it to the CLI.
-      responses:
-        '200':
-          description: The response from Keycloak that contains the user code and verification URL where the user will go to log into Keycloak. 
-      tags:
-        - device
-    get:
-      description: Visited by the user to start logging into different providers, followed by the device flow provider at the end. The CLI sends the user here to start logging in.
-      parameters:
-        - in: query
-          name: session_id 
-          required: true
-          schema:
-            type: string
-      responses:
-        '302':
-          description: The user is redirected to the different providers to log in. 
-      tags:
-        - device 
-  /device/token:
-    post:
-      description: The CLI keeps polling this to get the access code and refresh code when the login is finalized by the user. This is proxied to Keycloak by the gateway and the response from keycloak is intercepted and saved when complete.
-      responses:
-        '200': 
-          description: The device login flow has been completed
-        '400':
-          description: The login failed, the requests are coming too quickly or the requests are malformed
-      tags:
-        - device 
-  /device/logout:
-    post:
-      description: Logs out the device session - uses backchannel logout because the user is not present in the browser for this, it is just the CLI doing this on behalf of the user
-      responses:
-        '200':
-          description: The user was successfully logged out 
-      tags:
-        - device
-
+        - authentication
