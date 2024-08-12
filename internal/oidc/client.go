@@ -188,6 +188,15 @@ func (c *oidcClient) refreshAccessToken(refreshToken models.AuthToken) (models.A
 		}
 	}
 	// TODO: handle getting a new ID token?
+	idTokenRaw := oAuth2Token.Extra("id_token")
+	slog.Debug(
+		"OIDC",
+		"message",
+		"print fresh id token",
+		"raw",
+		idTokenRaw,
+	)
+
 	return newAccessToken, newRefreshToken, err
 }
 

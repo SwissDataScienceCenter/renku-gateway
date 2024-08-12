@@ -110,7 +110,7 @@ func (sessions *SessionStore) GetIDToken(c echo.Context, session models.Session,
 		return token, nil
 	}
 
-	token, err = sessions.tokenStore.GetIDToken(c.Request().Context(), tokenID)
+	token, err = sessions.tokenStore.GetFreshIDToken(c.Request().Context(), tokenID)
 	if err != nil {
 		if err == redis.Nil {
 			return models.AuthToken{}, gwerrors.ErrTokenNotFound

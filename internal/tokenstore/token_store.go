@@ -38,7 +38,7 @@ func (ts *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (
 		slog.Debug(
 			"TOKEN STORE",
 			"message",
-			"token expires soon",
+			"access token expires soon",
 			"tokenID",
 			tokenID,
 			"providerID",
@@ -67,6 +67,54 @@ func (ts *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (
 		return models.AuthToken{}, gwerrors.ErrTokenExpired
 	}
 	return token, nil
+}
+
+func (ts *TokenStore) GetFreshIDToken(ctx context.Context, tokenID string) (models.AuthToken, error) {
+	token, err := ts.tokenRepo.GetIDToken(ctx, tokenID)
+	if err != nil {
+		if err == redis.Nil {
+			return models.AuthToken{}, gwerrors.ErrTokenNotFound
+		} else {
+			return models.AuthToken{}, err
+		}
+	}
+
+	if token.ExpiresSoon(ts.ExpiryMargin()) {
+		slog.Debug(
+			"TOKEN STORE",
+			"message",
+			"ID token expires soon",
+			"tokenID",
+			tokenID,
+			"providerID",
+			token.ProviderID,
+		)
+		_, err := ts.refreshAccessToken(ctx, token)
+		if err != nil {
+			slog.Debug(
+				"TOKEN STORE",
+				"message",
+				"refreshAccessToken failed, will try to reload the token",
+				"tokenID",
+				tokenID,
+				"providerID",
+				token.ProviderID,
+			)
+			reloadedToken, err := ts.tokenRepo.GetAccessToken(ctx, tokenID)
+			if err != nil {
+				token = reloadedToken
+			}
+		}
+		// else {
+		// 	token = newAccessToken
+		// }
+	}
+	if token.Expired() {
+		return models.AuthToken{}, gwerrors.ErrTokenExpired
+	}
+	return token, nil
+
+	// return ts.tokenRepo.GetIDToken(ctx, tokenID)
 }
 
 func (ts *TokenStore) refreshAccessToken(ctx context.Context, token models.AuthToken) (models.AuthToken, error) {
@@ -118,9 +166,9 @@ func (ts *TokenStore) SetRefreshTokenExpiry(ctx context.Context, token models.Au
 	return ts.tokenRepo.SetRefreshTokenExpiry(ctx, token, expiresAt)
 }
 
-func (ts *TokenStore) GetIDToken(ctx context.Context, tokenID string) (models.AuthToken, error) {
-	return ts.tokenRepo.GetIDToken(ctx, tokenID)
-}
+// func (ts *TokenStore) GetIDToken(ctx context.Context, tokenID string) (models.AuthToken, error) {
+// 	return ts.tokenRepo.GetIDToken(ctx, tokenID)
+// }
 
 func (ts *TokenStore) SetIDToken(ctx context.Context, token models.AuthToken) error {
 	return ts.tokenRepo.SetIDToken(ctx, token)
