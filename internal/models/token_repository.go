@@ -9,10 +9,10 @@ type TokenRepository interface {
 	AccessTokenGetter
 	AccessTokenSetter
 	// AccessTokenRemover
-	// RefreshTokenGetter
+	RefreshTokenGetter
 	RefreshTokenSetter
 	// RefreshTokenRemover
-	// IDTokenGetter
+	IDTokenGetter
 	IDTokenSetter
 	// IDTokenRemover
 }

@@ -17,8 +17,7 @@ type SessionHandler struct {
 	cookieTemplate func() http.Cookie
 	sessionMaker   SessionMaker
 	sessionRepo    models.SessionRepository
-	tokenRepo      LimitedTokenRepository
-	tokenStore     TokenStore
+	tokenStore     models.TokenStoreInterface
 }
 
 func (sh *SessionHandler) Middleware() echo.MiddlewareFunc {
@@ -169,14 +168,7 @@ func WithSessionRepository(repo models.SessionRepository) SessionHandlerOption {
 	}
 }
 
-func WithTokenRepository(repo LimitedTokenRepository) SessionHandlerOption {
-	return func(sh *SessionHandler) error {
-		sh.tokenRepo = repo
-		return nil
-	}
-}
-
-func WithTokenStore(store TokenStore) SessionHandlerOption {
+func WithTokenStore(store models.TokenStoreInterface) SessionHandlerOption {
 	return func(sh *SessionHandler) error {
 		sh.tokenStore = store
 		return nil
@@ -212,9 +204,6 @@ func NewSessionHandler(options ...SessionHandlerOption) (SessionHandler, error) 
 	}
 	if sh.sessionRepo == nil {
 		return SessionHandler{}, fmt.Errorf("session repository is not initialized")
-	}
-	if sh.tokenRepo == nil {
-		return SessionHandler{}, fmt.Errorf("token repository is not initialized")
 	}
 	if sh.tokenStore == nil {
 		return SessionHandler{}, fmt.Errorf("token store is not initialized")

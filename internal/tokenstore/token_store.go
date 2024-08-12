@@ -17,15 +17,15 @@ type TokenStore struct {
 	ExpiryMarginMinutes int
 
 	providerStore oidc.ClientStore
-	tokenRepo     LimitedTokenRepository
+	tokenRepo     models.TokenRepository
 }
 
-func (tr TokenStore) ExpiryMargin() time.Duration {
-	return time.Duration(tr.ExpiryMarginMinutes) * time.Minute
+func (ts TokenStore) ExpiryMargin() time.Duration {
+	return time.Duration(ts.ExpiryMarginMinutes) * time.Minute
 }
 
-func (tr *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (models.AuthToken, error) {
-	token, err := tr.tokenRepo.GetAccessToken(ctx, tokenID)
+func (ts *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (models.AuthToken, error) {
+	token, err := ts.tokenRepo.GetAccessToken(ctx, tokenID)
 	if err != nil {
 		if err == redis.Nil {
 			return models.AuthToken{}, gwerrors.ErrTokenNotFound
@@ -34,7 +34,7 @@ func (tr *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (
 		}
 	}
 
-	if token.ExpiresSoon(tr.ExpiryMargin()) {
+	if token.ExpiresSoon(ts.ExpiryMargin()) {
 		slog.Debug(
 			"TOKEN STORE",
 			"message",
@@ -44,7 +44,7 @@ func (tr *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (
 			"providerID",
 			token.ProviderID,
 		)
-		newAccessToken, err := tr.refreshAccessToken(ctx, token)
+		newAccessToken, err := ts.refreshAccessToken(ctx, token)
 		if err != nil {
 			slog.Debug(
 				"TOKEN STORE",
@@ -55,7 +55,7 @@ func (tr *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (
 				"providerID",
 				token.ProviderID,
 			)
-			reloadedToken, err := tr.tokenRepo.GetAccessToken(ctx, tokenID)
+			reloadedToken, err := ts.tokenRepo.GetAccessToken(ctx, tokenID)
 			if err != nil {
 				token = reloadedToken
 			}
@@ -69,13 +69,13 @@ func (tr *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (
 	return token, nil
 }
 
-func (tr *TokenStore) refreshAccessToken(ctx context.Context, token models.AuthToken) (models.AuthToken, error) {
-	refreshToken, err := tr.tokenRepo.GetRefreshToken(ctx, token.ID)
+func (ts *TokenStore) refreshAccessToken(ctx context.Context, token models.AuthToken) (models.AuthToken, error) {
+	refreshToken, err := ts.tokenRepo.GetRefreshToken(ctx, token.ID)
 	if err != nil {
 		slog.Error("TOKEN STORE", "message", "GetRefreshToken failed", "error", err)
 		return models.AuthToken{}, err
 	}
-	newAccessToken, newRefreshToken, err := tr.providerStore.RefreshAccessToken(refreshToken)
+	newAccessToken, newRefreshToken, err := ts.providerStore.RefreshAccessToken(refreshToken)
 	if err != nil {
 		slog.Error("TOKEN STORE", "message", "RefreshAccessToken failed", "error", err)
 		return models.AuthToken{}, err
@@ -85,17 +85,40 @@ func (tr *TokenStore) refreshAccessToken(ctx context.Context, token models.AuthT
 	newAccessToken.SessionID = token.SessionID
 	newRefreshToken.ID = token.ID
 	newRefreshToken.SessionID = token.SessionID
-	err = tr.tokenRepo.SetAccessToken(ctx, newAccessToken)
+	err = ts.tokenRepo.SetAccessToken(ctx, newAccessToken)
 	if err != nil {
 		slog.Error("TOKEN STORE", "message", "SetAccessToken failed", "error", err)
 		return models.AuthToken{}, err
 	}
-	err = tr.tokenRepo.SetRefreshToken(ctx, newRefreshToken)
+	err = ts.tokenRepo.SetRefreshToken(ctx, newRefreshToken)
 	if err != nil {
 		slog.Error("TOKEN STORE", "message", "SetRefreshToken failed", "error", err)
 		return models.AuthToken{}, err
 	}
 	return newAccessToken, nil
+}
+
+func (ts *TokenStore) SetAccessToken(ctx context.Context, token models.AuthToken) error {
+	return ts.tokenRepo.SetAccessToken(ctx, token)
+}
+
+func (ts *TokenStore) SetAccessTokenExpiry(ctx context.Context, token models.AuthToken, expiresAt time.Time) error {
+	return ts.tokenRepo.SetAccessTokenExpiry(ctx, token, expiresAt)
+}
+
+func (ts *TokenStore) SetRefreshToken(ctx context.Context, token models.AuthToken) error {
+	return ts.tokenRepo.SetRefreshToken(ctx, token)
+}
+
+func (ts *TokenStore) SetRefreshTokenExpiry(ctx context.Context, token models.AuthToken, expiresAt time.Time) error {
+	return ts.tokenRepo.SetRefreshTokenExpiry(ctx, token, expiresAt)
+}
+func (ts *TokenStore) SetIDToken(ctx context.Context, token models.AuthToken) error {
+	return ts.tokenRepo.SetIDToken(ctx, token)
+}
+
+func (ts *TokenStore) SetIDTokenExpiry(ctx context.Context, token models.AuthToken, expiresAt time.Time) error {
+	return ts.tokenRepo.SetIDTokenExpiry(ctx, token, expiresAt)
 }
 
 type TokenRefresherOption func(*TokenStore) error
@@ -118,9 +141,9 @@ func WithConfig(loginConfig config.LoginConfig) TokenRefresherOption {
 	}
 }
 
-func WithTokenRepository(store LimitedTokenRepository) TokenRefresherOption {
+func WithTokenRepository(tokenRepo models.TokenRepository) TokenRefresherOption {
 	return func(tr *TokenStore) error {
-		tr.tokenRepo = store
+		tr.tokenRepo = tokenRepo
 		return nil
 	}
 }

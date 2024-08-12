@@ -69,27 +69,27 @@ func (sh *SessionHandler) SaveTokens(c echo.Context, session *models.Session, to
 	}
 	session.TokenIDs[providerID] = tokens.AccessToken.ID
 	expiresAt := sh.getTokenExpiration(tokens, *session)
-	err = sh.tokenRepo.SetAccessToken(c.Request().Context(), tokens.AccessToken)
+	err = sh.tokenStore.SetAccessToken(c.Request().Context(), tokens.AccessToken)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenRepo.SetAccessTokenExpiry(c.Request().Context(), tokens.AccessToken, expiresAt)
+	err = sh.tokenStore.SetAccessTokenExpiry(c.Request().Context(), tokens.AccessToken, expiresAt)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenRepo.SetRefreshToken(c.Request().Context(), tokens.RefreshToken)
+	err = sh.tokenStore.SetRefreshToken(c.Request().Context(), tokens.RefreshToken)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenRepo.SetRefreshTokenExpiry(c.Request().Context(), tokens.RefreshToken, expiresAt)
+	err = sh.tokenStore.SetRefreshTokenExpiry(c.Request().Context(), tokens.RefreshToken, expiresAt)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenRepo.SetIDToken(c.Request().Context(), tokens.IDToken)
+	err = sh.tokenStore.SetIDToken(c.Request().Context(), tokens.IDToken)
 	if err != nil {
 		return err
 	}
-	err = sh.tokenRepo.SetIDTokenExpiry(c.Request().Context(), tokens.IDToken, expiresAt)
+	err = sh.tokenStore.SetIDTokenExpiry(c.Request().Context(), tokens.IDToken, expiresAt)
 	if err != nil {
 		return err
 	}

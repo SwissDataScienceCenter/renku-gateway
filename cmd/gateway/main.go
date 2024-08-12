@@ -66,7 +66,6 @@ func main() {
 	// Create session handler
 	sessionHandler, err := sessions.NewSessionHandler(
 		sessions.WithSessionRepository(dbAdapter),
-		sessions.WithTokenRepository(dbAdapter),
 		sessions.WithTokenStore(&tokenStore),
 		sessions.WithConfig(gwConfig.Session),
 	)
