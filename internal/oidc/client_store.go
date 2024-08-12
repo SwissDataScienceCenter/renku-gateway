@@ -7,6 +7,7 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"golang.org/x/oauth2"
 )
 
@@ -46,13 +47,13 @@ func (c ClientStore) StartDeviceFlow(ctx context.Context, providerID string) (*o
 	return client.startDeviceFlow(ctx)
 }
 
-func (c ClientStore) RefreshAccessToken(refreshToken models.AuthToken) (models.AuthToken, models.AuthToken, error) {
+func (c ClientStore) RefreshAccessToken(ctx context.Context, refreshToken models.AuthToken) (sessions.AuthTokenSet, error) {
 	providerID := refreshToken.ProviderID
 	client, clientFound := c[providerID]
 	if !clientFound {
-		return models.AuthToken{}, models.AuthToken{}, fmt.Errorf("cannot find the provider with ID %s", providerID)
+		return sessions.AuthTokenSet{}, fmt.Errorf("cannot find the provider with ID %s", providerID)
 	}
-	return client.refreshAccessToken(refreshToken)
+	return client.refreshAccessToken(ctx, refreshToken)
 }
 
 func NewClientStore(configs map[string]config.OIDCClient) (ClientStore, error) {

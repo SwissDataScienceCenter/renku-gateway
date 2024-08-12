@@ -159,15 +159,15 @@ func (c *oidcClient) verifyTokens(ctx context.Context, accessToken, refreshToken
 	return []models.AuthToken{accessTokenParsed, refreshTokenParsed, idTokenParsed}, nil
 }
 
-func (c *oidcClient) refreshAccessToken(refreshToken models.AuthToken) (models.AuthToken, models.AuthToken, error) {
+func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models.AuthToken) (sessions.AuthTokenSet, error) {
 	oAuth2Token, err := rp.RefreshAccessToken(c.client, refreshToken.Value, "", "")
 	if err != nil {
-		return models.AuthToken{}, models.AuthToken{}, err
+		return sessions.AuthTokenSet{}, err
 	}
 	// TODO: maybe verify tokens?
 	id, err := models.ULIDGenerator{}.ID()
 	if err != nil {
-		return models.AuthToken{}, models.AuthToken{}, err
+		return sessions.AuthTokenSet{}, err
 	}
 	newAccessToken := models.AuthToken{
 		ID:         id,
@@ -187,17 +187,37 @@ func (c *oidcClient) refreshAccessToken(refreshToken models.AuthToken) (models.A
 			ProviderID: c.getID(),
 		}
 	}
-	// TODO: handle getting a new ID token?
+	// Handle getting a new ID token
+	newIDToken := models.AuthToken{}
 	idTokenRaw := oAuth2Token.Extra("id_token")
-	slog.Debug(
-		"OIDC",
-		"message",
-		"print fresh id token",
-		"raw",
-		idTokenRaw,
-	)
-
-	return newAccessToken, newRefreshToken, err
+	idTokenString, ok := idTokenRaw.(string)
+	if ok && idTokenString != "" {
+		claims, err := rp.VerifyTokens[*oidc.IDTokenClaims](ctx, oAuth2Token.AccessToken, idTokenString, c.client.IDTokenVerifier())
+		if err != nil {
+			return sessions.AuthTokenSet{}, err
+		}
+		newIDToken = models.AuthToken{
+			ID:         id,
+			Type:       models.IDTokenType,
+			Value:      idTokenString,
+			ExpiresAt:  claims.GetExpiration(),
+			Subject:    claims.Subject,
+			ProviderID: c.getID(),
+		}
+		slog.Debug(
+			"OIDC",
+			"message",
+			"print fresh id token",
+			"raw",
+			idTokenRaw,
+		)
+	}
+	tokenSet := sessions.AuthTokenSet{
+		AccessToken:  newAccessToken,
+		RefreshToken: newRefreshToken,
+		IDToken:      newIDToken,
+	}
+	return tokenSet, err
 }
 
 type clientOption func(*oidcClient) error

@@ -10,6 +10,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/oidc"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -44,7 +45,7 @@ func (ts *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (
 			"providerID",
 			token.ProviderID,
 		)
-		newAccessToken, err := ts.refreshAccessToken(ctx, token)
+		newTokenSet, err := ts.refreshAccessToken(ctx, token)
 		if err != nil {
 			slog.Debug(
 				"TOKEN STORE",
@@ -60,7 +61,7 @@ func (ts *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (
 				token = reloadedToken
 			}
 		} else {
-			token = newAccessToken
+			token = newTokenSet.AccessToken
 		}
 	}
 	if token.Expired() {
@@ -89,7 +90,7 @@ func (ts *TokenStore) GetFreshIDToken(ctx context.Context, tokenID string) (mode
 			"providerID",
 			token.ProviderID,
 		)
-		_, err := ts.refreshAccessToken(ctx, token)
+		newTokenSet, err := ts.refreshAccessToken(ctx, token)
 		if err != nil {
 			slog.Debug(
 				"TOKEN STORE",
@@ -100,50 +101,59 @@ func (ts *TokenStore) GetFreshIDToken(ctx context.Context, tokenID string) (mode
 				"providerID",
 				token.ProviderID,
 			)
-			reloadedToken, err := ts.tokenRepo.GetAccessToken(ctx, tokenID)
+			reloadedToken, err := ts.tokenRepo.GetIDToken(ctx, tokenID)
 			if err != nil {
 				token = reloadedToken
 			}
+		} else {
+			token = newTokenSet.IDToken
 		}
-		// else {
-		// 	token = newAccessToken
-		// }
 	}
 	if token.Expired() {
 		return models.AuthToken{}, gwerrors.ErrTokenExpired
 	}
 	return token, nil
-
-	// return ts.tokenRepo.GetIDToken(ctx, tokenID)
 }
 
-func (ts *TokenStore) refreshAccessToken(ctx context.Context, token models.AuthToken) (models.AuthToken, error) {
+func (ts *TokenStore) refreshAccessToken(ctx context.Context, token models.AuthToken) (sessions.AuthTokenSet, error) {
 	refreshToken, err := ts.tokenRepo.GetRefreshToken(ctx, token.ID)
 	if err != nil {
 		slog.Error("TOKEN STORE", "message", "GetRefreshToken failed", "error", err)
-		return models.AuthToken{}, err
+		return sessions.AuthTokenSet{}, err
 	}
-	newAccessToken, newRefreshToken, err := ts.providerStore.RefreshAccessToken(refreshToken)
+	freshTokens, err := ts.providerStore.RefreshAccessToken(ctx, refreshToken)
+	// newAccessToken, newRefreshToken, err := ts.providerStore.RefreshAccessToken(refreshToken)
 	if err != nil {
 		slog.Error("TOKEN STORE", "message", "RefreshAccessToken failed", "error", err)
-		return models.AuthToken{}, err
+		return sessions.AuthTokenSet{}, err
 	}
-	// Update the access and refresh tokens in place
-	newAccessToken.ID = token.ID
-	newAccessToken.SessionID = token.SessionID
-	newRefreshToken.ID = token.ID
-	newRefreshToken.SessionID = token.SessionID
-	err = ts.tokenRepo.SetAccessToken(ctx, newAccessToken)
+	// Update the access, refresh and ID tokens in place
+	freshTokens.AccessToken.ID = token.ID
+	freshTokens.AccessToken.SessionID = token.SessionID
+	freshTokens.RefreshToken.ID = token.ID
+	freshTokens.RefreshToken.SessionID = token.SessionID
+	if freshTokens.IDToken.ID != "" {
+		freshTokens.IDToken.ID = token.ID
+		freshTokens.IDToken.SessionID = token.SessionID
+	}
+	err = ts.tokenRepo.SetAccessToken(ctx, freshTokens.AccessToken)
 	if err != nil {
 		slog.Error("TOKEN STORE", "message", "SetAccessToken failed", "error", err)
-		return models.AuthToken{}, err
+		return sessions.AuthTokenSet{}, err
 	}
-	err = ts.tokenRepo.SetRefreshToken(ctx, newRefreshToken)
+	err = ts.tokenRepo.SetRefreshToken(ctx, freshTokens.RefreshToken)
 	if err != nil {
 		slog.Error("TOKEN STORE", "message", "SetRefreshToken failed", "error", err)
-		return models.AuthToken{}, err
+		return sessions.AuthTokenSet{}, err
 	}
-	return newAccessToken, nil
+	if freshTokens.IDToken.ID != "" {
+		err = ts.tokenRepo.SetIDToken(ctx, freshTokens.IDToken)
+		if err != nil {
+			slog.Error("TOKEN STORE", "message", "SetIDToken failed", "error", err)
+			return sessions.AuthTokenSet{}, err
+		}
+	}
+	return freshTokens, nil
 }
 
 func (ts *TokenStore) SetAccessToken(ctx context.Context, token models.AuthToken) error {
