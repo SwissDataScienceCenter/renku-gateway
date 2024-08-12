@@ -170,6 +170,9 @@ func (sessions *SessionStore) Delete(c echo.Context) error {
 
 	c.Set(SessionCtxKey, &models.Session{})
 
+	if sessionID == "" {
+		return nil
+	}
 	return sessions.sessionRepo.RemoveSession(c.Request().Context(), sessionID)
 }
 
