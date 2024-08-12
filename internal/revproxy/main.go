@@ -59,7 +59,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	e.Group("/api/data", append(commonMiddlewares, dataRenkuAccessToken, dataGitlabAccessToken, noCookies, dataServiceProxy)...)
 
 	// Routing for Renku services
-	e.Group("/api/notebooks", append(commonMiddlewares, notebooksRenkuAccessToken, notebooksRenkuRefreshToken, notebooksRenkuIDToken, notebooksGitlabAccessToken, notebooksAnonymousID, noCookies, stripPrefix("/api"), notebooksProxy)...)
+	e.Group("/api/notebooks", append(commonMiddlewares, notebooksRenkuAccessToken, notebooksRenkuRefreshToken, notebooksRenkuIDToken, notebooksGitlabAccessToken, notebooksAnonymousID(r.sessions), noCookies, stripPrefix("/api"), notebooksProxy)...)
 	// // /api/projects/:projectID/graph will is being deprecated in favour of /api/kg/webhooks, the old endpoint will remain for some time for backward compatibility
 	// e.Group("/api/projects/:projectID/graph", append(commonMiddlewares, gitlabAuth, noCookies, kgProjectsGraphRewrites, webhookProxy)...)
 	// e.Group("/knowledge-graph", append(commonMiddlewares, gitlabAuth, coreSvcIdToken, noCookies, kgProxy)...)
