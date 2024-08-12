@@ -24,6 +24,7 @@ func (l *LoginServer) RegisterHandlers(server *echo.Echo, commonMiddlewares ...e
 	wrapper := ServerInterfaceWrapper{Handler: l}
 	e.GET("/login", wrapper.GetLogin, NoCaching)
 	e.GET("/callback", wrapper.GetCallback, NoCaching)
+	e.GET("/logout", wrapper.GetLogout, NoCaching)
 	e.GET("/test", l.GetAuthTest, NoCaching)
 }
 
