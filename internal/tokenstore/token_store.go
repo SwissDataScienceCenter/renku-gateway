@@ -106,7 +106,19 @@ func (ts *TokenStore) GetFreshIDToken(ctx context.Context, tokenID string) (mode
 				token = reloadedToken
 			}
 		} else {
-			token = newTokenSet.IDToken
+			if newTokenSet.IDToken.ID != "" {
+				token = newTokenSet.IDToken
+			} else {
+				slog.Error(
+					"TOKEN STORE",
+					"message",
+					"refreshAccessToken did not provide a new ID token",
+					"tokenID",
+					tokenID,
+					"providerID",
+					token.ProviderID,
+				)
+			}
 		}
 	}
 	if token.Expired() {

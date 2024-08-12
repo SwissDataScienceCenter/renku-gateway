@@ -204,13 +204,6 @@ func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models
 			Subject:    claims.Subject,
 			ProviderID: c.getID(),
 		}
-		slog.Debug(
-			"OIDC",
-			"message",
-			"print fresh id token",
-			"raw",
-			idTokenRaw,
-		)
 	}
 	tokenSet := sessions.AuthTokenSet{
 		AccessToken:  newAccessToken,
