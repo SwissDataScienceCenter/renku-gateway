@@ -115,6 +115,22 @@ func (l *LoginServer) nextAuthStep(
 		return c.Redirect(http.StatusFound, url)
 	}
 	providerID := session.LoginSequence[0]
+	// Check if we need to log in with gitlab
+	if providerID == "gitlab" && session.UserID != "" {
+		tokenID := "gitlab:" + session.UserID
+		accessToken, err := l.tokenStore.GetFreshAccessToken(c.Request().Context(), tokenID)
+		if err == nil {
+			session.LoginState = ""
+			// Update the session's token IDs
+			if session.TokenIDs == nil {
+				session.TokenIDs = models.SerializableMap{}
+			}
+			session.TokenIDs[providerID] = accessToken.ID
+			// Update the login sequence
+			session.LoginSequence = session.LoginSequence[1:]
+			return l.nextAuthStep(c, session)
+		}
+	}
 	// Setup the next login step
 	err := session.GenerateLoginState()
 	if err != nil {

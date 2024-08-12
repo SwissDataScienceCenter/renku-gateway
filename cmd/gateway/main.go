@@ -118,7 +118,7 @@ func main() {
 	}
 	revproxy.RegisterHandlers(e, gwMiddlewares...)
 	// Initialize login server
-	loginServer, err := login.NewLoginServer(login.WithConfig(gwConfig.Login), login.WithSessionStore(sessionStore))
+	loginServer, err := login.NewLoginServer(login.WithConfig(gwConfig.Login), login.WithSessionStore(sessionStore), login.WithTokenStore(tokenStore))
 	if err != nil {
 		slog.Error("login handlers initialization failed", "error", err)
 		os.Exit(1)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/oidc"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/labstack/echo/v4"
@@ -13,6 +14,7 @@ type LoginServer struct {
 	config        *config.LoginConfig
 	providerStore oidc.ClientStore
 	sessions      *sessions.SessionStore
+	tokenStore    models.TokenStoreInterface
 }
 
 func (l *LoginServer) RegisterHandlers(server *echo.Echo, commonMiddlewares ...echo.MiddlewareFunc) {
@@ -46,6 +48,13 @@ func WithSessionStore(sessions *sessions.SessionStore) LoginServerOption {
 	}
 }
 
+func WithTokenStore(store models.TokenStoreInterface) LoginServerOption {
+	return func(l *LoginServer) error {
+		l.tokenStore = store
+		return nil
+	}
+}
+
 // NewLoginServer creates a new LoginServer that handles the callbacks from oauth2
 // and initiates the login flow for users.
 func NewLoginServer(options ...LoginServerOption) (*LoginServer, error) {
@@ -64,6 +73,9 @@ func NewLoginServer(options ...LoginServerOption) (*LoginServer, error) {
 	}
 	if server.sessions == nil {
 		return &LoginServer{}, fmt.Errorf("session store not initialized")
+	}
+	if server.tokenStore == nil {
+		return &LoginServer{}, fmt.Errorf("token store is not initialized")
 	}
 	return &server, nil
 }
