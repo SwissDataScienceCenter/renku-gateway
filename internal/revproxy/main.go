@@ -129,20 +129,20 @@ func WithSessionStore(sessions *sessions.SessionStore) RevproxyOption {
 	}
 }
 
-func NewServer(options ...RevproxyOption) (Revproxy, error) {
+func NewServer(options ...RevproxyOption) (*Revproxy, error) {
 	server := Revproxy{}
 	for _, opt := range options {
 		opt(&server)
 	}
 	if server.config == nil {
-		return Revproxy{}, fmt.Errorf("revproxy config not provided")
+		return &Revproxy{}, fmt.Errorf("revproxy config not provided")
 	}
 	if server.sessions == nil {
-		return Revproxy{}, fmt.Errorf("session handler not initialized")
+		return &Revproxy{}, fmt.Errorf("session handler not initialized")
 	}
 	err := server.initializeAuth()
 	if err != nil {
-		return Revproxy{}, err
+		return &Revproxy{}, err
 	}
-	return server, nil
+	return &server, nil
 }

@@ -106,16 +106,16 @@ func WithEcryption(secretKey string) RedisAdapterOption {
 	}
 }
 
-func NewRedisAdapter(options ...RedisAdapterOption) (RedisAdapter, error) {
+func NewRedisAdapter(options ...RedisAdapterOption) (*RedisAdapter, error) {
 	db := RedisAdapter{}
 	for _, opt := range options {
 		err := opt(&db)
 		if err != nil {
-			return RedisAdapter{}, err
+			return &RedisAdapter{}, err
 		}
 	}
 	if db.rdb == nil {
-		return RedisAdapter{}, fmt.Errorf("redis client is not initialized")
+		return &RedisAdapter{}, fmt.Errorf("redis client is not initialized")
 	}
-	return db, nil
+	return &db, nil
 }

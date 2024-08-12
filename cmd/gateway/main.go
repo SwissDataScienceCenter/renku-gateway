@@ -64,9 +64,9 @@ func main() {
 		os.Exit(1)
 	}
 	// Create session handler
-	sessionHandler, err := sessions.NewSessionHandler(
+	sessionStore, err := sessions.NewSessionStore(
 		sessions.WithSessionRepository(dbAdapter),
-		sessions.WithTokenStore(&tokenStore),
+		sessions.WithTokenStore(tokenStore),
 		sessions.WithConfig(gwConfig.Session),
 	)
 	if err != nil {
@@ -109,16 +109,16 @@ func main() {
 		return c.String(http.StatusOK, version)
 	})
 	// Add the session handler to the common middlewares
-	gwMiddlewares := append(commonMiddlewares, sessionHandler.Middleware())
+	gwMiddlewares := append(commonMiddlewares, sessionStore.Middleware())
 	// Initialize the reverse proxy
-	revproxy, err := revproxy.NewServer(revproxy.WithConfig(gwConfig.Revproxy), revproxy.WithSessionStore(&sessionHandler))
+	revproxy, err := revproxy.NewServer(revproxy.WithConfig(gwConfig.Revproxy), revproxy.WithSessionStore(sessionStore))
 	if err != nil {
 		slog.Error("revproxy handlers initialization failed", "error", err)
 		os.Exit(1)
 	}
 	revproxy.RegisterHandlers(e, gwMiddlewares...)
 	// Initialize login server
-	loginServer, err := login.NewLoginServer(login.WithConfig(gwConfig.Login), login.WithSessionHandler(&sessionHandler))
+	loginServer, err := login.NewLoginServer(login.WithConfig(gwConfig.Login), login.WithSessionStore(sessionStore))
 	if err != nil {
 		slog.Error("login handlers initialization failed", "error", err)
 		os.Exit(1)

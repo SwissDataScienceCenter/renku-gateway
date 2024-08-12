@@ -39,7 +39,7 @@ func WithConfig(loginConfig config.LoginConfig) LoginServerOption {
 	}
 }
 
-func WithSessionHandler(sessions *sessions.SessionStore) LoginServerOption {
+func WithSessionStore(sessions *sessions.SessionStore) LoginServerOption {
 	return func(l *LoginServer) error {
 		l.sessions = sessions
 		return nil
@@ -48,22 +48,22 @@ func WithSessionHandler(sessions *sessions.SessionStore) LoginServerOption {
 
 // NewLoginServer creates a new LoginServer that handles the callbacks from oauth2
 // and initiates the login flow for users.
-func NewLoginServer(options ...LoginServerOption) (LoginServer, error) {
+func NewLoginServer(options ...LoginServerOption) (*LoginServer, error) {
 	server := LoginServer{}
 	for _, opt := range options {
 		err := opt(&server)
 		if err != nil {
-			return LoginServer{}, err
+			return &LoginServer{}, err
 		}
 	}
 	if server.config == nil {
-		return LoginServer{}, fmt.Errorf("login server config not provided")
+		return &LoginServer{}, fmt.Errorf("login server config not provided")
 	}
 	if server.providerStore == nil {
-		return LoginServer{}, fmt.Errorf("OIDC providers not initialized")
+		return &LoginServer{}, fmt.Errorf("OIDC providers not initialized")
 	}
 	if server.sessions == nil {
-		return LoginServer{}, fmt.Errorf("session store not initialized")
+		return &LoginServer{}, fmt.Errorf("session store not initialized")
 	}
-	return server, nil
+	return &server, nil
 }

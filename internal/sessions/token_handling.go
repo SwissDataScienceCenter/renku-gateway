@@ -9,8 +9,8 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// GetAccessTokenFromContext retrieves an access token from the current context
-func (sessions *SessionStore) GetAccessTokenFromContext(key string, c echo.Context) (models.AuthToken, error) {
+// getAccessTokenFromContext retrieves an access token from the current context
+func (sessions *SessionStore) getAccessTokenFromContext(key string, c echo.Context) (models.AuthToken, error) {
 	tokenRaw := c.Get(key)
 	if tokenRaw != nil {
 		token, ok := tokenRaw.(models.AuthToken)
@@ -37,7 +37,7 @@ func (sessions *SessionStore) GetAccessToken(c echo.Context, session models.Sess
 		return models.AuthToken{}, gwerrors.ErrTokenNotFound
 	}
 	// check if the access token is already in the request context
-	token, err := sessions.GetAccessTokenFromContext(sessions.accessTokenKey(tokenID), c)
+	token, err := sessions.getAccessTokenFromContext(sessions.accessTokenKey(tokenID), c)
 	if err == nil {
 		return token, nil
 	}

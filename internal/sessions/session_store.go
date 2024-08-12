@@ -79,8 +79,8 @@ func (sessions *SessionStore) Middleware() echo.MiddlewareFunc {
 	}
 }
 
-// GetFromContext retrieves a session from the current context
-func (sessions *SessionStore) GetFromContext(key string, c echo.Context) (*models.Session, error) {
+// getFromContext retrieves a session from the current context
+func (sessions *SessionStore) getFromContext(key string, c echo.Context) (*models.Session, error) {
 	sessionRaw := c.Get(key)
 	if sessionRaw != nil {
 		session, ok := sessionRaw.(*models.Session)
@@ -100,7 +100,7 @@ func (sessions *SessionStore) GetFromContext(key string, c echo.Context) (*model
 
 func (sessions *SessionStore) Get(c echo.Context) (*models.Session, error) {
 	// check if the session is already in the request context
-	session, err := sessions.GetFromContext(SessionCtxKey, c)
+	session, err := sessions.getFromContext(SessionCtxKey, c)
 	if err == nil {
 		return session, nil
 	}
@@ -159,30 +159,30 @@ func (sessions *SessionStore) Cookie(session models.Session) http.Cookie {
 	return cookie
 }
 
-type SessionHandlerOption func(*SessionStore) error
+type SessionStoreOption func(*SessionStore) error
 
-func WithSessionRepository(repo models.SessionRepository) SessionHandlerOption {
+func WithSessionRepository(repo models.SessionRepository) SessionStoreOption {
 	return func(sessions *SessionStore) error {
 		sessions.sessionRepo = repo
 		return nil
 	}
 }
 
-func WithTokenStore(store models.TokenStoreInterface) SessionHandlerOption {
+func WithTokenStore(store models.TokenStoreInterface) SessionStoreOption {
 	return func(sessions *SessionStore) error {
 		sessions.tokenStore = store
 		return nil
 	}
 }
 
-func WithConfig(c config.SessionConfig) SessionHandlerOption {
+func WithConfig(c config.SessionConfig) SessionStoreOption {
 	return func(sessions *SessionStore) error {
 		sessions.sessionMaker = NewSessionMaker(WithIdleSessionTTLSeconds(c.IdleSessionTTLSeconds), WithMaxSessionTTLSeconds(c.MaxSessionTTLSeconds))
 		return nil
 	}
 }
 
-func NewSessionHandler(options ...SessionHandlerOption) (SessionStore, error) {
+func NewSessionStore(options ...SessionStoreOption) (*SessionStore, error) {
 	sessions := SessionStore{
 		cookieTemplate: func() http.Cookie {
 			return http.Cookie{
@@ -197,16 +197,16 @@ func NewSessionHandler(options ...SessionHandlerOption) (SessionStore, error) {
 		opt(&sessions)
 	}
 	if sessions.cookieTemplate == nil {
-		return SessionStore{}, fmt.Errorf("cookie template is not initialized")
+		return &SessionStore{}, fmt.Errorf("cookie template is not initialized")
 	}
 	if sessions.sessionMaker == nil {
-		return SessionStore{}, fmt.Errorf("session maker is not initialized")
+		return &SessionStore{}, fmt.Errorf("session maker is not initialized")
 	}
 	if sessions.sessionRepo == nil {
-		return SessionStore{}, fmt.Errorf("session repository is not initialized")
+		return &SessionStore{}, fmt.Errorf("session repository is not initialized")
 	}
 	if sessions.tokenStore == nil {
-		return SessionStore{}, fmt.Errorf("token store is not initialized")
+		return &SessionStore{}, fmt.Errorf("token store is not initialized")
 	}
-	return sessions, nil
+	return &sessions, nil
 }

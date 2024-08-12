@@ -124,47 +124,47 @@ func (ts *TokenStore) SetIDTokenExpiry(ctx context.Context, token models.AuthTok
 type TokenRefresherOption func(*TokenStore) error
 
 func WithExpiryMarginMinutes(expiresSoonMinutes int) TokenRefresherOption {
-	return func(tr *TokenStore) error {
-		tr.ExpiryMarginMinutes = expiresSoonMinutes
+	return func(ts *TokenStore) error {
+		ts.ExpiryMarginMinutes = expiresSoonMinutes
 		return nil
 	}
 }
 
 func WithConfig(loginConfig config.LoginConfig) TokenRefresherOption {
-	return func(tr *TokenStore) error {
+	return func(ts *TokenStore) error {
 		providerStore, err := oidc.NewClientStore(loginConfig.Providers)
 		if err != nil {
 			return err
 		}
-		tr.providerStore = providerStore
+		ts.providerStore = providerStore
 		return nil
 	}
 }
 
 func WithTokenRepository(tokenRepo models.TokenRepository) TokenRefresherOption {
-	return func(tr *TokenStore) error {
-		tr.tokenRepo = tokenRepo
+	return func(ts *TokenStore) error {
+		ts.tokenRepo = tokenRepo
 		return nil
 	}
 }
 
 // NewTokenStore creates a new TokenRefresher that handles refreshing access tokens which are expiring soon.
-func NewTokenStore(options ...TokenRefresherOption) (TokenStore, error) {
-	tr := TokenStore{}
+func NewTokenStore(options ...TokenRefresherOption) (*TokenStore, error) {
+	ts := TokenStore{}
 	for _, opt := range options {
-		err := opt(&tr)
+		err := opt(&ts)
 		if err != nil {
-			return TokenStore{}, err
+			return &TokenStore{}, err
 		}
 	}
-	if tr.ExpiryMarginMinutes <= 0 {
-		return TokenStore{}, fmt.Errorf("invalid value for ExpiryMarginMinutes (%d)", tr.ExpiryMarginMinutes)
+	if ts.ExpiryMarginMinutes <= 0 {
+		return &TokenStore{}, fmt.Errorf("invalid value for ExpiryMarginMinutes (%d)", ts.ExpiryMarginMinutes)
 	}
-	if tr.providerStore == nil {
-		return TokenStore{}, fmt.Errorf("OIDC providers not initialized")
+	if ts.providerStore == nil {
+		return &TokenStore{}, fmt.Errorf("OIDC providers not initialized")
 	}
-	if tr.tokenRepo == nil {
-		return TokenStore{}, fmt.Errorf("token repository not initialized")
+	if ts.tokenRepo == nil {
+		return &TokenStore{}, fmt.Errorf("token repository not initialized")
 	}
-	return tr, nil
+	return &ts, nil
 }

@@ -25,9 +25,4 @@ type LimitedRedisClient interface {
 	HGetAll(ctx context.Context, key string) *redis.MapStringStringCmd
 	// HSET key field value [field value ...]
 	HSet(ctx context.Context, key string, values ...any) *redis.IntCmd
-
-	// TODO: remove these
-	ZAdd(ctx context.Context, key string, members ...redis.Z) *redis.IntCmd
-	ZRem(ctx context.Context, key string, members ...any) *redis.IntCmd
-	ZRangeArgsWithScores(ctx context.Context, z redis.ZRangeArgs) *redis.ZSliceCmd
 }
