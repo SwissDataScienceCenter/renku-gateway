@@ -174,6 +174,7 @@ func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models
 			GrantType:    oidc.GrantTypeRefreshToken,
 			RedirectUri:  c.client.OAuthConfig().RedirectURL,
 		}
+		slog.Debug("OIDC", "message", "gitlab refresh", "request", request)
 		oAuth2Token, err = client.CallTokenEndpoint(request, tokenEndpointCaller{RelyingParty: c.client})
 
 	} else {
