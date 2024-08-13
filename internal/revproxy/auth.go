@@ -101,9 +101,9 @@ func InjectBearerToken() AuthOption {
 	}
 }
 
-func WithTokenInjector(handler TokenInjector) AuthOption {
+func WithTokenInjector(injector TokenInjector) AuthOption {
 	return func(a *Auth) {
-		a.tokenInjector = handler
+		a.tokenInjector = injector
 	}
 }
 
@@ -240,6 +240,25 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 }
 
 var notebooksGitlabAccessTokenInjector TokenInjector = func(c echo.Context, accessToken models.AuthToken) error {
+	headerKey := "Renku-Auth-Git-Credentials"
+	existingToken := c.Request().Header.Get(headerKey)
+	if existingToken != "" {
+		slog.Debug(
+			"PROXY AUTH MIDDLEWARE",
+			"message",
+			"token already present in header, skipping",
+			"header",
+			headerKey,
+			"providerID",
+			accessToken.ProviderID,
+			"tokenType",
+			accessToken.Type,
+			"requestID",
+			utils.GetRequestID(c),
+		)
+		return nil
+	}
+
 	// NOTE: As long as the token comes from the database we can trust it and do not have to validate it.
 	// Each service that the request ultimately goes to will also validate before it uses the token
 	type gitCredentials struct {
@@ -273,7 +292,22 @@ var notebooksGitlabAccessTokenInjector TokenInjector = func(c echo.Context, acce
 		return err
 	}
 	headerVal := base64.StdEncoding.EncodeToString(outputJson)
-	c.Request().Header.Set("Renku-Auth-Git-Credentials", headerVal)
+	slog.Debug(
+		"PROXY AUTH MIDDLEWARE",
+		"message",
+		"injected token in header",
+		"header",
+		headerKey,
+		"providerID",
+		accessToken.ProviderID,
+		"tokenID",
+		accessToken.ID,
+		"tokenType",
+		accessToken.Type,
+		"requestID",
+		utils.GetRequestID(c),
+	)
+	c.Request().Header.Set(headerKey, headerVal)
 	return nil
 }
 
