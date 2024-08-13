@@ -35,7 +35,7 @@ func (ts *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (
 		}
 	}
 
-	if token.ExpiresSoon(ts.ExpiryMargin()) || token.ProviderID == "gitlab" {
+	if token.ExpiresSoon(ts.ExpiryMargin()) {
 		slog.Debug(
 			"TOKEN STORE",
 			"message",
@@ -47,7 +47,7 @@ func (ts *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (
 		)
 		newTokenSet, err := ts.refreshAccessToken(ctx, token)
 		if err != nil {
-			slog.Debug(
+			slog.Info(
 				"TOKEN STORE",
 				"message",
 				"refreshAccessToken failed, will try to reload the token",
@@ -134,7 +134,6 @@ func (ts *TokenStore) refreshAccessToken(ctx context.Context, token models.AuthT
 		return sessions.AuthTokenSet{}, err
 	}
 	freshTokens, err := ts.providerStore.RefreshAccessToken(ctx, refreshToken)
-	// newAccessToken, newRefreshToken, err := ts.providerStore.RefreshAccessToken(refreshToken)
 	if err != nil {
 		slog.Error("TOKEN STORE", "message", "RefreshAccessToken failed", "error", err)
 		return sessions.AuthTokenSet{}, err
