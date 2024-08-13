@@ -133,7 +133,9 @@ func (ts *TokenStore) refreshAccessToken(ctx context.Context, token models.AuthT
 		slog.Error("TOKEN STORE", "message", "GetRefreshToken failed", "error", err)
 		return sessions.AuthTokenSet{}, err
 	}
-	freshTokens, err := ts.providerStore.RefreshAccessToken(ctx, refreshToken)
+	// We want to perform this whole operation without cancelling
+	childCtx := context.WithoutCancel(ctx)
+	freshTokens, err := ts.providerStore.RefreshAccessToken(childCtx, refreshToken)
 	if err != nil {
 		slog.Error("TOKEN STORE", "message", "RefreshAccessToken failed", "error", err)
 		return sessions.AuthTokenSet{}, err
@@ -147,18 +149,18 @@ func (ts *TokenStore) refreshAccessToken(ctx context.Context, token models.AuthT
 		freshTokens.IDToken.ID = token.ID
 		freshTokens.IDToken.SessionID = token.SessionID
 	}
-	err = ts.tokenRepo.SetAccessToken(ctx, freshTokens.AccessToken)
+	err = ts.tokenRepo.SetAccessToken(childCtx, freshTokens.AccessToken)
 	if err != nil {
 		slog.Error("TOKEN STORE", "message", "SetAccessToken failed", "error", err)
 		return sessions.AuthTokenSet{}, err
 	}
-	err = ts.tokenRepo.SetRefreshToken(ctx, freshTokens.RefreshToken)
+	err = ts.tokenRepo.SetRefreshToken(childCtx, freshTokens.RefreshToken)
 	if err != nil {
 		slog.Error("TOKEN STORE", "message", "SetRefreshToken failed", "error", err)
 		return sessions.AuthTokenSet{}, err
 	}
 	if freshTokens.IDToken.ID != "" {
-		err = ts.tokenRepo.SetIDToken(ctx, freshTokens.IDToken)
+		err = ts.tokenRepo.SetIDToken(childCtx, freshTokens.IDToken)
 		if err != nil {
 			slog.Error("TOKEN STORE", "message", "SetIDToken failed", "error", err)
 			return sessions.AuthTokenSet{}, err
