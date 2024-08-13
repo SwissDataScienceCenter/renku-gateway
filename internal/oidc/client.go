@@ -187,9 +187,16 @@ func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models
 		refreshToken,
 		"error",
 		err,
-		"result",
-		*oAuth2Token,
 	)
+	if oAuth2Token != nil {
+		slog.Debug(
+			"OIDC CLIENT",
+			"message",
+			"called refresh token endpoint",
+			"result",
+			*oAuth2Token,
+		)
+	}
 
 	if err != nil {
 		return sessions.AuthTokenSet{}, err
