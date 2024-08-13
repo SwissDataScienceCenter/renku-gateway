@@ -277,7 +277,7 @@ var notebooksGitlabAccessTokenInjector TokenInjector = func(c echo.Context, acce
 	return nil
 }
 
-var coreSvcRenkuAccessTokenHandler TokenInjector = func(c echo.Context, accessToken models.AuthToken) error {
+var coreSvcRenkuAccessTokenInjector TokenInjector = func(c echo.Context, accessToken models.AuthToken) error {
 	extractClaim := func(claims jwt.MapClaims, key string) (string, error) {
 		valRaw, found := claims["email"]
 		if !found {
@@ -318,7 +318,7 @@ var coreSvcRenkuAccessTokenHandler TokenInjector = func(c echo.Context, accessTo
 }
 
 // Sets up Basic Auth for Gitlab
-var gitlabCliTokenHandler TokenInjector = func(c echo.Context, accessToken models.AuthToken) error {
+var gitlabCliTokenInjector TokenInjector = func(c echo.Context, accessToken models.AuthToken) error {
 	if accessToken.Value == "" {
 		return nil
 	}
