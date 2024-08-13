@@ -35,7 +35,7 @@ func (ts *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (
 		}
 	}
 
-	if token.ExpiresSoon(ts.ExpiryMargin()) {
+	if token.ExpiresSoon(ts.ExpiryMargin()) || token.ProviderID == "gitlab" {
 		slog.Debug(
 			"TOKEN STORE",
 			"message",
