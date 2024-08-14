@@ -61,17 +61,6 @@ func setHost(host string) echo.MiddlewareFunc {
 	}
 }
 
-// printMsg prints the provided message when the middleware is accessed.
-// Used only for troubleshooting and testing.
-func printMsg(msg string) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			slog.Info("reporting from middleware", "message", msg, "path", c.Request().URL.Path)
-			return next(c)
-		}
-	}
-}
-
 // checkCoreServiceMetadataVersion checks if the requested path contains a valid
 // and available metadata version and if not returns a 404, if the metadata version is
 // available the request is let through

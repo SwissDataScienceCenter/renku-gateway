@@ -20,7 +20,6 @@ type Revproxy struct {
 	// Auth instances
 
 	coreSvcIdTokenAuth             Auth
-	dataRenkuAccessTokenAuth       Auth
 	dataGitlabAccessTokenAuth      Auth
 	gitlabTokenAuth                Auth
 	gitlabCliTokenAuth             Auth
@@ -28,6 +27,7 @@ type Revproxy struct {
 	notebooksRenkuRefreshTokenAuth Auth
 	notebooksRenkuIDTokenAuth      Auth
 	notebooksGitlabAccessTokenAuth Auth
+	renkuAccessTokenAuth           Auth
 }
 
 func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.MiddlewareFunc) {
@@ -52,7 +52,6 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 
 	// Initialize common authentication middleware
 	coreSvcIdToken := r.coreSvcIdTokenAuth.Middleware()
-	dataRenkuAccessToken := r.dataRenkuAccessTokenAuth.Middleware()
 	dataGitlabAccessToken := r.dataGitlabAccessTokenAuth.Middleware()
 	gitlabToken := r.gitlabTokenAuth.Middleware()
 	gitlabCliToken := r.gitlabCliTokenAuth.Middleware()
@@ -60,6 +59,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	notebooksRenkuRefreshToken := r.notebooksRenkuRefreshTokenAuth.Middleware()
 	notebooksRenkuIDToken := r.notebooksRenkuIDTokenAuth.Middleware()
 	notebooksGitlabAccessToken := r.notebooksGitlabAccessTokenAuth.Middleware()
+	renkuAccessToken := r.renkuAccessTokenAuth.Middleware()
 
 	// Routing for Renku services
 	e.Group("/api/notebooks", append(commonMiddlewares, notebooksRenkuAccessToken, notebooksRenkuRefreshToken, notebooksRenkuIDToken, notebooksGitlabAccessToken, notebooksAnonymousID(r.sessions), noCookies, stripPrefix("/api"), notebooksProxy)...)
@@ -69,7 +69,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	e.Group("/api/kg/webhooks", append(commonMiddlewares, gitlabToken, noCookies, stripPrefix("/api/kg/webhooks"), webhookProxy)...)
 	e.Group("/api/datasets", append(commonMiddlewares, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)...)
 	e.Group("/api/kg", append(commonMiddlewares, gitlabToken, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)...)
-	e.Group("/api/data", append(commonMiddlewares, dataRenkuAccessToken, dataGitlabAccessToken, noCookies, dataServiceProxy)...)
+	e.Group("/api/data", append(commonMiddlewares, renkuAccessToken, dataGitlabAccessToken, noCookies, dataServiceProxy)...)
 	// /api/kc is used only by the ui and no one else, will be removed when the gateway is in charge of user sessions
 	e.Group("/api/kc", append(commonMiddlewares, stripPrefix("/api/kc"), keycloakProxyHost, keycloakProxy)...)
 
@@ -86,23 +86,23 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 		e.Group("/repos", append(commonMiddlewares, gitlabCliToken, noCookies, stripPrefix("/repos"), gitlabProxyHost, gitlabProxy)...)
 		// If nothing is matched in any other more specific /api route then fall back to Gitlab
 		e.Group("/api", append(commonMiddlewares, gitlabToken, noCookies, regexRewrite("^/api(.*)", "/api/v4$1"), gitlabProxyHost, gitlabProxy)...)
-		e.Group("/ui-server/api/projects", append(commonMiddlewares, uiServerUpstreamExternalGitlabLocation(r.config.ExternalGitlabURL.Host), dataRenkuAccessToken, dataGitlabAccessToken, uiServerProxy)...)
+		e.Group("/ui-server/api/projects", append(commonMiddlewares, uiServerUpstreamExternalGitlabLocation(r.config.ExternalGitlabURL.Host), renkuAccessToken, dataGitlabAccessToken, uiServerProxy)...)
 	} else {
 		e.Group("/api/graphql", append(commonMiddlewares, gitlabToken, regexRewrite("^(.*)", "/gitlab$1"), gitlabProxyHost, gitlabProxy)...)
 		e.Group("/api/direct", append(commonMiddlewares, regexRewrite("^/api/direct(.*)", "/gitlab$1"), gitlabProxyHost, gitlabProxy)...)
 		e.Group("/repos", append(commonMiddlewares, gitlabCliToken, noCookies, regexRewrite("^/repos(.*)", "/gitlab$1"), gitlabProxyHost, gitlabProxy)...)
 		// If nothing is matched in any other more specific /api route then fall back to Gitlab
 		e.Group("/api", append(commonMiddlewares, gitlabToken, noCookies, regexRewrite("^/api(.*)", "/gitlab/api/v4$1"), gitlabProxyHost, gitlabProxy)...)
-		e.Group("/ui-server/api/projects", append(commonMiddlewares, uiServerUpstreamInternalGitlabLocation(r.config.RenkuBaseURL.Host), dataRenkuAccessToken, dataGitlabAccessToken, uiServerProxy)...)
+		e.Group("/ui-server/api/projects", append(commonMiddlewares, uiServerUpstreamInternalGitlabLocation(r.config.RenkuBaseURL.Host), renkuAccessToken, dataGitlabAccessToken, uiServerProxy)...)
 	}
 
 	// UI server webssockets
-	e.Group("/ui-server/ws", append(commonMiddlewares, dataRenkuAccessToken, uiServerProxy)...)
+	e.Group("/ui-server/ws", append(commonMiddlewares, renkuAccessToken, uiServerProxy)...)
 	// Some routes need to go to the UI server before they go to the specific Renku service
-	e.Group("/ui-server/api/last-searches/:length", append(commonMiddlewares, dataRenkuAccessToken, uiServerProxy)...)
-	e.Group("/ui-server/api/last-projects/:length", append(commonMiddlewares, dataRenkuAccessToken, uiServerProxy)...)
+	e.Group("/ui-server/api/last-searches/:length", append(commonMiddlewares, renkuAccessToken, uiServerProxy)...)
+	e.Group("/ui-server/api/last-projects/:length", append(commonMiddlewares, renkuAccessToken, uiServerProxy)...)
 	// e.Group("/ui-server/api/projects", append(commonMiddlewares, dataRenkuAccessToken, dataGitlabAccessToken, uiServerProxy)...)
-	e.Group("/ui-server/api/kg/entities", append(commonMiddlewares, uiServerUpstreamKgLocation(r.config.RenkuServices.KG.Host), dataRenkuAccessToken, dataGitlabAccessToken, uiServerProxy)...)
+	e.Group("/ui-server/api/kg/entities", append(commonMiddlewares, uiServerUpstreamKgLocation(r.config.RenkuServices.KG.Host), renkuAccessToken, dataGitlabAccessToken, uiServerProxy)...)
 
 	// If nothing is matched from any of the routes above then fall back to the UI
 	e.Group("/", append(commonMiddlewares, renkuBaseProxyHost, fallbackProxy)...)
@@ -111,11 +111,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 func (r *Revproxy) initializeAuth() error {
 	var err error
 
-	r.coreSvcIdTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.IDTokenType), WithProviderID("renku"), InjectInHeader("Renku-User"))
-	if err != nil {
-		return err
-	}
-	r.dataRenkuAccessTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.AccessTokenType), WithProviderID("renku"), InjectBearerToken())
+	r.coreSvcIdTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.IDTokenType), WithProviderID("renku"), WithTokenInjector(coreSvcRenkuIdTokenInjector))
 	if err != nil {
 		return err
 	}
@@ -144,6 +140,10 @@ func (r *Revproxy) initializeAuth() error {
 		return err
 	}
 	r.notebooksGitlabAccessTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), WithTokenInjector(notebooksGitlabAccessTokenInjector))
+	if err != nil {
+		return err
+	}
+	r.renkuAccessTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.AccessTokenType), WithProviderID("renku"), InjectBearerToken())
 	if err != nil {
 		return err
 	}

@@ -11,8 +11,8 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
+	"github.com/zitadel/oidc/v2/pkg/oidc"
 )
 
 type AuthOption func(*Auth)
@@ -311,43 +311,101 @@ var notebooksGitlabAccessTokenInjector TokenInjector = func(c echo.Context, acce
 	return nil
 }
 
-var coreSvcRenkuAccessTokenInjector TokenInjector = func(c echo.Context, accessToken models.AuthToken) error {
-	extractClaim := func(claims jwt.MapClaims, key string) (string, error) {
-		valRaw, found := claims["email"]
-		if !found {
-			return "", fmt.Errorf("cannot find %s claim in access token for core service", key)
-		}
-		val, ok := valRaw.(string)
-		if !ok {
-			return "", fmt.Errorf("cannot parse %s claim as string in access token for core service", key)
-		}
-		return val, nil
+var coreSvcRenkuIdTokenInjector TokenInjector = func(c echo.Context, idToken models.AuthToken) error {
+	headerKey := "Renku-User"
+	existingToken := c.Request().Header.Get(headerKey)
+	if existingToken != "" {
+		slog.Debug(
+			"PROXY AUTH MIDDLEWARE",
+			"message",
+			"token already present in header, skipping",
+			"header",
+			headerKey,
+			"providerID",
+			idToken.ProviderID,
+			"tokenType",
+			idToken.Type,
+			"requestID",
+			utils.GetRequestID(c),
+		)
+		return nil
 	}
-	parser := jwt.NewParser(jwt.WithoutClaimsValidation())
-	parsedJWT, _, err := parser.ParseUnverified(accessToken.Value, jwt.MapClaims{})
+
+	var claims *oidc.IDTokenClaims
+	_, err := oidc.ParseToken(idToken.Value, claims)
 	if err != nil {
 		return err
 	}
-	claims, ok := parsedJWT.Claims.(jwt.MapClaims)
-	if !ok {
-		return fmt.Errorf("cannot parse claims")
-	}
-	email, err := extractClaim(claims, "email")
-	if err != nil {
-		return err
-	}
-	sub, err := extractClaim(claims, "sub")
-	if err != nil {
-		return err
-	}
-	name, err := extractClaim(claims, "name")
-	if err != nil {
-		return err
-	}
-	c.Request().Header.Set("Renku-user-id", sub)
-	c.Request().Header.Set("Renku-user-email", email)
-	c.Request().Header.Set("Renku-user-fullname", name)
-	c.Request().Header.Set(echo.HeaderAuthorization, fmt.Sprintf("Bearer %s", accessToken.Value))
+	userId := claims.Subject
+	email := claims.Email
+	name := claims.Name
+
+	slog.Debug(
+		"PROXY AUTH MIDDLEWARE",
+		"message",
+		"injected token in header",
+		"header",
+		headerKey,
+		"providerID",
+		idToken.ProviderID,
+		"tokenID",
+		idToken.ID,
+		"tokenType",
+		idToken.Type,
+		"requestID",
+		utils.GetRequestID(c),
+	)
+	c.Request().Header.Set(headerKey, idToken.Value)
+
+	slog.Debug(
+		"PROXY AUTH MIDDLEWARE",
+		"message",
+		"injected user info in header",
+		"Renku-user-id",
+		userId,
+		"requestID",
+		utils.GetRequestID(c),
+	)
+	c.Request().Header.Set("Renku-user-id", userId)
+	c.Request().Header.Set("Renku-user-email", base64.StdEncoding.EncodeToString([]byte(email)))
+	c.Request().Header.Set("Renku-user-fullname", base64.StdEncoding.EncodeToString([]byte(name)))
+
+	// extractClaim := func(claims jwt.MapClaims, key string) (string, error) {
+	// 	valRaw, found := claims["email"]
+	// 	if !found {
+	// 		return "", fmt.Errorf("cannot find %s claim in access token for core service", key)
+	// 	}
+	// 	val, ok := valRaw.(string)
+	// 	if !ok {
+	// 		return "", fmt.Errorf("cannot parse %s claim as string in access token for core service", key)
+	// 	}
+	// 	return val, nil
+	// }
+	// parser := jwt.NewParser(jwt.WithoutClaimsValidation())
+	// parsedJWT, _, err := parser.ParseUnverified(accessToken.Value, jwt.MapClaims{})
+	// if err != nil {
+	// 	return err
+	// }
+	// claims, ok := parsedJWT.Claims.(jwt.MapClaims)
+	// if !ok {
+	// 	return fmt.Errorf("cannot parse claims")
+	// }
+	// email, err := extractClaim(claims, "email")
+	// if err != nil {
+	// 	return err
+	// }
+	// sub, err := extractClaim(claims, "sub")
+	// if err != nil {
+	// 	return err
+	// }
+	// name, err := extractClaim(claims, "name")
+	// if err != nil {
+	// 	return err
+	// }
+	// c.Request().Header.Set("Renku-user-id", sub)
+	// c.Request().Header.Set("Renku-user-email", email)
+	// c.Request().Header.Set("Renku-user-fullname", name)
+	// c.Request().Header.Set(echo.HeaderAuthorization, fmt.Sprintf("Bearer %s", accessToken.Value))
 	return nil
 }
 
