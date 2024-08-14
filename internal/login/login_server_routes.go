@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
@@ -75,13 +76,17 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 			tokenSet.AccessToken.ID = tokenID
 			tokenSet.RefreshToken.ID = tokenID
 			tokenSet.IDToken.ID = tokenID
+
+			// for testing
+			tokenSet.AccessToken.ExpiresAt = time.Now().UTC().Add(time.Duration(5) * time.Minute)
+			slog.Debug("LOGIN SERVER", "message", "adjusted gitlab token", "access token", tokenSet.AccessToken, "requestID", utils.GetRequestID(c))
 		}
 		return l.sessions.SaveTokens(c, session, tokenSet)
 	}
 	// Exchange the authorization code for credentials
 	err = echo.WrapHandler(provider.CodeExchangeHandler(tokenCallback))(c)
 	if err != nil {
-		slog.Error("code exchange handler failed", "error", err, "requestID", c.Request().Header.Get("X-Request-ID"))
+		slog.Error("code exchange handler failed", "error", err, "requestID", utils.GetRequestID(c))
 		return err
 	}
 	// Continue to the next authentication step

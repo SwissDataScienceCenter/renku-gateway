@@ -38,7 +38,7 @@ func (c *oidcClient) getCodeExchangeCallback(callback TokenSetCallback) func(
 	) {
 		id, err := models.ULIDGenerator{}.ID()
 		if err != nil {
-			slog.Error("generating token ID failed in token exchange", "error", err, "requestID", r.Header.Get("X-Request-ID"))
+			slog.Error("generating token ID failed in token exchange", "error", err, "requestID", r.Header.Get(echo.HeaderXRequestID))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
