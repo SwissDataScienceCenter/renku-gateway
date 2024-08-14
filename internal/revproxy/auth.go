@@ -331,8 +331,8 @@ var coreSvcRenkuIdTokenInjector TokenInjector = func(c echo.Context, idToken mod
 		return nil
 	}
 
-	var claims *oidc.IDTokenClaims
-	_, err := oidc.ParseToken(idToken.Value, claims)
+	var claims oidc.IDTokenClaims
+	_, err := oidc.ParseToken(idToken.Value, &claims)
 	if err != nil {
 		return err
 	}
@@ -369,43 +369,6 @@ var coreSvcRenkuIdTokenInjector TokenInjector = func(c echo.Context, idToken mod
 	c.Request().Header.Set("Renku-user-id", userId)
 	c.Request().Header.Set("Renku-user-email", base64.StdEncoding.EncodeToString([]byte(email)))
 	c.Request().Header.Set("Renku-user-fullname", base64.StdEncoding.EncodeToString([]byte(name)))
-
-	// extractClaim := func(claims jwt.MapClaims, key string) (string, error) {
-	// 	valRaw, found := claims["email"]
-	// 	if !found {
-	// 		return "", fmt.Errorf("cannot find %s claim in access token for core service", key)
-	// 	}
-	// 	val, ok := valRaw.(string)
-	// 	if !ok {
-	// 		return "", fmt.Errorf("cannot parse %s claim as string in access token for core service", key)
-	// 	}
-	// 	return val, nil
-	// }
-	// parser := jwt.NewParser(jwt.WithoutClaimsValidation())
-	// parsedJWT, _, err := parser.ParseUnverified(accessToken.Value, jwt.MapClaims{})
-	// if err != nil {
-	// 	return err
-	// }
-	// claims, ok := parsedJWT.Claims.(jwt.MapClaims)
-	// if !ok {
-	// 	return fmt.Errorf("cannot parse claims")
-	// }
-	// email, err := extractClaim(claims, "email")
-	// if err != nil {
-	// 	return err
-	// }
-	// sub, err := extractClaim(claims, "sub")
-	// if err != nil {
-	// 	return err
-	// }
-	// name, err := extractClaim(claims, "name")
-	// if err != nil {
-	// 	return err
-	// }
-	// c.Request().Header.Set("Renku-user-id", sub)
-	// c.Request().Header.Set("Renku-user-email", email)
-	// c.Request().Header.Set("Renku-user-fullname", name)
-	// c.Request().Header.Set(echo.HeaderAuthorization, fmt.Sprintf("Bearer %s", accessToken.Value))
 	return nil
 }
 
