@@ -211,6 +211,7 @@ func (c *oidcClient) verifyAccessToken(ctx context.Context, accessToken string) 
 		Type:       models.AccessTokenType,
 		Value:      accessToken,
 		ExpiresAt:  claims.GetExpiration(),
+		Subject:    claims.Subject,
 		TokenURL:   c.client.OAuthConfig().Endpoint.TokenURL,
 		ProviderID: c.getID(),
 	}
