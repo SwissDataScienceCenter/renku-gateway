@@ -101,8 +101,8 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	// Some routes need to go to the UI server before they go to the specific Renku service
 	e.Group("/ui-server/api/last-searches/:length", append(commonMiddlewares, dataRenkuAccessToken, uiServerProxy)...)
 	e.Group("/ui-server/api/last-projects/:length", append(commonMiddlewares, dataRenkuAccessToken, uiServerProxy)...)
-	// e.Group("/ui-server/api/renku/cache.files_upload", uiServerUpstreamCoreLocation(r.config.RenkuServices.Core.ServicePaths[0].Host), dataRenkuAccessToken, uiServerProxy)
-	e.Group("/ui-server/api/kg/entities", append(commonMiddlewares, uiServerUpstreamKgLocation(r.config.RenkuServices.KG.Host), dataRenkuAccessToken, uiServerProxy)...)
+	// e.Group("/ui-server/api/renku/cache.files_upload", uiServerUpstreamCoreLocation(url.Parse(config.RenkuServices.Core.ServicePaths[0]).Host), dataRenkuAccessToken, uiServerProxy)
+	e.Group("/ui-server/api/kg/entities", append(commonMiddlewares, uiServerUpstreamKgLocation(r.config.RenkuServices.KG.Host), dataRenkuAccessToken, gitlabToken, uiServerProxy)...)
 
 	// If nothing is matched from any of the routes above then fall back to the UI
 	e.Group("/", append(commonMiddlewares, renkuBaseProxyHost, fallbackProxy)...)
