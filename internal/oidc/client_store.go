@@ -39,6 +39,14 @@ func (c ClientStore) VerifyTokens(ctx context.Context, providerID, accessToken, 
 	return client.verifyTokens(ctx, accessToken, refreshToken, idToken)
 }
 
+func (c ClientStore) VerifyAccessToken(ctx context.Context, providerID, accessToken string) (models.AuthToken, error) {
+	client, clientFound := c[providerID]
+	if !clientFound {
+		return models.AuthToken{}, fmt.Errorf("cannot find the provider with ID %s", providerID)
+	}
+	return client.verifyAccessToken(ctx, accessToken)
+}
+
 func (c ClientStore) StartDeviceFlow(ctx context.Context, providerID string) (*oauth2.DeviceAuthResponse, error) {
 	client, clientFound := c[providerID]
 	if !clientFound {

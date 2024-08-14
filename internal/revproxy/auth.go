@@ -356,7 +356,6 @@ var coreSvcRenkuIdTokenInjector TokenInjector = func(c echo.Context, idToken mod
 		utils.GetRequestID(c),
 	)
 	c.Request().Header.Set(headerKey, idToken.Value)
-
 	slog.Debug(
 		"PROXY AUTH MIDDLEWARE",
 		"message",

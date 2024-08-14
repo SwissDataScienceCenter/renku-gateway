@@ -160,6 +160,63 @@ func (c *oidcClient) verifyTokens(ctx context.Context, accessToken, refreshToken
 	return []models.AuthToken{accessTokenParsed, refreshTokenParsed, idTokenParsed}, nil
 }
 
+func (c *oidcClient) verifyAccessToken(ctx context.Context, accessToken string) (models.AuthToken, error) {
+	v := c.client.IDTokenVerifier()
+	claims := new(oidc.TokenClaims)
+	payload, err := oidc.ParseToken(accessToken, claims)
+	if err != nil {
+		return models.AuthToken{}, err
+	}
+	if err := oidc.CheckSubject(claims); err != nil {
+		return models.AuthToken{}, err
+	}
+
+	if err = oidc.CheckIssuer(claims, v.Issuer()); err != nil {
+		return models.AuthToken{}, err
+	}
+	if err = oidc.CheckAudience(claims, v.ClientID()); err != nil {
+		return models.AuthToken{}, err
+	}
+
+	if err = oidc.CheckAuthorizedParty(claims, v.ClientID()); err != nil {
+		return models.AuthToken{}, err
+	}
+
+	if err = oidc.CheckSignature(ctx, accessToken, payload, claims, v.SupportedSignAlgs(), v.KeySet()); err != nil {
+		return models.AuthToken{}, err
+	}
+
+	if err = oidc.CheckExpiration(claims, v.Offset()); err != nil {
+		return models.AuthToken{}, err
+	}
+
+	if err = oidc.CheckIssuedAt(claims, v.MaxAgeIAT(), v.Offset()); err != nil {
+		return models.AuthToken{}, err
+	}
+
+	if err = oidc.CheckNonce(claims, v.Nonce(ctx)); err != nil {
+		return models.AuthToken{}, err
+	}
+
+	if err = oidc.CheckAuthorizationContextClassReference(claims, v.ACR()); err != nil {
+		return models.AuthToken{}, err
+	}
+
+	if err = oidc.CheckAuthTime(claims, v.MaxAge()); err != nil {
+		return models.AuthToken{}, err
+	}
+
+	output := models.AuthToken{
+		ID:         "",
+		Type:       models.AccessTokenType,
+		Value:      accessToken,
+		ExpiresAt:  claims.GetExpiration(),
+		TokenURL:   c.client.OAuthConfig().Endpoint.TokenURL,
+		ProviderID: c.getID(),
+	}
+	return output, nil
+}
+
 func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models.AuthToken) (sessions.AuthTokenSet, error) {
 	var oAuth2Token *oauth2.Token
 	var err error

@@ -25,6 +25,7 @@ func (l *LoginServer) RegisterHandlers(server *echo.Echo, commonMiddlewares ...e
 	e.GET("/login", wrapper.GetLogin, NoCaching)
 	e.GET("/callback", wrapper.GetCallback, NoCaching)
 	e.GET("/logout", wrapper.GetLogout, NoCaching)
+	e.GET("/gitlab/exchange", l.GetGitLabToken, NoCaching)
 	e.GET("/test", l.GetAuthTest, NoCaching)
 }
 

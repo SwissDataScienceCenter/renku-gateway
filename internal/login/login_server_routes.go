@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
@@ -107,6 +108,39 @@ func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
 		return err
 	}
 	return c.Redirect(http.StatusFound, redirectURL)
+}
+
+func (l *LoginServer) GetGitLabToken(c echo.Context) error {
+	userID := ""
+
+	accessToken := c.Request().Header.Get(echo.HeaderAuthorization)
+	accessToken = strings.TrimPrefix(accessToken, "Bearer ")
+	accessToken = strings.TrimPrefix(accessToken, "bearer ")
+	if accessToken != "" {
+		token, err := l.providerStore.VerifyAccessToken(c.Request().Context(), "renku", accessToken)
+		if err == nil {
+			userID = token.Subject
+		}
+	}
+
+	session, err := l.sessions.Get(c)
+	if err == nil {
+		userID = session.UserID
+	}
+
+	if userID == "" {
+		return c.String(401, "Unauthorized")
+	}
+
+	gilabTokenID := "gitlab:" + userID
+	gitlabAccessToken, err := l.tokenStore.GetFreshAccessToken(c.Request().Context(), gilabTokenID)
+	if err != nil {
+		return err
+	}
+	return c.JSON(200, map[string]any{
+		"access_token": gitlabAccessToken.Value,
+		"expires_at":   gitlabAccessToken.ExpiresAt,
+	})
 }
 
 func (*LoginServer) GetHealth(c echo.Context) error {
