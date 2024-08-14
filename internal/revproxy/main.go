@@ -86,14 +86,14 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 		e.Group("/repos", append(commonMiddlewares, gitlabCliToken, noCookies, stripPrefix("/repos"), gitlabProxyHost, gitlabProxy)...)
 		// If nothing is matched in any other more specific /api route then fall back to Gitlab
 		e.Group("/api", append(commonMiddlewares, gitlabToken, noCookies, regexRewrite("^/api(.*)", "/api/v4$1"), gitlabProxyHost, gitlabProxy)...)
-		e.Group("/ui-server/api/projects/:projectName", append(commonMiddlewares, uiServerUpstreamExternalGitlabLocation(r.config.ExternalGitlabURL.Host), dataRenkuAccessToken, uiServerProxy)...)
+		e.Group("/ui-server/api/projects", append(commonMiddlewares, uiServerUpstreamExternalGitlabLocation(r.config.ExternalGitlabURL.Host), dataRenkuAccessToken, dataGitlabAccessToken, uiServerProxy)...)
 	} else {
 		e.Group("/api/graphql", append(commonMiddlewares, gitlabToken, regexRewrite("^(.*)", "/gitlab$1"), gitlabProxyHost, gitlabProxy)...)
 		e.Group("/api/direct", append(commonMiddlewares, regexRewrite("^/api/direct(.*)", "/gitlab$1"), gitlabProxyHost, gitlabProxy)...)
 		e.Group("/repos", append(commonMiddlewares, gitlabCliToken, noCookies, regexRewrite("^/repos(.*)", "/gitlab$1"), gitlabProxyHost, gitlabProxy)...)
 		// If nothing is matched in any other more specific /api route then fall back to Gitlab
 		e.Group("/api", append(commonMiddlewares, gitlabToken, noCookies, regexRewrite("^/api(.*)", "/gitlab/api/v4$1"), gitlabProxyHost, gitlabProxy)...)
-		e.Group("/ui-server/api/projects/:projectName", append(commonMiddlewares, uiServerUpstreamInternalGitlabLocation(r.config.RenkuBaseURL.Host), dataRenkuAccessToken, uiServerProxy)...)
+		e.Group("/ui-server/api/projects", append(commonMiddlewares, uiServerUpstreamInternalGitlabLocation(r.config.RenkuBaseURL.Host), dataRenkuAccessToken, dataGitlabAccessToken, uiServerProxy)...)
 	}
 
 	// UI server webssockets
@@ -101,8 +101,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	// Some routes need to go to the UI server before they go to the specific Renku service
 	e.Group("/ui-server/api/last-searches/:length", append(commonMiddlewares, dataRenkuAccessToken, uiServerProxy)...)
 	e.Group("/ui-server/api/last-projects/:length", append(commonMiddlewares, dataRenkuAccessToken, uiServerProxy)...)
-	e.Group("/ui-server/api/projects", append(commonMiddlewares, dataRenkuAccessToken, dataGitlabAccessToken, uiServerProxy)...)
-	// e.Group("/ui-server/api/renku/cache.files_upload", uiServerUpstreamCoreLocation(url.Parse(config.RenkuServices.Core.ServicePaths[0]).Host), dataRenkuAccessToken, uiServerProxy)
+	// e.Group("/ui-server/api/projects", append(commonMiddlewares, dataRenkuAccessToken, dataGitlabAccessToken, uiServerProxy)...)
 	e.Group("/ui-server/api/kg/entities", append(commonMiddlewares, uiServerUpstreamKgLocation(r.config.RenkuServices.KG.Host), dataRenkuAccessToken, dataGitlabAccessToken, uiServerProxy)...)
 
 	// If nothing is matched from any of the routes above then fall back to the UI
