@@ -194,6 +194,12 @@ func UiServerPathRewrite() echo.MiddlewareFunc {
 				strings.HasPrefix(path, "/ui-server/api/last-searches") {
 				return next(c)
 			}
+			// Rewrite for /ui-server/auth -> /api/auth.
+			if strings.HasPrefix(path, "/ui-server/auth") {
+				c.Request().URL.Path = "/api" + strings.TrimPrefix(path, "/ui-server")
+				c.Request().RequestURI = "/api" + strings.TrimPrefix(c.Request().RequestURI, "/ui-server")
+				c.Request().URL.RawPath = "/api" + strings.TrimPrefix(c.Request().URL.RawPath, "/ui-server")
+			}
 			// For all other endpoints the gateway will fully bypass the UI server routing things directly to the proper
 			// Renku component.
 			if strings.HasPrefix(path, "/ui-server/api") {
