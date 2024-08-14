@@ -149,6 +149,13 @@ func (ts *TokenStore) refreshAccessToken(ctx context.Context, token models.AuthT
 		freshTokens.IDToken.ID = token.ID
 		freshTokens.IDToken.SessionID = token.SessionID
 	}
+
+	// for testing
+	if token.ProviderID == "gitlab" {
+		freshTokens.AccessToken.ExpiresAt = time.Now().UTC().Add(time.Duration(5) * time.Minute)
+		slog.Debug("TOKEN STORE", "message", "adjusted gitlab token", "access token", freshTokens.AccessToken)
+	}
+
 	err = ts.tokenRepo.SetAccessToken(childCtx, freshTokens.AccessToken)
 	if err != nil {
 		slog.Error("TOKEN STORE", "message", "SetAccessToken failed", "error", err)
