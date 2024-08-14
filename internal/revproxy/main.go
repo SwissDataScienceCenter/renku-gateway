@@ -102,7 +102,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	e.Group("/ui-server/api/last-searches/:length", append(commonMiddlewares, dataRenkuAccessToken, uiServerProxy)...)
 	e.Group("/ui-server/api/last-projects/:length", append(commonMiddlewares, dataRenkuAccessToken, uiServerProxy)...)
 	// e.Group("/ui-server/api/renku/cache.files_upload", uiServerUpstreamCoreLocation(url.Parse(config.RenkuServices.Core.ServicePaths[0]).Host), dataRenkuAccessToken, uiServerProxy)
-	e.Group("/ui-server/api/kg/entities", append(commonMiddlewares, uiServerUpstreamKgLocation(r.config.RenkuServices.KG.Host), dataRenkuAccessToken, gitlabToken, uiServerProxy)...)
+	e.Group("/ui-server/api/kg/entities", append(commonMiddlewares, uiServerUpstreamKgLocation(r.config.RenkuServices.KG.Host), dataRenkuAccessToken, dataGitlabAccessToken, uiServerProxy)...)
 
 	// If nothing is matched from any of the routes above then fall back to the UI
 	e.Group("/", append(commonMiddlewares, renkuBaseProxyHost, fallbackProxy)...)
