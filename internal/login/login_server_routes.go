@@ -114,10 +114,12 @@ func (l *LoginServer) GetGitLabToken(c echo.Context) error {
 	userID := ""
 
 	accessToken := c.Request().Header.Get(echo.HeaderAuthorization)
+	slog.Debug("LOGIN SERVER", "message", "gitlab token exchange", "accessToken", accessToken, "requestID", utils.GetRequestID(c))
 	accessToken = strings.TrimPrefix(accessToken, "Bearer ")
 	accessToken = strings.TrimPrefix(accessToken, "bearer ")
 	if accessToken != "" {
 		token, err := l.providerStore.VerifyAccessToken(c.Request().Context(), "renku", accessToken)
+		slog.Debug("LOGIN SERVER", "message", "gitlab token exchange", "verify", err, "requestID", utils.GetRequestID(c))
 		if err == nil {
 			userID = token.Subject
 		}
@@ -133,7 +135,9 @@ func (l *LoginServer) GetGitLabToken(c echo.Context) error {
 	}
 
 	gilabTokenID := "gitlab:" + userID
+	slog.Debug("LOGIN SERVER", "message", "gitlab token exchange", "gilabTokenID", gilabTokenID, "requestID", utils.GetRequestID(c))
 	gitlabAccessToken, err := l.tokenStore.GetFreshAccessToken(c.Request().Context(), gilabTokenID)
+	slog.Debug("LOGIN SERVER", "message", "gitlab token exchange", "GetFreshAccessToken", err, "requestID", utils.GetRequestID(c))
 	if err != nil {
 		return err
 	}
