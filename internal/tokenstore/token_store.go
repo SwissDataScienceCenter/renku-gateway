@@ -92,7 +92,7 @@ func (ts *TokenStore) GetFreshIDToken(ctx context.Context, tokenID string) (mode
 		)
 		newTokenSet, err := ts.refreshAccessToken(ctx, token)
 		if err != nil {
-			slog.Debug(
+			slog.Info(
 				"TOKEN STORE",
 				"message",
 				"refreshAccessToken failed, will try to reload the token",

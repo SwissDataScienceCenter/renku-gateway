@@ -199,6 +199,7 @@ func UiServerPathRewrite() echo.MiddlewareFunc {
 				c.Request().URL.Path = "/api" + strings.TrimPrefix(path, "/ui-server")
 				c.Request().RequestURI = "/api" + strings.TrimPrefix(c.Request().RequestURI, "/ui-server")
 				c.Request().URL.RawPath = "/api" + strings.TrimPrefix(c.Request().URL.RawPath, "/ui-server")
+				slog.Debug("PATH REWRITE", "message", "matched /ui-server/auth", "URL", c.Request().URL.String(), "RequestURI", c.Request().RequestURI)
 			}
 			// For all other endpoints the gateway will fully bypass the UI server routing things directly to the proper
 			// Renku component.
