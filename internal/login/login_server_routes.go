@@ -147,7 +147,7 @@ func (l *LoginServer) GetGitLabToken(c echo.Context) error {
 	}
 	return c.JSON(200, map[string]any{
 		"access_token": gitlabAccessToken.Value,
-		"expires_at":   gitlabAccessToken.ExpiresAt,
+		"expires_at":   gitlabAccessToken.ExpiresAt.Unix(),
 	})
 }
 
