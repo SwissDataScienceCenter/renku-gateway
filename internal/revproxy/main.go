@@ -49,6 +49,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	keycloakProxyHost := setHost(r.config.RenkuServices.Keycloak.Host)
 	dataServiceProxy := proxyFromURL(r.config.RenkuServices.DataService)
 	uiServerProxy := proxyFromURL(r.config.RenkuServices.UIServer)
+	searchProxy := proxyFromURL(r.config.RenkuServices.Search)
 
 	// Initialize common authentication middleware
 	coreSvcIdToken := r.coreSvcIdTokenAuth.Middleware()
@@ -70,7 +71,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	e.Group("/api/datasets", append(commonMiddlewares, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)...)
 	e.Group("/api/kg", append(commonMiddlewares, gitlabToken, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)...)
 	e.Group("/api/data", append(commonMiddlewares, renkuAccessToken, dataGitlabAccessToken, noCookies, dataServiceProxy)...)
-	// TODO: e.Group("/api/search", logger, searchAuth, noCookies, searchProxy)
+	e.Group("/api/search", append(commonMiddlewares, notebooksRenkuIDToken, notebooksAnonymousID(r.sessions), noCookies, searchProxy)...)
 	// /api/kc is used only by the ui and no one else, will be removed when the gateway is in charge of user sessions
 	e.Group("/api/kc", append(commonMiddlewares, stripPrefix("/api/kc"), keycloakProxyHost, keycloakProxy)...)
 
