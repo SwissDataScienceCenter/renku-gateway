@@ -27,8 +27,10 @@ type GetCallbackParams struct {
 
 // GetLoginParams defines parameters for GetLogin.
 type GetLoginParams struct {
-	RedirectUrl *string   `form:"redirect_url,omitempty" json:"redirect_url,omitempty"`
-	ProviderId  *[]string `form:"provider_id,omitempty" json:"provider_id,omitempty"`
+	RedirectUrl *string `form:"redirect_url,omitempty" json:"redirect_url,omitempty"`
+
+	// ProviderId Providing `provider_id` query parameters should be used for testing only.
+	ProviderId *[]string `form:"provider_id,omitempty" json:"provider_id,omitempty"`
 }
 
 // GetLogoutParams defines parameters for GetLogout.
@@ -179,17 +181,18 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/7xUTW/bOBD9K4M5K7Y3uSx0W+wC2QIBCrS9NUZAUyOJME0qw6ENN8h/L4ay0saxkbQI",
-	"epQ4evP0PviALrQR6wdsKFl2g7gYsMab2LkArY+7Cj7+k6UHa7xfGbtOYEIDJktPQZw1+gG0keEThXXG",
-	"CsWJJ6yxPENnhHZmjxVuidMIvv0LHyuMAwUzOKzxaraYXWKFg5E+KZf5tEwfOpKX/JRSZPdtXG9jQ4Xs",
-	"E0ss+FyOPzRY4zXJvz/OBsNmQ0KcsP6qGmCN95lYeQazUfqKiRUy3WfH1GAtnKnCZHvaGCUk+0HnkrAL",
-	"HT4+Vqdxkhh5HyBKqt/dBHgeYKnb0hBDoiLn1eLypYJfegKJawqwMwlyogYkgrGFJUhPYKyllA5Darq+",
-	"1N+gJOASMDWOyQo10GaWnljJo5hOVcXnEcGlns17Ml76s7b+X45tT3YNFJohuiCzU16Og3j0o5eLxekf",
-	"TcRbZ6mwziG40MHACur3s0JaB6Y0HCVta5w3K08Qg99Dy3EDOye9C0WP9d8JrM9JiLHCzB5r7EWGej5n",
-	"LcDFoQAXKgeqNZM+BymWf3K7WuC12mcd+CyGJRXwMqg6lRg8VfykH+W+eFuxptjcKd3f6MHAcesa4jvX",
-	"PPvcCW3SCZxqemGYzf5X6pET8VHQJRZpxvBMCpmOZq9H38cuZjkr/E3sCnRZGrNAbA96w380UGg0tHG0",
-	"3cbQui6PFuigvjxYDbdBepfAmgBMKXuBQ1gKsvEpwooUzMeuo2bade3Em9XsNpyxV7m/r7/Lt7a3ENdb",
-	"KuVyJbXZ+/1P9F/R/qhgY0vmZnDzqRXfAwAA//+0HyOKBgcAAA==",
+	"H4sIAAAAAAAC/7yUX2/rNgzFvwrBZzfJ2pfBb8MGdAMKbNj2tgatItO2EEVyRSpBVvS7X1CO+ydN0F6g",
+	"uG+JRR/+fMijR3ShjVg/YkNskxvExYA13sTOBWh93FXw5y9ZerDG+5WxawYTGjBZegrirNEXoI0J/qaw",
+	"zlihOPGENZb/0BmhndljhVtKPIpvf8KnCuNAwQwOa7yaLWaXWOFgpGdlmU/N9E9H8p5PkWJy/4/tbWyo",
+	"wD5TYtFP5fiPBmu8Jvn15WwwyWxIKDHW/6kHWONDpqScwWwUXzWxwkQP2SVqsJaUqUK2PW2MAsl+0DqW",
+	"5EKHT0/VaR0WI18jRKz+3U2C5wWW2o2HGJiKnVeLy/cO/tsTSFxTgJ1hyEwNSARjCyVIT2CsJeZDkQ5d",
+	"H+pnEAs4hkSNS2SFGmhzkp6SwqOYTl3FtyuCSz2b92S89GfH+ns5tj3ZNVBohuiCzE7NcizEow+9XCxO",
+	"fyhT2jpLhTqH4EIHQ1JRv58VaC2YtuFo07bGebPyBDH4PbQpbmDnpHeh+LH+mcH6zEIJK8zJY429yFDP",
+	"50kDcHEIwIXagTqayZ+DFcsf2V1H4DXaZyfwj5gkXMRLofpU1uA54ifnUe6LzwVrWps7xf0gB2/Z/kpx",
+	"6xod3v1QflK6c809lAbw0hq4j9k3sKJxrxVdiEXfVBtnt4p6iu2V7Bs0J7ThE4zV9MCkZPbfE73MlI5C",
+	"JLHYPi7m5L7paPZxrHzsYpazQ72JXZEuTWMWiO1hlvAbDRSa0ZlSY2NoXZfH8WqhPjysEdwG6R2DNQES",
+	"cfYCh0UsysZzhBWpmI9dR83U69qJN6vR9lOro+xfuzvLz94MBVxvQM7lumuz9/tX+B94fxTeMYFzM7j5",
+	"lLhvAQAA//+ZH5xyYgcAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

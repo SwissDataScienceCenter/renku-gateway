@@ -43,36 +43,6 @@ func main() {
 	}
 	// TODO: configure log level
 	logLevel.Set(slog.LevelDebug)
-	// Initialize the db adapters
-	dbOptions := []db.RedisAdapterOption{db.WithRedisConfig(gwConfig.Redis)}
-	if gwConfig.Login.TokenEncryption.Enabled && gwConfig.Login.TokenEncryption.SecretKey != "" {
-		dbOptions = append(dbOptions, db.WithEcryption(string(gwConfig.Login.TokenEncryption.SecretKey)))
-	}
-	dbAdapter, err := db.NewRedisAdapter(dbOptions...)
-	if err != nil {
-		slog.Error("DB adapter initialization failed", "error", err)
-		os.Exit(1)
-	}
-	// Initialize the token store
-	tokenStore, err := tokenstore.NewTokenStore(
-		tokenstore.WithExpiryMarginMinutes(3),
-		tokenstore.WithConfig(gwConfig.Login),
-		tokenstore.WithTokenRepository(dbAdapter),
-	)
-	if err != nil {
-		slog.Error("token store initialization failed", "error", err)
-		os.Exit(1)
-	}
-	// Create session store
-	sessionStore, err := sessions.NewSessionStore(
-		sessions.WithSessionRepository(dbAdapter),
-		sessions.WithTokenStore(tokenStore),
-		sessions.WithConfig(gwConfig.Session),
-	)
-	if err != nil {
-		slog.Error("failed to initialize sessions", "error", err)
-		os.Exit(1)
-	}
 	// Setup
 	e := echo.New()
 	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
@@ -107,7 +77,38 @@ func main() {
 	e.GET("/version", func(c echo.Context) error {
 		return c.String(http.StatusOK, version)
 	})
-	// Add the session handler to the common middlewares
+	// Initialize the db adapters
+	dbOptions := []db.RedisAdapterOption{db.WithRedisConfig(gwConfig.Redis)}
+	if gwConfig.Login.TokenEncryption.Enabled && gwConfig.Login.TokenEncryption.SecretKey != "" {
+		slog.Info("redis encryption is enabled")
+		dbOptions = append(dbOptions, db.WithEcryption(string(gwConfig.Login.TokenEncryption.SecretKey)))
+	}
+	dbAdapter, err := db.NewRedisAdapter(dbOptions...)
+	if err != nil {
+		slog.Error("DB adapter initialization failed", "error", err)
+		os.Exit(1)
+	}
+	// Initialize the token store
+	tokenStore, err := tokenstore.NewTokenStore(
+		tokenstore.WithExpiryMarginMinutes(3),
+		tokenstore.WithConfig(gwConfig.Login),
+		tokenstore.WithTokenRepository(dbAdapter),
+	)
+	if err != nil {
+		slog.Error("token store initialization failed", "error", err)
+		os.Exit(1)
+	}
+	// Create session store
+	sessionStore, err := sessions.NewSessionStore(
+		sessions.WithSessionRepository(dbAdapter),
+		sessions.WithTokenStore(tokenStore),
+		sessions.WithConfig(gwConfig.Session),
+	)
+	if err != nil {
+		slog.Error("failed to initialize sessions", "error", err)
+		os.Exit(1)
+	}
+	// Add the session store to the common middlewares
 	gwMiddlewares := append(commonMiddlewares, sessionStore.Middleware())
 	// Initialize the reverse proxy
 	revproxy, err := revproxy.NewServer(revproxy.WithConfig(gwConfig.Revproxy), revproxy.WithSessionStore(sessionStore))

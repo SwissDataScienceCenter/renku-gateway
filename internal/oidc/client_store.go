@@ -8,6 +8,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
+	"github.com/zitadel/oidc/v2/pkg/oidc"
 	"golang.org/x/oauth2"
 )
 
@@ -39,10 +40,10 @@ func (c ClientStore) VerifyTokens(ctx context.Context, providerID, accessToken, 
 	return client.verifyTokens(ctx, accessToken, refreshToken, idToken)
 }
 
-func (c ClientStore) VerifyAccessToken(ctx context.Context, providerID, accessToken string) (models.AuthToken, error) {
+func (c ClientStore) VerifyAccessToken(ctx context.Context, providerID, accessToken string) (oidc.TokenClaims, error) {
 	client, clientFound := c[providerID]
 	if !clientFound {
-		return models.AuthToken{}, fmt.Errorf("cannot find the provider with ID %s", providerID)
+		return oidc.TokenClaims{}, fmt.Errorf("cannot find the provider with ID %s", providerID)
 	}
 	return client.verifyAccessToken(ctx, accessToken)
 }

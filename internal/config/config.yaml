@@ -30,7 +30,6 @@ login:
     secretKey:
   providers:
     renku:
-      default: true
       issuer: https://renkulab.io/auth/realms/Renku
       clientID: renku
       clientSecret: 

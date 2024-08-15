@@ -41,7 +41,6 @@ func TestReadConfig(t *testing.T) {
 	assert.Equal(t, RedactedString("client-secret-from-secret-file"), config.Login.Providers[providerID].ClientSecret)
 	assert.Equal(t, RedactedString("enc-key-from-secret-file"), config.Login.Providers[providerID].CookieEncodingKey)
 	assert.Equal(t, RedactedString("hash-key-from-secret-file"), config.Login.Providers[providerID].CookieHashKey)
-	assert.Equal(t, true, config.Login.Providers[providerID].Default)
 }
 
 func TestReadConfigWithEnvVars(t *testing.T) {
@@ -63,7 +62,6 @@ func TestReadConfigWithEnvVars(t *testing.T) {
 	assert.Equal(t, RedactedString("enc-key-from-secret-file"), config.Login.Providers[providerID].CookieEncodingKey)
 	assert.Equal(t, RedactedString("hash-key-from-secret-file"), config.Login.Providers[providerID].CookieHashKey)
 	assert.Equal(t, RedactedString("token-encryption-key-12345678910"), config.Login.TokenEncryption.SecretKey)
-	assert.Equal(t, true, config.Login.Providers[providerID].Default)
 }
 
 func TestReadConfigWithEnvVarsNoSecretFile(t *testing.T) {
@@ -79,5 +77,4 @@ func TestReadConfigWithEnvVarsNoSecretFile(t *testing.T) {
 	assert.Equal(t, "https://renkulab.io", config.Revproxy.RenkuBaseURL.String())
 	assert.Equal(t, RedactedString("env-var-secret"), config.Login.Providers[providerID].ClientSecret)
 	assert.Equal(t, RedactedString("token-encryption-key-12345678910"), config.Login.TokenEncryption.SecretKey)
-	assert.Equal(t, true, config.Login.Providers[providerID].Default)
 }

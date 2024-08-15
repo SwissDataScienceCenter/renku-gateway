@@ -18,7 +18,6 @@ type LoginConfig struct {
 }
 
 type OIDCClient struct {
-	Default           bool
 	Issuer            string
 	ClientID          string
 	ClientSecret      RedactedString

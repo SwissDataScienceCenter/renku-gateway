@@ -31,8 +31,7 @@ func (l *LoginServer) GetLogin(c echo.Context, params GetLoginParams) error {
 	if params.ProviderId != nil && len(*params.ProviderId) > 0 {
 		loginSequence = *params.ProviderId
 	} else {
-		// TODO: Configure this
-		loginSequence = []string{"renku", "gitlab"}
+		loginSequence = defaultLoginSequence[:]
 	}
 	session.LoginSequence = loginSequence
 	return l.nextAuthStep(c, session)
@@ -113,11 +112,11 @@ func (l *LoginServer) GetGitLabToken(c echo.Context) error {
 	accessToken = strings.TrimPrefix(accessToken, "Bearer ")
 	accessToken = strings.TrimPrefix(accessToken, "bearer ")
 	if accessToken != "" {
-		token, err := l.providerStore.VerifyAccessToken(c.Request().Context(), "renku", accessToken)
+		claims, err := l.providerStore.VerifyAccessToken(c.Request().Context(), "renku", accessToken)
 		slog.Debug("LOGIN SERVER", "message", "gitlab token exchange", "verify", err, "requestID", utils.GetRequestID(c))
 		if err == nil {
-			slog.Debug("LOGIN SERVER", "message", "gitlab token exchange", "verify", token, "requestID", utils.GetRequestID(c))
-			userID = token.Subject
+			slog.Debug("LOGIN SERVER", "message", "gitlab token exchange", "verify", claims.Subject, "requestID", utils.GetRequestID(c))
+			userID = claims.Subject
 		}
 	}
 	// Get the user id from the current session
