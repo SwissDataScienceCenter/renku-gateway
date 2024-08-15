@@ -1,14 +1,5 @@
 package config
 
-type RedisConfig struct {
-	Type       string
-	Addresses  []string
-	IsSentinel bool
-	Password   RedactedString
-	MasterName string
-	DBIndex    int
-}
-
 type ServerConfig struct {
 	Host        string
 	Port        int

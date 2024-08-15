@@ -27,6 +27,8 @@ paths:
             type: string
         - in: query
           name: provider_id
+          description: |
+            Providing `provider_id` query parameters should be used for testing only.
           schema:
             type: array
             items:
