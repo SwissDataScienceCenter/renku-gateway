@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
@@ -77,10 +76,6 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 			tokenSet.AccessToken.ID = tokenID
 			tokenSet.RefreshToken.ID = tokenID
 			tokenSet.IDToken.ID = tokenID
-
-			// for testing
-			tokenSet.AccessToken.ExpiresAt = time.Now().UTC().Add(time.Duration(5) * time.Minute)
-			slog.Debug("LOGIN SERVER", "message", "adjusted gitlab token", "access token", tokenSet.AccessToken, "requestID", utils.GetRequestID(c))
 		}
 		return l.sessions.SaveTokens(c, session, tokenSet)
 	}
