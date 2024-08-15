@@ -10,7 +10,6 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/labstack/echo/v4"
-	"github.com/zitadel/oidc/v2/pkg/client"
 	"github.com/zitadel/oidc/v2/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v2/pkg/http"
 	"github.com/zitadel/oidc/v2/pkg/oidc"
@@ -221,21 +220,22 @@ func (c *oidcClient) verifyAccessToken(ctx context.Context, accessToken string) 
 func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models.AuthToken) (sessions.AuthTokenSet, error) {
 	var oAuth2Token *oauth2.Token
 	var err error
-	// Special case for GitLab: we need to pass the original redirect URL
-	// Code adapted from the OIDC library
-	if c.id == "gitlab" {
-		request := gitlabRefreshTokenRequest{
-			RefreshToken: refreshToken.Value,
-			ClientID:     c.client.OAuthConfig().ClientID,
-			ClientSecret: c.client.OAuthConfig().ClientSecret,
-			GrantType:    oidc.GrantTypeRefreshToken,
-			RedirectUri:  c.client.OAuthConfig().RedirectURL,
-		}
-		oAuth2Token, err = client.CallTokenEndpoint(request, tokenEndpointCaller{RelyingParty: c.client})
+	// // Special case for GitLab: we need to pass the original redirect URL
+	// // Code adapted from the OIDC library
+	// if c.id == "gitlab" {
+	// 	request := gitlabRefreshTokenRequest{
+	// 		RefreshToken: refreshToken.Value,
+	// 		ClientID:     c.client.OAuthConfig().ClientID,
+	// 		ClientSecret: c.client.OAuthConfig().ClientSecret,
+	// 		GrantType:    oidc.GrantTypeRefreshToken,
+	// 		RedirectUri:  c.client.OAuthConfig().RedirectURL,
+	// 	}
+	// 	oAuth2Token, err = client.CallTokenEndpoint(request, tokenEndpointCaller{RelyingParty: c.client})
 
-	} else {
-		oAuth2Token, err = rp.RefreshAccessToken(c.client, refreshToken.Value, "", "")
-	}
+	// } else {
+	// 	oAuth2Token, err = rp.RefreshAccessToken(c.client, refreshToken.Value, "", "")
+	// }
+	oAuth2Token, err = rp.RefreshAccessToken(c.client, refreshToken.Value, "", "")
 
 	slog.Debug(
 		"OIDC CLIENT",
