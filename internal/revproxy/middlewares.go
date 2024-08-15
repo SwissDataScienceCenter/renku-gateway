@@ -61,6 +61,22 @@ func setHost(host string) echo.MiddlewareFunc {
 	}
 }
 
+// ensureSession middleware makes sure a session exists by creating a new one if none is found.
+func ensureSession(sessions *sessions.SessionStore) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			session, err := sessions.Get(c)
+			if err != nil || session.ID == "" {
+				_, err = sessions.Create(c)
+			}
+			if err != nil {
+				return err
+			}
+			return next(c)
+		}
+	}
+}
+
 // checkCoreServiceMetadataVersion checks if the requested path contains a valid
 // and available metadata version and if not returns a 404, if the metadata version is
 // available the request is let through
