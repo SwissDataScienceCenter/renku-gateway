@@ -13,6 +13,7 @@ type RenkuServicesConfig struct {
 	DataService *url.URL
 	Keycloak    *url.URL
 	UIServer    *url.URL
+	Search      *url.URL
 }
 
 type RevproxyConfig struct {
@@ -43,6 +44,12 @@ func (r *RevproxyConfig) Validate() error {
 	}
 	if r.RenkuServices.Keycloak == nil {
 		return fmt.Errorf("the proxy config is missing the url to keycloak")
+	}
+	if r.RenkuServices.UIServer == nil {
+		return fmt.Errorf("the proxy config is missing the url to ui-server")
+	}
+	if r.RenkuServices.Search == nil {
+		return fmt.Errorf("the proxy config is missing the url to search")
 	}
 	if len(r.RenkuServices.Core.ServiceNames) != len(r.RenkuServices.Core.ServicePaths) {
 		return fmt.Errorf("the number of core service names and paths do not match")
