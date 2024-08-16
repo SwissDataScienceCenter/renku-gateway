@@ -101,6 +101,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	// UI server webssockets
 	e.Group("/ui-server/ws", append(commonMiddlewares, ensureSession(r.sessions), renkuAccessToken, uiServerProxy)...)
 	// Some routes need to go to the UI server before they go to the specific Renku service
+	e.Group("/ui-server/api/allows-iframe", append(commonMiddlewares, uiServerProxy)...)
 	e.Group("/ui-server/api/last-searches/:length", append(commonMiddlewares, renkuAccessToken, uiServerProxy)...)
 	e.Group("/ui-server/api/last-projects/:length", append(commonMiddlewares, renkuAccessToken, uiServerProxy)...)
 	e.Group("/ui-server/api/renku/cache.files_upload", uiServerUpstreamCoreLocation(r.config.RenkuServices.Core.ServiceNames[0]), uiServerProxy)

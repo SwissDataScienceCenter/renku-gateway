@@ -193,7 +193,8 @@ func UiServerPathRewrite() echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			path := c.Request().URL.Path
 			// For several endpoints below the gateway still cannot skip the UI server.
-			if strings.HasPrefix(path, "/ui-server/api/projects") ||
+			if strings.HasPrefix(path, "/ui-server/api/allows-iframe") ||
+				strings.HasPrefix(path, "/ui-server/api/projects") ||
 				strings.HasPrefix(path, "/ui-server/api/renku/cache.files_upload") ||
 				strings.HasPrefix(path, "/ui-server/api/kg/entities") ||
 				strings.HasPrefix(path, "/ui-server/api/last-projects") ||
