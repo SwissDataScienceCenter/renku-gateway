@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/authentication"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
@@ -111,12 +113,25 @@ func (sessions *SessionStore) Get(c echo.Context) (*models.Session, error) {
 	// check if the session ID is in the cookie
 	cookie, err := c.Cookie(SessionCookieName)
 	if err != nil {
-		if err == http.ErrNoCookie {
-			return &models.Session{}, gwerrors.ErrSessionNotFound
+		if err != http.ErrNoCookie {
+			return &models.Session{}, err
 		}
-		return &models.Session{}, err
+	} else {
+		sessionID = cookie.Value
 	}
-	sessionID = cookie.Value
+	// check if we can create a session from headers or basic auth
+	session, err = sessions.getFromHeaders(c)
+	if err == nil {
+		return session, nil
+	}
+	session, err = sessions.getFromBasicAuth(c)
+	if err == nil {
+		return session, nil
+	}
+
+	if sessionID == "" {
+		return &models.Session{}, gwerrors.ErrSessionNotFound
+	}
 
 	// load the session from the store
 	sessionFromStore, err := sessions.sessionRepo.GetSession(c.Request().Context(), sessionID)
@@ -152,6 +167,10 @@ func (sessions *SessionStore) Save(c echo.Context) error {
 	if err != nil {
 		return err
 	}
+	// NOTE: ephemeral session, do not save
+	if session.ID == "" {
+		return nil
+	}
 	return sessions.sessionRepo.SetSession(c.Request().Context(), *session)
 }
 
@@ -181,6 +200,56 @@ func (sessions *SessionStore) Cookie(session models.Session) http.Cookie {
 	cookie := sessions.cookieTemplate()
 	cookie.Value = session.ID
 	return cookie
+}
+
+// getFromHeaders creates a session from the Authorization header if present
+func (sessions *SessionStore) getFromHeaders(c echo.Context) (*models.Session, error) {
+	accessToken := c.Request().Header.Get(echo.HeaderAuthorization)
+	slog.Debug("SESSION MIDDLEWARE", "message", "got access token", "accessToken", accessToken, "requestID", utils.GetRequestID(c))
+	accessToken = strings.TrimPrefix(accessToken, "Bearer ")
+	accessToken = strings.TrimPrefix(accessToken, "bearer ")
+	if accessToken != "" {
+		claims, err := sessions.authenticator.VerifyAccessToken(c.Request().Context(), accessToken)
+		slog.Debug("SESSION MIDDLEWARE", "message", "verify token", "error", err, "requestID", utils.GetRequestID(c))
+		if err == nil {
+			slog.Debug("SESSION MIDDLEWARE", "message", "verify token", "subject", claims.Subject, "requestID", utils.GetRequestID(c))
+			userID := claims.Subject
+			tokenIDs := map[string]string{"renku": "renku:" + userID, "gitlab": "gitlab:" + userID}
+			// make an ephemeral session
+			session := models.Session{
+				CreatedAt: time.Now().UTC(),
+				UserID:    userID,
+				TokenIDs:  tokenIDs,
+			}
+			c.Set(SessionCtxKey, &session)
+			return &session, nil
+		}
+	}
+	return &models.Session{}, gwerrors.ErrSessionNotFound
+}
+
+// getFromBasicAuth creates a session from basic authorization
+func (sessions *SessionStore) getFromBasicAuth(c echo.Context) (*models.Session, error) {
+	basicAuthUser, basicAuthPwd, ok := c.Request().BasicAuth()
+	if ok {
+		slog.Debug("SESSION MIDDLEWARE", "message", "got basic auth", "user", basicAuthUser, "password", basicAuthPwd, "requestID", utils.GetRequestID(c))
+		claims, err := sessions.authenticator.VerifyAccessToken(c.Request().Context(), basicAuthPwd)
+		slog.Debug("SESSION MIDDLEWARE", "message", "verify token", "error", err, "requestID", utils.GetRequestID(c))
+		if err == nil {
+			slog.Debug("SESSION MIDDLEWARE", "message", "verify token", "subject", claims.Subject, "requestID", utils.GetRequestID(c))
+			userID := claims.Subject
+			tokenIDs := map[string]string{"renku": "renku:" + userID, "gitlab": "gitlab:" + userID}
+			// make an ephemeral session
+			session := models.Session{
+				CreatedAt: time.Now().UTC(),
+				UserID:    userID,
+				TokenIDs:  tokenIDs,
+			}
+			c.Set(SessionCtxKey, &session)
+			return &session, nil
+		}
+	}
+	return &models.Session{}, gwerrors.ErrSessionNotFound
 }
 
 type SessionStoreOption func(*SessionStore) error

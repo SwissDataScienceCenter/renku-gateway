@@ -70,6 +70,12 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 		tokenSet.IDToken.SessionID = session.ID
 		if providerID == "renku" {
 			session.UserID = tokenSet.IDToken.Subject
+			if session.UserID != "" {
+				tokenID := "renku:" + session.UserID
+				tokenSet.AccessToken.ID = tokenID
+				tokenSet.RefreshToken.ID = tokenID
+				tokenSet.IDToken.ID = tokenID
+			}
 		} else if providerID == "gitlab" && session.UserID != "" {
 			tokenID := "gitlab:" + session.UserID
 			tokenSet.AccessToken.ID = tokenID

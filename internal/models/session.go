@@ -27,6 +27,9 @@ type Session struct {
 }
 
 func (s *Session) Expired() bool {
+	if s.ExpiresAt.IsZero() {
+		return false
+	}
 	return time.Now().UTC().After(s.ExpiresAt)
 }
 
