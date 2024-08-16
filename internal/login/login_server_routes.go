@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
@@ -112,19 +111,6 @@ func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
 
 func (l *LoginServer) GetGitLabToken(c echo.Context) error {
 	userID := ""
-	// Get the user id from the authorization token
-	accessToken := c.Request().Header.Get(echo.HeaderAuthorization)
-	slog.Debug("LOGIN SERVER", "message", "gitlab token exchange", "accessToken", accessToken, "requestID", utils.GetRequestID(c))
-	accessToken = strings.TrimPrefix(accessToken, "Bearer ")
-	accessToken = strings.TrimPrefix(accessToken, "bearer ")
-	if accessToken != "" {
-		claims, err := l.providerStore.VerifyAccessToken(c.Request().Context(), "renku", accessToken)
-		slog.Debug("LOGIN SERVER", "message", "gitlab token exchange", "verify", err, "requestID", utils.GetRequestID(c))
-		if err == nil {
-			slog.Debug("LOGIN SERVER", "message", "gitlab token exchange", "verify", claims.Subject, "requestID", utils.GetRequestID(c))
-			userID = claims.Subject
-		}
-	}
 	// Get the user id from the current session
 	if userID == "" {
 		session, err := l.sessions.Get(c)
@@ -132,16 +118,11 @@ func (l *LoginServer) GetGitLabToken(c echo.Context) error {
 			userID = session.UserID
 		}
 	}
-
-	slog.Debug("LOGIN SERVER", "message", "gitlab token exchange", "userID", userID, "requestID", utils.GetRequestID(c))
 	if userID == "" {
 		return c.String(401, "Unauthorized")
 	}
-
 	gilabTokenID := "gitlab:" + userID
-	slog.Debug("LOGIN SERVER", "message", "gitlab token exchange", "gilabTokenID", gilabTokenID, "requestID", utils.GetRequestID(c))
 	gitlabAccessToken, err := l.tokenStore.GetFreshAccessToken(c.Request().Context(), gilabTokenID)
-	slog.Debug("LOGIN SERVER", "message", "gitlab token exchange", "GetFreshAccessToken", err, "requestID", utils.GetRequestID(c))
 	if err != nil {
 		return err
 	}
