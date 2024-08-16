@@ -238,7 +238,6 @@ func (t *testAuthServer) Start() {
 
 func (t *testAuthServer) ProviderConfig() config.OIDCClient {
 	return config.OIDCClient{
-		Default:               t.DefaultProvider,
 		Issuer:                t.Server().URL,
 		ClientID:              t.ClientID,
 		ClientSecret:          "client-secret-value",

@@ -9,7 +9,6 @@ type TokenStoreInterface interface {
 	RefreshTokenGetter
 	RefreshTokenSetter
 	// RefreshTokenRemover
-	// IDTokenGetter
 	FreshIDTokenGetter
 	IDTokenSetter
 	// IDTokenRemover
