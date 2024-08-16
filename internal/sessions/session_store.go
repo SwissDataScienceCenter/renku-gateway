@@ -83,56 +83,33 @@ func (sessions *SessionStore) Middleware() echo.MiddlewareFunc {
 	}
 }
 
-// getFromContext retrieves a session from the current context
-func (sessions *SessionStore) getFromContext(c echo.Context) (*models.Session, error) {
-	sessionRaw := c.Get(SessionCtxKey)
-	if sessionRaw != nil {
-		session, ok := sessionRaw.(*models.Session)
-		if session == nil {
-			return &models.Session{}, gwerrors.ErrSessionNotFound
-		}
-		if !ok {
-			return &models.Session{}, gwerrors.ErrSessionParse
-		}
-		if session.Expired() {
-			return &models.Session{}, gwerrors.ErrSessionExpired
-		}
-		return session, nil
-	}
-	return &models.Session{}, gwerrors.ErrSessionNotFound
-}
-
+// Get returns the current session
 func (sessions *SessionStore) Get(c echo.Context) (*models.Session, error) {
 	// check if the session is already in the request context
 	session, err := sessions.getFromContext(c)
 	if err == nil {
 		return session, nil
 	}
-
-	var sessionID string = ""
 	// check if the session ID is in the cookie
-	cookie, err := c.Cookie(SessionCookieName)
+	sessionID, err := sessions.getSessionIDFromCookie(c)
 	if err != nil {
-		if err != http.ErrNoCookie {
-			return &models.Session{}, err
-		}
-	} else {
-		sessionID = cookie.Value
+		return &models.Session{}, err
 	}
 	// check if we can create a session from headers or basic auth
-	session, err = sessions.getFromHeaders(c)
-	if err == nil {
-		return session, nil
+	if sessionID == "" {
+		session, err = sessions.getFromHeaders(c)
+		if err == nil {
+			return session, nil
+		}
+		session, err = sessions.getFromBasicAuth(c)
+		if err == nil {
+			return session, nil
+		}
 	}
-	session, err = sessions.getFromBasicAuth(c)
-	if err == nil {
-		return session, nil
-	}
-
+	// No session found
 	if sessionID == "" {
 		return &models.Session{}, gwerrors.ErrSessionNotFound
 	}
-
 	// load the session from the store
 	sessionFromStore, err := sessions.sessionRepo.GetSession(c.Request().Context(), sessionID)
 	if err != nil {
@@ -174,15 +151,12 @@ func (sessions *SessionStore) Save(c echo.Context) error {
 	return sessions.sessionRepo.SetSession(c.Request().Context(), *session)
 }
 
+// Delete removes the current session from storage and unsets the session cookie
 func (sessions *SessionStore) Delete(c echo.Context) error {
-	// TODO: de-duplicate code from Get()
-	var sessionID string = ""
-	// check if the session ID is in the cookie
-	cookie, err := c.Cookie(SessionCookieName)
-	if err != nil && err != http.ErrNoCookie {
+	sessionID, err := sessions.getSessionIDFromCookie(c)
+	if err != nil {
 		return err
 	}
-	sessionID = cookie.Value
 
 	newCookie := sessions.cookieTemplate()
 	newCookie.MaxAge = -1
@@ -202,17 +176,47 @@ func (sessions *SessionStore) Cookie(session models.Session) http.Cookie {
 	return cookie
 }
 
+// getSessionIDFromCookie returns the session ID from the cookie if present
+func (sessions *SessionStore) getSessionIDFromCookie(c echo.Context) (string, error) {
+	sessionID := ""
+	cookie, err := c.Cookie(SessionCookieName)
+	if err != nil {
+		if err != http.ErrNoCookie {
+			return "", nil
+		}
+	} else {
+		sessionID = cookie.Value
+	}
+	return sessionID, nil
+}
+
+// getFromContext retrieves a session from the current context
+func (sessions *SessionStore) getFromContext(c echo.Context) (*models.Session, error) {
+	sessionRaw := c.Get(SessionCtxKey)
+	if sessionRaw != nil {
+		session, ok := sessionRaw.(*models.Session)
+		if session == nil {
+			return &models.Session{}, gwerrors.ErrSessionNotFound
+		}
+		if !ok {
+			return &models.Session{}, gwerrors.ErrSessionParse
+		}
+		if session.Expired() {
+			return &models.Session{}, gwerrors.ErrSessionExpired
+		}
+		return session, nil
+	}
+	return &models.Session{}, gwerrors.ErrSessionNotFound
+}
+
 // getFromHeaders creates a session from the Authorization header if present
 func (sessions *SessionStore) getFromHeaders(c echo.Context) (*models.Session, error) {
 	accessToken := c.Request().Header.Get(echo.HeaderAuthorization)
-	slog.Debug("SESSION MIDDLEWARE", "message", "got access token", "accessToken", accessToken, "requestID", utils.GetRequestID(c))
 	accessToken = strings.TrimPrefix(accessToken, "Bearer ")
 	accessToken = strings.TrimPrefix(accessToken, "bearer ")
 	if accessToken != "" {
 		claims, err := sessions.authenticator.VerifyAccessToken(c.Request().Context(), accessToken)
-		slog.Debug("SESSION MIDDLEWARE", "message", "verify token", "error", err, "requestID", utils.GetRequestID(c))
 		if err == nil {
-			slog.Debug("SESSION MIDDLEWARE", "message", "verify token", "subject", claims.Subject, "requestID", utils.GetRequestID(c))
 			userID := claims.Subject
 			tokenIDs := map[string]string{"renku": "renku:" + userID, "gitlab": "gitlab:" + userID}
 			// make an ephemeral session
@@ -232,13 +236,10 @@ func (sessions *SessionStore) getFromHeaders(c echo.Context) (*models.Session, e
 
 // getFromBasicAuth creates a session from basic authorization
 func (sessions *SessionStore) getFromBasicAuth(c echo.Context) (*models.Session, error) {
-	basicAuthUser, basicAuthPwd, ok := c.Request().BasicAuth()
+	_, basicAuthPwd, ok := c.Request().BasicAuth()
 	if ok {
-		slog.Debug("SESSION MIDDLEWARE", "message", "got basic auth", "user", basicAuthUser, "password", basicAuthPwd, "requestID", utils.GetRequestID(c))
 		claims, err := sessions.authenticator.VerifyAccessToken(c.Request().Context(), basicAuthPwd)
-		slog.Debug("SESSION MIDDLEWARE", "message", "verify token", "error", err, "requestID", utils.GetRequestID(c))
 		if err == nil {
-			slog.Debug("SESSION MIDDLEWARE", "message", "verify token", "subject", claims.Subject, "requestID", utils.GetRequestID(c))
 			userID := claims.Subject
 			tokenIDs := map[string]string{"renku": "renku:" + userID, "gitlab": "gitlab:" + userID}
 			// make an ephemeral session
