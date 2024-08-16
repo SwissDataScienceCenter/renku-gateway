@@ -73,7 +73,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	e.Group("/api/data", append(commonMiddlewares, renkuAccessToken, dataGitlabAccessToken, noCookies, dataServiceProxy)...)
 	e.Group("/api/search", append(commonMiddlewares, notebooksRenkuIDToken, notebooksAnonymousID(r.sessions), noCookies, searchProxy)...)
 	// /api/kc is used only by the ui and no one else, will be removed when the gateway is in charge of user sessions
-	e.Group("/api/kc", append(commonMiddlewares, stripPrefix("/api/kc"), keycloakProxyHost, keycloakProxy)...)
+	e.Group("/api/kc", append(commonMiddlewares, stripPrefix("/api/kc"), renkuAccessToken, keycloakProxyHost, keycloakProxy)...)
 
 	coreSvcProxyStartupCtx, cancel := context.WithTimeout(context.Background(), time.Duration(120)*time.Second)
 	defer cancel()
