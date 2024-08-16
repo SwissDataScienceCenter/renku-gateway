@@ -174,6 +174,7 @@ func (c *oidcClient) verifyAccessToken(ctx context.Context, accessToken string) 
 	if err = oidc.CheckIssuer(claims, v.Issuer()); err != nil {
 		return oidc.TokenClaims{}, err
 	}
+
 	if err = oidc.CheckAudience(claims, v.ClientID()); err != nil {
 		return oidc.TokenClaims{}, err
 	}

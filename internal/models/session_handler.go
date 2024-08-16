@@ -194,7 +194,7 @@ package models
 // 	}
 // }
 
-// // Note that the value of the cookie and expiry will be rewritten when generated
+// // NOTE that the value of the cookie and expiry will be rewritten when generated
 // // also the cookie name will always come from the config constant and will be ignored if set in the template
 // func WithCookieTemplate(cookie http.Cookie) SessionHandlerOption {
 // 	return func(s *SessionHandler) {

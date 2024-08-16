@@ -11,6 +11,7 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/authentication"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/db"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/login"
@@ -98,11 +99,18 @@ func main() {
 		slog.Error("token store initialization failed", "error", err)
 		os.Exit(1)
 	}
+	// Create authenticator
+	authenticator, err := authentication.NewAuthenticator(authentication.WithConfig(gwConfig.Sessions.AuthorizationVerifiers))
+	if err != nil {
+		slog.Error("failed to initialize authenticator", "error", err)
+		os.Exit(1)
+	}
 	// Create session store
 	sessionStore, err := sessions.NewSessionStore(
+		sessions.WithAuthenticator(authenticator),
 		sessions.WithSessionRepository(dbAdapter),
 		sessions.WithTokenStore(tokenStore),
-		sessions.WithConfig(gwConfig.Session),
+		sessions.WithConfig(gwConfig.Sessions),
 	)
 	if err != nil {
 		slog.Error("failed to initialize sessions", "error", err)

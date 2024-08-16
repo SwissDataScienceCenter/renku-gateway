@@ -189,10 +189,6 @@ func (ts *TokenStore) SetRefreshTokenExpiry(ctx context.Context, token models.Au
 	return ts.tokenRepo.SetRefreshTokenExpiry(ctx, token, expiresAt)
 }
 
-// func (ts *TokenStore) GetIDToken(ctx context.Context, tokenID string) (models.AuthToken, error) {
-// 	return ts.tokenRepo.GetIDToken(ctx, tokenID)
-// }
-
 func (ts *TokenStore) SetIDToken(ctx context.Context, token models.AuthToken) error {
 	return ts.tokenRepo.SetIDToken(ctx, token)
 }

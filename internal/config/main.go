@@ -25,7 +25,7 @@ func (r RedactedString) MarshalBinary() ([]byte, error) {
 type Config struct {
 	RunningEnvironment
 	Server     ServerConfig
-	Session    SessionConfig
+	Sessions   SessionConfig
 	Revproxy   RevproxyConfig
 	Login      LoginConfig
 	Redis      RedisConfig
@@ -38,7 +38,7 @@ const Development RunningEnvironment = "development"
 const Production RunningEnvironment = "production"
 
 func (c Config) Validate() error {
-	err := c.Session.Validate()
+	err := c.Sessions.Validate()
 	if err != nil {
 		return err
 	}

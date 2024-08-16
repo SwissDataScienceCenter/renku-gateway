@@ -61,7 +61,7 @@ func NewConfigHandler() *ConfigHandler {
 	// Set the defaults to the main config
 	var def map[string]any
 	err := mapstructure.Decode(Config{
-		Session: SessionConfig{
+		Sessions: SessionConfig{
 			IdleSessionTTLSeconds: int((4 * time.Hour).Seconds()),
 			MaxSessionTTLSeconds:  int((24 * time.Hour).Seconds()),
 		},
@@ -129,7 +129,7 @@ func (c *ConfigHandler) getConfig() (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("cannot unmarshal the combined config into a struct")
 	}
-	// Note: set PRODUCTION as the default running environment
+	// NOTE: set PRODUCTION as the default running environment
 	runningEnvironment := Production
 	if output.RunningEnvironment == Development {
 		runningEnvironment = Development

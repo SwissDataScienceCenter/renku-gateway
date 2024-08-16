@@ -3,8 +3,15 @@ package config
 import "fmt"
 
 type SessionConfig struct {
-	IdleSessionTTLSeconds int
-	MaxSessionTTLSeconds  int
+	IdleSessionTTLSeconds  int
+	MaxSessionTTLSeconds   int
+	AuthorizationVerifiers []AuthorizationVerifier
+}
+
+type AuthorizationVerifier struct {
+	Issuer          string
+	Audience        string
+	AuthorizedParty string
 }
 
 func (c *SessionConfig) Validate() error {

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/authentication"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
@@ -14,6 +15,7 @@ import (
 )
 
 type SessionStore struct {
+	authenticator  authentication.Authenticator
 	cookieTemplate func() http.Cookie
 	sessionMaker   SessionMaker
 	sessionRepo    models.SessionRepository
@@ -183,6 +185,13 @@ func (sessions *SessionStore) Cookie(session models.Session) http.Cookie {
 
 type SessionStoreOption func(*SessionStore) error
 
+func WithAuthenticator(a authentication.Authenticator) SessionStoreOption {
+	return func(sessions *SessionStore) error {
+		sessions.authenticator = a
+		return nil
+	}
+}
+
 func WithSessionRepository(repo models.SessionRepository) SessionStoreOption {
 	return func(sessions *SessionStore) error {
 		sessions.sessionRepo = repo
@@ -217,6 +226,9 @@ func NewSessionStore(options ...SessionStoreOption) (*SessionStore, error) {
 	}
 	for _, opt := range options {
 		opt(&sessions)
+	}
+	if sessions.authenticator == nil {
+		return &SessionStore{}, fmt.Errorf("authenticator is not initialized")
 	}
 	if sessions.cookieTemplate == nil {
 		return &SessionStore{}, fmt.Errorf("cookie template is not initialized")
