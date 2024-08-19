@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/stretchr/testify/assert"
 	"github.com/zitadel/oidc/v2/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v2/pkg/http"
@@ -135,22 +136,22 @@ func TestTokenCallback(t *testing.T) {
 				IDTokenClaims: &oidc.IDTokenClaims{},
 				IDToken:       testCase.IDToken,
 			}
-			tokenCallback := func(accessToken, refreshToken, idToken models.OauthToken) error {
+			tokenCallback := func(tokenSet sessions.AuthTokenSet) error {
 				if testCase.Error != nil {
 					return testCase.Error
 				}
-				assert.Equal(t, testCase.AccessToken, accessToken.Value)
-				assert.Equal(t, models.AccessTokenType, accessToken.Type)
-				assert.Equal(t, testCase.ProviderID, accessToken.ProviderID)
-				assert.Equal(t, testCase.TokenURL, accessToken.TokenURL)
-				assert.Equal(t, testCase.RefreshToken, refreshToken.Value)
-				assert.Equal(t, models.RefreshTokenType, refreshToken.Type)
-				assert.Equal(t, testCase.ProviderID, refreshToken.ProviderID)
-				assert.Equal(t, testCase.TokenURL, refreshToken.TokenURL)
+				assert.Equal(t, testCase.AccessToken, tokenSet.AccessToken.Value)
+				assert.Equal(t, models.AccessTokenType, tokenSet.AccessToken.Type)
+				assert.Equal(t, testCase.ProviderID, tokenSet.AccessToken.ProviderID)
+				assert.Equal(t, testCase.TokenURL, tokenSet.AccessToken.TokenURL)
+				assert.Equal(t, testCase.RefreshToken, tokenSet.RefreshToken.Value)
+				assert.Equal(t, models.RefreshTokenType, tokenSet.RefreshToken.Type)
+				assert.Equal(t, testCase.ProviderID, tokenSet.RefreshToken.ProviderID)
+				assert.Equal(t, testCase.TokenURL, tokenSet.RefreshToken.TokenURL)
 				assert.Equal(
 					t,
 					testCase.Now.Add(time.Second*time.Duration(testCase.AccessTokenExpiresIn)).Unix(),
-					accessToken.ExpiresAt.Unix(),
+					tokenSet.AccessToken.ExpiresAt.Unix(),
 				)
 				return nil
 			}

@@ -2,21 +2,27 @@ package revproxy
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/authentication"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/db"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/tokenstore"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -26,46 +32,59 @@ import (
 
 const serverIDHeader string = "Server-ID"
 
-func sessionExpired() models.SessionOption {
+// func sessionExpired() models.SessionOption {
+// 	return func(s *models.Session) error {
+// 		s.TTLSeconds = 60
+// 		s.CreatedAt = time.Now().UTC().Add(time.Hour * -5)
+// 		return nil
+// 	}
+// }
+
+func withTokenIDs(tokenIDs map[string]string) sessionOption {
 	return func(s *models.Session) error {
-		s.TTLSeconds = 60
-		s.CreatedAt = time.Now().UTC().Add(time.Hour * -5)
+		s.TokenIDs = models.SerializableMap(tokenIDs)
 		return nil
 	}
 }
 
-func withTokenIDs(ids ...string) models.SessionOption {
-	return func(s *models.Session) error {
-		s.TokenIDs = ids
-		return nil
-	}
-}
-
-func sessionID(id string) models.SessionOption {
+func sessionID(id string) sessionOption {
 	return func(s *models.Session) error {
 		s.ID = id
 		return nil
 	}
 }
 
-func newTestSesssion(options ...models.SessionOption) models.Session {
-	session, err := models.NewSession(options...)
+type sessionOption func(*models.Session) error
+
+var sessionMaker = sessions.NewSessionMaker(
+	sessions.WithIdleSessionTTLSeconds(int((4 * time.Hour).Seconds())),
+	sessions.WithMaxSessionTTLSeconds(int((24 * time.Hour).Seconds())),
+)
+
+func newTestSesssion(options ...sessionOption) models.Session {
+	session, err := sessionMaker.NewSession()
 	if err != nil {
 		log.Fatal(err)
+	}
+	for _, opt := range options {
+		err = opt(&session)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	return session
 }
 
-type tokenOption func(*models.OauthToken)
+type tokenOption func(*models.AuthToken)
 
 func tokenID(id string) tokenOption {
-	return func(t *models.OauthToken) {
+	return func(t *models.AuthToken) {
 		t.ID = id
 	}
 }
 
 func tokenPlainValue(val string) tokenOption {
-	return func(t *models.OauthToken) {
+	return func(t *models.AuthToken) {
 		t.Value = val
 	}
 }
@@ -77,7 +96,7 @@ type customClaims struct {
 }
 
 func tokenJWTValue(claims customClaims) tokenOption {
-	return func(t *models.OauthToken) {
+	return func(t *models.AuthToken) {
 		if claims.ExpiresAt == nil {
 			claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Hour * 5))
 		}
@@ -91,19 +110,19 @@ func tokenJWTValue(claims customClaims) tokenOption {
 }
 
 func tokenExpired(val string) tokenOption {
-	return func(t *models.OauthToken) {
+	return func(t *models.AuthToken) {
 		t.ExpiresAt = time.Now().UTC().Add(time.Hour * -5)
 	}
 }
 
 func tokenProviderID(id string) tokenOption {
-	return func(t *models.OauthToken) {
+	return func(t *models.AuthToken) {
 		t.ProviderID = id
 	}
 }
 
-func newTestToken(tokenType models.OauthTokenType, options ...tokenOption) models.OauthToken {
-	token := models.OauthToken{
+func newTestToken(tokenType models.OauthTokenType, options ...tokenOption) models.AuthToken {
+	token := models.AuthToken{
 		Type:      tokenType,
 		ID:        "tokenID",
 		Value:     "tokenValue",
@@ -165,12 +184,15 @@ func setupTestAuthServer(
 	return srv, url
 }
 
-func setupTestRevproxy(rpConfig *config.RevproxyConfig, sh *models.SessionHandler) (*httptest.Server, *url.URL) {
-	proxy := NewServer(rpConfig)
+func setupTestRevproxy(rpConfig *config.RevproxyConfig, sessions *sessions.SessionStore) (*httptest.Server, *url.URL) {
+	proxy, err := NewServer(WithConfig(*rpConfig), WithSessionStore(sessions))
+	if err != nil {
+		log.Fatal(err)
+	}
 	e := echo.New()
 	e.Pre(middleware.RemoveTrailingSlash(), UiServerPathRewrite())
 	e.Use(middleware.Recover(), middleware.Logger())
-	proxy.RegisterHandlers(e, sh.Middleware())
+	proxy.RegisterHandlers(e, sessions.Middleware())
 	srv := httptest.NewServer(e)
 	url, err := url.Parse(srv.URL)
 	if err != nil {
@@ -191,7 +213,7 @@ type TestResults struct {
 type TestCase struct {
 	Path           string
 	QueryParams    map[string]string
-	Tokens         []models.OauthToken
+	Tokens         []models.AuthToken
 	Sessions       []models.Session
 	ExternalGitlab bool
 	Expected       TestResults
@@ -224,9 +246,13 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 				DataService: upstreamURL,
 				Keycloak:    upstreamURL,
 				UIServer:    upstreamURL,
+				Search:      upstreamURL,
 			},
 		}
-		dbAdapter := db.NewMockRedisAdapter()
+		dbAdapter, err := db.NewRedisAdapter(db.WithRedisConfig(config.RedisConfig{
+			Type: config.DBTypeRedisMock,
+		}))
+		require.NoError(t, err)
 		for _, token := range scenario.Tokens {
 			switch token.Type {
 			case models.AccessTokenType:
@@ -244,13 +270,35 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 			err := dbAdapter.SetSession(context.Background(), session)
 			require.NoError(t, err)
 		}
-		sh := models.NewSessionHandler(models.WithTokenStore(&dbAdapter), models.WithSessionStore(&dbAdapter))
+		tokenStore, err := tokenstore.NewTokenStore(
+			tokenstore.WithExpiryMarginMinutes(3),
+			tokenstore.WithConfig(config.LoginConfig{}),
+			tokenstore.WithTokenRepository(dbAdapter),
+		)
+		require.NoError(t, err)
+		authenticator, err := authentication.NewAuthenticator()
+		require.NoError(t, err)
+		sessionStore, err := sessions.NewSessionStore(
+			sessions.WithAuthenticator(authenticator),
+			sessions.WithSessionRepository(dbAdapter),
+			sessions.WithTokenStore(tokenStore),
+			sessions.WithConfig(config.SessionConfig{}),
+			sessions.WithCookieTemplate(func() http.Cookie {
+				return http.Cookie{
+					Name:     sessions.SessionCookieName,
+					Path:     "/",
+					Secure:   false,
+					HttpOnly: true,
+					SameSite: http.SameSiteLaxMode}
+			}),
+		)
+		require.NoError(t, err)
 		if scenario.ExternalGitlab {
 			gitlab, gitlabURL = setupTestUpstream("gitlab", requestTracker)
 			defer gitlab.Close()
 			rpConfig.ExternalGitlabURL = gitlabURL
 		}
-		proxy, proxyURL := setupTestRevproxy(&rpConfig, &sh)
+		proxy, proxyURL := setupTestRevproxy(&rpConfig, sessionStore)
 		defer upstream.Close()
 		defer upstream2.Close()
 		defer proxy.Close()
@@ -333,6 +381,8 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 }
 
 func TestInternalSvcRoutes(t *testing.T) {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})))
+
 	testCases := []TestCase{
 		{
 			Path: "/api/notebooks/test/rejectedAuth",
@@ -349,7 +399,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Sessions: []models.Session{
 				newTestSesssion(sessionID("sessionID")),
 			},
-			RequestCookie: &http.Cookie{Name: models.SessionCookieName, Value: "sessionID"},
+			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
 		},
 		{
 			Path: "/api/notebooks/test/acceptedAuth",
@@ -363,30 +413,30 @@ func TestInternalSvcRoutes(t *testing.T) {
 					"Renku-Auth-Anon-Id":       "",
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
-					tokenID("accessTokenID"),
+					tokenID("renku:myToken"),
 					tokenPlainValue("accessTokenValue"),
 					tokenProviderID("renku"),
 				),
 				newTestToken(
 					models.RefreshTokenType,
-					tokenID("refreshTokenID"),
+					tokenID("renku:myToken"),
 					tokenPlainValue("refreshTokenValue"),
 					tokenProviderID("renku"),
 				),
 				newTestToken(
 					models.IDTokenType,
-					tokenID("idTokenID"),
+					tokenID("renku:myToken"),
 					tokenPlainValue("idTokenValue"),
 					tokenProviderID("renku"),
 				),
 			},
 			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs("accessTokenID", "refreshTokenID", "idTokenID")),
+				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"renku": "renku:myToken"})),
 			},
-			RequestCookie: &http.Cookie{Name: models.SessionCookieName, Value: "sessionID"},
+			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
 		},
 		{
 			Path:     "/api/notebooks",
@@ -411,24 +461,24 @@ func TestInternalSvcRoutes(t *testing.T) {
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
-					tokenID("accessTokenID"),
+					tokenID("renku:myToken"),
 					tokenPlainValue("accessTokenValue"),
 					tokenProviderID("renku"),
 				),
 				newTestToken(
 					models.AccessTokenType,
-					tokenID("gitlabAccessTokenID"),
+					tokenID("gitlab:otherToken"),
 					tokenPlainValue("gitlabAccessTokenValue"),
 					tokenProviderID("gitlab"),
 				),
 			},
 			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs("gitlabAccessTokenID", "accessTokenID")),
+				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"renku": "renku:myToken", "gitlab": "gitlab:otherToken"})),
 			},
-			RequestCookie: &http.Cookie{Name: models.SessionCookieName, Value: "sessionID"},
+			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
 		},
 		{
 			Path:        "/api/projects/123456/graph/status",
@@ -482,18 +532,18 @@ func TestInternalSvcRoutes(t *testing.T) {
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
-					tokenID("gitlabAccessTokenID"),
+					tokenID("gitlab:myToken"),
 					tokenPlainValue("gitlabAccessTokenValue"),
 					tokenProviderID("gitlab"),
 				),
 			},
 			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs("gitlabAccessTokenID")),
+				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"gitlab": "gitlab:myToken"})),
 			},
-			RequestCookie: &http.Cookie{Name: models.SessionCookieName, Value: "sessionID"},
+			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
 		},
 		{
 			Path:        "/api/kg",
@@ -525,27 +575,43 @@ func TestInternalSvcRoutes(t *testing.T) {
 				VisitedServerIDs: []string{"upstream"},
 				UpstreamRequestHeaders: []map[string]string{{
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
-					"Renku-User":             "renkuIDTokenValue",
+					"Renku-User": newTestToken(
+						models.IDTokenType,
+						tokenID("renku:myToken"),
+						tokenJWTValue(customClaims{
+							Name:             "Jane Doe",
+							Email:            "jane.doe@example.org",
+							RegisteredClaims: jwt.RegisteredClaims{Subject: "user-jane-doe"},
+						}),
+						tokenProviderID("renku"),
+					).Value,
+					"Renku-user-id":       "user-jane-doe",
+					"Renku-user-fullname": base64.StdEncoding.EncodeToString([]byte("Jane Doe")),
+					"renku-user-email":    base64.StdEncoding.EncodeToString([]byte("jane.doe@example.org")),
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.IDTokenType,
-					tokenID("renkuIDTokenID"),
-					tokenPlainValue("renkuIDTokenValue"),
+					tokenID("renku:myToken"),
+					tokenJWTValue(customClaims{
+						Name:             "Jane Doe",
+						Email:            "jane.doe@example.org",
+						RegisteredClaims: jwt.RegisteredClaims{Subject: "user-jane-doe"},
+					}),
 					tokenProviderID("renku"),
 				),
 				newTestToken(
 					models.AccessTokenType,
-					tokenID("gitlabAccessTokenID"),
+					tokenID("gitlab:otherToken"),
 					tokenPlainValue("gitlabAccessTokenValue"),
 					tokenProviderID("gitlab"),
 				),
 			},
 			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs("renkuIDTokenID", "gitlabAccessTokenID")),
+				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"renku": "renku:myToken", "gitlab": "gitlab:otherToken"})),
 			},
-			RequestCookie: &http.Cookie{Name: models.SessionCookieName, Value: "sessionID"},
+			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
 		},
 		{
 			Path:        "/api/renku/10",
@@ -602,18 +668,18 @@ func TestInternalSvcRoutes(t *testing.T) {
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
-					tokenID("gitlabAccessTokenID"),
+					tokenID("gitlab:myToken"),
 					tokenPlainValue("gitlabAccessTokenValue"),
 					tokenProviderID("gitlab"),
 				),
 			},
 			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs("gitlabAccessTokenID")),
+				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"gitlab": "gitlab:myToken"})),
 			},
-			RequestCookie: &http.Cookie{Name: models.SessionCookieName, Value: "sessionID"},
+			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
 		},
 		{
 			Path:           "/api/user/test/something",
@@ -625,18 +691,18 @@ func TestInternalSvcRoutes(t *testing.T) {
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
-					tokenID("gitlabAccessTokenID"),
+					tokenID("gitlab:myToken"),
 					tokenPlainValue("gitlabAccessTokenValue"),
 					tokenProviderID("gitlab"),
 				),
 			},
 			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs("gitlabAccessTokenID")),
+				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"gitlab": "gitlab:myToken"})),
 			},
-			RequestCookie: &http.Cookie{Name: models.SessionCookieName, Value: "sessionID"},
+			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
 		},
 		{
 			Path:           "/api",
@@ -678,18 +744,18 @@ func TestInternalSvcRoutes(t *testing.T) {
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
-					tokenID("gitlabAccessTokenID"),
+					tokenID("gitlab:myToken"),
 					tokenPlainValue("gitlabAccessTokenValue"),
 					tokenProviderID("gitlab"),
 				),
 			},
 			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs("gitlabAccessTokenID")),
+				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"gitlab": "gitlab:myToken"})),
 			},
-			RequestCookie: &http.Cookie{Name: models.SessionCookieName, Value: "sessionID"},
+			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
 		},
 		{
 			Path:           "/api/graphql",
@@ -706,18 +772,18 @@ func TestInternalSvcRoutes(t *testing.T) {
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
-					tokenID("gitlabAccessTokenID"),
+					tokenID("gitlab:myToken"),
 					tokenPlainValue("gitlabAccessTokenValue"),
 					tokenProviderID("gitlab"),
 				),
 			},
 			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs("gitlabAccessTokenID")),
+				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"gitlab": "gitlab:myToken"})),
 			},
-			RequestCookie: &http.Cookie{Name: models.SessionCookieName, Value: "sessionID"},
+			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
 		},
 		{
 			Path:           "/api/graphql",
@@ -734,18 +800,18 @@ func TestInternalSvcRoutes(t *testing.T) {
 					echo.HeaderAuthorization: "Basic b2F1dGgyOmdpdGxhYkFjY2Vzc1Rva2VuVmFsdWU=", // the content of the header is base64 encoding of oauth2:gitlabAccessTokenValue
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
-					tokenID("gitlabAccessTokenID"),
+					tokenID("gitlab:myToken"),
 					tokenPlainValue("gitlabAccessTokenValue"),
 					tokenProviderID("gitlab"),
 				),
 			},
 			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs("gitlabAccessTokenID")),
+				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"gitlab": "gitlab:myToken"})),
 			},
-			RequestCookie: &http.Cookie{Name: models.SessionCookieName, Value: "sessionID"},
+			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
 		},
 		{
 			Path:           "/repos",
@@ -762,18 +828,18 @@ func TestInternalSvcRoutes(t *testing.T) {
 					echo.HeaderAuthorization: "Basic b2F1dGgyOmdpdGxhYkFjY2Vzc1Rva2VuVmFsdWU=", // the content of the header is base64 encoding of oauth2:gitlabAccessTokenValue
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
-					tokenID("gitlabAccessTokenID"),
+					tokenID("gitlab:myToken"),
 					tokenPlainValue("gitlabAccessTokenValue"),
 					tokenProviderID("gitlab"),
 				),
 			},
 			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs("gitlabAccessTokenID")),
+				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"gitlab": "gitlab:myToken"})),
 			},
-			RequestCookie: &http.Cookie{Name: models.SessionCookieName, Value: "sessionID"},
+			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
 		},
 		{
 			Path:           "/repos",
@@ -801,18 +867,18 @@ func TestInternalSvcRoutes(t *testing.T) {
 					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
 				}},
 			},
-			Tokens: []models.OauthToken{
+			Tokens: []models.AuthToken{
 				newTestToken(
 					models.AccessTokenType,
-					tokenID("gitlabAccessTokenID"),
+					tokenID("gitlab:myToken"),
 					tokenPlainValue("gitlabAccessTokenValue"),
 					tokenProviderID("gitlab"),
 				),
 			},
 			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs("gitlabAccessTokenID")),
+				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"gitlab": "gitlab:myToken"})),
 			},
-			RequestCookie: &http.Cookie{Name: models.SessionCookieName, Value: "sessionID"},
+			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
 		},
 		{
 			Path:        "/api/kg/webhooks/projects/123456/events/status",

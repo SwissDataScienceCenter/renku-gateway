@@ -9,18 +9,37 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/labstack/echo/v4"
+	"github.com/zitadel/oidc/v2/pkg/oidc"
 )
 
 type AuthOption func(*Auth)
 
-type TokenHandler func(c echo.Context, token models.OauthToken) error
+type TokenInjector func(c echo.Context, token models.AuthToken) error
 
 func InjectInHeader(headerKey string) AuthOption {
 	return func(a *Auth) {
-		a.tokenHandler = func(c echo.Context, token models.OauthToken) error {
-			slog.Info(
+		a.tokenInjector = func(c echo.Context, token models.AuthToken) error {
+			existingToken := c.Request().Header.Get(headerKey)
+			if existingToken != "" {
+				slog.Debug(
+					"PROXY AUTH MIDDLEWARE",
+					"message",
+					"token already present in header, skipping",
+					"header",
+					headerKey,
+					"providerID",
+					a.providerID,
+					"tokenType",
+					token.Type,
+					"requestID",
+					utils.GetRequestID(c),
+				)
+				return nil
+			}
+			slog.Debug(
 				"PROXY AUTH MIDDLEWARE",
 				"message",
 				"injected token in header",
@@ -33,7 +52,7 @@ func InjectInHeader(headerKey string) AuthOption {
 				"tokenType",
 				token.Type,
 				"requestID",
-				c.Request().Header.Get("X-Request-ID"),
+				utils.GetRequestID(c),
 			)
 			c.Request().Header.Set(headerKey, token.Value)
 			return nil
@@ -43,8 +62,25 @@ func InjectInHeader(headerKey string) AuthOption {
 
 func InjectBearerToken() AuthOption {
 	return func(a *Auth) {
-		a.tokenHandler = func(c echo.Context, token models.OauthToken) error {
-			slog.Info(
+		a.tokenInjector = func(c echo.Context, token models.AuthToken) error {
+			existingToken := c.Request().Header.Get(echo.HeaderAuthorization)
+			if existingToken != "" {
+				slog.Debug(
+					"PROXY AUTH MIDDLEWARE",
+					"message",
+					"token already present in header, skipping",
+					"header",
+					echo.HeaderAuthorization,
+					"providerID",
+					a.providerID,
+					"tokenType",
+					token.Type,
+					"requestID",
+					utils.GetRequestID(c),
+				)
+				return nil
+			}
+			slog.Debug(
 				"PROXY AUTH MIDDLEWARE",
 				"message",
 				"injected token in header",
@@ -57,7 +93,7 @@ func InjectBearerToken() AuthOption {
 				"tokenType",
 				token.Type,
 				"requestID",
-				c.Request().Header.Get("X-Request-ID"),
+				utils.GetRequestID(c),
 			)
 			c.Request().Header.Set(echo.HeaderAuthorization, fmt.Sprintf("Bearer %s", token.Value))
 			return nil
@@ -65,9 +101,9 @@ func InjectBearerToken() AuthOption {
 	}
 }
 
-func WithTokenHandler(handler TokenHandler) AuthOption {
+func WithTokenInjector(injector TokenInjector) AuthOption {
 	return func(a *Auth) {
-		a.tokenHandler = handler
+		a.tokenInjector = injector
 	}
 }
 
@@ -83,50 +119,73 @@ func WithTokenType(tokenType models.OauthTokenType) AuthOption {
 	}
 }
 
-// Auth generates middleware that will inject tokens in the proxied http requests
-type Auth struct {
-	tokenHandler TokenHandler
-	providerID   string
-	tokenType    models.OauthTokenType
+func AuthWithSessionStore(sessions *sessions.SessionStore) AuthOption {
+	return func(a *Auth) {
+		a.sessions = sessions
+	}
 }
 
-func NewAuth(options ...AuthOption) *Auth {
+// Auth generates middleware that will inject tokens in the proxied http requests
+type Auth struct {
+	sessions      *sessions.SessionStore
+	tokenInjector TokenInjector
+	providerID    string
+	tokenType     models.OauthTokenType
+}
+
+func NewAuth(options ...AuthOption) (Auth, error) {
 	auth := Auth{providerID: "renku", tokenType: models.AccessTokenType}
 	for _, opt := range options {
 		opt(&auth)
 	}
-	return &auth
+	if auth.sessions == nil {
+		return Auth{}, fmt.Errorf("session store not initialized")
+	}
+	if auth.tokenInjector == nil {
+		return Auth{}, fmt.Errorf("token injector not initialized")
+	}
+	if auth.tokenType != models.AccessTokenType && auth.tokenType != models.RefreshTokenType && auth.tokenType != models.IDTokenType {
+		return Auth{}, fmt.Errorf("unknown token type in authentication middleware %s", auth.tokenType)
+	}
+	return auth, nil
 }
 
 func (a *Auth) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			sessionRaw := c.Get(models.SessionCtxKey)
-			if sessionRaw == nil {
-				return gwerrors.ErrSessionNotFound
+			session, err := a.sessions.Get(c)
+			if err != nil {
+				slog.Debug(
+					"PROXY AUTH MIDDLEWARE",
+					"message",
+					"session not available, continuing with middleware chain",
+					"providerID",
+					a.providerID,
+					"tokenType",
+					a.tokenType,
+					"requestID",
+					utils.GetRequestID(c),
+				)
+				return next(c)
 			}
-			session, ok := sessionRaw.(models.Session)
-			if !ok {
-				return gwerrors.ErrSessionParse
-			}
-			var token models.OauthToken
-			var err error
+
+			var token models.AuthToken
 			if a.tokenType == models.AccessTokenType {
-				token, err = session.GetAccessToken(c.Request().Context(), a.providerID)
-			} else if a.tokenType == models.IDTokenType {
-				token, err = session.GetIDToken(c.Request().Context(), a.providerID)
+				token, err = a.sessions.GetAccessToken(c, *session, a.providerID)
 			} else if a.tokenType == models.RefreshTokenType {
-				token, err = session.GetRefreshToken(c.Request().Context(), a.providerID)
+				token, err = a.sessions.GetRefreshToken(c, *session, a.providerID)
+			} else if a.tokenType == models.IDTokenType {
+				token, err = a.sessions.GetIDToken(c, *session, a.providerID)
 			} else {
 				return fmt.Errorf("unknown token type in authentication middleware %s", a.tokenType)
 			}
 			if err != nil {
 				switch err {
 				case gwerrors.ErrTokenNotFound:
-					slog.Info(
+					slog.Debug(
 						"PROXY AUTH MIDDLEWARE",
 						"message",
-						"token not found continuing with middleware chain",
+						"token not found, continuing with middleware chain",
 						"sessionID",
 						session.ID,
 						"providerID",
@@ -134,14 +193,14 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 						"tokenType",
 						a.tokenType,
 						"requestID",
-						c.Request().Header.Get("X-Request-ID"),
+						utils.GetRequestID(c),
 					)
 					return next(c)
 				case gwerrors.ErrTokenExpired:
-					slog.Info(
+					slog.Debug(
 						"PROXY AUTH MIDDLEWARE",
 						"message",
-						"token expired continuing with middleware chain",
+						"token expired, continuing with middleware chain",
 						"sessionID",
 						session.ID,
 						"providerID",
@@ -149,17 +208,29 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 						"tokenType",
 						a.tokenType,
 						"requestID",
-						c.Request().Header.Get("X-Request-ID"),
+						utils.GetRequestID(c),
 					)
 					return next(c)
 				default:
-					return err
+					slog.Info(
+						"PROXY AUTH MIDDLEWARE",
+						"message",
+						"token could not be loaded, continuing with middleware chain",
+						"error",
+						err,
+						"sessionID",
+						session.ID,
+						"providerID",
+						a.providerID,
+						"tokenType",
+						a.tokenType,
+						"requestID",
+						utils.GetRequestID(c),
+					)
+					return next(c)
 				}
 			}
-			if a.tokenHandler == nil {
-				return fmt.Errorf("missing token handler for the authenitcation middelware")
-			}
-			err = a.tokenHandler(c, token)
+			err = a.tokenInjector(c, token)
 			if err != nil {
 				return err
 			}
@@ -168,7 +239,26 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 	}
 }
 
-var notebooksGitlabAccessTokenHandler TokenHandler = func(c echo.Context, accessToken models.OauthToken) error {
+var notebooksGitlabAccessTokenInjector TokenInjector = func(c echo.Context, accessToken models.AuthToken) error {
+	headerKey := "Renku-Auth-Git-Credentials"
+	existingToken := c.Request().Header.Get(headerKey)
+	if existingToken != "" {
+		slog.Debug(
+			"PROXY AUTH MIDDLEWARE",
+			"message",
+			"token already present in header, skipping",
+			"header",
+			headerKey,
+			"providerID",
+			accessToken.ProviderID,
+			"tokenType",
+			accessToken.Type,
+			"requestID",
+			utils.GetRequestID(c),
+		)
+		return nil
+	}
+
 	// NOTE: As long as the token comes from the database we can trust it and do not have to validate it.
 	// Each service that the request ultimately goes to will also validate before it uses the token
 	type gitCredentials struct {
@@ -202,52 +292,87 @@ var notebooksGitlabAccessTokenHandler TokenHandler = func(c echo.Context, access
 		return err
 	}
 	headerVal := base64.StdEncoding.EncodeToString(outputJson)
-	c.Request().Header.Set("Renku-Auth-Git-Credentials", headerVal)
+	slog.Debug(
+		"PROXY AUTH MIDDLEWARE",
+		"message",
+		"injected token in header",
+		"header",
+		headerKey,
+		"providerID",
+		accessToken.ProviderID,
+		"tokenID",
+		accessToken.ID,
+		"tokenType",
+		accessToken.Type,
+		"requestID",
+		utils.GetRequestID(c),
+	)
+	c.Request().Header.Set(headerKey, headerVal)
 	return nil
 }
 
-var coreSvcRenkuAccessTokenHandler TokenHandler = func(c echo.Context, accessToken models.OauthToken) error {
-	extractClaim := func(claims jwt.MapClaims, key string) (string, error) {
-		valRaw, found := claims["email"]
-		if !found {
-			return "", fmt.Errorf("cannot find %s claim in access token for core service", key)
-		}
-		val, ok := valRaw.(string)
-		if !ok {
-			return "", fmt.Errorf("cannot parse %s claim as string in access token for core service", key)
-		}
-		return val, nil
+var coreSvcRenkuIdTokenInjector TokenInjector = func(c echo.Context, idToken models.AuthToken) error {
+	headerKey := "Renku-User"
+	existingToken := c.Request().Header.Get(headerKey)
+	if existingToken != "" {
+		slog.Debug(
+			"PROXY AUTH MIDDLEWARE",
+			"message",
+			"token already present in header, skipping",
+			"header",
+			headerKey,
+			"providerID",
+			idToken.ProviderID,
+			"tokenType",
+			idToken.Type,
+			"requestID",
+			utils.GetRequestID(c),
+		)
+		return nil
 	}
-	parser := jwt.NewParser(jwt.WithoutClaimsValidation())
-	parsedJWT, _, err := parser.ParseUnverified(accessToken.Value, jwt.MapClaims{})
+
+	var claims oidc.IDTokenClaims
+	_, err := oidc.ParseToken(idToken.Value, &claims)
 	if err != nil {
 		return err
 	}
-	claims, ok := parsedJWT.Claims.(jwt.MapClaims)
-	if !ok {
-		return fmt.Errorf("cannot parse claims")
-	}
-	email, err := extractClaim(claims, "email")
-	if err != nil {
-		return err
-	}
-	sub, err := extractClaim(claims, "sub")
-	if err != nil {
-		return err
-	}
-	name, err := extractClaim(claims, "name")
-	if err != nil {
-		return err
-	}
-	c.Request().Header.Set("Renku-user-id", sub)
-	c.Request().Header.Set("Renku-user-email", email)
-	c.Request().Header.Set("Renku-user-fullname", name)
-	c.Request().Header.Set(echo.HeaderAuthorization, fmt.Sprintf("Bearer %s", accessToken.Value))
+	userId := claims.Subject
+	email := claims.Email
+	name := claims.Name
+
+	slog.Debug(
+		"PROXY AUTH MIDDLEWARE",
+		"message",
+		"injected token in header",
+		"header",
+		headerKey,
+		"providerID",
+		idToken.ProviderID,
+		"tokenID",
+		idToken.ID,
+		"tokenType",
+		idToken.Type,
+		"requestID",
+		utils.GetRequestID(c),
+	)
+	c.Request().Header.Set(headerKey, idToken.Value)
+	slog.Debug(
+		"PROXY AUTH MIDDLEWARE",
+		"message",
+		"injected user info in header",
+		"Renku-user-id",
+		userId,
+		"requestID",
+		utils.GetRequestID(c),
+	)
+	c.Request().Header.Set("Renku-user-id", userId)
+	c.Request().Header.Set("Renku-user-email", base64.StdEncoding.EncodeToString([]byte(email)))
+	c.Request().Header.Set("Renku-user-fullname", base64.StdEncoding.EncodeToString([]byte(name)))
 	return nil
 }
 
 // Sets up Basic Auth for Gitlab
-var gitlabCliTokenHandler TokenHandler = func(c echo.Context, accessToken models.OauthToken) error {
+var gitlabCliTokenInjector TokenInjector = func(c echo.Context, accessToken models.AuthToken) error {
 	if accessToken.Value == "" {
 		return nil
 	}

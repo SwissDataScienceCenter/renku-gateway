@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
+	"github.com/labstack/echo/v4"
 	"github.com/zitadel/oidc/v2/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v2/pkg/http"
 	"github.com/zitadel/oidc/v2/pkg/oidc"
-	"golang.org/x/oauth2"
 )
 
 type oidcClient struct {
@@ -19,7 +21,7 @@ type oidcClient struct {
 	id     string
 }
 
-func (c *oidcClient) getCodeExchangeCallback(tokensCallback models.TokensHandler) func(
+func (c *oidcClient) getCodeExchangeCallback(callback TokenSetCallback) func(
 	w http.ResponseWriter,
 	r *http.Request,
 	tokens *oidc.Tokens[*oidc.IDTokenClaims],
@@ -35,11 +37,11 @@ func (c *oidcClient) getCodeExchangeCallback(tokensCallback models.TokensHandler
 	) {
 		id, err := models.ULIDGenerator{}.ID()
 		if err != nil {
-			slog.Error("generating token ID failed in token exchange", "error", err, "requestID", r.Header.Get("X-Request-ID"))
+			slog.Error("generating token ID failed in token exchange", "error", err, "requestID", r.Header.Get(echo.HeaderXRequestID))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		accessToken := models.OauthToken{
+		accessToken := models.AuthToken{
 			ID:         id,
 			Type:       models.AccessTokenType,
 			Value:      tokens.AccessToken,
@@ -47,23 +49,30 @@ func (c *oidcClient) getCodeExchangeCallback(tokensCallback models.TokensHandler
 			ExpiresAt:  tokens.Expiry,
 			ProviderID: c.getID(),
 		}
-		refreshToken := models.OauthToken{
+		refreshToken := models.AuthToken{
 			ID:         id,
 			Type:       models.RefreshTokenType,
 			Value:      tokens.RefreshToken,
 			TokenURL:   client.OAuthConfig().Endpoint.TokenURL,
 			ProviderID: c.getID(),
 		}
-		idToken := models.OauthToken{
+		idToken := models.AuthToken{
 			ID:         id,
 			Type:       models.IDTokenType,
 			Value:      tokens.IDToken,
 			ExpiresAt:  tokens.IDTokenClaims.GetExpiration(),
+			Subject:    tokens.IDTokenClaims.Subject,
 			ProviderID: c.getID(),
 		}
-		err = tokensCallback(accessToken, refreshToken, idToken)
+		tokenSet := sessions.AuthTokenSet{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+			IDToken:      idToken,
+		}
+		slog.Debug("OIDC CLIENT", "requestID", r.Header.Get(echo.HeaderXRequestID))
+		err = callback(tokenSet)
 		if err != nil {
-			slog.Error("error when running tokens callback", "error", err, "requestID", r.Header.Get("X-Request-ID"))
+			slog.Error("error when running tokens callback", "error", err, "requestID", r.Header.Get(echo.HeaderXRequestID))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -83,71 +92,77 @@ func (c *oidcClient) authHandler(state string) http.HandlerFunc {
 
 // Returns a http handler that will receive the authorization code from the identity provider.
 // swap it for an access token and then pass the access and refresh token to the callback function.
-func (c *oidcClient) CodeExchangeHandler(tokensCallback models.TokensHandler) http.HandlerFunc {
-	return rp.CodeExchangeHandler(c.getCodeExchangeCallback(tokensCallback), c.client)
+func (c *oidcClient) CodeExchangeHandler(callback TokenSetCallback) http.HandlerFunc {
+	return rp.CodeExchangeHandler(c.getCodeExchangeCallback(callback), c.client)
 }
 
 func (c *oidcClient) getID() string {
 	return c.id
 }
 
-func (c *oidcClient) startDeviceFlow(ctx context.Context) (*oauth2.DeviceAuthResponse, error) {
-	// NOTE: the Zitadel OIDC library does not set this field when doing OIDC discovery automatically
-	// And if this is not done here manually then the device flow all providers will not work
-	c.client.OAuthConfig().Endpoint.DeviceAuthURL = c.client.GetDeviceAuthorizationEndpoint()
-	return c.client.OAuthConfig().DeviceAuth(ctx)
+func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models.AuthToken) (sessions.AuthTokenSet, error) {
+	oAuth2Token, err := rp.RefreshAccessToken(c.client, refreshToken.Value, "", "")
+	if err != nil {
+		return sessions.AuthTokenSet{}, err
+	}
+	id, err := models.ULIDGenerator{}.ID()
+	if err != nil {
+		return sessions.AuthTokenSet{}, err
+	}
+	newAccessToken := models.AuthToken{
+		ID:         id,
+		Type:       models.AccessTokenType,
+		Value:      oAuth2Token.AccessToken,
+		TokenURL:   c.client.OAuthConfig().Endpoint.TokenURL,
+		ExpiresAt:  oAuth2Token.Expiry,
+		ProviderID: c.getID(),
+	}
+	var newRefreshToken models.AuthToken = refreshToken
+	if oAuth2Token.RefreshToken != "" {
+		newRefreshToken = models.AuthToken{
+			ID:         id,
+			Type:       models.RefreshTokenType,
+			Value:      oAuth2Token.RefreshToken,
+			TokenURL:   c.client.OAuthConfig().Endpoint.TokenURL,
+			ProviderID: c.getID(),
+		}
+	}
+	// Handle getting a new ID token
+	newIDToken := models.AuthToken{}
+	idTokenRaw := oAuth2Token.Extra("id_token")
+	idTokenString, ok := idTokenRaw.(string)
+	if ok && idTokenString != "" {
+		claims, err := rp.VerifyTokens[*oidc.IDTokenClaims](ctx, oAuth2Token.AccessToken, idTokenString, c.client.IDTokenVerifier())
+		if err != nil {
+			return sessions.AuthTokenSet{}, err
+		}
+		newIDToken = models.AuthToken{
+			ID:         id,
+			Type:       models.IDTokenType,
+			Value:      idTokenString,
+			ExpiresAt:  claims.GetExpiration(),
+			Subject:    claims.Subject,
+			ProviderID: c.getID(),
+		}
+	}
+	tokenSet := sessions.AuthTokenSet{
+		AccessToken:  newAccessToken,
+		RefreshToken: newRefreshToken,
+		IDToken:      newIDToken,
+	}
+	return tokenSet, err
 }
 
-// Verifies the signature only if the token is signed with RS256, checks the token is not expired, parses the claims and returns them
-// NOTE: For Gitlab only the ID tokens can be parsed like this, access and refresh tokens are not JWTs
-// NOTE: This will and should return a list of 3 tokens in the order in which they are defined in the function
-func (c *oidcClient) verifyTokens(ctx context.Context, accessToken, refreshToken, idToken string) ([]models.OauthToken, error) {
-	checkToken := func(val string, tokenID string, tokenType models.OauthTokenType, ks oidc.KeySet) (models.OauthToken, error) {
-		claims := new(oidc.TokenClaims)
-		payload, err := oidc.ParseToken(val, claims)
-		if err != nil {
-			return models.OauthToken{}, err
-		}
-		if claims.SignatureAlg == "RS256" {
-			err = oidc.CheckSignature(ctx, val, payload, claims, []string{"RS256"}, ks)
-			if err != nil {
-				return models.OauthToken{}, err
-			}
-		}
-		if tokenType != models.RefreshTokenType {
-			err = oidc.CheckExpiration(claims, 0)
-			if err != nil {
-				return models.OauthToken{}, err
-			}
-		}
-		output := models.OauthToken{ID: tokenID, Type: tokenType, Value: val, ExpiresAt: claims.GetExpiration(), TokenURL: c.client.OAuthConfig().Endpoint.TokenURL, ProviderID: c.getID()}
-		return output, nil
-	}
-
-	ks := c.client.IDTokenVerifier().KeySet()
-	tokenID, err := models.ULIDGenerator{}.ID()
+func (c *oidcClient) UserProfileURL() (*url.URL, error) {
+	profileURL, err := url.Parse(c.client.Issuer())
 	if err != nil {
-		return []models.OauthToken{}, err
+		return nil, err
 	}
-	accessTokenParsed, err := checkToken(accessToken, tokenID, models.AccessTokenType, ks)
-	if err != nil {
-		slog.Info("OIDC", "error", err, "message", "cannot verify access token")
-		return []models.OauthToken{}, err
-	}
-	refreshTokenParsed, err := checkToken(refreshToken, tokenID, models.RefreshTokenType, ks)
-	if err != nil {
-		slog.Info("OIDC", "error", err, "message", "cannot verify refresh token")
-		return []models.OauthToken{}, err
-	}
-	if idToken == "" {
-		return []models.OauthToken{accessTokenParsed, refreshTokenParsed, {}}, nil
-	}
-	idTokenParsed, err := checkToken(idToken, tokenID, models.IDTokenType, ks)
-	if err != nil {
-		slog.Info("OIDC", "error", err, "message", "cannot verify ID token")
-		return []models.OauthToken{}, err
-	}
-	return []models.OauthToken{accessTokenParsed, refreshTokenParsed, idTokenParsed}, nil
+	profileURL = profileURL.JoinPath("./account")
+	v := url.Values{}
+	v.Add("referrer", "renku")
+	profileURL.RawQuery = v.Encode()
+	return profileURL, nil
 }
 
 type clientOption func(*oidcClient) error
@@ -158,13 +173,13 @@ func withOIDCConfig(clientConfig config.OIDCClient) clientOption {
 		cookieHashKey := []byte(clientConfig.CookieHashKey)
 		if len(cookieEncKey) > 0 && !(len(cookieEncKey) == 16 || len(cookieEncKey) == 32) {
 			return fmt.Errorf(
-				"Invalid length for oauth2 state cookie encryption key, got %d, but allowed sizes are 16 or 32",
+				"invalid length for oauth2 state cookie encryption key, got %d, but allowed sizes are 16 or 32",
 				len(cookieEncKey),
 			)
 		}
 		if len(cookieHashKey) > 0 && len(cookieHashKey) != 32 {
 			return fmt.Errorf(
-				"Invalid length for oauth2 state cookie hash key, got %d, allowed size is 32",
+				"invalid length for oauth2 state cookie hash key, got %d, allowed size is 32",
 				len(cookieHashKey),
 			)
 		}

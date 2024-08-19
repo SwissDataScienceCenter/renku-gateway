@@ -2,9 +2,6 @@ package config
 
 import (
 	"fmt"
-	"net/http"
-
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 )
 
 type RedactedString string
@@ -28,6 +25,7 @@ func (r RedactedString) MarshalBinary() ([]byte, error) {
 type Config struct {
 	RunningEnvironment
 	Server     ServerConfig
+	Sessions   SessionConfig
 	Revproxy   RevproxyConfig
 	Login      LoginConfig
 	Redis      RedisConfig
@@ -39,30 +37,20 @@ type RunningEnvironment string
 const Development RunningEnvironment = "development"
 const Production RunningEnvironment = "production"
 
-type DBAdapter interface {
-	models.AccessTokenGetter
-	models.AccessTokenSetter
-	models.AccessTokenRemover
-	models.RefreshTokenGetter
-	models.RefreshTokenSetter
-	models.RefreshTokenRemover
-	models.SessionGetter
-	models.SessionSetter
-	models.SessionRemover
-}
-
-const DBTypeRedis string = "redis"
-const DBTypeRedisMock string = "redis-mock"
-
-var CLISessionCookieOpt = models.WithCookieTemplate(http.Cookie{Name: "_renku_cli_session", Secure: true, HttpOnly: true, Path: "/"})
-var UISessionCookieOpt = models.WithCookieTemplate(http.Cookie{Name: "_renku_ui_session", Secure: true, HttpOnly: true, Path: "/"})
-
-func (c *Config) Validate() error {
-	err := c.Login.Validate(c.RunningEnvironment)
+func (c Config) Validate() error {
+	err := c.Sessions.Validate()
+	if err != nil {
+		return err
+	}
+	err = c.Login.Validate(c.RunningEnvironment)
 	if err != nil {
 		return err
 	}
 	err = c.Revproxy.Validate()
+	if err != nil {
+		return err
+	}
+	err = c.Redis.Validate(c.RunningEnvironment)
 	if err != nil {
 		return err
 	}

@@ -5,77 +5,35 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/labstack/echo/v4"
 )
 
 // GetLogin is a handler for the initiation of a authorization code flow login for Renku
 func (l *LoginServer) GetLogin(c echo.Context, params GetLoginParams) error {
-	// session, ok := c.Get(models.SessionCtxKey).(models.Session)
-	// if !ok {
-	// 	return gwerrors.ErrSessionParse
-	// }
-
-	session, err := l.sessionHandler.Load(c)
+	session, err := l.sessions.Create(c)
 	if err != nil {
 		return err
 	}
-
-	var appRedirectURL string
-	var providerIDs models.SerializableStringSlice
 	// Check redirect parameters
+	var appRedirectURL string
 	if params.RedirectUrl != nil && *params.RedirectUrl != "" {
 		appRedirectURL = *params.RedirectUrl
 	} else {
 		appRedirectURL = l.config.RenkuBaseURL.String()
 	}
+	session.LoginRedirectURL = appRedirectURL
 	// Check provider IDs requested for login
+	var loginSequence models.SerializableStringSlice
 	if params.ProviderId != nil && len(*params.ProviderId) > 0 {
-		providerIDs = *params.ProviderId
+		loginSequence = *params.ProviderId
 	} else {
-		providerIDs = l.config.DefaultProviderIDs()
+		loginSequence = defaultLoginSequence[:]
 	}
-	// Set the providers and redirect
-	// TODO: check if the session already has logged in with the provider
-	err = session.SetRedirectURL(c.Request().Context(), appRedirectURL)
-	if err != nil {
-		return err
-	}
-	err = session.SetProviders(c.Request().Context(), providerIDs...)
-	if err != nil {
-		return err
-	}
-	return l.oAuthNext(c, session)
-}
-
-// oauthNext sets up the beginning of the oauth flow and ends with
-// the redirect of the user to the Provider's login and authorization page.
-// Adapted from oauth2-proxy code.
-func (l *LoginServer) oAuthNext(
-	c echo.Context,
-	session models.Session,
-) error {
-	// Get the providerID to login with
-	providerID := session.PeekProviderID()
-	if providerID == "" {
-		// no more providers to login with go to the application
-		url := session.PopRedirectURL()
-		if url == "" {
-			url = l.config.RenkuBaseURL.String()
-		}
-		slog.Info("login completed", "requestID", c.Request().Header.Get("X-Request-ID"), "appRedirectURL", url)
-		return c.Redirect(http.StatusFound, url)
-	}
-	state := session.PeekOauthState()
-	// Handle the login
-	handler, err := l.providerStore.AuthHandler(providerID, state)
-	if err != nil {
-		slog.Error("auth handler failed", "error", err, "requestID", c.Request().Header.Get("X-Request-ID"))
-		return err
-	}
-	err = echo.WrapHandler(handler)(c)
-	return err
+	session.LoginSequence = loginSequence
+	return l.nextAuthStep(c, session)
 }
 
 func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) error {
@@ -84,81 +42,149 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 	if state == "" {
 		return fmt.Errorf("a state parameter is required")
 	}
-	uiSession, err := l.sessionHandler.Load(c)
-	if err != nil && err != gwerrors.ErrSessionNotFound && err != gwerrors.ErrSessionExpired {
+	session, err := l.sessions.Get(c)
+	if err != nil {
 		return err
 	}
-	cliSession, err := l.cliSessionHandler.Load(c)
-	if err != nil && err != gwerrors.ErrSessionNotFound && err != gwerrors.ErrSessionExpired {
-		return err
+	sessionState := session.LoginState
+	if state != sessionState {
+		return fmt.Errorf("state cannot be found in the existing session")
 	}
-	uiState := uiSession.PeekOauthState()
-	cliState := cliSession.PeekOauthState()
-	if uiState != state && cliState != state {
-		return fmt.Errorf("state cannot be found in any existing session")
+	// Load the provider from the session
+	if len(session.LoginSequence) == 0 {
+		return fmt.Errorf("login sequence is invalid")
 	}
-	var session models.Session
-	session = uiSession
-	if cliState == state {
-		session = cliSession
-	}
-	// Load the provider from the selected session
-	providerID := session.PeekProviderID()
+	providerID := session.LoginSequence[0]
+	session.LoginSequence = session.LoginSequence[1:]
 	provider, found := l.providerStore[providerID]
 	if !found {
 		return fmt.Errorf("provider not found %s", providerID)
 	}
-	tokenCallback := func(accessToken, refreshToken, idToken models.OauthToken) error {
-		return session.SaveTokens(c.Request().Context(), accessToken, refreshToken, idToken, state)
+	tokenCallback := func(tokenSet sessions.AuthTokenSet) error {
+		// Clear the state value before saving the tokens
+		session.LoginState = ""
+		// Make the token set and set the tokens' session ID
+		tokenSet.AccessToken.SessionID = session.ID
+		tokenSet.RefreshToken.SessionID = session.ID
+		tokenSet.IDToken.SessionID = session.ID
+		if providerID == "renku" {
+			session.UserID = tokenSet.IDToken.Subject
+			if session.UserID != "" {
+				tokenID := "renku:" + session.UserID
+				tokenSet.AccessToken.ID = tokenID
+				tokenSet.RefreshToken.ID = tokenID
+				tokenSet.IDToken.ID = tokenID
+			}
+		} else if providerID == "gitlab" && session.UserID != "" {
+			tokenID := "gitlab:" + session.UserID
+			tokenSet.AccessToken.ID = tokenID
+			tokenSet.RefreshToken.ID = tokenID
+			tokenSet.IDToken.ID = tokenID
+		}
+		return l.sessions.SaveTokens(c, session, tokenSet)
 	}
 	// Exchange the authorization code for credentials
 	err = echo.WrapHandler(provider.CodeExchangeHandler(tokenCallback))(c)
 	if err != nil {
-		slog.Error("code exchange handler failed", "error", err, "requestID", c.Request().Header.Get("X-Request-ID"))
+		slog.Error("code exchange handler failed", "error", err, "requestID", utils.GetRequestID(c))
 		return err
 	}
-	// Continue to the next provider to login with
-	return l.oAuthNext(c, session)
+	// Continue to the next authentication step
+	return l.nextAuthStep(c, session)
 }
 
-// GetLogout logs the user out of the current session,
 func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
-	// figure out redirectURL
-	var redirectURL = l.config.RenkuBaseURL.String()
-	if params.RedirectUrl != nil {
+	// Check redirect parameters
+	var redirectURL string
+	if params.RedirectUrl != nil && *params.RedirectUrl != "" {
 		redirectURL = *params.RedirectUrl
+	} else {
+		redirectURL = l.config.RenkuBaseURL.String()
 	}
-	// remove the session from store, cookie, context, request header
-	err := l.sessionHandler.Remove(c)
+	// Delete the session from the store
+	err := l.sessions.Delete(c)
 	if err != nil {
 		return err
 	}
-	// redirect
 	return c.Redirect(http.StatusFound, redirectURL)
 }
 
-func (*LoginServer) GetHealth(c echo.Context) error {
-	return c.String(http.StatusOK, "Running")
+func (l *LoginServer) GetGitLabToken(c echo.Context) error {
+	userID := ""
+	// Get the user id from the current session
+	if userID == "" {
+		session, err := l.sessions.Get(c)
+		if err == nil {
+			userID = session.UserID
+		}
+	}
+	if userID == "" {
+		return c.String(401, "Unauthorized")
+	}
+	gilabTokenID := "gitlab:" + userID
+	gitlabAccessToken, err := l.tokenStore.GetFreshAccessToken(c.Request().Context(), gilabTokenID)
+	if err != nil {
+		return err
+	}
+	return c.JSON(200, map[string]any{
+		"access_token": gitlabAccessToken.Value,
+		"expires_at":   gitlabAccessToken.ExpiresAt.Unix(),
+	})
 }
 
-func (*LoginServer) PostLogout(c echo.Context) error {
-	logoutToken := c.FormValue("logout_token")
-	type invalidLogoutResponse struct {
-		Error            string `json:"error,omitempty"`
-		ErrorDescription string `json:"error_description,omitempty"`
+func (l *LoginServer) GetUserProfile(c echo.Context) error {
+	provider, ok := l.providerStore["renku"]
+	if !ok {
+		return fmt.Errorf("provider not found: %s", "renku")
 	}
-	if logoutToken == "" {
-		return c.JSON(http.StatusBadRequest, invalidLogoutResponse{Error: "A logout token has to be provided"})
+	redirectURL, err := provider.UserProfileURL()
+	if err != nil {
+		return err
 	}
-	// TODO: validate logout token (see https://openid.net/specs/openid-connect-backchannel-1_0.html#Validation)
-	// TODO: remove session in redis
+	return c.Redirect(http.StatusFound, redirectURL.String())
+}
+
+func (*LoginServer) GetHealth(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
 func (l *LoginServer) GetAuthTest(c echo.Context) error {
-	session, err := l.sessionHandler.Load(c)
+	session, err := l.sessions.Get(c)
 	if err != nil {
 		return err
 	}
 	return c.JSON(200, session)
+}
+
+// nextAuthStep sets up the beginning of the oauth flow and ends with
+// the redirect of the user to the Provider's login and authorization page.
+// Adapted from oauth2-proxy code.
+func (l *LoginServer) nextAuthStep(
+	c echo.Context,
+	session *models.Session,
+) error {
+	// Get the next provider to authenticate with
+	if session.LoginSequence == nil || len(session.LoginSequence) == 0 {
+		// no more providers to login with, go to the application
+		url := session.LoginRedirectURL
+		session.LoginRedirectURL = ""
+		if url == "" {
+			url = l.config.RenkuBaseURL.String()
+		}
+		slog.Info("login completed", "requestID", utils.GetRequestID(c), "appRedirectURL", url)
+		return c.Redirect(http.StatusFound, url)
+	}
+	providerID := session.LoginSequence[0]
+	// Setup the next login step
+	err := session.GenerateLoginState()
+	if err != nil {
+		return err
+	}
+	// Handle the login
+	handler, err := l.providerStore.AuthHandler(providerID, session.LoginState)
+	if err != nil {
+		slog.Error("auth handler failed", "error", err, "requestID", utils.GetRequestID(c))
+		return err
+	}
+	return echo.WrapHandler(handler)(c)
 }

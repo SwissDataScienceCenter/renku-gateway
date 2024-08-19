@@ -20,4 +20,4 @@ tests:
 	go test -count=1 -covermode atomic -coverprofile=covprofile -vet=all -race ./...
 
 internal/login/spec.gen.go: apispec.yaml
-	oapi-codegen -generate types,server,spec -package login $< > $@
+	go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen -generate types,server,spec -package login $< > $@

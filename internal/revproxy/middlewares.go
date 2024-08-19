@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -61,12 +61,17 @@ func setHost(host string) echo.MiddlewareFunc {
 	}
 }
 
-// printMsg prints the provided message when the middleware is accessed.
-// Used only for troubleshooting and testing.
-func printMsg(msg string) echo.MiddlewareFunc {
+// ensureSession middleware makes sure a session exists by creating a new one if none is found.
+func ensureSession(sessions *sessions.SessionStore) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			slog.Info("reporting from middleware", "message", msg, "path", c.Request().URL.Path)
+			session, err := sessions.Get(c)
+			if err != nil || session.ID == "" {
+				_, err = sessions.Create(c)
+			}
+			if err != nil {
+				return err
+			}
 			return next(c)
 		}
 	}
@@ -188,12 +193,25 @@ func UiServerPathRewrite() echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			path := c.Request().URL.Path
 			// For several endpoints below the gateway still cannot skip the UI server.
-			if strings.HasPrefix(path, "/ui-server/api/projects") ||
+			if strings.HasPrefix(path, "/ui-server/api/allows-iframe") ||
+				strings.HasPrefix(path, "/ui-server/api/projects") ||
 				strings.HasPrefix(path, "/ui-server/api/renku/cache.files_upload") ||
 				strings.HasPrefix(path, "/ui-server/api/kg/entities") ||
 				strings.HasPrefix(path, "/ui-server/api/last-projects") ||
 				strings.HasPrefix(path, "/ui-server/api/last-searches") {
 				return next(c)
+			}
+			// Rewrite for /ui-server/auth -> /api/auth.
+			if strings.HasPrefix(path, "/ui-server/auth") {
+				slog.Debug("PATH REWRITE", "message", "matched /ui-server/auth", "URL", c.Request().URL, "RequestURI", c.Request().RequestURI)
+				c.Request().URL.Path = "/api" + strings.TrimPrefix(path, "/ui-server")
+				c.Request().URL.RawPath = ""
+				newUrl, err := url.Parse(c.Request().URL.String())
+				if err != nil {
+					return err
+				}
+				c.Request().URL = newUrl
+				slog.Debug("PATH REWRITE", "message", "rewrite", "URL", c.Request().URL, "RequestURI", c.Request().RequestURI)
 			}
 			// For all other endpoints the gateway will fully bypass the UI server routing things directly to the proper
 			// Renku component.
@@ -210,19 +228,23 @@ func UiServerPathRewrite() echo.MiddlewareFunc {
 // Injects the sessionID as an identifier for an anonymous user. It will only do so if there are no
 // headers already injected for the keycloak tokens. Therefore this should always run in the middleware
 // chain after all other token injection middelwares have run.
-func notebooksAnonymousID(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		sessionRaw := c.Get(models.SessionCtxKey)
-		if sessionRaw == nil {
-			return gwerrors.ErrSessionNotFound
-		}
-		session, ok := sessionRaw.(models.Session)
-		if !ok {
-			return gwerrors.ErrSessionParse
-		}
-		if c.Request().Header.Get("Renku-Auth-Access-Token") == "" && c.Request().Header.Get("Renku-Auth-Id-Token") == "" && c.Request().Header.Get("Renku-Auth-Refresh-Token") == "" {
+func notebooksAnonymousID(sessions *sessions.SessionStore) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// The request is not anonymous, continue
+			if c.Request().Header.Get("Renku-Auth-Access-Token") != "" || c.Request().Header.Get("Renku-Auth-Id-Token") != "" || c.Request().Header.Get("Renku-Auth-Refresh-Token") != "" {
+				return next(c)
+			}
+			// Use the session ID as the anonymous ID
+			session, err := sessions.Get(c)
+			if err != nil || session.ID == "" {
+				session, err = sessions.Create(c)
+			}
+			if err != nil {
+				return err
+			}
 			c.Request().Header.Set("Renku-Auth-Anon-Id", session.ID)
+			return next(c)
 		}
-		return next(c)
 	}
 }

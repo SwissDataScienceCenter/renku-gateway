@@ -24,15 +24,15 @@ func (m *MockEncryptor) Decrypt(value string) (decrypted string, err error) {
 func TestEncrypt(t *testing.T) {
 	encryptSuffix := "_encrypted"
 	encryptor := MockEncryptor{encryptSuffix}
-	token := OauthToken{
+	token := AuthToken{
 		ID:         "123456",
 		Value:      "secretValue",
 		ExpiresAt:  time.Now().Add(time.Hour * 4),
 		ProviderID: "providerId",
+		SessionID:  "sessionId",
 		Type:       AccessTokenType,
-		encryptor:  &encryptor,
 	}
-	encToken, err := token.Encrypt()
+	encToken, err := token.Encrypt(&encryptor)
 	require.NoError(t, err)
 	assert.Equal(t, token.Value+encryptSuffix, encToken.Value)
 	encToken.Value = token.Value
@@ -42,79 +42,35 @@ func TestEncrypt(t *testing.T) {
 func TestDecrypt(t *testing.T) {
 	encryptSuffix := "_encrypted"
 	encryptor := MockEncryptor{encryptSuffix}
-	token := OauthToken{
+	token := AuthToken{
 		ID:         "123456",
 		Value:      "secretValue",
 		ExpiresAt:  time.Now().Add(time.Hour * 4),
 		ProviderID: "providerId",
+		SessionID:  "sessionId",
 		Type:       AccessTokenType,
-		encryptor:  &encryptor,
 	}
-	encToken, err := token.Encrypt()
+	encToken, err := token.Encrypt(&encryptor)
 	require.NoError(t, err)
-	decToken, err := encToken.Decrypt()
+	decToken, err := encToken.Decrypt(&encryptor)
 	require.NoError(t, err)
 	assert.Equal(t, token.Value+encryptSuffix, encToken.Value)
 	assert.Equal(t, token, decToken)
 }
 
 func TestNoEncryptor(t *testing.T) {
-	token := OauthToken{
+	token := AuthToken{
 		ID:         "123456",
 		Value:      "secretValue",
 		ExpiresAt:  time.Now().Add(time.Hour * 4),
 		ProviderID: "providerId",
+		SessionID:  "sessionId",
 		Type:       AccessTokenType,
 	}
-	encToken, err := token.Encrypt()
+	encToken, err := token.Encrypt(nil)
 	require.NoError(t, err)
-	decToken, err := encToken.Decrypt()
+	decToken, err := encToken.Decrypt(nil)
 	require.NoError(t, err)
 	assert.Equal(t, token, encToken)
 	assert.Equal(t, token, decToken)
-}
-
-func TestTokenEquality(t *testing.T) {
-	expiresAt := time.Now().UTC().Add(time.Hour * 4)
-	enc := MockEncryptor{"_enc"}
-	token1 := OauthToken{
-		ID:         "123456",
-		Value:      "secretValue",
-		ExpiresAt:  expiresAt,
-		TokenURL:   "http://some.url.com/token",
-		ProviderID: "providerId",
-		Type:       AccessTokenType,
-	}
-	token2 := OauthToken{
-		ID:         "123456",
-		Value:      "secretValue",
-		ExpiresAt:  expiresAt,
-		TokenURL:   "http://some.url.com/token",
-		ProviderID: "providerId",
-		Type:       AccessTokenType,
-		encryptor:  &enc,
-	}
-	// If the encryptor is not the same then the tokens are not equal
-	assert.False(t, token1 == token2)
-	token3 := OauthToken{
-		ID:         "123456",
-		Value:      "secretValue",
-		ExpiresAt:  expiresAt,
-		TokenURL:   "http://some.url.com/token",
-		ProviderID: "providerId",
-		Type:       AccessTokenType,
-		encryptor:  &enc,
-	}
-	assert.True(t, token2 == token3)
-	enc2 := MockEncryptor{"_enc"}
-	token4 := OauthToken{
-		ID:         "123456",
-		Value:      "secretValue",
-		ExpiresAt:  expiresAt,
-		TokenURL:   "http://some.url.com/token",
-		ProviderID: "providerId",
-		Type:       AccessTokenType,
-		encryptor:  &enc2,
-	}
-	assert.False(t, token3 == token4)
 }

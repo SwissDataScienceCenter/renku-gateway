@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"log/slog"
 	"net/url"
 )
 
@@ -19,7 +18,6 @@ type LoginConfig struct {
 }
 
 type OIDCClient struct {
-	Default           bool
 	Issuer            string
 	ClientID          string
 	ClientSecret      RedactedString
@@ -33,8 +31,7 @@ type OIDCClient struct {
 	UnsafeNoCookieHandler bool
 }
 
-func (c *LoginConfig) Validate(e RunningEnvironment) error {
-	slog.Info("login configuration info", "config", c)
+func (c LoginConfig) Validate(e RunningEnvironment) error {
 	if c.TokenEncryption.Enabled && len(c.TokenEncryption.SecretKey) != 32 {
 		return fmt.Errorf(
 			"token encryption key has to be 32 bytes long, the provided one is %d long",
@@ -43,20 +40,13 @@ func (c *LoginConfig) Validate(e RunningEnvironment) error {
 	}
 	if e != Development {
 		for k, v := range c.Providers {
+			if k != "renku" && k != "gitlab" {
+				return fmt.Errorf("unknown provider id %s (must be one of renku or gitlab)", k)
+			}
 			if v.UnsafeNoCookieHandler {
 				return fmt.Errorf("provider %s cannot be configured without a cookie handler in production", k)
 			}
 		}
 	}
 	return nil
-}
-
-func (c LoginConfig) DefaultProviderIDs() []string {
-	output := []string{}
-	for id, provider := range c.Providers {
-		if provider.Default {
-			output = append(output, id)
-		}
-	}
-	return output
 }

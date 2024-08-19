@@ -11,11 +11,13 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/authentication"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/db"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/login"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/revproxy"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/tokenstore"
 	"github.com/getsentry/sentry-go"
 	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/labstack/echo-contrib/echoprometheus"
@@ -25,14 +27,6 @@ import (
 )
 
 func main() {
-	// Setup
-	e := echo.New()
-	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
-	e.Use(middleware.Recover())
-	// The banner and the port do not respect the logger formatting we set below so we remove them
-	// the port will be logged further down when the server starts.
-	e.HideBanner = true
-	e.HidePort = true
 	// Logging setup
 	slog.SetDefault(jsonLogger)
 	// Load configuration
@@ -48,6 +42,17 @@ func main() {
 		slog.Error("the config validation failed", "error", err)
 		os.Exit(1)
 	}
+	// TODO: configure log level
+	logLevel.Set(slog.LevelDebug)
+	// Setup
+	e := echo.New()
+	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
+	e.Use(middleware.Recover())
+	// The banner and the port do not respect the logger formatting we set below so we remove them
+	// the port will be logged further down when the server starts.
+	e.HideBanner = true
+	e.HidePort = true
+	// Handle configuration changes
 	ch.Watch()
 	var restart bool = false
 	ch.HandleChanges(func(c config.Config, err error) {
@@ -73,9 +78,10 @@ func main() {
 	e.GET("/version", func(c echo.Context) error {
 		return c.String(http.StatusOK, version)
 	})
-	// Initialize shared models like db adapter
+	// Initialize the db adapters
 	dbOptions := []db.RedisAdapterOption{db.WithRedisConfig(gwConfig.Redis)}
 	if gwConfig.Login.TokenEncryption.Enabled && gwConfig.Login.TokenEncryption.SecretKey != "" {
+		slog.Info("redis encryption is enabled")
 		dbOptions = append(dbOptions, db.WithEcryption(string(gwConfig.Login.TokenEncryption.SecretKey)))
 	}
 	dbAdapter, err := db.NewRedisAdapter(dbOptions...)
@@ -83,18 +89,49 @@ func main() {
 		slog.Error("DB adapter initialization failed", "error", err)
 		os.Exit(1)
 	}
-	sessionHandler := models.NewSessionHandler(models.WithSessionStore(&dbAdapter), models.WithTokenStore(&dbAdapter))
+	// Initialize the token store
+	tokenStore, err := tokenstore.NewTokenStore(
+		tokenstore.WithExpiryMarginMinutes(3),
+		tokenstore.WithConfig(gwConfig.Login),
+		tokenstore.WithTokenRepository(dbAdapter),
+	)
+	if err != nil {
+		slog.Error("token store initialization failed", "error", err)
+		os.Exit(1)
+	}
+	// Create authenticator
+	authenticator, err := authentication.NewAuthenticator(authentication.WithConfig(gwConfig.Sessions.AuthorizationVerifiers))
+	if err != nil {
+		slog.Error("failed to initialize authenticator", "error", err)
+		os.Exit(1)
+	}
+	// Create session store
+	sessionStore, err := sessions.NewSessionStore(
+		sessions.WithAuthenticator(authenticator),
+		sessions.WithSessionRepository(dbAdapter),
+		sessions.WithTokenStore(tokenStore),
+		sessions.WithConfig(gwConfig.Sessions),
+	)
+	if err != nil {
+		slog.Error("failed to initialize sessions", "error", err)
+		os.Exit(1)
+	}
+	// Add the session store to the common middlewares
+	gwMiddlewares := append(commonMiddlewares, sessionStore.Middleware())
 	// Initialize the reverse proxy
-	revproxy := revproxy.NewServer(&gwConfig.Revproxy)
-	revProxyMiddlewares := append(commonMiddlewares, sessionHandler.Middleware())
-	revproxy.RegisterHandlers(e, revProxyMiddlewares...)
+	revproxy, err := revproxy.NewServer(revproxy.WithConfig(gwConfig.Revproxy), revproxy.WithSessionStore(sessionStore))
+	if err != nil {
+		slog.Error("revproxy handlers initialization failed", "error", err)
+		os.Exit(1)
+	}
+	revproxy.RegisterHandlers(e, gwMiddlewares...)
 	// Initialize login server
-	loginServer, err := login.NewLoginServer(login.WithConfig(gwConfig.Login), login.WithTokenStore(&dbAdapter), login.WithSessionStore(&dbAdapter))
+	loginServer, err := login.NewLoginServer(login.WithConfig(gwConfig.Login), login.WithSessionStore(sessionStore), login.WithTokenStore(tokenStore))
 	if err != nil {
 		slog.Error("login handlers initialization failed", "error", err)
 		os.Exit(1)
 	}
-	loginServer.RegisterHandlers(e, commonMiddlewares...)
+	loginServer.RegisterHandlers(e, gwMiddlewares...)
 	// Rate limiting
 	if gwConfig.Server.RateLimits.Enabled {
 		e.Use(middleware.RateLimiter(

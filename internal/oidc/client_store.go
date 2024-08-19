@@ -7,20 +7,10 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
-	"golang.org/x/oauth2"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 )
 
 type ClientStore map[string]oidcClient
-
-func (c ClientStore) CallbackHandler(providerID string, tokensHandler models.TokensHandler) (http.HandlerFunc, error) {
-	client, clientFound := c[providerID]
-	if !clientFound {
-		return nil, fmt.Errorf("cannot find the provider with ID %s", providerID)
-	}
-	return func(rw http.ResponseWriter, r *http.Request) {
-		client.CodeExchangeHandler(tokensHandler)(rw, r)
-	}, nil
-}
 
 func (c ClientStore) AuthHandler(providerID string, state string) (http.HandlerFunc, error) {
 	client, clientFound := c[providerID]
@@ -30,20 +20,13 @@ func (c ClientStore) AuthHandler(providerID string, state string) (http.HandlerF
 	return client.authHandler(state), nil
 }
 
-func (c ClientStore) VerifyTokens(ctx context.Context, providerID, accessToken, refreshToken, idToken string) ([]models.OauthToken, error) {
+func (c ClientStore) RefreshAccessToken(ctx context.Context, refreshToken models.AuthToken) (sessions.AuthTokenSet, error) {
+	providerID := refreshToken.ProviderID
 	client, clientFound := c[providerID]
 	if !clientFound {
-		return []models.OauthToken{}, fmt.Errorf("cannot find the provider with ID %s", providerID)
+		return sessions.AuthTokenSet{}, fmt.Errorf("cannot find the provider with ID %s", providerID)
 	}
-	return client.verifyTokens(ctx, accessToken, refreshToken, idToken)
-}
-
-func (c ClientStore) StartDeviceFlow(ctx context.Context, providerID string) (*oauth2.DeviceAuthResponse, error) {
-	client, clientFound := c[providerID]
-	if !clientFound {
-		return nil, fmt.Errorf("cannot find the provider with ID %s", providerID)
-	}
-	return client.startDeviceFlow(ctx)
+	return client.refreshAccessToken(ctx, refreshToken)
 }
 
 func NewClientStore(configs map[string]config.OIDCClient) (ClientStore, error) {
