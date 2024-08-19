@@ -43,7 +43,7 @@ func TestSessionTouchCloseToMaxTTL(t *testing.T) {
 	session.Touch()
 	assert.False(t, session.Expired())
 	assert.True(t, session.ExpiresAt.After(session.CreatedAt))
-	assert.Equal(t, session.ExpiresAt, session.CreatedAt.Add(session.MaxTTL()).UTC())
+	assert.Equal(t, session.ExpiresAt.UTC(), session.CreatedAt.Add(session.MaxTTL()).UTC())
 }
 
 func TestSessionTouchNoExpiry(t *testing.T) {
