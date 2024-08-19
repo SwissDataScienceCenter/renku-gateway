@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
@@ -13,7 +14,6 @@ import (
 	"github.com/zitadel/oidc/v2/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v2/pkg/http"
 	"github.com/zitadel/oidc/v2/pkg/oidc"
-	"golang.org/x/oauth2"
 )
 
 type oidcClient struct {
@@ -100,116 +100,6 @@ func (c *oidcClient) getID() string {
 	return c.id
 }
 
-func (c *oidcClient) startDeviceFlow(ctx context.Context) (*oauth2.DeviceAuthResponse, error) {
-	// NOTE: the Zitadel OIDC library does not set this field when doing OIDC discovery automatically
-	// And if this is not done here manually then the device flow all providers will not work
-	c.client.OAuthConfig().Endpoint.DeviceAuthURL = c.client.GetDeviceAuthorizationEndpoint()
-	return c.client.OAuthConfig().DeviceAuth(ctx)
-}
-
-// Verifies the signature only if the token is signed with RS256, checks the token is not expired, parses the claims and returns them
-// NOTE: For Gitlab only the ID tokens can be parsed like this, access and refresh tokens are not JWTs
-// NOTE: This will and should return a list of 3 tokens in the order in which they are defined in the function
-func (c *oidcClient) verifyTokens(ctx context.Context, accessToken, refreshToken, idToken string) ([]models.AuthToken, error) {
-	checkToken := func(val string, tokenID string, tokenType models.OauthTokenType, ks oidc.KeySet) (models.AuthToken, error) {
-		claims := new(oidc.TokenClaims)
-		payload, err := oidc.ParseToken(val, claims)
-		if err != nil {
-			return models.AuthToken{}, err
-		}
-		if claims.SignatureAlg == "RS256" {
-			err = oidc.CheckSignature(ctx, val, payload, claims, []string{"RS256"}, ks)
-			if err != nil {
-				return models.AuthToken{}, err
-			}
-		}
-		if tokenType != models.RefreshTokenType {
-			err = oidc.CheckExpiration(claims, 0)
-			if err != nil {
-				return models.AuthToken{}, err
-			}
-		}
-		output := models.AuthToken{ID: tokenID, Type: tokenType, Value: val, ExpiresAt: claims.GetExpiration(), TokenURL: c.client.OAuthConfig().Endpoint.TokenURL, ProviderID: c.getID()}
-		return output, nil
-	}
-
-	ks := c.client.IDTokenVerifier().KeySet()
-	tokenID, err := models.ULIDGenerator{}.ID()
-	if err != nil {
-		return []models.AuthToken{}, err
-	}
-	accessTokenParsed, err := checkToken(accessToken, tokenID, models.AccessTokenType, ks)
-	if err != nil {
-		slog.Info("OIDC", "error", err, "message", "cannot verify access token")
-		return []models.AuthToken{}, err
-	}
-	refreshTokenParsed, err := checkToken(refreshToken, tokenID, models.RefreshTokenType, ks)
-	if err != nil {
-		slog.Info("OIDC", "error", err, "message", "cannot verify refresh token")
-		return []models.AuthToken{}, err
-	}
-	if idToken == "" {
-		return []models.AuthToken{accessTokenParsed, refreshTokenParsed, {}}, nil
-	}
-	idTokenParsed, err := checkToken(idToken, tokenID, models.IDTokenType, ks)
-	if err != nil {
-		slog.Info("OIDC", "error", err, "message", "cannot verify ID token")
-		return []models.AuthToken{}, err
-	}
-	return []models.AuthToken{accessTokenParsed, refreshTokenParsed, idTokenParsed}, nil
-}
-
-func (c *oidcClient) verifyAccessToken(ctx context.Context, accessToken string) (oidc.TokenClaims, error) {
-	v := c.client.IDTokenVerifier()
-	claims := new(oidc.TokenClaims)
-	payload, err := oidc.ParseToken(accessToken, claims)
-	if err != nil {
-		return oidc.TokenClaims{}, err
-	}
-
-	if err := oidc.CheckSubject(claims); err != nil {
-		return oidc.TokenClaims{}, err
-	}
-
-	if err = oidc.CheckIssuer(claims, v.Issuer()); err != nil {
-		return oidc.TokenClaims{}, err
-	}
-
-	if err = oidc.CheckAudience(claims, v.ClientID()); err != nil {
-		return oidc.TokenClaims{}, err
-	}
-
-	if err = oidc.CheckAuthorizedParty(claims, v.ClientID()); err != nil {
-		return oidc.TokenClaims{}, err
-	}
-
-	if err = oidc.CheckSignature(ctx, accessToken, payload, claims, v.SupportedSignAlgs(), v.KeySet()); err != nil {
-		return oidc.TokenClaims{}, err
-	}
-
-	if err = oidc.CheckExpiration(claims, v.Offset()); err != nil {
-		return oidc.TokenClaims{}, err
-	}
-
-	if err = oidc.CheckIssuedAt(claims, v.MaxAgeIAT(), v.Offset()); err != nil {
-		return oidc.TokenClaims{}, err
-	}
-
-	if err = oidc.CheckNonce(claims, v.Nonce(ctx)); err != nil {
-		return oidc.TokenClaims{}, err
-	}
-
-	if err = oidc.CheckAuthorizationContextClassReference(claims, v.ACR()); err != nil {
-		return oidc.TokenClaims{}, err
-	}
-
-	if err = oidc.CheckAuthTime(claims, v.MaxAge()); err != nil {
-		return oidc.TokenClaims{}, err
-	}
-
-	return *claims, nil
-}
-
 func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models.AuthToken) (sessions.AuthTokenSet, error) {
 	oAuth2Token, err := rp.RefreshAccessToken(c.client, refreshToken.Value, "", "")
 	if err != nil {
@@ -261,6 +151,15 @@ func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models
 		IDToken:      newIDToken,
 	}
 	return tokenSet, err
+}
+
+func (c *oidcClient) UserProfileURL() (*url.URL, error) {
+	profileURL, err := url.Parse(c.client.Issuer())
+	if err != nil {
+		return nil, err
+	}
+	profileURL = profileURL.JoinPath("./account?referrer=renku")
+	return profileURL, nil
 }
 
 type clientOption func(*oidcClient) error

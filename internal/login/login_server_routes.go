@@ -132,6 +132,18 @@ func (l *LoginServer) GetGitLabToken(c echo.Context) error {
 	})
 }
 
+func (l *LoginServer) GetUserProfile(c echo.Context) error {
+	provider, ok := l.providerStore["renku"]
+	if !ok {
+		return fmt.Errorf("provider not found: %s", "renku")
+	}
+	redirectURL, err := provider.UserProfileURL()
+	if err != nil {
+		return err
+	}
+	return c.Redirect(http.StatusFound, redirectURL.String())
+}
+
 func (*LoginServer) GetHealth(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }

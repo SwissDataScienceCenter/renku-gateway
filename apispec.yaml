@@ -1,6 +1,6 @@
 openapi: 3.0.2
 info:
-  title: Renku gateway
+  title: Renku Gateway
   description: Login flow, OAuth callbacks and authentication for Renku
   version: v1
 servers:
@@ -13,10 +13,10 @@ paths:
     get:
       description: Healthcheck endpoint.
       responses:
-        '200':
+        "200":
           description: The service is running properly.
       tags:
-        - health 
+        - health
   /login:
     get:
       description: Starts the login process for Renku.
@@ -34,7 +34,7 @@ paths:
             items:
               type: string
       responses:
-        '302':
+        "302":
           description: The user is redirected to the proper login page.
       tags:
         - authentication
@@ -44,21 +44,21 @@ paths:
       parameters:
         - in: query
           name: code
-          required: true 
+          required: true
           schema:
             type: string
         - in: query
           name: state
-          required: true 
+          required: true
           schema:
             type: string
         - in: query
           name: session_state
-          required: false 
+          required: false
           schema:
             type: string
       responses:
-        '302':
+        "302":
           description: The token was used to acquire the access token and the request is redirected further
       tags:
         - authentication
@@ -73,7 +73,16 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: The user was successfully logged out
       tags:
         - authentication
+  /user-profile:
+    get:
+      description: |
+        Redirects to the user's profile page.
+      responses:
+        "302":
+          description: The user is redirected to the proper login page.
+      tags:
+        - misc
