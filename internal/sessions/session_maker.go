@@ -29,7 +29,13 @@ func (sm *SessionMakerImpl) NewSession() (models.Session, error) {
 		IdleTTLSeconds: models.SerializableInt(sm.idleSessionTTLSeconds),
 		MaxTTLSeconds:  models.SerializableInt(sm.maxSessionTTLSeconds),
 	}
-	session.ExpiresAt = session.CreatedAt.Add(session.IdleTTL())
+	if session.IdleTTL() == time.Duration(0) {
+		session.ExpiresAt = time.Time{}
+	} else if session.MaxTTL() == time.Duration(0) {
+		session.ExpiresAt = session.CreatedAt.Add(session.MaxTTL())
+	} else {
+		session.ExpiresAt = session.CreatedAt.Add(session.IdleTTL())
+	}
 	slog.Info("NEW SESSION", "session", session)
 	return session, nil
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/zitadel/oidc/v2/pkg/oidc"
 )
 
 var testJWKSContent = map[string][]map[string]string{
@@ -183,39 +182,6 @@ func (t *testAuthServer) tokenEndpoint(c echo.Context) error {
 	return c.String(http.StatusBadRequest, "bad request")
 }
 
-func (t *testAuthServer) authDevicePost(c echo.Context) error {
-	return c.JSON(http.StatusOK, oidc.DeviceAuthorizationResponse{
-		DeviceCode:      "device_code",
-		VerificationURI: t.Server().URL + "/authorize/device",
-		UserCode:        "user_code",
-		ExpiresIn:       1800,
-		Interval:        5,
-	})
-}
-
-func (t *testAuthServer) authDeviceGet(c echo.Context) error {
-	if !t.Authorized {
-		return c.NoContent(http.StatusUnauthorized)
-	}
-	return c.NoContent(http.StatusOK)
-}
-
-func (t *testAuthServer) authDeviceTokenPost(c echo.Context) error {
-	if !t.Authorized {
-		return c.NoContent(http.StatusUnauthorized)
-	}
-	jwtToken, err := t.getJWT()
-	if err != nil {
-		return err
-	}
-	t.IssuedTokens = append(t.IssuedTokens, jwtToken)
-	return c.JSON(http.StatusOK, map[string]string{
-		"access_token":  jwtToken,
-		"refresh_token": jwtToken,
-		"id_token":      jwtToken,
-	})
-}
-
 func (t *testAuthServer) Server() *httptest.Server {
 	if t.server == nil {
 		panic("Server has not been started")
@@ -225,11 +191,9 @@ func (t *testAuthServer) Server() *httptest.Server {
 
 func (t *testAuthServer) Start() {
 	e := echo.New()
+	e.Pre(middleware.RequestID())
 	e.Use(middleware.Recover(), middleware.Logger())
 	e.GET("/authorize", t.authorizeEndpoint)
-	e.POST("/protocol/openid-connect/token", t.authDeviceTokenPost)
-	e.POST("/authorize/device", t.authDevicePost)
-	e.GET("/authorize/device", t.authDeviceGet)
 	e.GET("/jwks", t.jwksEndpoint)
 	e.POST("/token", t.tokenEndpoint)
 	e.GET("/.well-known/openid-configuration", t.wktEndpoint)

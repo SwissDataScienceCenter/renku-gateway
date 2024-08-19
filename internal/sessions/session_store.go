@@ -287,6 +287,13 @@ func WithConfig(c config.SessionConfig) SessionStoreOption {
 	}
 }
 
+func WithCookieTemplate(tpl func() http.Cookie) SessionStoreOption {
+	return func(sessions *SessionStore) error {
+		sessions.cookieTemplate = tpl
+		return nil
+	}
+}
+
 func NewSessionStore(options ...SessionStoreOption) (*SessionStore, error) {
 	sessions := SessionStore{
 		cookieTemplate: func() http.Cookie {
