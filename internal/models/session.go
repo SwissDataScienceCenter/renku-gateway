@@ -35,16 +35,16 @@ func (s *Session) Expired() bool {
 
 // Touch() updates a session's ExpiresAt field according to IdleTTLSeconds and MaxTTLSeconds
 func (s *Session) Touch() {
-	if s.IdleTTL() == time.Duration(0) {
+	if s.IdleTTLSeconds == 0 && s.MaxTTLSeconds == 0 {
 		s.ExpiresAt = time.Time{}
+		return
+	} else if s.IdleTTLSeconds == 0 {
+		s.ExpiresAt = s.CreatedAt.Add(s.MaxTTL())
 		return
 	}
 	maxExpiresAt := s.CreatedAt.Add(s.MaxTTL())
 	expiresAt := time.Now().UTC().Add(s.IdleTTL())
-	if s.MaxTTL() == time.Duration(0) {
-		return
-	}
-	if expiresAt.After(maxExpiresAt) {
+	if s.MaxTTLSeconds > 0 && expiresAt.After(maxExpiresAt) {
 		expiresAt = maxExpiresAt
 	}
 	s.ExpiresAt = expiresAt
