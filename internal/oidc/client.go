@@ -158,7 +158,10 @@ func (c *oidcClient) UserProfileURL() (*url.URL, error) {
 	if err != nil {
 		return nil, err
 	}
-	profileURL = profileURL.JoinPath("./account?referrer=renku")
+	profileURL = profileURL.JoinPath("./account")
+	v := url.Values{}
+	v.Add("referrer", "renku")
+	profileURL.RawQuery = v.Encode()
 	return profileURL, nil
 }
 
