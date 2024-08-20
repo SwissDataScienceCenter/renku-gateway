@@ -30,6 +30,17 @@ and `models` are the packages that are most commonly used by other packages. The
 or any other checks or guards in place to enforce this. Hopefully a convention / agreement like this
 is enough to avoid problems.
 
+## Sessions
+
+Web-based sessions are stored in Redis, and a secure cookie containing the session ID is sent to the client.
+
+For an incoming request, the session will be loaded according to the following rules:
+
+1. If a session cookie is found, retrieve the corresponding session from Redis.
+2. If an authorization header is found:
+   1. If the authorization header contains a bearer token, validate it and create an ephemeral session.
+   2. If the authorization header contains a token encoded as HTTP basic authorization, validate it and create an ephemeral session.
+
 ## Login server
 
 The login routes handle authentication for web-based clients.
