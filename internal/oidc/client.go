@@ -92,7 +92,7 @@ func (c *oidcClient) authHandler(state string) http.HandlerFunc {
 
 // Returns a http handler that will receive the authorization code from the identity provider.
 // swap it for an access token and then pass the access and refresh token to the callback function.
-func (c *oidcClient) CodeExchangeHandler(callback TokenSetCallback) http.HandlerFunc {
+func (c *oidcClient) codeExchangeHandler(callback TokenSetCallback) http.HandlerFunc {
 	return rp.CodeExchangeHandler(c.getCodeExchangeCallback(callback), c.client)
 }
 
@@ -153,7 +153,7 @@ func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models
 	return tokenSet, err
 }
 
-func (c *oidcClient) UserProfileURL() (*url.URL, error) {
+func (c *oidcClient) userProfileURL() (*url.URL, error) {
 	profileURL, err := url.Parse(c.client.Issuer())
 	if err != nil {
 		return nil, err
