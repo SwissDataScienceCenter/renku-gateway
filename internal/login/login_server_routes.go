@@ -56,9 +56,9 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 	}
 	providerID := session.LoginSequence[0]
 	session.LoginSequence = session.LoginSequence[1:]
-	provider, found := l.providerStore[providerID]
-	if !found {
-		return fmt.Errorf("provider not found %s", providerID)
+	handler, err := l.providerStore.CodeExchangeHandler(providerID)
+	if err != nil {
+		return err
 	}
 	tokenCallback := func(tokenSet sessions.AuthTokenSet) error {
 		// Clear the state value before saving the tokens
@@ -84,7 +84,7 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 		return l.sessions.SaveTokens(c, session, tokenSet)
 	}
 	// Exchange the authorization code for credentials
-	err = echo.WrapHandler(provider.CodeExchangeHandler(tokenCallback))(c)
+	err = echo.WrapHandler(handler(tokenCallback))(c)
 	if err != nil {
 		slog.Error("code exchange handler failed", "error", err, "requestID", utils.GetRequestID(c))
 		return err
@@ -133,11 +133,7 @@ func (l *LoginServer) GetGitLabToken(c echo.Context) error {
 }
 
 func (l *LoginServer) GetUserProfile(c echo.Context) error {
-	provider, ok := l.providerStore["renku"]
-	if !ok {
-		return fmt.Errorf("provider not found: %s", "renku")
-	}
-	redirectURL, err := provider.UserProfileURL()
+	redirectURL, err := l.providerStore.UserProfileURL("renku")
 	if err != nil {
 		return err
 	}
