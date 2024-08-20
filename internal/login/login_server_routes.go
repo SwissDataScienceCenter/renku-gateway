@@ -144,14 +144,6 @@ func (*LoginServer) GetHealth(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
-func (l *LoginServer) GetAuthTest(c echo.Context) error {
-	session, err := l.sessions.Get(c)
-	if err != nil {
-		return err
-	}
-	return c.JSON(200, session)
-}
-
 // nextAuthStep sets up the beginning of the oauth flow and ends with
 // the redirect of the user to the Provider's login and authorization page.
 // Adapted from oauth2-proxy code.
