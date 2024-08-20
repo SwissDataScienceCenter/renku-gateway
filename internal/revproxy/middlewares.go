@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -203,7 +204,7 @@ func UiServerPathRewrite() echo.MiddlewareFunc {
 			}
 			// Rewrite for /ui-server/auth -> /api/auth.
 			if strings.HasPrefix(path, "/ui-server/auth") {
-				slog.Debug("PATH REWRITE", "message", "matched /ui-server/auth", "URL", c.Request().URL, "RequestURI", c.Request().RequestURI)
+				originalURL := c.Request().URL.String()
 				c.Request().URL.Path = "/api" + strings.TrimPrefix(path, "/ui-server")
 				c.Request().URL.RawPath = ""
 				newUrl, err := url.Parse(c.Request().URL.String())
@@ -211,12 +212,13 @@ func UiServerPathRewrite() echo.MiddlewareFunc {
 					return err
 				}
 				c.Request().URL = newUrl
-				slog.Debug("PATH REWRITE", "message", "rewrite", "URL", c.Request().URL, "RequestURI", c.Request().RequestURI)
+				c.Request().RequestURI = newUrl.String()
+				slog.Debug("PATH REWRITE", "message", "matched /ui-server/auth", "originalURL", originalURL, "newUrl", newUrl.String(), "requestID", utils.GetRequestID(c))
 			}
 			// For all other endpoints the gateway will fully bypass the UI server routing things directly to the proper
 			// Renku component.
 			if strings.HasPrefix(path, "/ui-server/api") {
-				slog.Debug("PATH REWRITE", "message", "matched /ui-server/api", "URL", c.Request().URL, "RequestURI", c.Request().RequestURI)
+				originalURL := c.Request().URL.String()
 				c.Request().URL.Path = strings.TrimPrefix(path, "/ui-server")
 				c.Request().URL.RawPath = ""
 				newUrl, err := url.Parse(c.Request().URL.String())
@@ -224,7 +226,8 @@ func UiServerPathRewrite() echo.MiddlewareFunc {
 					return err
 				}
 				c.Request().URL = newUrl
-				slog.Debug("PATH REWRITE", "message", "rewrite", "URL", c.Request().URL, "RequestURI", c.Request().RequestURI)
+				c.Request().RequestURI = newUrl.String()
+				slog.Debug("PATH REWRITE", "message", "matched /ui-server/api", "originalURL", originalURL, "newUrl", newUrl.String(), "requestID", utils.GetRequestID(c))
 			}
 			return next(c)
 		}
