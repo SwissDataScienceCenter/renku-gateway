@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// AuthToken is a struct used to store and work with OAuth 2.0 access, OAuth 2.0 refresh tokens and OIDC ID tokens
+// AuthToken is a struct used to store and work with OAuth 2.0 access tokens, OAuth 2.0 refresh tokens and OIDC ID tokens
 type AuthToken struct {
 	ID         string
 	Value      string

@@ -2,7 +2,7 @@
 
 [![Coverage Status](https://coveralls.io/repos/github/SwissDataScienceCenter/renku-gateway/badge.svg?branch=master)](https://coveralls.io/github/SwissDataScienceCenter/renku-gateway?branch=master)
 
-A reverse proxy and Oauth2 flows handler for Renku.
+An API Gateway and session service for Renku.
 
 ## Package dependencies and import chains
 
@@ -17,7 +17,7 @@ flowchart TB
 ```
 
 The arrows point in the direction in which a module is imported. So an arrow pointing from 
-`models` to `config` means that models can import (depend on) confing.
+`models` to `config` means that models can import (depend on) config.
 
 Restrictions:
 - `gwerrors` can NOT import from any other package in the gateway
@@ -30,7 +30,13 @@ and `models` are the packages that are most commonly used by other packages. The
 or any other checks or guards in place to enforce this. Hopefully a convention / agreement like this
 is enough to avoid problems.
 
-## Oauth2 flows
+## Login server
+
+The login routes handle authentication for web-based clients.
+
+When a user starts the login flow, a new session is created which will reference authentication tokens once the login flow is done.
+
+## Login flow
 
 ```mermaid
 sequenceDiagram
@@ -41,49 +47,22 @@ sequenceDiagram
     Participant R as Renku
     
     U ->> GW: /login
-    GW ->> GW: Generate state parameters for all providers
+    GW ->> GW: Start login sequence
     GW ->> KC: /authz?client_id=renku&redirect_uri=/callback&state=123random
     KC ->> KC: User enters credentials, approves access
     KC ->> GW: /callback?state=123random&code=secret123
     GW ->> GW: Validate state parameter
     GW -->> KC: [Exchange code for access token]
+    GW ->> GW: Continue login sequence
     GW ->> GL: /authorize?client_id=renku&redirect_uri=/callback&state=456random
     GL ->> GL: User enters credentials, approves access
     GL ->> GW: /callback?state=456random&code=secretxyz
     GW ->> GW: Validate state parameter
     GW -->> GL: [Exchange code for access token]
+    GW ->> GW: Clear up login state
     GW ->> R: Finally navigate to Renku    
 ```
 
-## Device login flow
+## Reverse proxy
 
-```mermaid
-sequenceDiagram
-    Participant GW
-    Participant KC as Keycloak
-    Participant GL as Gitlab
-    Participant U as User
-    Participant CLI
-    
-    U ->> CLI: renku login
-    CLI ->> GW: /api/auth/device/login/session
-    GW ->> GW: Generate state parameters for all providers, generate session
-    GW ->> KC: Start device flow<br>POST /auth/realms/Renku/protocol/openid-connect/auth/device
-    GW ->> CLI: Return message to go to /api/auth/device/login?session=<session-id>
-    CLI ->> U: Show message to user
-    CLI -->> KC: Keep querying KC for device token [in background]
-    CLI -->> KC: 
-    CLI -->> KC: 
-    U ->> GW: /api/auth/device/login?session=<session-id>
-    GW ->> GW: Load session, pass on to oAuthNext
-    GW ->> GL: /authorize?client_id=renku&redirect_uri=/callback&state=456random
-    GL ->> GL: User enters credentials, approves access
-    GL ->> GW: /callback?state=456random&code=secretxyz
-    GW ->> GW: Validate state parameter
-    GW -->> GL: [Exchange code for access token]
-    GW ->> KC: Redirect to proper url to finalize device flow
-    KC ->> KC: Enter credentials, approve access
-    CLI ->> KC: Finally acquire credentials
-    CLI ->> GW: save credentials POST /api/auth/device/login/token (pass session ID as cookie or header)
-```
-
+The reverse proxy routes incoming requests to the appropriate service and injects the corresponding credentials.

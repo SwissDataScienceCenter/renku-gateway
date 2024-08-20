@@ -40,10 +40,8 @@ func (ts *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (
 			"TOKEN STORE",
 			"message",
 			"access token expires soon",
-			"tokenID",
-			tokenID,
-			"providerID",
-			token.ProviderID,
+			"token",
+			token.String(),
 		)
 		newTokenSet, err := ts.refreshAccessToken(ctx, token)
 		if err != nil {
@@ -51,10 +49,8 @@ func (ts *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (
 				"TOKEN STORE",
 				"message",
 				"refreshAccessToken failed, will try to reload the token",
-				"tokenID",
-				tokenID,
-				"providerID",
-				token.ProviderID,
+				"token",
+				token.String(),
 			)
 			reloadedToken, err := ts.tokenRepo.GetAccessToken(ctx, tokenID)
 			if err != nil {
@@ -85,10 +81,8 @@ func (ts *TokenStore) GetFreshIDToken(ctx context.Context, tokenID string) (mode
 			"TOKEN STORE",
 			"message",
 			"ID token expires soon",
-			"tokenID",
-			tokenID,
-			"providerID",
-			token.ProviderID,
+			"token",
+			token.String(),
 		)
 		newTokenSet, err := ts.refreshAccessToken(ctx, token)
 		if err != nil {
@@ -96,10 +90,8 @@ func (ts *TokenStore) GetFreshIDToken(ctx context.Context, tokenID string) (mode
 				"TOKEN STORE",
 				"message",
 				"refreshAccessToken failed, will try to reload the token",
-				"tokenID",
-				tokenID,
-				"providerID",
-				token.ProviderID,
+				"token",
+				token.String(),
 			)
 			reloadedToken, err := ts.tokenRepo.GetIDToken(ctx, tokenID)
 			if err != nil {
@@ -113,10 +105,8 @@ func (ts *TokenStore) GetFreshIDToken(ctx context.Context, tokenID string) (mode
 					"TOKEN STORE",
 					"message",
 					"refreshAccessToken did not provide a new ID token",
-					"tokenID",
-					tokenID,
-					"providerID",
-					token.ProviderID,
+					"token",
+					token.String(),
 				)
 			}
 		}

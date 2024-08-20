@@ -2,6 +2,7 @@ package models
 
 import "context"
 
+// TokenStoreInterface represents the smart interface used to store and retrive valid tokens
 type TokenStoreInterface interface {
 	FreshAccessTokenGetter
 	AccessTokenSetter

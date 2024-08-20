@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// TokenRepository represents the interface used to persist tokens
 type TokenRepository interface {
 	AccessTokenGetter
 	AccessTokenSetter

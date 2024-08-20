@@ -69,7 +69,6 @@ func (c *oidcClient) getCodeExchangeCallback(callback TokenSetCallback) func(
 			RefreshToken: refreshToken,
 			IDToken:      idToken,
 		}
-		slog.Debug("OIDC CLIENT", "requestID", r.Header.Get(echo.HeaderXRequestID))
 		err = callback(tokenSet)
 		if err != nil {
 			slog.Error("error when running tokens callback", "error", err, "requestID", r.Header.Get(echo.HeaderXRequestID))

@@ -16,6 +16,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// SessionStore handles sessions for the login server and the revproxy server
 type SessionStore struct {
 	authenticator  authentication.Authenticator
 	cookieTemplate func() http.Cookie
@@ -24,6 +25,7 @@ type SessionStore struct {
 	tokenStore     models.TokenStoreInterface
 }
 
+// Middleware returns the session middleware which injects the current session in the request context
 func (sessions *SessionStore) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
@@ -39,15 +41,6 @@ func (sessions *SessionStore) Middleware() echo.MiddlewareFunc {
 					utils.GetRequestID(c),
 				)
 			}
-			slog.Debug(
-				"SESSION MIDDLEWARE",
-				"message",
-				"session print (before)",
-				"session",
-				session,
-				"requestID",
-				utils.GetRequestID(c),
-			)
 			c.Set(SessionCtxKey, session)
 			err := next(c)
 			saveErr := sessions.Save(c)
@@ -68,16 +61,6 @@ func (sessions *SessionStore) Middleware() echo.MiddlewareFunc {
 					utils.GetRequestID(c),
 				)
 			}
-			session, _ = sessions.getFromContext(c)
-			slog.Debug(
-				"SESSION MIDDLEWARE",
-				"message",
-				"session print (after)",
-				"session",
-				session,
-				"requestID",
-				utils.GetRequestID(c),
-			)
 			return err
 		}
 	}
@@ -134,7 +117,7 @@ func (sessions *SessionStore) Create(c echo.Context) (*models.Session, error) {
 		return &models.Session{}, err
 	}
 	c.Set(SessionCtxKey, &session)
-	cookie := sessions.Cookie(session)
+	cookie := sessions.cookie(session)
 	c.SetCookie(&cookie)
 	return &session, nil
 }
@@ -170,7 +153,7 @@ func (sessions *SessionStore) Delete(c echo.Context) error {
 	return sessions.sessionRepo.RemoveSession(c.Request().Context(), sessionID)
 }
 
-func (sessions *SessionStore) Cookie(session models.Session) http.Cookie {
+func (sessions *SessionStore) cookie(session models.Session) http.Cookie {
 	cookie := sessions.cookieTemplate()
 	cookie.Value = session.ID
 	return cookie

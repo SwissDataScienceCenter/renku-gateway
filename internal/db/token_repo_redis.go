@@ -145,9 +145,8 @@ func (r RedisAdapter) setAuthToken(ctx context.Context, token models.AuthToken) 
 		"message",
 		"saving token",
 		"token",
-		token,
+		token.String(),
 	)
-
 	return r.rdb.HSet(
 		ctx,
 		r.getTokenKey(token),

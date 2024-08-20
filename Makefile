@@ -1,6 +1,6 @@
 PKG_NAME=github.com/SwissDataScienceCenter/renku-gateway
 
-.PHONY: build clean tests
+.PHONY: build clean tests format
 
 auth_tests:
 	poetry run flake8 -v
@@ -21,3 +21,6 @@ tests:
 
 internal/login/spec.gen.go: apispec.yaml
 	go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen -generate types,server,spec -package login $< > $@
+
+format:
+	gofmt -l -w cmd internal tools
