@@ -23,6 +23,9 @@ jobs:
       renku-graph: ${{ steps.deploy-comment.outputs.renku-graph}}
       renku-notebooks: ${{ steps.deploy-comment.outputs.renku-notebooks}}
       renku-ui: ${{ steps.deploy-comment.outputs.renku-ui}}
+      renku-data-services: ${{ steps.deploy-comment.outputs.renku-data-services}}
+      amalthea: ${{ steps.deploy-comment.outputs.amalthea}}
+      amalthea-sessions: ${{ steps.deploy-comment.outputs.amalthea-sessions}}
       test-enabled: ${{ steps.deploy-comment.outputs.test-enabled}}
       extra-values: ${{ steps.deploy-comment.outputs.extra-values}}
     steps:
@@ -63,6 +66,9 @@ jobs:
           renku_graph: "${{ needs.check-deploy.outputs.renku-graph }}"
           renku_notebooks: "${{ needs.check-deploy.outputs.renku-notebooks }}"
           renku_ui: "${{ needs.check-deploy.outputs.renku-ui }}"
+          renku_data_services: "${{ needs.check-deploy.outputs.renku-data-services }}"
+          amalthea: "${{ needs.check-deploy.outputs.amalthea }}"
+          amalthea_sessions: "${{ needs.check-deploy.outputs.amalthea-sessions }}"
           extra_values: "${{ needs.check-deploy.outputs.extra-values }}"
       - name: Check existing renkubot comment
         uses: peter-evans/find-comment@v1
