@@ -30,7 +30,9 @@ func (sessions *SessionStore) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			session, loadErr := sessions.Get(c)
-			if loadErr != nil && loadErr != gwerrors.ErrSessionNotFound && loadErr != gwerrors.ErrSessionExpired {
+			if loadErr == nil {
+				c.Set(SessionCtxKey, session)
+			} else if loadErr != gwerrors.ErrSessionNotFound && loadErr != gwerrors.ErrSessionExpired {
 				slog.Info(
 					"SESSION MIDDLEWARE",
 					"message",
@@ -41,7 +43,6 @@ func (sessions *SessionStore) Middleware() echo.MiddlewareFunc {
 					utils.GetRequestID(c),
 				)
 			}
-			c.Set(SessionCtxKey, session)
 			err := next(c)
 			saveErr := sessions.Save(c)
 			if saveErr != nil && saveErr != gwerrors.ErrSessionNotFound && saveErr != gwerrors.ErrSessionExpired {
