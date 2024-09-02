@@ -52,11 +52,6 @@ paths:
           required: true
           schema:
             type: string
-        - in: query
-          name: session_state
-          required: false
-          schema:
-            type: string
       responses:
         "302":
           description: The token was used to acquire the access token and the request is redirected further

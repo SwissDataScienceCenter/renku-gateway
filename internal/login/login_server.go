@@ -18,7 +18,7 @@ type LoginServer struct {
 }
 
 func (l *LoginServer) RegisterHandlers(server *echo.Echo, commonMiddlewares ...echo.MiddlewareFunc) {
-	e := server.Group(l.config.EndpointsBasePath)
+	e := server.Group(l.config.LoginRoutesBasePath)
 	e.Use(commonMiddlewares...)
 
 	wrapper := ServerInterfaceWrapper{Handler: l}

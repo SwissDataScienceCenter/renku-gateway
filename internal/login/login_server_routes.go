@@ -37,7 +37,6 @@ func (l *LoginServer) GetLogin(c echo.Context, params GetLoginParams) error {
 }
 
 func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) error {
-	// Load both the regular and the cli session (if present), see which fits
 	state := c.Request().URL.Query().Get("state")
 	if state == "" {
 		return fmt.Errorf("a state parameter is required")

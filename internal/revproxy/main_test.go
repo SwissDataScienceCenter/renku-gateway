@@ -271,7 +271,7 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 			require.NoError(t, err)
 		}
 		tokenStore, err := tokenstore.NewTokenStore(
-			tokenstore.WithExpiryMarginMinutes(3),
+			tokenstore.WithExpiryMargin(time.Duration(3)*time.Minute),
 			tokenstore.WithConfig(config.LoginConfig{}),
 			tokenstore.WithTokenRepository(dbAdapter),
 		)

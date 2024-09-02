@@ -13,6 +13,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/authentication"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
@@ -95,7 +96,7 @@ func TestGetLogin(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	tokenStore, err := tokenstore.NewTokenStore(
-		tokenstore.WithExpiryMarginMinutes(3),
+		tokenstore.WithExpiryMargin(time.Duration(3)*time.Minute),
 		tokenstore.WithConfig(testConfig),
 		tokenstore.WithTokenRepository(dbAdapter),
 	)
@@ -131,7 +132,7 @@ func TestGetLogin(t *testing.T) {
 	require.NoError(t, err)
 	client.Jar = jar
 	testServerURL, err := url.Parse(strings.TrimRight(
-		fmt.Sprintf("http://127.0.0.1:%d%s", loginServerPort, testConfig.EndpointsBasePath),
+		fmt.Sprintf("http://127.0.0.1:%d%s", loginServerPort, testConfig.LoginRoutesBasePath),
 		"/",
 	))
 	require.NoError(t, err)
@@ -214,7 +215,7 @@ func TestGetLogin2Steps(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	tokenStore, err := tokenstore.NewTokenStore(
-		tokenstore.WithExpiryMarginMinutes(3),
+		tokenstore.WithExpiryMargin(time.Duration(3)*time.Minute),
 		tokenstore.WithConfig(testConfig),
 		tokenstore.WithTokenRepository(dbAdapter),
 	)
@@ -252,7 +253,7 @@ func TestGetLogin2Steps(t *testing.T) {
 
 	require.NoError(t, err)
 	testServerURL, err := url.Parse(strings.TrimRight(
-		fmt.Sprintf("http://127.0.0.1:%d%s", loginServerPort, testConfig.EndpointsBasePath),
+		fmt.Sprintf("http://127.0.0.1:%d%s", loginServerPort, testConfig.LoginRoutesBasePath),
 		"/",
 	))
 	require.NoError(t, err)

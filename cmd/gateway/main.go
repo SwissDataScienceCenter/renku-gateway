@@ -52,21 +52,9 @@ func main() {
 	// the port will be logged further down when the server starts.
 	e.HideBanner = true
 	e.HidePort = true
-	// Handle configuration changes
-	ch.Watch()
-	var restart bool = false
-	ch.HandleChanges(func(c config.Config, err error) {
-		// when the config changes we flip the restart flag to true and cause the health endpoint to
-		// fail which will cause K8s to kill the pod
-		slog.Info("config file changed, making health check return status 500")
-		restart = true
-	})
 	// Health check
 	e.GET("/health", func(c echo.Context) error {
-		if restart {
-			slog.Warn("responding with error status to the health endpoint, server restart is imminent")
-			return c.NoContent(http.StatusInternalServerError)
-		}
+		// TODO: maybe implement a real health check
 		return c.NoContent(http.StatusOK)
 	})
 	// Version endpoint
@@ -91,7 +79,7 @@ func main() {
 	}
 	// Initialize the token store
 	tokenStore, err := tokenstore.NewTokenStore(
-		tokenstore.WithExpiryMarginMinutes(3),
+		tokenstore.WithExpiryMargin(time.Duration(3)*time.Minute),
 		tokenstore.WithConfig(gwConfig.Login),
 		tokenstore.WithTokenRepository(dbAdapter),
 	)

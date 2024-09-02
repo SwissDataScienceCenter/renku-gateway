@@ -45,5 +45,4 @@ var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middl
 	},
 })
 
-// var commonMiddlewares []echo.MiddlewareFunc = []echo.MiddlewareFunc{middleware.RequestID(), requestLogger}
 var commonMiddlewares []echo.MiddlewareFunc = []echo.MiddlewareFunc{requestLogger}

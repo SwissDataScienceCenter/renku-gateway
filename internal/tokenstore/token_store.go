@@ -15,14 +15,10 @@ import (
 )
 
 type TokenStore struct {
-	ExpiryMarginMinutes int
+	ExpiryMargin time.Duration
 
 	providerStore oidc.ClientStore
 	tokenRepo     models.TokenRepository
-}
-
-func (ts TokenStore) ExpiryMargin() time.Duration {
-	return time.Duration(ts.ExpiryMarginMinutes) * time.Minute
 }
 
 func (ts *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (models.AuthToken, error) {
@@ -35,7 +31,7 @@ func (ts *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (
 		}
 	}
 
-	if token.ExpiresSoon(ts.ExpiryMargin()) {
+	if token.ExpiresSoon(ts.ExpiryMargin) {
 		slog.Debug(
 			"TOKEN STORE",
 			"message",
@@ -52,8 +48,9 @@ func (ts *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (
 				"token",
 				token.String(),
 			)
+			// Attempt to reload the token, it may have been refreshed by another instance.
 			reloadedToken, err := ts.tokenRepo.GetAccessToken(ctx, tokenID)
-			if err != nil {
+			if err == nil {
 				token = reloadedToken
 			}
 		} else {
@@ -76,7 +73,7 @@ func (ts *TokenStore) GetFreshIDToken(ctx context.Context, tokenID string) (mode
 		}
 	}
 
-	if token.ExpiresSoon(ts.ExpiryMargin()) {
+	if token.ExpiresSoon(ts.ExpiryMargin) {
 		slog.Debug(
 			"TOKEN STORE",
 			"message",
@@ -93,8 +90,9 @@ func (ts *TokenStore) GetFreshIDToken(ctx context.Context, tokenID string) (mode
 				"token",
 				token.String(),
 			)
+			// Attempt to reload the token, it may have been refreshed by another instance.
 			reloadedToken, err := ts.tokenRepo.GetIDToken(ctx, tokenID)
-			if err != nil {
+			if err == nil {
 				token = reloadedToken
 			}
 		} else {
@@ -189,9 +187,9 @@ func (ts *TokenStore) SetIDTokenExpiry(ctx context.Context, token models.AuthTok
 
 type TokenRefresherOption func(*TokenStore) error
 
-func WithExpiryMarginMinutes(expiresSoonMinutes int) TokenRefresherOption {
+func WithExpiryMargin(expiresSoon time.Duration) TokenRefresherOption {
 	return func(ts *TokenStore) error {
-		ts.ExpiryMarginMinutes = expiresSoonMinutes
+		ts.ExpiryMargin = expiresSoon
 		return nil
 	}
 }
@@ -223,8 +221,8 @@ func NewTokenStore(options ...TokenRefresherOption) (*TokenStore, error) {
 			return &TokenStore{}, err
 		}
 	}
-	if ts.ExpiryMarginMinutes <= 0 {
-		return &TokenStore{}, fmt.Errorf("invalid value for ExpiryMarginMinutes (%d)", ts.ExpiryMarginMinutes)
+	if ts.ExpiryMargin <= time.Duration(0) {
+		return &TokenStore{}, fmt.Errorf("invalid value for ExpiryMargin (%d)", ts.ExpiryMargin)
 	}
 	if ts.providerStore == nil {
 		return &TokenStore{}, fmt.Errorf("OIDC providers not initialized")

@@ -44,16 +44,6 @@ func TestSetGetRemoveAccessToken(t *testing.T) {
 		"The two values are not equal, diff is: %s\n",
 		cmp.Diff(myAccessToken, accessToken, compareOptions...),
 	)
-	// ids, err := adapter.GetExpiringAccessTokenIDs(ctx, time.Now(), time.Now().Add(time.Hour))
-	// assert.NoError(t, err)
-	// assert.Len(t, ids, 0)
-	// ids, err = adapter.GetExpiringAccessTokenIDs(ctx, time.Now(), time.Now().Add(time.Hour*999))
-	// assert.NoError(t, err)
-	// assert.Len(t, ids, 1)
-	// err = adapter.RemoveAccessToken(ctx, myAccessToken)
-	// assert.NoError(t, err)
-	// accessToken, err = adapter.GetAccessToken(ctx, myAccessToken.ID)
-	// assert.ErrorIs(t, err, gwerrors.ErrTokenNotFound)
 }
 
 func TestSetGetAccessTokenWithEncryption(t *testing.T) {
