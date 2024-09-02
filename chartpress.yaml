@@ -11,8 +11,4 @@ charts:
       renku-gateway:
         contextPath: .
         dockerfilePath: Dockerfile
-        valuesPath: gateway.image.auth
-      renku-revproxy:
-        contextPath: .
-        dockerfilePath: Dockerfile.revproxy
-        valuesPath: gateway.reverseProxy.image
+        valuesPath: gateway.image
