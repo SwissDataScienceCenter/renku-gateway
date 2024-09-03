@@ -439,7 +439,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Expected: TestResults{
 				VisitedServerIDs: []string{"upstream"},
 				UpstreamRequestHeaders: []map[string]string{{
-					"Authorization":            "",
+					echo.HeaderAuthorization:   "",
 					"Renku-Auth-Id-Token":      "",
 					"Renku-Auth-Access-Token":  "",
 					"Renku-Auth-Refresh-Token": "",
@@ -452,8 +452,42 @@ func TestInternalSvcRoutes(t *testing.T) {
 			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
 		},
 		{
-			Path:     "/api/search/test/acceptedAuth",
-			Expected: TestResults{Path: "/api/search/test/acceptedAuth", VisitedServerIDs: []string{"upstream"}},
+			Path: "/api/search/test/acceptedAuth",
+			Expected: TestResults{
+				Path:             "/api/search/test/acceptedAuth",
+				VisitedServerIDs: []string{"upstream"},
+				UpstreamRequestHeaders: []map[string]string{{
+					echo.HeaderAuthorization:   "",
+					"Renku-Auth-Id-Token":      "idTokenValue",
+					"Renku-Auth-Access-Token":  "",
+					"Renku-Auth-Refresh-Token": "",
+					"Renku-Auth-Anon-Id":       "",
+				}},
+			},
+			Tokens: []models.AuthToken{
+				newTestToken(
+					models.AccessTokenType,
+					tokenID("renku:myToken"),
+					tokenPlainValue("accessTokenValue"),
+					tokenProviderID("renku"),
+				),
+				newTestToken(
+					models.RefreshTokenType,
+					tokenID("renku:myToken"),
+					tokenPlainValue("refreshTokenValue"),
+					tokenProviderID("renku"),
+				),
+				newTestToken(
+					models.IDTokenType,
+					tokenID("renku:myToken"),
+					tokenPlainValue("idTokenValue"),
+					tokenProviderID("renku"),
+				),
+			},
+			Sessions: []models.Session{
+				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"renku": "renku:myToken"})),
+			},
+			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
 		},
 		{
 			Path:     "/api/search",
