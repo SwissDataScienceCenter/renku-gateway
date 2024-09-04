@@ -32,14 +32,6 @@ import (
 
 const serverIDHeader string = "Server-ID"
 
-// func sessionExpired() models.SessionOption {
-// 	return func(s *models.Session) error {
-// 		s.TTLSeconds = 60
-// 		s.CreatedAt = time.Now().UTC().Add(time.Hour * -5)
-// 		return nil
-// 	}
-// }
-
 func withTokenIDs(tokenIDs map[string]string) sessionOption {
 	return func(s *models.Session) error {
 		s.TokenIDs = models.SerializableMap(tokenIDs)
@@ -443,6 +435,65 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Expected: TestResults{Path: "/notebooks", VisitedServerIDs: []string{"upstream"}},
 		},
 		{
+			Path: "/api/search/test/rejectedAuth",
+			Expected: TestResults{
+				VisitedServerIDs: []string{"upstream"},
+				UpstreamRequestHeaders: []map[string]string{{
+					echo.HeaderAuthorization:   "",
+					"Renku-Auth-Id-Token":      "",
+					"Renku-Auth-Access-Token":  "",
+					"Renku-Auth-Refresh-Token": "",
+					"Renku-Auth-Anon-Id":       "sessionID",
+				}},
+			},
+			Sessions: []models.Session{
+				newTestSesssion(sessionID("sessionID")),
+			},
+			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
+		},
+		{
+			Path: "/api/search/test/acceptedAuth",
+			Expected: TestResults{
+				Path:             "/api/search/test/acceptedAuth",
+				VisitedServerIDs: []string{"upstream"},
+				UpstreamRequestHeaders: []map[string]string{{
+					echo.HeaderAuthorization:   "",
+					"Renku-Auth-Id-Token":      "idTokenValue",
+					"Renku-Auth-Access-Token":  "",
+					"Renku-Auth-Refresh-Token": "",
+					"Renku-Auth-Anon-Id":       "",
+				}},
+			},
+			Tokens: []models.AuthToken{
+				newTestToken(
+					models.AccessTokenType,
+					tokenID("renku:myToken"),
+					tokenPlainValue("accessTokenValue"),
+					tokenProviderID("renku"),
+				),
+				newTestToken(
+					models.RefreshTokenType,
+					tokenID("renku:myToken"),
+					tokenPlainValue("refreshTokenValue"),
+					tokenProviderID("renku"),
+				),
+				newTestToken(
+					models.IDTokenType,
+					tokenID("renku:myToken"),
+					tokenPlainValue("idTokenValue"),
+					tokenProviderID("renku"),
+				),
+			},
+			Sessions: []models.Session{
+				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"renku": "renku:myToken"})),
+			},
+			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
+		},
+		{
+			Path:     "/api/search",
+			Expected: TestResults{Path: "/api/search", VisitedServerIDs: []string{"upstream"}},
+		},
+		{
 			Path: "/api/projects/123456/graph/status/something/else",
 			Expected: TestResults{
 				Path:             "/projects/123456/events/status/something/else",
@@ -552,6 +603,20 @@ func TestInternalSvcRoutes(t *testing.T) {
 				Path:                   "/knowledge-graph",
 				VisitedServerIDs:       []string{"upstream"},
 				UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}},
+			},
+		},
+		{
+			Path: "/api/data/user/secret_key",
+			Expected: TestResults{
+				Path:                     "/api/data/user/secret_key",
+				Non200ResponseStatusCode: 404,
+			},
+		},
+		{
+			Path: "/api/data/user",
+			Expected: TestResults{
+				Path:             "/api/data/user",
+				VisitedServerIDs: []string{"upstream"},
 			},
 		},
 		{

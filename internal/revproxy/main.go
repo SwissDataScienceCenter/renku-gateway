@@ -62,6 +62,10 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	notebooksGitlabAccessToken := r.notebooksGitlabAccessTokenAuth.Middleware()
 	renkuAccessToken := r.renkuAccessTokenAuth.Middleware()
 
+	// Deny rules
+	sk := e.Group("/api/data/user/secret_key", commonMiddlewares...)
+	sk.GET("/", echo.NotFoundHandler)
+
 	// Routing for Renku services
 	e.Group("/api/notebooks", append(commonMiddlewares, notebooksRenkuAccessToken, notebooksRenkuRefreshToken, notebooksRenkuIDToken, notebooksGitlabAccessToken, notebooksAnonymousID(r.sessions), noCookies, stripPrefix("/api"), notebooksProxy)...)
 	// /api/projects/:projectID/graph will is being deprecated in favour of /api/kg/webhooks, the old endpoint will remain for some time for backward compatibility
