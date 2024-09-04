@@ -1,0 +1,69 @@
+# Example values for configuration
+runningEnvironment: production
+server:
+  port: 8080
+  allowOrigin: []
+  host: 0.0.0.0
+  rateLimits:
+    enabled: false
+    rate:
+    burst:
+sessions:
+  idleSessionTTLSeconds: 14400
+  maxSessionTTLSeconds: 86400
+  authorizationVerifiers:
+    - issuer: https://renkulab.io/auth/realms/Renku
+      audience: renku
+      authorizedParty: renku
+    - issuer: https://renkulab.io/auth/realms/Renku
+      audience: renku
+      authorizedParty: renku-cli
+revproxy:
+  renkuBaseUrl: "https://renkulab.io"
+  externalGitlabUrl:
+  k8sNamespace:
+  renkuServices:
+    noteboooks:
+    kg:
+    webhoook:
+    core:
+      serviceNames: []
+      servicePaths: []
+      sticky:
+    auth:
+    dataService:
+    keycloak:
+    search:
+login:
+  endpointsBasePath:
+  renkuBaseURL: "https://renkulab.io"
+  tokenEncryption:
+    enabled: true
+    secretKey:
+  providers:
+    renku:
+      issuer: https://renkulab.io/auth/realms/Renku
+      clientID: renku
+      clientSecret:
+      scopes: []
+      callbackURI: https://renkulab.io/api/auth/callback
+      # For securely handling callbacks an encoding and hashing of 32 bytes should be provided
+      cookieEncodingKey:
+      cookieHashKey:
+      usePKCE: false
+redis:
+  type: dummy
+  addresses: []
+  isSentinel: false
+  password:
+  masterName:
+  dbIndex: 1
+monitoring:
+  sentry:
+    enabled: false
+    dsn:
+    environment: gateway
+    sampleRate: 0.1
+  prometheus:
+    enabled: true
+    port: 8005

@@ -55,7 +55,7 @@ func NewEndpointStoreItems(input *discoveryV1.EndpointSlice, containerPortName s
 type EndpointStore struct {
 	list  []*EndpointStoreItem
 	index map[string]*EndpointStoreItem
-	mutex sync.RWMutex
+	mutex *sync.RWMutex
 }
 
 // NewEndpointStoreFromEndpointItems creates an endpoint store from a slice of items
@@ -64,7 +64,7 @@ func NewEndpointStoreFromEndpointItems(input []EndpointStoreItem, includeNonRead
 	endpoints := &EndpointStore{
 		list:  make([]*EndpointStoreItem, 0, len(input)),
 		index: make(map[string]*EndpointStoreItem, len(input)),
-		mutex: sync.RWMutex{},
+		mutex: &sync.RWMutex{},
 	}
 	endpoints.mutex.Lock()
 	defer endpoints.mutex.Unlock()
@@ -86,7 +86,10 @@ func NewEndpointStoreFromEndpointItems(input []EndpointStoreItem, includeNonRead
 func NewEndpointStoreFromEndpointSlices(input []*discoveryV1.EndpointSlice, containerPortName string) *EndpointStore {
 	items := []EndpointStoreItem{}
 	for _, endpointSlice := range input {
-		items = append(items, NewEndpointStoreItems(endpointSlice, containerPortName)...)
+		// the loop variable is a pointer in Go, so as the loop progresses the same pointer is used
+		// and it points to different things every iteration. That is why we have to make a copy here.
+		es := endpointSlice
+		items = append(items, NewEndpointStoreItems(es, containerPortName)...)
 	}
 	return NewEndpointStoreFromEndpointItems(items, false)
 }

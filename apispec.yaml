@@ -1,0 +1,83 @@
+openapi: 3.0.2
+info:
+  title: Renku Gateway
+  description: Login flow, OAuth callbacks and authentication for Renku
+  version: v1
+servers:
+  - url: /api/auth
+paths:
+  /health:
+    servers:
+      - url: http://renku-gateway-auth
+        description: Available only from within the k8s cluster
+    get:
+      description: Healthcheck endpoint.
+      responses:
+        "200":
+          description: The service is running properly.
+      tags:
+        - health
+  /login:
+    get:
+      description: Starts the login process for Renku.
+      parameters:
+        - in: query
+          name: redirect_url
+          schema:
+            type: string
+        - in: query
+          name: provider_id
+          description: |
+            Providing `provider_id` query parameters should be used for testing only.
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        "302":
+          description: The user is redirected to the proper login page.
+      tags:
+        - authentication
+  /callback:
+    get:
+      description: Authorization code flow callback
+      parameters:
+        - in: query
+          name: code
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: state
+          required: true
+          schema:
+            type: string
+      responses:
+        "302":
+          description: The token was used to acquire the access token and the request is redirected further
+      tags:
+        - authentication
+  /logout:
+    get:
+      description: |
+        Log the user out of Renku. Depending on the configuration of the gateway 
+        this can result in the user also being logged out of Gitlab.
+      parameters:
+        - in: query
+          name: redirect_url
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The user was successfully logged out
+      tags:
+        - authentication
+  /user-profile:
+    get:
+      description: |
+        Redirects to the user's profile page.
+      responses:
+        "302":
+          description: The user is redirected to the proper login page.
+      tags:
+        - misc
