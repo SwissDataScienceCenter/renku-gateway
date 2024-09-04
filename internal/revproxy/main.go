@@ -122,7 +122,7 @@ func (r *Revproxy) initializeAuth() error {
 	if err != nil {
 		return err
 	}
-	r.dataGitlabAccessTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), InjectInHeader("Gitlab-Access-Token"))
+	r.dataGitlabAccessTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), WithTokenInjector(dataServiceGitlabAccessTokenInjector))
 	if err != nil {
 		return err
 	}

@@ -113,6 +113,12 @@ func tokenProviderID(id string) tokenOption {
 	}
 }
 
+func tokenExpiresAt(val time.Time) tokenOption {
+	return func(t *models.AuthToken) {
+		t.ExpiresAt = val
+	}
+}
+
 func newTestToken(tokenType models.OauthTokenType, options ...tokenOption) models.AuthToken {
 	token := models.AuthToken{
 		Type:      tokenType,
@@ -632,6 +638,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 					tokenID("gitlab:otherToken"),
 					tokenPlainValue("gitlabAccessTokenValue"),
 					tokenProviderID("gitlab"),
+					tokenExpiresAt(time.Unix(16746525971, 0)),
 				),
 			},
 			Sessions: []models.Session{
@@ -642,10 +649,11 @@ func TestInternalSvcRoutes(t *testing.T) {
 				Path:             "/api/data/user",
 				VisitedServerIDs: []string{"upstream"},
 				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization:   "Bearer accessTokenValue",
-					"Gitlab-Access-Token":      "gitlabAccessTokenValue",
-					"Renku-Auth-Refresh-Token": "refreshTokenValue",
-					"Renku-Auth-Anon-Id":       "",
+					echo.HeaderAuthorization:         "Bearer accessTokenValue",
+					"Gitlab-Access-Token":            "gitlabAccessTokenValue",
+					"Gitlab-Access-Token-Expires-At": "16746525971",
+					"Renku-Auth-Refresh-Token":       "refreshTokenValue",
+					"Renku-Auth-Anon-Id":             "",
 				}},
 			},
 		},
@@ -657,10 +665,11 @@ func TestInternalSvcRoutes(t *testing.T) {
 				Path:             "/api/data/sessions",
 				VisitedServerIDs: []string{"upstream"},
 				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization:   "",
-					"Gitlab-Access-Token":      "",
-					"Renku-Auth-Refresh-Token": "",
-					"Renku-Auth-Anon-Id":       "sessionID",
+					echo.HeaderAuthorization:         "",
+					"Gitlab-Access-Token":            "",
+					"Gitlab-Access-Token-Expires-At": "",
+					"Renku-Auth-Refresh-Token":       "",
+					"Renku-Auth-Anon-Id":             "sessionID",
 				}},
 			},
 		},

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"strconv"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
@@ -355,5 +356,49 @@ var gitlabCliTokenInjector TokenInjector = func(c echo.Context, accessToken mode
 		return nil
 	}
 	c.Request().SetBasicAuth("oauth2", accessToken.Value)
+	return nil
+}
+
+// Sets the Gitlab-Access-Token and Gitlab-Access-Token-Expires-At values in the header, the expiry part
+// is needed because Gitlab access tokens are opaque and the holder cannot easily tell when they expire.
+var dataServiceGitlabAccessTokenInjector TokenInjector = func(c echo.Context, accessToken models.AuthToken) error {
+	headerKey := "Gitlab-Access-Token"
+	existingToken := c.Request().Header.Get(headerKey)
+	if existingToken != "" {
+		slog.Debug(
+			"PROXY AUTH MIDDLEWARE",
+			"message",
+			"token already present in header, skipping",
+			"header",
+			headerKey,
+			"token",
+			accessToken.String(),
+			"requestID",
+			utils.GetRequestID(c),
+		)
+		return nil
+	}
+
+	// NOTE: As long as the token comes from the database we can trust it and do not have to validate it.
+	// Each service that the request ultimately goes to will also validate before it uses the token
+	var expiresAt int64 = -1
+	if !accessToken.ExpiresAt.IsZero() {
+		expiresAt = accessToken.ExpiresAt.Unix()
+	}
+	slog.Debug(
+		"PROXY AUTH MIDDLEWARE",
+		"message",
+		"injected token in header",
+		"header",
+		headerKey,
+		"token",
+		accessToken.String(),
+		"requestID",
+		utils.GetRequestID(c),
+	)
+	c.Request().Header.Set(headerKey, accessToken.Value)
+	if expiresAt != -1 {
+		c.Request().Header.Set("Gitlab-Access-Token-Expires-At", strconv.FormatInt(expiresAt, 10))
+	}
 	return nil
 }
