@@ -614,9 +614,54 @@ func TestInternalSvcRoutes(t *testing.T) {
 		},
 		{
 			Path: "/api/data/user",
+			Tokens: []models.AuthToken{
+				newTestToken(
+					models.AccessTokenType,
+					tokenID("renku:myToken"),
+					tokenPlainValue("accessTokenValue"),
+					tokenProviderID("renku"),
+				),
+				newTestToken(
+					models.RefreshTokenType,
+					tokenID("renku:myToken"),
+					tokenPlainValue("refreshTokenValue"),
+					tokenProviderID("renku"),
+				),
+				newTestToken(
+					models.AccessTokenType,
+					tokenID("gitlab:otherToken"),
+					tokenPlainValue("gitlabAccessTokenValue"),
+					tokenProviderID("gitlab"),
+				),
+			},
+			Sessions: []models.Session{
+				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"renku": "renku:myToken", "gitlab": "gitlab:otherToken"})),
+			},
+			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
 			Expected: TestResults{
 				Path:             "/api/data/user",
 				VisitedServerIDs: []string{"upstream"},
+				UpstreamRequestHeaders: []map[string]string{{
+					echo.HeaderAuthorization:   "Bearer accessTokenValue",
+					"Gitlab-Access-Token":      "gitlabAccessTokenValue",
+					"Renku-Auth-Refresh-Token": "refreshTokenValue",
+					"Renku-Auth-Anon-Id":       "",
+				}},
+			},
+		},
+		{
+			Path:          "/api/data/sessions",
+			Sessions:      []models.Session{newTestSesssion(sessionID("sessionID"))},
+			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
+			Expected: TestResults{
+				Path:             "/api/data/sessions",
+				VisitedServerIDs: []string{"upstream"},
+				UpstreamRequestHeaders: []map[string]string{{
+					echo.HeaderAuthorization:   "",
+					"Gitlab-Access-Token":      "",
+					"Renku-Auth-Refresh-Token": "",
+					"Renku-Auth-Anon-Id":       "sessionID",
+				}},
 			},
 		},
 		{
