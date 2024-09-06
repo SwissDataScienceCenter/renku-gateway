@@ -107,7 +107,18 @@ func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
 		return err
 	}
 
-	return c.Render(http.StatusOK, "logout", map[string]string{"redirectURL": redirectURL})
+	templateProviders := make(map[string]any, len(l.providerStore))
+	for providerID, provider := range l.config.Providers {
+		templateProviders[providerID] = map[string]string{
+			"baseURL":   provider.Issuer,
+			"logoutURL": provider.Issuer,
+		}
+	}
+	templateData := map[string]any{
+		"redirectURL": redirectURL,
+		"providers":   templateProviders,
+	}
+	return c.Render(http.StatusOK, "logout", templateData)
 }
 
 func (l *LoginServer) GetGitLabToken(c echo.Context) error {
