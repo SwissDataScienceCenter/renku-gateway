@@ -103,6 +103,25 @@ func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
 
 	slog.Debug("LOGOUT", "redirectURL", redirectURL)
 
+	session, err := l.sessions.Get(c)
+	if err == nil {
+		for providerID := range session.TokenIDs {
+			idToken, err := l.sessions.GetIDToken(c, *session, providerID)
+			if err == nil {
+				slog.Info("LOGOUT", "idToken", idToken.String())
+				handler, err := l.providerStore.EndSession(idToken, redirectURL, "")
+				if err != nil {
+					return err
+				}
+				err = echo.WrapHandler(handler)(c)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		// l.sessions.GetIDToken(c, *session, "")
+	}
+
 	return fmt.Errorf("TODO")
 
 	// // Delete the session from the store

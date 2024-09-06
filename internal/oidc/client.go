@@ -99,8 +99,15 @@ func (c *oidcClient) getID() string {
 	return c.id
 }
 
-func (c *oidcClient) ttt() {
-	url := rp.Endpoints.EndSessionURL
+func (c *oidcClient) endSession(idToken models.AuthToken, redirectURL, state string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		location, err := rp.EndSession(c.client, idToken.Value, redirectURL, state)
+		if err != nil {
+			http.Error(w, "failed to end session: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		http.Redirect(w, r, location.String(), http.StatusFound)
+	}
 }
 
 func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models.AuthToken) (sessions.AuthTokenSet, error) {
