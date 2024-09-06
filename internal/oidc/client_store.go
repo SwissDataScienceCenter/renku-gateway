@@ -35,9 +35,17 @@ func (c ClientStore) CodeExchangeHandler(providerID string) (CodeExchangeHandler
 	}, nil
 }
 
+func (c ClientStore) CheckEndSession(providerID string) (string, error) {
+	client, clientFound := c[providerID]
+	if !clientFound {
+		return "", fmt.Errorf("cannot find the provider with ID %s", providerID)
+	}
+	return client.checkEndSession(), nil
+}
+
 func (c ClientStore) EndSession(idToken models.AuthToken, redirectURL, state string) (http.HandlerFunc, error) {
 	providerID := idToken.ProviderID
-	client, clientFound := c[idToken.ProviderID]
+	client, clientFound := c[providerID]
 	if !clientFound {
 		return nil, fmt.Errorf("cannot find the provider with ID %s", providerID)
 	}

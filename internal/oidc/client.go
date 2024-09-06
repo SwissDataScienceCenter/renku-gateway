@@ -99,13 +99,27 @@ func (c *oidcClient) getID() string {
 	return c.id
 }
 
+func (c *oidcClient) checkEndSession() string {
+	return c.client.GetEndSessionEndpoint()
+}
+
 func (c *oidcClient) endSession(idToken models.AuthToken, redirectURL, state string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		endSessionURL := c.client.GetEndSessionEndpoint()
+		slog.Debug("OIDC", "endSessionURL", endSessionURL)
+		if endSessionURL == "" {
+			slog.Warn("OIDC", "message", "Provider has no end session endpoint", "providerID", c.getID())
+			http.Redirect(w, r, redirectURL, http.StatusFound)
+			return
+		}
+		slog.Debug("OIDC", "message", "Calling EndSession")
 		location, err := rp.EndSession(c.client, idToken.Value, redirectURL, state)
 		if err != nil {
+			slog.Debug("OIDC", "EndSession error", err)
 			http.Error(w, "failed to end session: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+		slog.Debug("OIDC", "end session URL", location.String())
 		http.Redirect(w, r, location.String(), http.StatusFound)
 	}
 }
