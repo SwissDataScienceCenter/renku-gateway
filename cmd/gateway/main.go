@@ -18,6 +18,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/revproxy"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/tokenstore"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/views"
 	"github.com/getsentry/sentry-go"
 	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/labstack/echo-contrib/echoprometheus"
@@ -52,6 +53,13 @@ func main() {
 	// the port will be logged further down when the server starts.
 	e.HideBanner = true
 	e.HidePort = true
+	// Setup template renderer
+	tr, err := views.NewTemplateRenderer()
+	if err != nil {
+		slog.Error("Template renderer initialization failed", "error", err)
+		os.Exit(1)
+	}
+	tr.Register(e)
 	// Health check
 	e.GET("/health", func(c echo.Context) error {
 		// TODO: maybe implement a real health check

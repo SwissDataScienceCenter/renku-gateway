@@ -101,58 +101,13 @@ func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
 		redirectURL = l.config.RenkuBaseURL.String()
 	}
 
-	slog.Debug("LOGOUT", "redirectURL", redirectURL)
-
-	session, err := l.sessions.Get(c)
-	if err == nil {
-		logoutSequence := l.getLogoutSequence(*session)
-		slog.Debug("LOGOUT", "logoutSequence", logoutSequence)
-		for i := range logoutSequence {
-			providerID := logoutSequence[i]
-			idToken, err := l.sessions.GetIDToken(c, *session, providerID)
-			if err == nil {
-				slog.Debug("LOGOUT", "idToken", idToken.String())
-				handler, err := l.providerStore.EndSession(idToken, redirectURL, "foobar")
-				if err != nil {
-					return err
-				}
-				if handler != nil {
-					return echo.WrapHandler(handler)(c)
-				}
-			}
-		}
-
-		// for providerID := range session.TokenIDs {
-		// 	endSessionURL, err := l.providerStore.CheckEndSession(providerID)
-		// 	if err == nil {
-		// 		slog.Debug("LOGOUT", "providerID", providerID, "end session URL", endSessionURL)
-		// 	}
-		// }
-		// for providerID := range session.TokenIDs {
-		// 	idToken, err := l.sessions.GetIDToken(c, *session, providerID)
-		// 	slog.Debug("LOGOUT", "providerID", providerID, "has token", (err == nil))
-		// 	if err == nil {
-		// 		slog.Debug("LOGOUT", "idToken", idToken.String())
-		// 		handler, err := l.providerStore.EndSession(idToken, redirectURL, "")
-		// 		if err != nil {
-		// 			return err
-		// 		}
-		// 		err = echo.WrapHandler(handler)(c)
-		// 		slog.Debug("LOGOUT", "handler error", err)
-		// 		return err
-		// 	}
-		// }
-		// l.sessions.GetIDToken(c, *session, "")
+	// Delete the session from the store
+	err := l.sessions.Delete(c)
+	if err != nil {
+		return err
 	}
 
-	return fmt.Errorf("TODO")
-
-	// // Delete the session from the store
-	// err := l.sessions.Delete(c)
-	// if err != nil {
-	// 	return err
-	// }
-	// return c.Redirect(http.StatusFound, redirectURL)
+	return c.Render(http.StatusOK, "logout", map[string]string{"redirectURL": redirectURL})
 }
 
 func (l *LoginServer) GetGitLabToken(c echo.Context) error {
@@ -221,20 +176,4 @@ func (l *LoginServer) nextAuthStep(
 		return err
 	}
 	return echo.WrapHandler(handler)(c)
-}
-
-// getLogoutSequence returns the logout sequence for a given session, with "gitlab" being last.
-func (*LoginServer) getLogoutSequence(session models.Session) []string {
-	const gitlab string = "gitlab"
-	logoutSequence := make([]string, 0, len(session.TokenIDs))
-	for providerID := range session.TokenIDs {
-		if providerID != gitlab {
-			logoutSequence = append(logoutSequence, providerID)
-		}
-	}
-	_, hasGitlab := session.TokenIDs[gitlab]
-	if hasGitlab {
-		logoutSequence = append(logoutSequence, gitlab)
-	}
-	return logoutSequence
 }
