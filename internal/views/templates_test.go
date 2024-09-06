@@ -20,12 +20,21 @@ func TestLogoutTemplate(t *testing.T) {
 	templates, err := getTemplates()
 	require.NoError(t, err)
 	buf := new(bytes.Buffer)
-	data := map[string]string{"redirectURL": "http://example.org/"}
+	data := map[string]any{
+		"redirectURL": "http://example.org/",
+		"providers": map[string]any{
+			"renku": map[string]string{
+				"baseURL":   "http://renku.org",
+				"logoutURL": "http://renku.org/logout",
+			},
+		},
+	}
 	err = templates.ExecuteTemplate(buf, "logout", data)
 	require.NoError(t, err)
 	html := buf.String()
 	// assert.Equal(t, "", html)
 	assert.True(t, len(html) > 0)
 	assert.Contains(t, html, "<!DOCTYPE html>")
-	assert.Contains(t, html, "const redirectUrl = \"http://example.org/\";")
+	assert.Contains(t, html, "const redirectURL = \"http://example.org/\";")
+	assert.Contains(t, html, "<iframe src=\"http://renku.org/logout\"></iframe>")
 }

@@ -15,18 +15,31 @@ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License
 */ -}}
-{{define "logout"}}
+{{- define "logout" -}}
 <!DOCTYPE html>
 <html lang="en" >
     <head>
         <meta charset="UTF-8">
         <title>Renku - logout</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta http-equiv="refresh" content="5; url={{.redirectURL}}" />
     </head>
     <body>
-        <p>Test</p>
+        <p>Logging you out of RenkuLab...</p>
+        <div id="logout-pages">
+            {{- range $key, $provider := .providers }}
+            <iframe src="{{$provider.logoutURL}}"></iframe>
+            {{- end}}
+        </div>
         <script type="text/javascript">
-            const redirectUrl = {{.redirectURL}};
+            const redirectURL = {{.redirectURL}};
+            const providers = {{.providers}};
+
+            if (!providers) {
+                return;
+            }
+            console.log({redirectURL, providers});
         </script>
     </body>
 </html>
-{{end}}
+{{- end -}}
