@@ -35,22 +35,21 @@ limitations under the License
             const redirectURL = {{.redirectURL}};
             const providers = {{.providers}};
 
+            function checkIframe(providerID, provider) {
+                iframe = document.querySelector(`iframe#logout-page-${providerID}`);
+                console.log({providerID, iframe});
+                if (!iframe) {
+                    return;
+                }
+            }
             function onLoad() {
                 if (!providers) {
                     return;
                 }
-                console.log({redirectURL, providers});
 
                 window.setInterval(() => {
                     Object.keys(providers).forEach((providerID) => checkIframe(providerID, providers[providerID]));
                 }, 1000);
-            }
-            function checkIframe(providerID, provider) {
-                iframe = document.querySelector(`logout-page-${providerID}`);
-                if (!iframe) {
-                    return;
-                }
-                console.log({providerID, iframe});
             }
             
             window.addEventListener("load", onLoad);
