@@ -116,7 +116,9 @@ func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
 				if err != nil {
 					return err
 				}
-				return echo.WrapHandler(handler)(c)
+				if handler != nil {
+					return echo.WrapHandler(handler)(c)
+				}
 			}
 		}
 

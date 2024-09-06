@@ -110,7 +110,8 @@ func (c *oidcClient) endSession(idToken models.AuthToken, redirectURL, state str
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		slog.Debug("OIDC", "message", "Calling EndSession")
-		location, err := rp.EndSession(c.client, idToken.Value, redirectURL, state)
+		// location, err := rp.EndSession(c.client, idToken.Value, redirectURL, state)
+		location, err := rp.EndSession(c.client, idToken.Value, "", state)
 		if err != nil {
 			slog.Debug("OIDC", "EndSession error", err)
 			http.Error(w, "failed to end session: "+err.Error(), http.StatusInternalServerError)
