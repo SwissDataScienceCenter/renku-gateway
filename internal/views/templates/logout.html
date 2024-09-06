@@ -28,17 +28,32 @@ limitations under the License
         <p>Logging you out of RenkuLab...</p>
         <div id="logout-pages">
             {{- range $key, $provider := .providers }}
-            <iframe src="{{$provider.logoutURL}}"></iframe>
+            <iframe id="logout-page-{{$key}}" src="{{$provider.logoutURL}}"></iframe>
             {{- end}}
         </div>
         <script type="text/javascript">
             const redirectURL = {{.redirectURL}};
             const providers = {{.providers}};
 
-            if (!providers) {
-                return;
+            function onLoad() {
+                if (!providers) {
+                    return;
+                }
+                console.log({redirectURL, providers});
+
+                window.setInterval(() => {
+                    Object.keys(providers).forEach((providerID) => checkIframe(providerID, providers[providerID]));
+                }, 1000);
             }
-            console.log({redirectURL, providers});
+            function checkIframe(providerID, provider) {
+                iframe = document.querySelector(`logout-page-${providerID}`);
+                if (!iframe) {
+                    return;
+                }
+                console.log({providerID, iframe});
+            }
+            
+            window.addEventListener("load", onLoad);
         </script>
     </body>
 </html>

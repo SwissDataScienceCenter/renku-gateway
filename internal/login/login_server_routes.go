@@ -101,18 +101,27 @@ func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
 		redirectURL = l.config.RenkuBaseURL.String()
 	}
 
+	session, err := l.sessions.Get(c)
+	var renkuIdToken string = ""
+	if err == nil {
+		idToken, err := l.sessions.GetIDToken(c, *session, "renku")
+		if err == nil {
+			renkuIdToken = idToken.Value
+		}
+	}
+
 	// Delete the session from the store
-	err := l.sessions.Delete(c)
+	err = l.sessions.Delete(c)
 	if err != nil {
 		return err
 	}
 
 	templateProviders := make(map[string]any, len(l.providerStore))
 	for providerID, provider := range l.config.Providers {
-		if providerID == "renku" {
+		if providerID == "renku" && renkuIdToken != "" {
 			templateProviders[providerID] = map[string]string{
 				"baseURL":   provider.Issuer,
-				"logoutURL": fmt.Sprintf("%s/protocol/openid-connect/logout", provider.Issuer),
+				"logoutURL": fmt.Sprintf("%s/protocol/openid-connect/logout?id_token_hint=%s", provider.Issuer, renkuIdToken),
 			}
 		}
 	}

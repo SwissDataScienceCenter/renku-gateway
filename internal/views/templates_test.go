@@ -32,7 +32,7 @@ func TestLogoutTemplate(t *testing.T) {
 	err = templates.ExecuteTemplate(buf, "logout", data)
 	require.NoError(t, err)
 	html := buf.String()
-	// assert.Equal(t, "", html)
+	assert.Equal(t, "", html)
 	assert.True(t, len(html) > 0)
 	assert.Contains(t, html, "<!DOCTYPE html>")
 	assert.Contains(t, html, "const redirectURL = \"http://example.org/\";")
