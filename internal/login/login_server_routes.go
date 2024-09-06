@@ -109,9 +109,11 @@ func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
 
 	templateProviders := make(map[string]any, len(l.providerStore))
 	for providerID, provider := range l.config.Providers {
-		templateProviders[providerID] = map[string]string{
-			"baseURL":   provider.Issuer,
-			"logoutURL": provider.Issuer,
+		if providerID == "renku" {
+			templateProviders[providerID] = map[string]string{
+				"baseURL":   provider.Issuer,
+				"logoutURL": fmt.Sprintf("%s/protocol/openid-connect/logout", provider.Issuer),
+			}
 		}
 	}
 	templateData := map[string]any{
