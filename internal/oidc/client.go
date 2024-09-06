@@ -99,6 +99,10 @@ func (c *oidcClient) getID() string {
 	return c.id
 }
 
+func (c *oidcClient) ttt() {
+	url := rp.Endpoints.EndSessionURL
+}
+
 func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models.AuthToken) (sessions.AuthTokenSet, error) {
 	oAuth2Token, err := rp.RefreshAccessToken(c.client, refreshToken.Value, "", "")
 	if err != nil {

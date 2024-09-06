@@ -100,12 +100,17 @@ func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
 	} else {
 		redirectURL = l.config.RenkuBaseURL.String()
 	}
-	// Delete the session from the store
-	err := l.sessions.Delete(c)
-	if err != nil {
-		return err
-	}
-	return c.Redirect(http.StatusFound, redirectURL)
+
+	slog.Debug("LOGOUT", "redirectURL", redirectURL)
+
+	return fmt.Errorf("TODO")
+
+	// // Delete the session from the store
+	// err := l.sessions.Delete(c)
+	// if err != nil {
+	// 	return err
+	// }
+	// return c.Redirect(http.StatusFound, redirectURL)
 }
 
 func (l *LoginServer) GetGitLabToken(c echo.Context) error {
