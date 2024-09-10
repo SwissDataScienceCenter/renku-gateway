@@ -38,3 +38,19 @@ func TestLogoutTemplate(t *testing.T) {
 	assert.Contains(t, html, "<a class=\"btn-rk-green\" href=\"http://example.org/\">")
 	assert.Contains(t, html, "<iframe id=\"logout-page-renku\" src=\"http://renku.org/logout\"></iframe>")
 }
+
+func TestGitlabLogoutTemplate(t *testing.T) {
+	templates, err := getTemplates()
+	require.NoError(t, err)
+	buf := new(bytes.Buffer)
+	data := map[string]any{
+		"logoutURL": "http://example.org/logout",
+	}
+	err = templates.ExecuteTemplate(buf, "gitlab_logout", data)
+	require.NoError(t, err)
+	html := buf.String()
+	// assert.Equal(t, "", html)
+	assert.True(t, len(html) > 0)
+	assert.Contains(t, html, "<!DOCTYPE html>")
+	assert.Contains(t, html, "action=\"http://example.org/logout\"")
+}

@@ -155,6 +155,19 @@ func (l *LoginServer) GetGitLabToken(c echo.Context) error {
 	})
 }
 
+func (l *LoginServer) GetGitLabLogout(c echo.Context) error {
+	provider, ok := l.config.Providers["gitlab"]
+	if !ok {
+		return c.NoContent(404)
+	}
+	logoutURL := fmt.Sprintf("%s/users/sign_out", provider.Issuer)
+
+	templateData := map[string]any{
+		"logoutURL": logoutURL,
+	}
+	return c.Render(http.StatusOK, "gitlab_logout", templateData)
+}
+
 func (l *LoginServer) GetUserProfile(c echo.Context) error {
 	redirectURL, err := l.providerStore.UserProfileURL("renku")
 	if err != nil {
