@@ -21,10 +21,11 @@ func TestLogoutTemplate(t *testing.T) {
 	require.NoError(t, err)
 	buf := new(bytes.Buffer)
 	data := map[string]any{
-		"redirectURL": "http://example.org/",
+		"renkuBaseURL": "http://renku.ch",
+		"redirectURL":  "http://example.org/",
 		"providers": map[string]any{
 			"renku": map[string]string{
-				"logoutURL": "http://renku.org/logout",
+				"logoutURL": "http://renku.ch/logout",
 			},
 		},
 	}
@@ -33,8 +34,9 @@ func TestLogoutTemplate(t *testing.T) {
 	html := buf.String()
 	assert.True(t, len(html) > 0)
 	assert.Contains(t, html, "<!DOCTYPE html>")
+	assert.Contains(t, html, "<link rel=\"stylesheet\" href=\"http://renku.ch/static/public/theme.css\">")
 	assert.Contains(t, html, "<a class=\"btn-rk-green\" href=\"http://example.org/\">")
-	assert.Contains(t, html, "<iframe id=\"logout-page-renku\" src=\"http://renku.org/logout\"></iframe>")
+	assert.Contains(t, html, "<iframe id=\"logout-page-renku\" src=\"http://renku.ch/logout\"></iframe>")
 }
 
 func TestGitlabLogoutTemplate(t *testing.T) {

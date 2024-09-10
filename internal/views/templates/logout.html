@@ -23,7 +23,7 @@ limitations under the License
         <meta http-equiv="x-ua-compatible" content="ie=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <!-- <meta http-equiv="refresh" content="5; url={{.redirectURL}}" /> -->
-        <!-- <link rel="stylesheet" href="url_for('static', filename='static/public/theme.css')"> -->
+        <link rel="stylesheet" href="{{.renkuBaseURL}}/static/public/theme.css">
         <title>Renku - login</title>
         <script type="text/javascript">
             // setTimeout(function(){ window.location.href = "{{.redirectURL}}"; }, 20000);
@@ -35,7 +35,7 @@ limitations under the License
     </head>
     <body>
         <div class="header">
-            <!-- <img src="url_for('static', filename='static/public/img/logo.svg')" alt="Renku" height="50" class="logo"> -->
+            <img src="{{.renkuBaseURL}}/static/public/img/logo.svg" alt="Renku" height="50" class="logo">
         </div>
         <div class="content">
             <div class="content-text">
@@ -52,7 +52,7 @@ limitations under the License
             <div id="copy-content">
             </div>
             <div>
-                <!-- <img src="url_for('static', filename='static/public/img/logo.svg')" alt="Renku" height="36" class="logo"> -->
+                <img src="{{.renkuBaseURL}}/static/public/img/logo.svg" alt="Renku" height="36" class="logo">
             </div>
             <div class="network">
                 <a target=_blank href="https://renku.discourse.group">Forum</a>

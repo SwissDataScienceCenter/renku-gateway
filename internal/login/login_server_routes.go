@@ -123,10 +123,13 @@ func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
 				"logoutURL": fmt.Sprintf("%s/protocol/openid-connect/logout?id_token_hint=%s", provider.Issuer, renkuIdToken),
 			}
 		}
-		// TODO
-		if providerID == "gitlab" {
+		if l.config.LogoutGitLabUponRenkuLogout && providerID == "gitlab" {
+			logoutURL := fmt.Sprintf("%s%s/gitlab/logout", l.config.RenkuBaseURL, l.config.LoginRoutesBasePath)
+			if l.config.OldGitLabLogout {
+				logoutURL = fmt.Sprintf("%s/users/sign_out", provider.Issuer)
+			}
 			templateProviders[providerID] = map[string]string{
-				"logoutURL": fmt.Sprintf("%s%s/gitlab/logout", l.config.RenkuBaseURL, l.config.LoginRoutesBasePath),
+				"logoutURL": logoutURL,
 			}
 		}
 	}
