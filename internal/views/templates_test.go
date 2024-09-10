@@ -32,9 +32,9 @@ func TestLogoutTemplate(t *testing.T) {
 	err = templates.ExecuteTemplate(buf, "logout", data)
 	require.NoError(t, err)
 	html := buf.String()
-	assert.Equal(t, "", html)
+	// assert.Equal(t, "", html)
 	assert.True(t, len(html) > 0)
 	assert.Contains(t, html, "<!DOCTYPE html>")
-	assert.Contains(t, html, "const redirectURL = \"http://example.org/\";")
-	assert.Contains(t, html, "<iframe src=\"http://renku.org/logout\"></iframe>")
+	assert.Contains(t, html, "<a class=\"btn-rk-green\" href=\"http://example.org/\">")
+	assert.Contains(t, html, "<iframe id=\"logout-page-renku\" src=\"http://renku.org/logout\"></iframe>")
 }

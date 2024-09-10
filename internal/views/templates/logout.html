@@ -20,40 +20,47 @@ limitations under the License
 <html lang="en" >
     <head>
         <meta charset="UTF-8">
-        <title>Renku - logout</title>
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <!-- <meta http-equiv="refresh" content="5; url={{.redirectURL}}" /> -->
+        <!-- <link rel="stylesheet" href="url_for('static', filename='static/public/theme.css')"> -->
+        <title>Renku - login</title>
+        <script type="text/javascript">
+            // setTimeout(function(){ window.location.href = "{{.redirectURL}}"; }, 20000);
+            window.onload = function() {
+              const copyText = new Date().getFullYear();
+              document.getElementById("copy-content").innerHTML = `&copy; SDSC ${copyText}`;
+            };
+        </script>
     </head>
     <body>
-        <p>Logging you out of RenkuLab...</p>
+        <div class="header">
+            <!-- <img src="url_for('static', filename='static/public/img/logo.svg')" alt="Renku" height="50" class="logo"> -->
+        </div>
+        <div class="content">
+            <div class="content-text">
+                <h1>Redirecting...</h1>
+                <p>If you are not redirected in 5 seconds, follow this <a class="btn-rk-green" href="{{.redirectURL}}">link.</a></p>
+            </div>
+        </div>
         <div id="logout-pages">
             {{- range $key, $provider := .providers }}
             <iframe id="logout-page-{{$key}}" src="{{$provider.logoutURL}}"></iframe>
             {{- end}}
         </div>
-        <script type="text/javascript">
-            const redirectURL = {{.redirectURL}};
-            const providers = {{.providers}};
-
-            function checkIframe(providerID, provider) {
-                iframe = document.querySelector(`iframe#logout-page-${providerID}`);
-                console.log({providerID, iframe});
-                if (!iframe) {
-                    return;
-                }
-            }
-            function onLoad() {
-                if (!providers) {
-                    return;
-                }
-
-                window.setInterval(() => {
-                    Object.keys(providers).forEach((providerID) => checkIframe(providerID, providers[providerID]));
-                }, 1000);
-            }
-            
-            window.addEventListener("load", onLoad);
-        </script>
+        <footer class="footer">
+            <div id="copy-content">
+            </div>
+            <div>
+                <!-- <img src="url_for('static', filename='static/public/img/logo.svg')" alt="Renku" height="36" class="logo"> -->
+            </div>
+            <div class="network">
+                <a target=_blank href="https://renku.discourse.group">Forum</a>
+                <a target=_blank href="https://gitter.im/SwissDataScienceCenter/renku">Gitter</a>
+                <a target=_blank href="https://github.com/SwissDataScienceCenter/renku">Github</a>
+                <a target=_blank href="https://twitter.com/RenkuIO">Twitter</a>
+            </div>
+        </footer>
     </body>
 </html>
 {{- end -}}
