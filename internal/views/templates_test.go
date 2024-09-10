@@ -24,7 +24,6 @@ func TestLogoutTemplate(t *testing.T) {
 		"redirectURL": "http://example.org/",
 		"providers": map[string]any{
 			"renku": map[string]string{
-				"baseURL":   "http://renku.org",
 				"logoutURL": "http://renku.org/logout",
 			},
 		},
@@ -32,7 +31,6 @@ func TestLogoutTemplate(t *testing.T) {
 	err = templates.ExecuteTemplate(buf, "logout", data)
 	require.NoError(t, err)
 	html := buf.String()
-	// assert.Equal(t, "", html)
 	assert.True(t, len(html) > 0)
 	assert.Contains(t, html, "<!DOCTYPE html>")
 	assert.Contains(t, html, "<a class=\"btn-rk-green\" href=\"http://example.org/\">")
@@ -49,7 +47,6 @@ func TestGitlabLogoutTemplate(t *testing.T) {
 	err = templates.ExecuteTemplate(buf, "gitlab_logout", data)
 	require.NoError(t, err)
 	html := buf.String()
-	// assert.Equal(t, "", html)
 	assert.True(t, len(html) > 0)
 	assert.Contains(t, html, "<!DOCTYPE html>")
 	assert.Contains(t, html, "action=\"http://example.org/logout\"")

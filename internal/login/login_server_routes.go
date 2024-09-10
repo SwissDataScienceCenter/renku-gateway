@@ -120,8 +120,13 @@ func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
 	for providerID, provider := range l.config.Providers {
 		if providerID == "renku" && renkuIdToken != "" {
 			templateProviders[providerID] = map[string]string{
-				"baseURL":   provider.Issuer,
 				"logoutURL": fmt.Sprintf("%s/protocol/openid-connect/logout?id_token_hint=%s", provider.Issuer, renkuIdToken),
+			}
+		}
+		// TODO
+		if providerID == "gitlab" {
+			templateProviders[providerID] = map[string]string{
+				"logoutURL": fmt.Sprintf("%s%s/gitlab/logout", l.config.RenkuBaseURL, l.config.LoginRoutesBasePath),
 			}
 		}
 	}
@@ -161,7 +166,6 @@ func (l *LoginServer) GetGitLabLogout(c echo.Context) error {
 		return c.NoContent(404)
 	}
 	logoutURL := fmt.Sprintf("%s/users/sign_out", provider.Issuer)
-
 	templateData := map[string]any{
 		"logoutURL": logoutURL,
 	}

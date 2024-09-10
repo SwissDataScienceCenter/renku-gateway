@@ -15,6 +15,7 @@ type LoginConfig struct {
 	LoginRoutesBasePath string
 	TokenEncryption     TokenEncryptionConfig
 	Providers           map[string]OIDCClient
+	// TODO: GitLab logout options
 }
 
 type OIDCClient struct {
