@@ -36,7 +36,7 @@ func TestLogoutTemplate(t *testing.T) {
 	assert.Contains(t, html, "<!DOCTYPE html>")
 	assert.Contains(t, html, "<link rel=\"stylesheet\" href=\"http://renku.ch/static/public/theme.css\">")
 	assert.Contains(t, html, "<a class=\"btn-rk-green\" href=\"http://example.org/\">")
-	assert.Contains(t, html, "<iframe id=\"logout-page-renku\" src=\"http://renku.ch/logout\"></iframe>")
+	assert.Contains(t, html, "<iframe id=\"logout-page-renku\" src=\"http://renku.ch/logout\" style=\"display:none;\"></iframe>")
 }
 
 func TestGitlabLogoutTemplate(t *testing.T) {

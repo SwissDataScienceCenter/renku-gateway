@@ -22,11 +22,11 @@ limitations under the License
         <meta charset="UTF-8">
         <meta http-equiv="x-ua-compatible" content="ie=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <!-- <meta http-equiv="refresh" content="5; url={{.redirectURL}}" /> -->
+        <meta http-equiv="refresh" content="5; url={{.redirectURL}}" />
         <link rel="stylesheet" href="{{.renkuBaseURL}}/static/public/theme.css">
         <title>Renku - login</title>
         <script type="text/javascript">
-            // setTimeout(function(){ window.location.href = "{{.redirectURL}}"; }, 20000);
+            setTimeout(function(){ window.location.href = "{{.redirectURL}}"; }, 20000);
             window.onload = function() {
               const copyText = new Date().getFullYear();
               document.getElementById("copy-content").innerHTML = `&copy; SDSC ${copyText}`;
@@ -45,7 +45,7 @@ limitations under the License
         </div>
         <div id="logout-pages">
             {{- range $key, $provider := .providers }}
-            <iframe id="logout-page-{{$key}}" src="{{$provider.logoutURL}}"></iframe>
+            <iframe id="logout-page-{{$key}}" src="{{$provider.logoutURL}}" style="display:none;"></iframe>
             {{- end}}
         </div>
         <footer class="footer">
