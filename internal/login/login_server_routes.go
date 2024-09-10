@@ -147,7 +147,7 @@ func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
 		}
 	}
 	templateData := map[string]any{
-		"renkuBaseURL": l.config.RenkuBaseURL,
+		"renkuBaseURL": l.config.RenkuBaseURL.String(),
 		"redirectURL":  redirectURL,
 		"providers":    templateProviders,
 	}
