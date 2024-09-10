@@ -99,29 +99,6 @@ func (c *oidcClient) getID() string {
 	return c.id
 }
 
-func (c *oidcClient) checkEndSession() string {
-	return c.client.GetEndSessionEndpoint()
-}
-
-func (c *oidcClient) endSession(idToken models.AuthToken, redirectURL, state string) http.HandlerFunc {
-	endSessionURL := c.client.GetEndSessionEndpoint()
-	if endSessionURL == "" {
-		return nil
-	}
-	return func(w http.ResponseWriter, r *http.Request) {
-		slog.Debug("OIDC", "message", "Calling EndSession")
-		// location, err := rp.EndSession(c.client, idToken.Value, redirectURL, state)
-		location, err := rp.EndSession(c.client, idToken.Value, c.client.OAuthConfig().RedirectURL, state)
-		if err != nil {
-			slog.Debug("OIDC", "EndSession error", err)
-			http.Error(w, "failed to end session: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-		slog.Debug("OIDC", "end session URL", location.String())
-		http.Redirect(w, r, location.String(), http.StatusFound)
-	}
-}
-
 func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models.AuthToken) (sessions.AuthTokenSet, error) {
 	oAuth2Token, err := rp.RefreshAccessToken(c.client, refreshToken.Value, "", "")
 	if err != nil {
