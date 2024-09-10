@@ -26,7 +26,7 @@ limitations under the License
         <link rel="stylesheet" href="{{.renkuBaseURL}}/static/public/theme.css">
         <title>Renku - login</title>
         <script type="text/javascript">
-            setTimeout(function(){ window.location.href = "{{.redirectURL}}"; }, 20000);
+            setTimeout(function(){ window.location.href = {{.redirectURL}}; }, 20000);
             window.onload = function() {
               const copyText = new Date().getFullYear();
               document.getElementById("copy-content").innerHTML = `&copy; SDSC ${copyText}`;
