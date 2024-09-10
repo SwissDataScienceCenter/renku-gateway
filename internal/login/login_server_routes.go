@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
@@ -119,17 +120,29 @@ func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
 	templateProviders := make(map[string]any, len(l.providerStore))
 	for providerID, provider := range l.config.Providers {
 		if providerID == "renku" && renkuIdToken != "" {
+			logoutURL, err := url.Parse(provider.Issuer)
+			if err != nil {
+				return err
+			}
+			logoutURL = logoutURL.JoinPath("./protocol/openid-connect/logout")
+			q := logoutURL.Query()
+			q.Add("id_token_hint", renkuIdToken)
+			logoutURL.RawQuery = q.Encode()
 			templateProviders[providerID] = map[string]string{
-				"logoutURL": fmt.Sprintf("%s/protocol/openid-connect/logout?id_token_hint=%s", provider.Issuer, renkuIdToken),
+				"logoutURL": logoutURL.String(),
 			}
 		}
 		if l.config.LogoutGitLabUponRenkuLogout && providerID == "gitlab" {
-			logoutURL := fmt.Sprintf("%s%s/gitlab/logout", l.config.RenkuBaseURL, l.config.LoginRoutesBasePath)
+			logoutURL := l.config.RenkuBaseURL.JoinPath(l.config.LoginRoutesBasePath).JoinPath("./gitlab/logout")
 			if l.config.OldGitLabLogout {
-				logoutURL = fmt.Sprintf("%s/users/sign_out", provider.Issuer)
+				logoutURL, err = url.Parse(provider.Issuer)
+				if err != nil {
+					return err
+				}
+				logoutURL = logoutURL.JoinPath("./users/sign_out")
 			}
 			templateProviders[providerID] = map[string]string{
-				"logoutURL": logoutURL,
+				"logoutURL": logoutURL.String(),
 			}
 		}
 	}
