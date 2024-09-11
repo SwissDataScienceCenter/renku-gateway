@@ -21,6 +21,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/tokenstore"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/views"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/stretchr/testify/assert"
@@ -59,6 +60,11 @@ func startTestServer(loginServer *LoginServer, listener net.Listener) (*httptest
 	e := echo.New()
 	e.Pre(middleware.RequestID())
 	e.Use(middleware.Recover(), middleware.Logger())
+	tr, err := views.NewTemplateRenderer()
+	if err != nil {
+		return nil, err
+	}
+	tr.Register(e)
 	loginServer.RegisterHandlers(e, loginServer.sessions.Middleware())
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "You have reached the Renku home page")
