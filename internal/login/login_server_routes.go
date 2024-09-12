@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
@@ -100,12 +101,57 @@ func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
 	} else {
 		redirectURL = l.config.RenkuBaseURL.String()
 	}
+
+	session, err := l.sessions.Get(c)
+	var renkuIdToken string = ""
+	if err == nil {
+		idToken, err := l.sessions.GetIDToken(c, *session, "renku")
+		if err == nil {
+			renkuIdToken = idToken.Value
+		}
+	}
+
 	// Delete the session from the store
-	err := l.sessions.Delete(c)
+	err = l.sessions.Delete(c)
 	if err != nil {
 		return err
 	}
-	return c.Redirect(http.StatusFound, redirectURL)
+
+	templateProviders := make(map[string]any, len(l.providerStore))
+	for providerID, provider := range l.config.Providers {
+		if providerID == "renku" && renkuIdToken != "" {
+			logoutURL, err := url.Parse(provider.Issuer)
+			if err != nil {
+				return err
+			}
+			logoutURL = logoutURL.JoinPath("./protocol/openid-connect/logout")
+			q := logoutURL.Query()
+			q.Add("id_token_hint", renkuIdToken)
+			logoutURL.RawQuery = q.Encode()
+			templateProviders[providerID] = map[string]string{
+				"logoutURL": logoutURL.String(),
+			}
+		}
+		if l.config.LogoutGitLabUponRenkuLogout && providerID == "gitlab" {
+			logoutURL := l.config.RenkuBaseURL.JoinPath(l.config.LoginRoutesBasePath).JoinPath("./gitlab/logout")
+			if l.config.OldGitLabLogout {
+				logoutURL, err = url.Parse(provider.Issuer)
+				if err != nil {
+					return err
+				}
+				logoutURL = logoutURL.JoinPath("./users/sign_out")
+			}
+			templateProviders[providerID] = map[string]string{
+				"logoutURL": logoutURL.String(),
+			}
+		}
+	}
+	templateData := map[string]any{
+		"renkuBaseURL": l.config.RenkuBaseURL.String(),
+		"redirectURL":  redirectURL,
+		"providers":    templateProviders,
+	}
+	return c.Render(http.StatusOK, "logout", templateData)
 }
 
 func (l *LoginServer) GetGitLabToken(c echo.Context) error {
@@ -129,6 +175,18 @@ func (l *LoginServer) GetGitLabToken(c echo.Context) error {
 		"access_token": gitlabAccessToken.Value,
 		"expires_at":   gitlabAccessToken.ExpiresAt.Unix(),
 	})
+}
+
+func (l *LoginServer) GetGitLabLogout(c echo.Context) error {
+	provider, ok := l.config.Providers["gitlab"]
+	if !ok {
+		return c.NoContent(404)
+	}
+	logoutURL := fmt.Sprintf("%s/users/sign_out", provider.Issuer)
+	templateData := map[string]any{
+		"logoutURL": logoutURL,
+	}
+	return c.Render(http.StatusOK, "gitlab_logout", templateData)
 }
 
 func (l *LoginServer) GetUserProfile(c echo.Context) error {

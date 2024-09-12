@@ -11,10 +11,12 @@ type TokenEncryptionConfig struct {
 }
 
 type LoginConfig struct {
-	RenkuBaseURL        *url.URL
-	LoginRoutesBasePath string
-	TokenEncryption     TokenEncryptionConfig
-	Providers           map[string]OIDCClient
+	RenkuBaseURL                *url.URL
+	LoginRoutesBasePath         string
+	TokenEncryption             TokenEncryptionConfig
+	Providers                   map[string]OIDCClient
+	OldGitLabLogout             bool
+	LogoutGitLabUponRenkuLogout bool
 }
 
 type OIDCClient struct {
