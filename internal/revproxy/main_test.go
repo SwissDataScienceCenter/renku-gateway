@@ -457,7 +457,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 				Path:             "/api/search/test/acceptedAuth",
 				VisitedServerIDs: []string{"upstream"},
 				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization:   "",
+					echo.HeaderAuthorization:   "Bearer accessTokenValue",
 					"Renku-Auth-Id-Token":      "idTokenValue",
 					"Renku-Auth-Access-Token":  "",
 					"Renku-Auth-Refresh-Token": "",
