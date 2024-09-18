@@ -217,6 +217,8 @@ func (l *LoginServer) nextAuthStep(
 			url = l.config.RenkuBaseURL.String()
 		}
 		slog.Info("login completed", "requestID", utils.GetRequestID(c), "appRedirectURL", url)
+		// Save the session: ensure we save the session before sending redirects
+		l.sessions.Save(c)
 		return c.Redirect(http.StatusFound, url)
 	}
 	providerID := session.LoginSequence[0]
@@ -231,5 +233,7 @@ func (l *LoginServer) nextAuthStep(
 		slog.Error("auth handler failed", "error", err, "requestID", utils.GetRequestID(c))
 		return err
 	}
+	// Save the session: ensure we save the session before sending redirects
+	l.sessions.Save(c)
 	return echo.WrapHandler(handler)(c)
 }
