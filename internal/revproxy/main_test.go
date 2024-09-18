@@ -391,7 +391,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 					"Renku-Auth-Id-Token":      "",
 					"Renku-Auth-Access-Token":  "",
 					"Renku-Auth-Refresh-Token": "",
-					"Renku-Auth-Anon-Id":       "sessionID",
+					"Renku-Auth-Anon-Id":       "anon-sessionID",
 				}},
 			},
 			Sessions: []models.Session{
@@ -449,7 +449,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 					"Renku-Auth-Id-Token":      "",
 					"Renku-Auth-Access-Token":  "",
 					"Renku-Auth-Refresh-Token": "",
-					"Renku-Auth-Anon-Id":       "sessionID",
+					"Renku-Auth-Anon-Id":       "anon-sessionID",
 				}},
 			},
 			Sessions: []models.Session{
@@ -669,7 +669,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 					"Gitlab-Access-Token":            "",
 					"Gitlab-Access-Token-Expires-At": "",
 					"Renku-Auth-Refresh-Token":       "",
-					"Renku-Auth-Anon-Id":             "sessionID",
+					"Renku-Auth-Anon-Id":             "anon-sessionID",
 				}},
 			},
 		},

@@ -252,7 +252,10 @@ func notebooksAnonymousID(sessions *sessions.SessionStore) echo.MiddlewareFunc {
 			if err != nil {
 				return err
 			}
-			c.Request().Header.Set("Renku-Auth-Anon-Id", session.ID)
+			// NOTE: The anonymous session ID must start with a letter, otherwise when we use it to create sessions in k8s
+			// things fail because a label value must start with a letter. That is why we add `anon-` here to the value.
+			// Note that valid values for a label in k8s are [a-zA-Z0-9], also -_. and it must start with a letter.
+			c.Request().Header.Set("Renku-Auth-Anon-Id", "anon-" + session.ID)
 			return next(c)
 		}
 	}
