@@ -1017,6 +1017,13 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Path:     "/api/kc/auth/realms/Renku/protocol/openid-connect/userinfo",
 			Expected: TestResults{Path: "/auth/realms/Renku/protocol/openid-connect/userinfo", VisitedServerIDs: []string{"upstream"}},
 		},
+		{
+			Path: "/ui-server/api/data/repositories/https%3A%2F%2Fexample.org%2Fgroup%2Frepo",
+			Expected: TestResults{
+				Path:            "/api/data/repositories/https%3A%2F%2Fexample.org%2Fgroup%2Frepo",
+				VisitedServerIDs: []string{"upstream"},
+			},
+		},
 	}
 	for _, testCase := range testCases {
 		// Test names show up poorly in vscode if the name contains "/"

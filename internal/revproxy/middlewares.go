@@ -206,7 +206,7 @@ func UiServerPathRewrite() echo.MiddlewareFunc {
 			if strings.HasPrefix(path, "/ui-server/auth") {
 				originalURL := c.Request().URL.String()
 				c.Request().URL.Path = "/api" + strings.TrimPrefix(path, "/ui-server")
-				c.Request().URL.RawPath = ""
+				c.Request().URL.RawPath = "/api" + strings.TrimPrefix(c.Request().URL.RawPath, "/ui-server")
 				newUrl, err := url.Parse(c.Request().URL.String())
 				if err != nil {
 					return err
@@ -220,7 +220,7 @@ func UiServerPathRewrite() echo.MiddlewareFunc {
 			if strings.HasPrefix(path, "/ui-server/api") {
 				originalURL := c.Request().URL.String()
 				c.Request().URL.Path = strings.TrimPrefix(path, "/ui-server")
-				c.Request().URL.RawPath = ""
+				c.Request().URL.RawPath = strings.TrimPrefix(c.Request().URL.RawPath, "/ui-server")
 				newUrl, err := url.Parse(c.Request().URL.String())
 				if err != nil {
 					return err
