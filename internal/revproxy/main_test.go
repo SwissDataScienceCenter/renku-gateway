@@ -457,7 +457,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 				Path:             "/api/search/test/acceptedAuth",
 				VisitedServerIDs: []string{"upstream"},
 				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization:   "",
+					echo.HeaderAuthorization:   "Bearer accessTokenValue",
 					"Renku-Auth-Id-Token":      "idTokenValue",
 					"Renku-Auth-Access-Token":  "",
 					"Renku-Auth-Refresh-Token": "",
@@ -962,6 +962,13 @@ func TestInternalSvcRoutes(t *testing.T) {
 		{
 			Path:     "/api/kc/auth/realms/Renku/protocol/openid-connect/userinfo",
 			Expected: TestResults{Path: "/auth/realms/Renku/protocol/openid-connect/userinfo", VisitedServerIDs: []string{"upstream"}},
+		},
+		{
+			Path: "/ui-server/api/data/repositories/https%3A%2F%2Fexample.org%2Fgroup%2Frepo",
+			Expected: TestResults{
+				Path:            "/api/data/repositories/https%3A%2F%2Fexample.org%2Fgroup%2Frepo",
+				VisitedServerIDs: []string{"upstream"},
+			},
 		},
 	}
 	for _, testCase := range testCases {

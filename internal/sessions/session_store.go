@@ -1,6 +1,7 @@
 package sessions
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -132,7 +133,9 @@ func (sessions *SessionStore) Save(c echo.Context) error {
 	if session.ID == "" {
 		return nil
 	}
-	return sessions.sessionRepo.SetSession(c.Request().Context(), *session)
+	// Do not cancel persisting the session
+	childCtx := context.WithoutCancel(c.Request().Context())
+	return sessions.sessionRepo.SetSession(childCtx, *session)
 }
 
 // Delete removes the current session from storage and unsets the session cookie
