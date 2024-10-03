@@ -381,10 +381,6 @@ var dataServiceGitlabAccessTokenInjector TokenInjector = func(c echo.Context, ac
 
 	// NOTE: As long as the token comes from the database we can trust it and do not have to validate it.
 	// Each service that the request ultimately goes to will also validate before it uses the token
-	var expiresAt int64 = -1
-	if !accessToken.ExpiresAt.IsZero() {
-		expiresAt = accessToken.ExpiresAt.Unix()
-	}
 	slog.Debug(
 		"PROXY AUTH MIDDLEWARE",
 		"message",
@@ -397,8 +393,20 @@ var dataServiceGitlabAccessTokenInjector TokenInjector = func(c echo.Context, ac
 		utils.GetRequestID(c),
 	)
 	c.Request().Header.Set(headerKey, accessToken.Value)
-	if expiresAt != -1 {
-		c.Request().Header.Set("Gitlab-Access-Token-Expires-At", strconv.FormatInt(expiresAt, 10))
+	if accessToken.ExpiresAt.IsZero() {
+		return nil
 	}
+	c.Request().Header.Set("Gitlab-Access-Token-Expires-At", strconv.FormatInt(accessToken.ExpiresAt.Unix(), 10))
+	slog.Debug(
+		"PROXY AUTH MIDDLEWARE",
+		"message",
+		"injected token in header",
+		"header",
+		headerKey,
+		"value",
+		accessToken.ExpiresAt,
+		"requestID",
+		utils.GetRequestID(c),
+	)
 	return nil
 }
