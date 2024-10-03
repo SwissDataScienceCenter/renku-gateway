@@ -74,7 +74,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	e.Group("/api/kg/webhooks", append(commonMiddlewares, gitlabToken, noCookies, stripPrefix("/api/kg/webhooks"), webhookProxy)...)
 	e.Group("/api/datasets", append(commonMiddlewares, noCookies, regexRewrite("^/api(.*)", "/knowledge-graph$1"), kgProxy)...)
 	e.Group("/api/kg", append(commonMiddlewares, gitlabToken, noCookies, regexRewrite("^/api/kg(.*)", "/knowledge-graph$1"), kgProxy)...)
-	e.Group("/api/data", append(commonMiddlewares, renkuAccessToken, dataGitlabAccessToken, noCookies, dataServiceProxy)...)
+	e.Group("/api/data", append(commonMiddlewares, renkuAccessToken, dataGitlabAccessToken, notebooksRenkuRefreshToken, notebooksAnonymousID(r.sessions), noCookies, dataServiceProxy)...)
 	e.Group("/api/search", append(commonMiddlewares, renkuAccessToken, notebooksRenkuIDToken, notebooksAnonymousID(r.sessions), noCookies, searchProxy)...)
 	// /api/kc is used only by the ui and no one else, will be removed when the gateway is in charge of user sessions
 	e.Group("/api/kc", append(commonMiddlewares, stripPrefix("/api/kc"), renkuAccessToken, keycloakProxyHost, keycloakProxy)...)
@@ -122,7 +122,7 @@ func (r *Revproxy) initializeAuth() error {
 	if err != nil {
 		return err
 	}
-	r.dataGitlabAccessTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), InjectInHeader("Gitlab-Access-Token"))
+	r.dataGitlabAccessTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), WithTokenInjector(dataServiceGitlabAccessTokenInjector))
 	if err != nil {
 		return err
 	}
