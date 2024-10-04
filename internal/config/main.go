@@ -24,6 +24,7 @@ func (r RedactedString) MarshalBinary() ([]byte, error) {
 
 type Config struct {
 	RunningEnvironment
+	DebugMode  bool
 	Server     ServerConfig
 	Sessions   SessionConfig
 	Revproxy   RevproxyConfig
