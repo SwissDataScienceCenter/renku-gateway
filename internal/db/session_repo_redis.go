@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
@@ -34,6 +35,13 @@ func (r RedisAdapter) GetSession(ctx context.Context, sessionID string) (models.
 
 func (r RedisAdapter) SetSession(ctx context.Context, session models.Session) error {
 	key := r.sessionKey(session.ID)
+	slog.Debug(
+		"SESSION STORE",
+		"message",
+		"saving session",
+		"session",
+		session,
+	)
 	err := r.rdb.HSet(
 		ctx,
 		key,
