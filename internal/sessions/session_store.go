@@ -182,7 +182,7 @@ func (sessions *SessionStore) getSessionIDFromCookie(c echo.Context) (string, er
 	cookie, err := c.Cookie(SessionCookieName)
 	if err != nil {
 		if err != http.ErrNoCookie {
-			return "", nil
+			return "", err
 		}
 	} else {
 		if sessions.cookieHandler != nil {
