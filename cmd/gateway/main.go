@@ -44,7 +44,7 @@ func main() {
 		os.Exit(1)
 	}
 	// TODO: configure log level
-	// logLevel.Set(slog.LevelDebug)
+	logLevel.Set(slog.LevelDebug)
 	// Setup
 	e := echo.New()
 	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
@@ -102,12 +102,16 @@ func main() {
 		os.Exit(1)
 	}
 	// Create session store
-	sessionStore, err := sessions.NewSessionStore(
+	sessionOpts := []sessions.SessionStoreOption{
 		sessions.WithAuthenticator(authenticator),
 		sessions.WithSessionRepository(dbAdapter),
 		sessions.WithTokenStore(tokenStore),
 		sessions.WithConfig(gwConfig.Sessions),
-	)
+	}
+	if !gwConfig.Sessions.UnsafeNoCookieHandler {
+		sessionOpts = append(sessionOpts, sessions.WithCookieHandlerKeys([]byte(gwConfig.Sessions.CookieHashKey), []byte(gwConfig.Sessions.CookieEncodingKey)))
+	}
+	sessionStore, err := sessions.NewSessionStore(sessionOpts...)
 	if err != nil {
 		slog.Error("failed to initialize sessions", "error", err)
 		os.Exit(1)

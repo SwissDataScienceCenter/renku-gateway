@@ -13,6 +13,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
+	"github.com/gorilla/securecookie"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 )
@@ -21,6 +22,7 @@ import (
 type SessionStore struct {
 	authenticator  authentication.Authenticator
 	cookieTemplate func() http.Cookie
+	cookieHandler  models.CookieHandler
 	sessionMaker   SessionMaker
 	sessionRepo    models.SessionRepository
 	tokenStore     models.TokenStoreInterface
@@ -118,8 +120,11 @@ func (sessions *SessionStore) Create(c echo.Context) (*models.Session, error) {
 	if err != nil {
 		return &models.Session{}, err
 	}
+	cookie, err := sessions.cookie(session)
+	if err != nil {
+		return &models.Session{}, err
+	}
 	c.Set(SessionCtxKey, &session)
-	cookie := sessions.cookie(session)
 	c.SetCookie(&cookie)
 	return &session, nil
 }
@@ -157,10 +162,18 @@ func (sessions *SessionStore) Delete(c echo.Context) error {
 	return sessions.sessionRepo.RemoveSession(c.Request().Context(), sessionID)
 }
 
-func (sessions *SessionStore) cookie(session models.Session) http.Cookie {
+func (sessions *SessionStore) cookie(session models.Session) (http.Cookie, error) {
 	cookie := sessions.cookieTemplate()
-	cookie.Value = session.ID
-	return cookie
+	if sessions.cookieHandler != nil {
+		encoded, err := sessions.cookieHandler.Encode(SessionCookieName, session.ID)
+		if err != nil {
+			return http.Cookie{}, err
+		}
+		cookie.Value = encoded
+	} else {
+		cookie.Value = session.ID
+	}
+	return cookie, nil
 }
 
 // getSessionIDFromCookie returns the session ID from the cookie if present
@@ -172,7 +185,15 @@ func (sessions *SessionStore) getSessionIDFromCookie(c echo.Context) (string, er
 			return "", nil
 		}
 	} else {
-		sessionID = cookie.Value
+		if sessions.cookieHandler != nil {
+			err = sessions.cookieHandler.Decode(SessionCookieName, cookie.Value, &sessionID)
+			if err != nil {
+				slog.Debug("Got an invalid cookie", "requestID", utils.GetRequestID(c))
+				return "", nil
+			}
+		} else {
+			sessionID = cookie.Value
+		}
 	}
 	return sessionID, nil
 }
@@ -278,6 +299,31 @@ func WithCookieTemplate(tpl func() http.Cookie) SessionStoreOption {
 	return func(sessions *SessionStore) error {
 		sessions.cookieTemplate = tpl
 		return nil
+	}
+}
+
+func WithCookieHandler(h models.CookieHandler) SessionStoreOption {
+	return func(sessions *SessionStore) error {
+		sessions.cookieHandler = h
+		return nil
+	}
+}
+
+func WithCookieHandlerKeys(cookieHashKey []byte, cookieEncodingKey []byte) SessionStoreOption {
+	return func(sessions *SessionStore) error {
+		if len(cookieEncodingKey) > 0 && !(len(cookieEncodingKey) == 16 || len(cookieEncodingKey) == 32) {
+			return fmt.Errorf(
+				"invalid length for cookie encryption key, got %d, but allowed sizes are 16 or 32",
+				len(cookieEncodingKey),
+			)
+		}
+		if len(cookieHashKey) > 0 && len(cookieHashKey) != 32 {
+			return fmt.Errorf(
+				"invalid length for cookie hash key, got %d, allowed size is 32",
+				len(cookieHashKey),
+			)
+		}
+		return WithCookieHandler(securecookie.New(cookieHashKey, cookieEncodingKey))(sessions)
 	}
 }
 

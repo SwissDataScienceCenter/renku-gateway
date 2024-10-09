@@ -6,6 +6,11 @@ type SessionConfig struct {
 	IdleSessionTTLSeconds  int
 	MaxSessionTTLSeconds   int
 	AuthorizationVerifiers []AuthorizationVerifier
+	CookieEncodingKey      RedactedString
+	CookieHashKey          RedactedString
+	// NOTE: UnsafeNoCookieHandler should only be used for testing, in production this has to be false/unset
+	// without this there is no CSRF protection on the oauth callback endpoint
+	UnsafeNoCookieHandler bool
 }
 
 type AuthorizationVerifier struct {
@@ -20,6 +25,9 @@ func (c *SessionConfig) Validate() error {
 	}
 	if c.MaxSessionTTLSeconds > 0 && c.IdleSessionTTLSeconds > c.MaxSessionTTLSeconds {
 		return fmt.Errorf("max session TTL seconds (%d) cannot be less than idle session TTL seconds (%d)", c.MaxSessionTTLSeconds, c.IdleSessionTTLSeconds)
+	}
+	if c.UnsafeNoCookieHandler {
+		return fmt.Errorf("a cookie handler needs to be configured in production")
 	}
 	return nil
 }
