@@ -6,14 +6,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getValidRedisConfig(t *testing.T) RedisConfig {
+func getValidRedisConfig() RedisConfig {
 	return RedisConfig{
 		Type: "redis",
 	}
 }
 
 func TestValidRedisConfig(t *testing.T) {
-	config := getValidRedisConfig(t)
+	config := getValidRedisConfig()
 
 	err := config.Validate(Production)
 
@@ -21,7 +21,7 @@ func TestValidRedisConfig(t *testing.T) {
 }
 
 func TestInvalidRedisType(t *testing.T) {
-	config := getValidRedisConfig(t)
+	config := getValidRedisConfig()
 	config.Type = "redis-mock"
 
 	err := config.Validate(Production)

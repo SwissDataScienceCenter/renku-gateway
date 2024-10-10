@@ -9,10 +9,10 @@ import (
 )
 
 func getValidLoginConfig(t *testing.T) LoginConfig {
-	renkuBaseUrl, err := url.Parse("https://renku.example.org")
+	renkuBaseURL, err := url.Parse("https://renku.example.org")
 	require.NoError(t, err)
 	return LoginConfig{
-		RenkuBaseURL:        renkuBaseUrl,
+		RenkuBaseURL:        renkuBaseURL,
 		LoginRoutesBasePath: "/api/auth",
 		TokenEncryption: TokenEncryptionConfig{
 			Enabled:   true,
