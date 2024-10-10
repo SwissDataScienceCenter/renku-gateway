@@ -113,7 +113,9 @@ func TestGetLogin(t *testing.T) {
 		sessions.WithAuthenticator(authenticator),
 		sessions.WithSessionRepository(dbAdapter),
 		sessions.WithTokenStore(tokenStore),
-		sessions.WithConfig(config.SessionConfig{}),
+		sessions.WithConfig(config.SessionConfig{
+			UnsafeNoCookieHandler: true,
+		}),
 		sessions.WithCookieTemplate(func() http.Cookie {
 			return http.Cookie{
 				Name:     sessions.SessionCookieName,
@@ -232,7 +234,9 @@ func TestGetLogin2Steps(t *testing.T) {
 		sessions.WithAuthenticator(authenticator),
 		sessions.WithSessionRepository(dbAdapter),
 		sessions.WithTokenStore(tokenStore),
-		sessions.WithConfig(config.SessionConfig{}),
+		sessions.WithConfig(config.SessionConfig{
+			UnsafeNoCookieHandler: true,
+		}),
 		sessions.WithCookieTemplate(func() http.Cookie {
 			return http.Cookie{
 				Name:     sessions.SessionCookieName,

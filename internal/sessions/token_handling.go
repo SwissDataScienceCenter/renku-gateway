@@ -124,7 +124,7 @@ func (sessions *SessionStore) GetIDToken(c echo.Context, session models.Session,
 	return token, nil
 }
 
-func (sessions *SessionStore) SaveTokens(c echo.Context, session *models.Session, tokens AuthTokenSet) error {
+func (sessions *SessionStore) SaveTokens(c echo.Context, session *models.Session, tokens models.AuthTokenSet) error {
 	err := tokens.ValidateTokensType()
 	if err != nil {
 		return err
@@ -176,7 +176,7 @@ func (*SessionStore) idTokenKey(tokenID string) string {
 }
 
 // getTokenStorageExpiration returns the max session expiration unless the provider is Renku or GitLab, in which case there is no expiration
-func (*SessionStore) getTokenStorageExpiration(tokens AuthTokenSet, session models.Session) time.Time {
+func (*SessionStore) getTokenStorageExpiration(tokens models.AuthTokenSet, session models.Session) time.Time {
 	providerID := tokens.AccessToken.ProviderID
 	if providerID == "renku" || providerID == "gitlab" {
 		return time.Time{}

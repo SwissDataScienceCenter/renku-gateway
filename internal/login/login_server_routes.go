@@ -7,7 +7,6 @@ import (
 	"net/url"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/labstack/echo/v4"
 )
@@ -60,7 +59,7 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 	if err != nil {
 		return err
 	}
-	tokenCallback := func(tokenSet sessions.AuthTokenSet) error {
+	tokenCallback := func(tokenSet models.AuthTokenSet) error {
 		// Clear the state value before saving the tokens
 		session.LoginState = ""
 		// Make the token set and set the tokens' session ID

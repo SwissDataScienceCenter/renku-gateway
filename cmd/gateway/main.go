@@ -44,7 +44,7 @@ func main() {
 		os.Exit(1)
 	}
 	// TODO: configure log level
-	// logLevel.Set(slog.LevelDebug)
+	logLevel.Set(slog.LevelDebug)
 	// Setup
 	e := echo.New()
 	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
