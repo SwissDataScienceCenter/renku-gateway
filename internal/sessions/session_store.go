@@ -290,7 +290,26 @@ func WithTokenStore(store models.TokenStoreInterface) SessionStoreOption {
 
 func WithConfig(c config.SessionConfig) SessionStoreOption {
 	return func(sessions *SessionStore) error {
+		if len(c.CookieEncodingKey) > 0 && !(len(c.CookieEncodingKey) == 16 || len(c.CookieEncodingKey) == 32) {
+			return fmt.Errorf(
+				"invalid length for cookie encryption key, got %d, but allowed sizes are 16 or 32",
+				len(c.CookieEncodingKey),
+			)
+		}
+		if len(c.CookieHashKey) > 0 && len(c.CookieHashKey) != 32 {
+			return fmt.Errorf(
+				"invalid length for cookie hash key, got %d, allowed size is 32",
+				len(c.CookieHashKey),
+			)
+		}
+		if len(c.CookieEncodingKey) > 0 && len(c.CookieHashKey) > 0 {
+			sessions.cookieHandler = securecookie.New([]byte(c.CookieHashKey), []byte(c.CookieEncodingKey))
+		} else if len(c.CookieHashKey) > 0 {
+			sessions.cookieHandler = securecookie.New([]byte(c.CookieHashKey), nil)
+		}
+
 		sessions.sessionMaker = NewSessionMaker(WithIdleSessionTTLSeconds(c.IdleSessionTTLSeconds), WithMaxSessionTTLSeconds(c.MaxSessionTTLSeconds))
+
 		return nil
 	}
 }
@@ -306,24 +325,6 @@ func WithCookieHandler(h models.CookieHandler) SessionStoreOption {
 	return func(sessions *SessionStore) error {
 		sessions.cookieHandler = h
 		return nil
-	}
-}
-
-func WithCookieHandlerKeys(cookieHashKey []byte, cookieEncodingKey []byte) SessionStoreOption {
-	return func(sessions *SessionStore) error {
-		if len(cookieEncodingKey) > 0 && !(len(cookieEncodingKey) == 16 || len(cookieEncodingKey) == 32) {
-			return fmt.Errorf(
-				"invalid length for cookie encryption key, got %d, but allowed sizes are 16 or 32",
-				len(cookieEncodingKey),
-			)
-		}
-		if len(cookieHashKey) > 0 && len(cookieHashKey) != 32 {
-			return fmt.Errorf(
-				"invalid length for cookie hash key, got %d, allowed size is 32",
-				len(cookieHashKey),
-			)
-		}
-		return WithCookieHandler(securecookie.New(cookieHashKey, cookieEncodingKey))(sessions)
 	}
 }
 

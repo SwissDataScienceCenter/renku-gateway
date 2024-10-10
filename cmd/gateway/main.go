@@ -102,16 +102,12 @@ func main() {
 		os.Exit(1)
 	}
 	// Create session store
-	sessionOpts := []sessions.SessionStoreOption{
+	sessionStore, err := sessions.NewSessionStore(
 		sessions.WithAuthenticator(authenticator),
 		sessions.WithSessionRepository(dbAdapter),
 		sessions.WithTokenStore(tokenStore),
 		sessions.WithConfig(gwConfig.Sessions),
-	}
-	if !gwConfig.Sessions.UnsafeNoCookieHandler {
-		sessionOpts = append(sessionOpts, sessions.WithCookieHandlerKeys([]byte(gwConfig.Sessions.CookieHashKey), []byte(gwConfig.Sessions.CookieEncodingKey)))
-	}
-	sessionStore, err := sessions.NewSessionStore(sessionOpts...)
+	)
 	if err != nil {
 		slog.Error("failed to initialize sessions", "error", err)
 		os.Exit(1)

@@ -70,7 +70,7 @@ func TestCookie(t *testing.T) {
 func TestCookieWithSigning(t *testing.T) {
 	hashKey := securecookie.GenerateRandomKey(32)
 	encodingKey := securecookie.GenerateRandomKey(32)
-	sessionStore := setupSessionStore(t, WithCookieHandlerKeys(hashKey, encodingKey))
+	sessionStore := setupSessionStore(t, WithCookieHandler(securecookie.New(hashKey, encodingKey)))
 	assert.NotNil(t, sessionStore.cookieHandler)
 	session, err := sessionStore.sessionMaker.NewSession()
 	require.NoError(t, err)
@@ -106,7 +106,7 @@ func TestGetSessionIDFromCookie(t *testing.T) {
 func TestGetSessionIDFromCookieWithSigning(t *testing.T) {
 	hashKey := securecookie.GenerateRandomKey(32)
 	encodingKey := securecookie.GenerateRandomKey(32)
-	sessionStore := setupSessionStore(t, WithCookieHandlerKeys(hashKey, encodingKey))
+	sessionStore := setupSessionStore(t, WithCookieHandler(securecookie.New(hashKey, encodingKey)))
 	session, err := sessionStore.sessionMaker.NewSession()
 	require.NoError(t, err)
 	cookie, err := sessionStore.cookie(session)
@@ -123,12 +123,12 @@ func TestGetSessionIDFromCookieWithSigning(t *testing.T) {
 func TestGetSessionIDFromCookieCannotTamperWithSigning(t *testing.T) {
 	hashKey := securecookie.GenerateRandomKey(32)
 	encodingKey := securecookie.GenerateRandomKey(32)
-	sessionStore := setupSessionStore(t, WithCookieHandlerKeys(hashKey, encodingKey))
+	sessionStore := setupSessionStore(t, WithCookieHandler(securecookie.New(hashKey, encodingKey)))
 	session, err := sessionStore.sessionMaker.NewSession()
 	require.NoError(t, err)
 	cookie, err := sessionStore.cookie(session)
-	cookie.Value = "fake-session-id"
 	require.NoError(t, err)
+	cookie.Value = "fake-session-id"
 
 	c := setupEchoContext()
 	c.Request().AddCookie(&cookie)
