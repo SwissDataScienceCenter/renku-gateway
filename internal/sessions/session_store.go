@@ -302,10 +302,16 @@ func WithConfig(c config.SessionConfig) SessionStoreOption {
 				len(c.CookieHashKey),
 			)
 		}
-		if len(c.CookieEncodingKey) > 0 && len(c.CookieHashKey) > 0 {
-			sessions.cookieHandler = securecookie.New([]byte(c.CookieHashKey), []byte(c.CookieEncodingKey))
-		} else if len(c.CookieHashKey) > 0 {
-			sessions.cookieHandler = securecookie.New([]byte(c.CookieHashKey), nil)
+		if !c.UnsafeNoCookieHandler && len(c.CookieHashKey) == 0 {
+			return fmt.Errorf("the cookie hash key is not set")
+		}
+		if !c.UnsafeNoCookieHandler {
+			cookieEncKey := []byte(c.CookieEncodingKey)
+			cookieHashKey := []byte(c.CookieHashKey)
+			if len(cookieEncKey) == 0 {
+				cookieEncKey = nil
+			}
+			sessions.cookieHandler = securecookie.New(cookieHashKey, cookieEncKey)
 		}
 
 		sessions.sessionMaker = NewSessionMaker(WithIdleSessionTTLSeconds(c.IdleSessionTTLSeconds), WithMaxSessionTTLSeconds(c.MaxSessionTTLSeconds))
@@ -340,7 +346,10 @@ func NewSessionStore(options ...SessionStoreOption) (*SessionStore, error) {
 		},
 	}
 	for _, opt := range options {
-		opt(&sessions)
+		err := opt(&sessions)
+		if err != nil {
+			return &SessionStore{}, err
+		}
 	}
 	if sessions.authenticator == nil {
 		return &SessionStore{}, fmt.Errorf("authenticator is not initialized")

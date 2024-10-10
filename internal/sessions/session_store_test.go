@@ -33,7 +33,9 @@ func setupSessionStore(t *testing.T, options ...SessionStoreOption) *SessionStor
 		WithAuthenticator(authenticator),
 		WithSessionRepository(dbAdapter),
 		WithTokenStore(tokenStore),
-		WithConfig(config.SessionConfig{}),
+		WithConfig(config.SessionConfig{
+			UnsafeNoCookieHandler: true,
+		}),
 		WithCookieTemplate(func() http.Cookie {
 			return http.Cookie{
 				Name:     SessionCookieName,
