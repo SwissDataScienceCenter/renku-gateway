@@ -38,7 +38,7 @@ const Development RunningEnvironment = "development"
 const Production RunningEnvironment = "production"
 
 func (c Config) Validate() error {
-	err := c.Sessions.Validate()
+	err := c.Sessions.Validate(c.RunningEnvironment)
 	if err != nil {
 		return err
 	}
