@@ -1020,7 +1020,7 @@ func TestInternalSvcRoutes(t *testing.T) {
 		{
 			Path: "/ui-server/api/data/repositories/https%3A%2F%2Fexample.org%2Fgroup%2Frepo",
 			Expected: TestResults{
-				Path:            "/api/data/repositories/https%3A%2F%2Fexample.org%2Fgroup%2Frepo",
+				Path:             "/api/data/repositories/https%3A%2F%2Fexample.org%2Fgroup%2Frepo",
 				VisitedServerIDs: []string{"upstream"},
 			},
 		},
