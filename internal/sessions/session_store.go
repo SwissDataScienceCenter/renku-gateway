@@ -188,8 +188,7 @@ func (sessions *SessionStore) getSessionIDFromCookie(c echo.Context) (string, er
 		if sessions.cookieHandler != nil {
 			err = sessions.cookieHandler.Decode(SessionCookieName, cookie.Value, &sessionID)
 			if err != nil {
-				slog.Debug("Got an invalid cookie", "requestID", utils.GetRequestID(c))
-				return "", nil
+				slog.Info("Got an invalid cookie", "requestID", utils.GetRequestID(c), "cookie", cookie.Value)
 			}
 		} else {
 			sessionID = cookie.Value
