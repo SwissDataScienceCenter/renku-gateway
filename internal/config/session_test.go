@@ -6,44 +6,42 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestValidate(t *testing.T) {
-	config := SessionConfig{
-		IdleSessionTTLSeconds: 180,
-		MaxSessionTTLSeconds:  360,
+func getValidSessionConfig() SessionConfig {
+	return SessionConfig{
+		IdleSessionTTLSeconds: 14400,
+		MaxSessionTTLSeconds:  86400,
 	}
+}
 
-	err := config.Validate(Development)
+func TestValidSessionConfig(t *testing.T) {
+	config := getValidSessionConfig()
+
+	err := config.Validate(Production)
 
 	assert.NoError(t, err)
 }
 
 func TestInvalidIdleSessionTTLSeconds(t *testing.T) {
-	config := SessionConfig{
-		IdleSessionTTLSeconds: -60,
-	}
+	config := getValidSessionConfig()
+	config.IdleSessionTTLSeconds = -60
 
-	err := config.Validate(Development)
+	err := config.Validate(Production)
 
 	assert.ErrorContains(t, err, "idle session TTL seconds (-60) needs to be greater than 0")
 }
 
 func TestInvalidMaxSessionTTLSeconds(t *testing.T) {
-	config := SessionConfig{
-		IdleSessionTTLSeconds: 360,
-		MaxSessionTTLSeconds:  180,
-	}
+	config := getValidSessionConfig()
+	config.MaxSessionTTLSeconds = 600
 
-	err := config.Validate(Development)
+	err := config.Validate(Production)
 
-	assert.ErrorContains(t, err, "max session TTL seconds (180) cannot be less than idle session TTL seconds (360)")
+	assert.ErrorContains(t, err, "max session TTL seconds (600) cannot be less than idle session TTL seconds (14400)")
 }
 
 func TestInvalidUnsafeNoCookieHandler(t *testing.T) {
-	config := SessionConfig{
-		IdleSessionTTLSeconds: 180,
-		MaxSessionTTLSeconds:  360,
-		UnsafeNoCookieHandler: true,
-	}
+	config := getValidSessionConfig()
+	config.UnsafeNoCookieHandler = true
 
 	err := config.Validate(Production)
 
