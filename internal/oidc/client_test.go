@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/stretchr/testify/assert"
 	"github.com/zitadel/oidc/v2/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v2/pkg/http"
@@ -136,7 +135,7 @@ func TestTokenCallback(t *testing.T) {
 				IDTokenClaims: &oidc.IDTokenClaims{},
 				IDToken:       testCase.IDToken,
 			}
-			tokenCallback := func(tokenSet sessions.AuthTokenSet) error {
+			tokenCallback := func(tokenSet models.AuthTokenSet) error {
 				if testCase.Error != nil {
 					return testCase.Error
 				}

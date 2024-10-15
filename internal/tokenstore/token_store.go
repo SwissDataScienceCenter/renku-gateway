@@ -10,7 +10,6 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/oidc"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -115,18 +114,18 @@ func (ts *TokenStore) GetFreshIDToken(ctx context.Context, tokenID string) (mode
 	return token, nil
 }
 
-func (ts *TokenStore) refreshAccessToken(ctx context.Context, token models.AuthToken) (sessions.AuthTokenSet, error) {
+func (ts *TokenStore) refreshAccessToken(ctx context.Context, token models.AuthToken) (models.AuthTokenSet, error) {
 	refreshToken, err := ts.tokenRepo.GetRefreshToken(ctx, token.ID)
 	if err != nil {
 		slog.Error("TOKEN STORE", "message", "GetRefreshToken failed", "error", err)
-		return sessions.AuthTokenSet{}, err
+		return models.AuthTokenSet{}, err
 	}
 	// We want to perform this whole operation without cancelling
 	childCtx := context.WithoutCancel(ctx)
 	freshTokens, err := ts.providerStore.RefreshAccessToken(childCtx, refreshToken)
 	if err != nil {
 		slog.Error("TOKEN STORE", "message", "RefreshAccessToken failed", "error", err)
-		return sessions.AuthTokenSet{}, err
+		return models.AuthTokenSet{}, err
 	}
 	// Update the access, refresh and ID tokens in place
 	freshTokens.AccessToken.ID = token.ID
@@ -140,18 +139,18 @@ func (ts *TokenStore) refreshAccessToken(ctx context.Context, token models.AuthT
 	err = ts.tokenRepo.SetAccessToken(childCtx, freshTokens.AccessToken)
 	if err != nil {
 		slog.Error("TOKEN STORE", "message", "SetAccessToken failed", "error", err)
-		return sessions.AuthTokenSet{}, err
+		return models.AuthTokenSet{}, err
 	}
 	err = ts.tokenRepo.SetRefreshToken(childCtx, freshTokens.RefreshToken)
 	if err != nil {
 		slog.Error("TOKEN STORE", "message", "SetRefreshToken failed", "error", err)
-		return sessions.AuthTokenSet{}, err
+		return models.AuthTokenSet{}, err
 	}
 	if freshTokens.IDToken.ID != "" {
 		err = ts.tokenRepo.SetIDToken(childCtx, freshTokens.IDToken)
 		if err != nil {
 			slog.Error("TOKEN STORE", "message", "SetIDToken failed", "error", err)
-			return sessions.AuthTokenSet{}, err
+			return models.AuthTokenSet{}, err
 		}
 	}
 	return freshTokens, nil
