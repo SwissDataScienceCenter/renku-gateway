@@ -12,7 +12,7 @@ import (
 
 func TestAuthHandler(t *testing.T) {
 	client := oidcClient{
-		client: newMockRelyingParty("https://token.url"),
+		client: mockRelyingParty{isPKCE: false, tokenURL: "https://token.url"},
 		id:     "renku",
 	}
 	store := ClientStore{
@@ -29,7 +29,19 @@ func TestAuthHandler(t *testing.T) {
 	err = echo.WrapHandler(handler)(c)
 	require.NoError(t, err)
 
-	// handler(c.Response(), req)
-	assert.Equal(t, http.StatusOK, rec.Code)
-	// assert.Equal(t, "", handler)
+	assert.Equal(t, http.StatusFound, rec.Code)
+	assert.Contains(t, rec.Header().Get("location"), "client_id=mock-client&response_type=code&state=abcde-12345")
+}
+
+func TestAuthHandlerInvalidProvider(t *testing.T) {
+	client := oidcClient{
+		client: mockRelyingParty{isPKCE: false, tokenURL: "https://token.url"},
+		id:     "renku",
+	}
+	store := ClientStore{
+		"renku": client,
+	}
+
+	_, err := store.AuthHandler("another", "abcde-12345")
+	assert.ErrorContains(t, err, "cannot find the provider with ID another")
 }
