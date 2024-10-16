@@ -55,6 +55,17 @@ func TestSessionTouchNoExpiry(t *testing.T) {
 	assert.True(t, session.ExpiresAt.IsZero())
 }
 
+func TestSessionTouchNoIdleTTL(t *testing.T) {
+	session := Session{
+		CreatedAt:     time.Now(),
+		MaxTTLSeconds: 300,
+	}
+	session.Touch()
+	assert.False(t, session.Expired())
+	assert.True(t, session.ExpiresAt.After(session.CreatedAt))
+	assert.True(t, session.ExpiresAt.Equal(session.CreatedAt.Add(session.MaxTTL())))
+}
+
 func TestSessionLoginState(t *testing.T) {
 	session := Session{
 		CreatedAt: time.Now(),

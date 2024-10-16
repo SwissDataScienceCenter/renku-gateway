@@ -74,3 +74,64 @@ func TestNoEncryptor(t *testing.T) {
 	assert.Equal(t, token, encToken)
 	assert.Equal(t, token, decToken)
 }
+
+func TestTokenString(t *testing.T) {
+	token := AuthToken{
+		ID:         "123456",
+		Value:      "secretValue",
+		ProviderID: "providerId",
+		SessionID:  "sessionId",
+		Type:       AccessTokenType,
+	}
+	tokenString := token.String()
+	assert.Contains(t, tokenString, "ID: 123456")
+	assert.Contains(t, tokenString, "Value: redacted")
+	assert.NotContains(t, tokenString, "secretValue")
+	assert.Contains(t, tokenString, "ProviderID: providerId")
+	assert.Contains(t, tokenString, "SessionID: sessionId")
+	assert.Contains(t, tokenString, AccessTokenType)
+}
+
+func TestTokenNotExpired(t *testing.T) {
+	token := AuthToken{
+		ExpiresAt: time.Now().Add(time.Duration(5) * time.Minute),
+	}
+	assert.False(t, token.Expired())
+}
+
+func TestTokenExpired(t *testing.T) {
+	token := AuthToken{
+		ExpiresAt: time.Now().Add(-time.Duration(5) * time.Minute),
+	}
+	assert.True(t, token.Expired())
+}
+
+func TestTokenNoExpiry(t *testing.T) {
+	token := AuthToken{
+		ExpiresAt: time.Time{},
+	}
+	assert.True(t, token.ExpiresAt.IsZero())
+	assert.False(t, token.Expired())
+}
+
+func TestTokenNotExpiresSoon(t *testing.T) {
+	token := AuthToken{
+		ExpiresAt: time.Now().Add(time.Duration(5) * time.Minute),
+	}
+	assert.False(t, token.ExpiresSoon(time.Duration(3)*time.Minute))
+}
+
+func TestTokenExpiresSoon(t *testing.T) {
+	token := AuthToken{
+		ExpiresAt: time.Now().Add(time.Duration(2) * time.Minute),
+	}
+	assert.True(t, token.ExpiresSoon(time.Duration(3)*time.Minute))
+}
+
+func TestTokenExpiresSoonNoExpiry(t *testing.T) {
+	token := AuthToken{
+		ExpiresAt: time.Time{},
+	}
+	assert.True(t, token.ExpiresAt.IsZero())
+	assert.False(t, token.ExpiresSoon(time.Duration(3)*time.Minute))
+}
