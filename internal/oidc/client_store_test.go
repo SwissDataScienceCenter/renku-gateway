@@ -45,3 +45,31 @@ func TestAuthHandlerInvalidProvider(t *testing.T) {
 	_, err := store.AuthHandler("another", "abcde-12345")
 	assert.ErrorContains(t, err, "cannot find the provider with ID another")
 }
+
+func TestUserProfileURL(t *testing.T) {
+	client := oidcClient{
+		client: mockRelyingParty{isPKCE: false, tokenURL: "https://token.url"},
+		id:     "renku",
+	}
+	store := ClientStore{
+		"renku": client,
+	}
+
+	profileURL, err := store.UserProfileURL("renku")
+	require.NoError(t, err)
+
+	assert.Equal(t, "https://token.url/account?referrer=renku", profileURL.String())
+}
+
+func TestUserProfileURLInvalidProvider(t *testing.T) {
+	client := oidcClient{
+		client: mockRelyingParty{isPKCE: false, tokenURL: "https://token.url"},
+		id:     "renku",
+	}
+	store := ClientStore{
+		"renku": client,
+	}
+
+	_, err := store.UserProfileURL("another")
+	assert.ErrorContains(t, err, "cannot find the provider with ID another")
+}

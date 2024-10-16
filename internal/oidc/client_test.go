@@ -29,7 +29,7 @@ func (m mockRelyingParty) OAuthConfig() *oauth2.Config {
 }
 
 func (m mockRelyingParty) Issuer() string {
-	return "mock-issuer"
+	return "https://token.url"
 }
 
 func (m mockRelyingParty) IsPKCE() bool {
