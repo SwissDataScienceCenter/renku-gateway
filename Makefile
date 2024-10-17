@@ -20,3 +20,4 @@ internal/login/spec.gen.go: apispec.yaml
 
 format:
 	gofmt -l -w cmd internal tools
+
