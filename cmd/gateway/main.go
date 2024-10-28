@@ -96,6 +96,15 @@ func main() {
 		e.Use(sentryecho.New(sentryecho.Options{
 			Repanic: true,
 		}))
+		e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+			return func(c echo.Context) error {
+				err := next(c)
+				if err != nil {
+					sentry.CaptureException(err)
+				}
+				return err
+			}
+		})
 	}
 	// Prometheus
 	if gwConfig.Monitoring.Prometheus.Enabled {
