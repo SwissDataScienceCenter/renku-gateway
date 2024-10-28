@@ -8,7 +8,6 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 )
 
 type ClientStore map[string]oidcClient
@@ -35,11 +34,11 @@ func (c ClientStore) CodeExchangeHandler(providerID string) (CodeExchangeHandler
 	}, nil
 }
 
-func (c ClientStore) RefreshAccessToken(ctx context.Context, refreshToken models.AuthToken) (sessions.AuthTokenSet, error) {
+func (c ClientStore) RefreshAccessToken(ctx context.Context, refreshToken models.AuthToken) (models.AuthTokenSet, error) {
 	providerID := refreshToken.ProviderID
 	client, clientFound := c[providerID]
 	if !clientFound {
-		return sessions.AuthTokenSet{}, fmt.Errorf("cannot find the provider with ID %s", providerID)
+		return models.AuthTokenSet{}, fmt.Errorf("cannot find the provider with ID %s", providerID)
 	}
 	return client.refreshAccessToken(ctx, refreshToken)
 }

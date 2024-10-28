@@ -9,7 +9,6 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
-	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/labstack/echo/v4"
 	"github.com/zitadel/oidc/v2/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v2/pkg/http"
@@ -64,7 +63,7 @@ func (c *oidcClient) getCodeExchangeCallback(callback TokenSetCallback) func(
 			Subject:    tokens.IDTokenClaims.Subject,
 			ProviderID: c.getID(),
 		}
-		tokenSet := sessions.AuthTokenSet{
+		tokenSet := models.AuthTokenSet{
 			AccessToken:  accessToken,
 			RefreshToken: refreshToken,
 			IDToken:      idToken,
@@ -99,14 +98,14 @@ func (c *oidcClient) getID() string {
 	return c.id
 }
 
-func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models.AuthToken) (sessions.AuthTokenSet, error) {
+func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models.AuthToken) (models.AuthTokenSet, error) {
 	oAuth2Token, err := rp.RefreshAccessToken(c.client, refreshToken.Value, "", "")
 	if err != nil {
-		return sessions.AuthTokenSet{}, err
+		return models.AuthTokenSet{}, err
 	}
 	id, err := models.ULIDGenerator{}.ID()
 	if err != nil {
-		return sessions.AuthTokenSet{}, err
+		return models.AuthTokenSet{}, err
 	}
 	newAccessToken := models.AuthToken{
 		ID:         id,
@@ -133,7 +132,7 @@ func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models
 	if ok && idTokenString != "" {
 		claims, err := rp.VerifyTokens[*oidc.IDTokenClaims](ctx, oAuth2Token.AccessToken, idTokenString, c.client.IDTokenVerifier())
 		if err != nil {
-			return sessions.AuthTokenSet{}, err
+			return models.AuthTokenSet{}, err
 		}
 		newIDToken = models.AuthToken{
 			ID:         id,
@@ -144,7 +143,7 @@ func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models
 			ProviderID: c.getID(),
 		}
 	}
-	tokenSet := sessions.AuthTokenSet{
+	tokenSet := models.AuthTokenSet{
 		AccessToken:  newAccessToken,
 		RefreshToken: newRefreshToken,
 		IDToken:      newIDToken,

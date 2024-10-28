@@ -12,6 +12,9 @@ server:
 sessions:
   idleSessionTTLSeconds: 14400
   maxSessionTTLSeconds: 86400
+  # For securely handling callbacks an encoding and hashing of 32 bytes should be provided
+  cookieEncodingKey:
+  cookieHashKey:
   authorizationVerifiers:
     - issuer: https://renkulab.io/auth/realms/Renku
       audience: renku
