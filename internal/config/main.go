@@ -2,6 +2,7 @@ package config
 
 type Config struct {
 	RunningEnvironment
+	DebugMode  bool
 	Server     ServerConfig
 	Sessions   SessionConfig
 	Revproxy   RevproxyConfig
