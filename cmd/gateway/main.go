@@ -67,6 +67,49 @@ func main() {
 		// TODO: maybe implement a real health check
 		return c.NoContent(http.StatusOK)
 	})
+	// Rate limiting
+	if gwConfig.Server.RateLimits.Enabled {
+		e.Use(middleware.RateLimiter(
+			middleware.NewRateLimiterMemoryStoreWithConfig(
+				middleware.RateLimiterMemoryStoreConfig{
+					Rate:      rate.Limit(gwConfig.Server.RateLimits.Rate),
+					Burst:     gwConfig.Server.RateLimits.Burst,
+					ExpiresIn: 3 * time.Minute,
+				}),
+		),
+		)
+	}
+	// CORS
+	if len(gwConfig.Server.AllowOrigin) > 0 {
+		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{AllowOrigins: gwConfig.Server.AllowOrigin}))
+	}
+	// Sentry
+	if gwConfig.Monitoring.Sentry.Enabled {
+		err := sentry.Init(sentry.ClientOptions{
+			Dsn:              string(gwConfig.Monitoring.Sentry.Dsn),
+			TracesSampleRate: gwConfig.Monitoring.Sentry.SampleRate,
+			Environment:      gwConfig.Monitoring.Sentry.Environment,
+		})
+		if err != nil {
+			slog.Error("sentry initialization failed", "error", err)
+		}
+		e.Use(sentryecho.New(sentryecho.Options{}))
+	}
+	// Prometheus
+	if gwConfig.Monitoring.Prometheus.Enabled {
+		e.Use(echoprometheus.NewMiddleware("gateway"))
+		go func() {
+			metrics := echo.New()
+			metrics.HideBanner = true
+			metrics.HidePort = true
+			metrics.GET("/metrics", echoprometheus.NewHandler())
+			err := metrics.Start(fmt.Sprintf(":%d", gwConfig.Monitoring.Prometheus.Port))
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				slog.Error("prometheus server failed to start", "error", err)
+				os.Exit(1)
+			}
+		}()
+	}
 	// Version endpoint
 	buildInfo, ok := debug.ReadBuildInfo()
 	version := ""
@@ -130,49 +173,6 @@ func main() {
 		os.Exit(1)
 	}
 	loginServer.RegisterHandlers(e, gwMiddlewares...)
-	// Rate limiting
-	if gwConfig.Server.RateLimits.Enabled {
-		e.Use(middleware.RateLimiter(
-			middleware.NewRateLimiterMemoryStoreWithConfig(
-				middleware.RateLimiterMemoryStoreConfig{
-					Rate:      rate.Limit(gwConfig.Server.RateLimits.Rate),
-					Burst:     gwConfig.Server.RateLimits.Burst,
-					ExpiresIn: 3 * time.Minute,
-				}),
-		),
-		)
-	}
-	// CORS
-	if len(gwConfig.Server.AllowOrigin) > 0 {
-		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{AllowOrigins: gwConfig.Server.AllowOrigin}))
-	}
-	// Sentry
-	if gwConfig.Monitoring.Sentry.Enabled {
-		err := sentry.Init(sentry.ClientOptions{
-			Dsn:              string(gwConfig.Monitoring.Sentry.Dsn),
-			TracesSampleRate: gwConfig.Monitoring.Sentry.SampleRate,
-			Environment:      gwConfig.Monitoring.Sentry.Environment,
-		})
-		if err != nil {
-			slog.Error("sentry initialization failed", "error", err)
-		}
-		e.Use(sentryecho.New(sentryecho.Options{}))
-	}
-	// Prometheus
-	if gwConfig.Monitoring.Prometheus.Enabled {
-		e.Use(echoprometheus.NewMiddleware("gateway"))
-		go func() {
-			metrics := echo.New()
-			metrics.HideBanner = true
-			metrics.HidePort = true
-			metrics.GET("/metrics", echoprometheus.NewHandler())
-			err := metrics.Start(fmt.Sprintf(":%d", gwConfig.Monitoring.Prometheus.Port))
-			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				slog.Error("prometheus server failed to start", "error", err)
-				os.Exit(1)
-			}
-		}()
-	}
 	// Start server
 	address := fmt.Sprintf("%s:%d", gwConfig.Server.Host, gwConfig.Server.Port)
 	slog.Info("starting the server on address " + address)
