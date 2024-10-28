@@ -93,7 +93,9 @@ func main() {
 		if err != nil {
 			slog.Error("sentry initialization failed", "error", err)
 		}
-		e.Use(sentryecho.New(sentryecho.Options{}))
+		e.Use(sentryecho.New(sentryecho.Options{
+			Repanic: true,
+		}))
 	}
 	// Prometheus
 	if gwConfig.Monitoring.Prometheus.Enabled {
