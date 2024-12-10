@@ -42,7 +42,6 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 		gitlabProxy = fallbackProxy
 		gitlabProxyHost = setHost(r.config.RenkuBaseURL.Host)
 	}
-	notebooksProxy := proxyFromURL(r.config.RenkuServices.Notebooks)
 	kgProxy := proxyFromURL(r.config.RenkuServices.KG)
 	webhookProxy := proxyFromURL(r.config.RenkuServices.Webhook)
 	keycloakProxy := proxyFromURL(r.config.RenkuServices.Keycloak)
@@ -56,10 +55,8 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	dataGitlabAccessToken := r.dataGitlabAccessTokenAuth.Middleware()
 	gitlabToken := r.gitlabTokenAuth.Middleware()
 	gitlabCliToken := r.gitlabCliTokenAuth.Middleware()
-	notebooksRenkuAccessToken := r.notebooksRenkuAccessTokenAuth.Middleware()
 	notebooksRenkuRefreshToken := r.notebooksRenkuRefreshTokenAuth.Middleware()
 	notebooksRenkuIDToken := r.notebooksRenkuIDTokenAuth.Middleware()
-	notebooksGitlabAccessToken := r.notebooksGitlabAccessTokenAuth.Middleware()
 	renkuAccessToken := r.renkuAccessTokenAuth.Middleware()
 
 	// Deny rules
@@ -67,7 +64,8 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	sk.GET("/", echo.NotFoundHandler)
 
 	// Routing for Renku services
-	e.Group("/api/notebooks", append(commonMiddlewares, notebooksRenkuAccessToken, notebooksRenkuRefreshToken, notebooksRenkuIDToken, notebooksGitlabAccessToken, notebooksAnonymousID(r.sessions), noCookies, stripPrefix("/api"), notebooksProxy)...)
+	// Notebooks is being routed to data service now
+	e.Group("/api/notebooks", append(commonMiddlewares, renkuAccessToken, dataGitlabAccessToken, notebooksRenkuRefreshToken, notebooksAnonymousID(r.sessions), regexRewrite("^/api/notebooks(.*)", "/api/data/notebooks$1"), dataServiceProxy)...)
 	// /api/projects/:projectID/graph will is being deprecated in favour of /api/kg/webhooks, the old endpoint will remain for some time for backward compatibility
 	e.Group("/api/projects/:projectID/graph", append(commonMiddlewares, gitlabToken, noCookies, kgProjectsGraphRewrites, webhookProxy)...)
 	e.Group("/knowledge-graph", append(commonMiddlewares, gitlabToken, coreSvcIdToken, noCookies, kgProxy)...)

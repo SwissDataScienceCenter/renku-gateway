@@ -6,7 +6,6 @@ import (
 )
 
 type RenkuServicesConfig struct {
-	Notebooks   *url.URL
 	KG          *url.URL
 	Webhook     *url.URL
 	Core        CoreSvcConfig
@@ -30,9 +29,6 @@ type CoreSvcConfig struct {
 }
 
 func (r *RevproxyConfig) Validate() error {
-	if r.RenkuServices.Notebooks == nil {
-		return fmt.Errorf("the proxy config is missing the url to the notebook service")
-	}
 	if r.RenkuServices.KG == nil {
 		return fmt.Errorf("the proxy config is missing the url to the knowledge graph service")
 	}

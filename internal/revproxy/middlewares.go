@@ -215,6 +215,21 @@ func UiServerPathRewrite() echo.MiddlewareFunc {
 				c.Request().RequestURI = newUrl.String()
 				slog.Debug("PATH REWRITE", "message", "matched /ui-server/auth", "originalURL", originalURL, "newUrl", newUrl.String(), "requestID", utils.GetRequestID(c))
 			}
+			// For notebooks rewrite to go to the data service
+			if strings.HasPrefix(path, "/ui-server/api/notebooks") {
+				originalURL := c.Request().URL.String()
+				c.Request().URL.Path = strings.TrimPrefix(path, "/ui-server/api/notebooks")
+				c.Request().URL.RawPath = strings.TrimPrefix(c.Request().URL.RawPath, "/ui-server/api/notebooks")
+				c.Request().URL.Path = "/api/data/notebooks" + c.Request().URL.Path
+				c.Request().URL.RawPath = "/api/data/notebooks" + c.Request().URL.RawPath
+				newUrl, err := url.Parse(c.Request().URL.String())
+				if err != nil {
+					return err
+				}
+				c.Request().URL = newUrl
+				c.Request().RequestURI = newUrl.String()
+				slog.Debug("PATH REWRITE", "message", "matched /ui-server/api/notebooks", "originalURL", originalURL, "newUrl", newUrl.String(), "requestID", utils.GetRequestID(c))
+			}
 			// For all other endpoints the gateway will fully bypass the UI server routing things directly to the proper
 			// Renku component.
 			if strings.HasPrefix(path, "/ui-server/api") {
