@@ -233,7 +233,6 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 		rpConfig := config.RevproxyConfig{
 			RenkuBaseURL: upstreamURL,
 			RenkuServices: config.RenkuServicesConfig{
-				Notebooks: upstreamURL,
 				Core: config.CoreSvcConfig{
 					ServiceNames: []string{upstreamURL.String(), upstreamURL.String(), upstreamURL2.String()},
 					ServicePaths: []string{"/api/renku", "/api/renku/10", "/api/renku/9"},
@@ -389,11 +388,11 @@ func TestInternalSvcRoutes(t *testing.T) {
 			Expected: TestResults{
 				VisitedServerIDs: []string{"upstream"},
 				UpstreamRequestHeaders: []map[string]string{{
-					"Authorization":            "",
-					"Renku-Auth-Id-Token":      "",
-					"Renku-Auth-Access-Token":  "",
-					"Renku-Auth-Refresh-Token": "",
-					"Renku-Auth-Anon-Id":       "anon-sessionID",
+					echo.HeaderAuthorization:         "",
+					"Gitlab-Access-Token":            "",
+					"Gitlab-Access-Token-Expires-At": "",
+					"Renku-Auth-Refresh-Token":       "",
+					"Renku-Auth-Anon-Id":             "anon-sessionID",
 				}},
 			},
 			Sessions: []models.Session{
@@ -404,13 +403,14 @@ func TestInternalSvcRoutes(t *testing.T) {
 		{
 			Path: "/api/notebooks/test/acceptedAuth",
 			Expected: TestResults{
-				Path:             "/notebooks/test/acceptedAuth",
+				Path:             "/api/data/notebooks/test/acceptedAuth",
 				VisitedServerIDs: []string{"upstream"},
 				UpstreamRequestHeaders: []map[string]string{{
-					"Renku-Auth-Id-Token":      "idTokenValue",
-					"Renku-Auth-Access-Token":  "accessTokenValue",
-					"Renku-Auth-Refresh-Token": "refreshTokenValue",
-					"Renku-Auth-Anon-Id":       "",
+					echo.HeaderAuthorization:         "Bearer accessTokenValue",
+					"Gitlab-Access-Token":            "gitlabAccessTokenValue",
+					"Gitlab-Access-Token-Expires-At": "16746525971",
+					"Renku-Auth-Refresh-Token":       "refreshTokenValue",
+					"Renku-Auth-Anon-Id":             "",
 				}},
 			},
 			Tokens: []models.AuthToken{
@@ -427,20 +427,21 @@ func TestInternalSvcRoutes(t *testing.T) {
 					tokenProviderID("renku"),
 				),
 				newTestToken(
-					models.IDTokenType,
-					tokenID("renku:myToken"),
-					tokenPlainValue("idTokenValue"),
-					tokenProviderID("renku"),
+					models.AccessTokenType,
+					tokenID("gitlab:otherToken"),
+					tokenPlainValue("gitlabAccessTokenValue"),
+					tokenProviderID("gitlab"),
+					tokenExpiresAt(time.Unix(16746525971, 0)),
 				),
 			},
 			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"renku": "renku:myToken"})),
+				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"renku": "renku:myToken", "gitlab": "gitlab:otherToken"})),
 			},
 			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
 		},
 		{
 			Path:     "/api/notebooks",
-			Expected: TestResults{Path: "/notebooks", VisitedServerIDs: []string{"upstream"}},
+			Expected: TestResults{Path: "/api/data/notebooks", VisitedServerIDs: []string{"upstream"}},
 		},
 		{
 			Path: "/api/search/test/rejectedAuth",
