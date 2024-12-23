@@ -22,8 +22,6 @@ func getValidRevproxyConfig(t *testing.T) RevproxyConfig {
 }
 
 func getValidRenkuServicesConfig(t *testing.T) RenkuServicesConfig {
-	notebooksURL, err := url.Parse("http://notebooks")
-	require.NoError(t, err)
 	kgURL, err := url.Parse("http://kg")
 	require.NoError(t, err)
 	webhookURL, err := url.Parse("http://kg")
@@ -37,7 +35,6 @@ func getValidRenkuServicesConfig(t *testing.T) RenkuServicesConfig {
 	searchURL, err := url.Parse("http://ui")
 	require.NoError(t, err)
 	return RenkuServicesConfig{
-		Notebooks:   notebooksURL,
 		KG:          kgURL,
 		Webhook:     webhookURL,
 		DataService: dataServiceURL,
@@ -53,15 +50,6 @@ func TestValidRevproxyConfig(t *testing.T) {
 	err := config.Validate()
 
 	assert.NoError(t, err)
-}
-
-func TestInvalidNotebooksURL(t *testing.T) {
-	config := getValidRevproxyConfig(t)
-	config.RenkuServices.Notebooks = nil
-
-	err := config.Validate()
-
-	assert.ErrorContains(t, err, "the proxy config is missing the url to the notebook service")
 }
 
 func TestInvalidKGURL(t *testing.T) {
