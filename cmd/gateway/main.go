@@ -146,6 +146,9 @@ func main() {
 	if len(gwConfig.Server.AllowOrigin) > 0 {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{AllowOrigins: gwConfig.Server.AllowOrigin}))
 	}
+	if gwConfig.Sessions.UnsafeCookieTemplate {
+		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{AllowCredentials: true}))
+	}
 	// Sentry
 	if gwConfig.Monitoring.Sentry.Enabled {
 		err := sentry.Init(sentry.ClientOptions{
