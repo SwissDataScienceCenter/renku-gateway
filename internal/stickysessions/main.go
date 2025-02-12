@@ -210,6 +210,7 @@ func (s StickySessionBalancer) OnAdd(obj any, isInitialList bool) {
 		if s.store.Exists(endpointItem.UID) || !endpointItem.Ready {
 			continue
 		}
+		slog.Info("STICKY SESSIONS ADDED ENDPOINT", "endpoint", endpointItem)
 		s.store.Add(endpointItem)
 	}
 }
@@ -220,17 +221,20 @@ func (s StickySessionBalancer) OnUpdate(oldObj, newObj any) {
 		if !newItem.Ready {
 			// An endpoint is not ready to receive traffic, remove from store
 			s.store.Remove(newItem.UID)
+			slog.Info("STICKY SESSIONS REMOVED ENDPOINT", "endpoint", newItem)
 			continue
 		}
 		oldItem, oldItemFound := s.store.Get(newItem.UID)
 		if !oldItemFound {
 			// A new endpoint has been added the slice
 			s.store.Add(newItem)
+			slog.Info("STICKY SESSIONS ADDED ENDPOINT", "endpoint", newItem)
 			continue
 		}
 		if oldItem.Host != newItem.Host {
 			// An existing endpoint has changed its address
 			s.store.UpdateHost(newItem.UID, newItem.Host)
+			slog.Info("STICKY SESSIONS UPDATED ENDPOINT HOST", "old", oldItem.Host, "new", newItem.Host)
 		}
 	}
 	for _, oldItem := range s.store.List() {
@@ -238,6 +242,7 @@ func (s StickySessionBalancer) OnUpdate(oldObj, newObj any) {
 		if !found {
 			// An old endpoiint has been removed
 			s.store.Remove(oldItem.UID)
+			slog.Info("STICKY SESSIONS REMOVED ENDPOINT", "endpoint", oldItem)
 		}
 	}
 }
@@ -247,5 +252,6 @@ func (s StickySessionBalancer) OnDelete(obj any) {
 	for _, endpoint := range removedSlice.Endpoints {
 		uid := string(endpoint.TargetRef.UID)
 		s.store.Remove(uid)
+		slog.Info("STICKY SESSIONS REMOVED ENDPOINT", "endpoint UID", endpoint.TargetRef.UID)
 	}
 }
