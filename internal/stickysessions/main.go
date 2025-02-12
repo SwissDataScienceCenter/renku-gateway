@@ -87,7 +87,9 @@ func NewStickySessionBalancer(ctx context.Context, service string, namespace str
 	watcher := endpointInformer.Informer()
 
 	factory.Start(ctx.Done())
-	synced := factory.WaitForCacheSync(ctx.Done())
+	syncDeadline, syncDeadlineCancel := context.WithTimeout(ctx, time.Minute*2)
+	defer syncDeadlineCancel()
+	synced := factory.WaitForCacheSync(syncDeadline.Done())
 	for v, ok := range synced {
 		if !ok {
 			slog.Error("caches failed to sync", "error", v)

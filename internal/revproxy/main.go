@@ -5,7 +5,8 @@ package revproxy
 import (
 	"context"
 	"fmt"
-	"time"
+	"os"
+	"os/signal"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
@@ -77,9 +78,8 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	// /api/kc is used only by the ui and no one else, will be removed when the gateway is in charge of user sessions
 	e.Group("/api/kc", append(commonMiddlewares, stripPrefix("/api/kc"), renkuAccessToken, keycloakProxyHost, keycloakProxy)...)
 
-	coreSvcProxyStartupCtx, cancel := context.WithTimeout(context.Background(), time.Duration(120)*time.Second)
-	defer cancel()
-	registerCoreSvcProxies(coreSvcProxyStartupCtx, e, r.config, append(commonMiddlewares, checkCoreServiceMetadataVersion(r.config.RenkuServices.Core.ServicePaths), coreSvcIdToken, gitlabToken, regexRewrite(`^/api/renku(?:/\d+)?((/|\?).*)??$`, "/renku$1"))...)
+	coreSvcLBCtx, _ := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
+	registerCoreSvcProxies(coreSvcLBCtx, e, r.config, append(commonMiddlewares, checkCoreServiceMetadataVersion(r.config.RenkuServices.Core.ServicePaths), coreSvcIdToken, gitlabToken, regexRewrite(`^/api/renku(?:/\d+)?((/|\?).*)??$`, "/renku$1"))...)
 
 	// Routes that end up proxied to Gitlab
 	if r.config.ExternalGitlabURL != nil {
