@@ -42,6 +42,12 @@ jobs:
     environment:
       name: renku-ci-gw-${{ github.event.number }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: SwissDataScienceCenter/renku
+          ref: release-0.65.0 # TODO: change to 'master' once merged there
+          sparse-checkout: |
+            minimal-deployment
       - name: deploy-pr
         uses: SwissDataScienceCenter/renku-actions/deploy-renku@v1.15.0
         env:
@@ -52,7 +58,7 @@ jobs:
           RANCHER_PROJECT_ID: ${{ secrets.CI_RANCHER_PROJECT }}
           RENKU_RELEASE: renku-ci-gw-${{ github.event.number }}
           RENKU_VALUES_FILE: "${{ github.workspace }}/values.yaml"
-          RENKU_VALUES: ${{ secrets.COMBINED_CHARTS_CI_RENKU_VALUES }}
+          RENKU_VALUES: minimal-deployment/minimal-deployment-values.yaml
           RENKUBOT_KUBECONFIG: ${{ secrets.RENKUBOT_DEV_KUBECONFIG }}
           RENKUBOT_RANCHER_BEARER_TOKEN: ${{ secrets.RENKUBOT_RANCHER_BEARER_TOKEN }}
           RANCHER_DEV_API_ENDPOINT: ${{ secrets.RANCHER_DEV_API_ENDPOINT }}
