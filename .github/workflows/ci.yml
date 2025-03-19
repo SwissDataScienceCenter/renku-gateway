@@ -42,3 +42,20 @@ jobs:
         env:
           DOCKER_USERNAME: ${{ secrets.RENKU_DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.RENKU_DOCKER_PASSWORD }}
+      - name: Get image tag
+        id: image-tag
+        run: |
+          echo "image=renku/renku-gateway:$(echo ${GITHUB_REF} | cut -d/ -f3)" >> $GITHUB_OUTPUT
+      - name: Scan amalthea-sessions image
+        uses: snyk/actions/docker@master
+        continue-on-error: true
+        with:
+          image: ${{ steps.image-tag.outputs.image}}
+          args: --file=./Dockerfile --severity-threshold=high --sarif-file-output=gw.sarif
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      - name: Upload Snyk report
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gw.sarif
+          category: snyk_amalthea-sessions
