@@ -29,3 +29,9 @@ type RateLimits struct {
 	Rate    float64
 	Burst   int
 }
+
+type PosthogConfig struct {
+	Enabled bool
+	ApiKey  string
+	Host    string
+}
