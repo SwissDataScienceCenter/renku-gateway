@@ -24,11 +24,12 @@ func (p *PosthogMetricsClient) Close() {
 	p.posthogClient.Close()
 }
 
-func NewPosthogClient(apiKey string, host string) (*PosthogMetricsClient, error) {
+func NewPosthogClient(apiKey string, host string, environment string) (*PosthogMetricsClient, error) {
 	client, err := posthog.NewWithConfig(
 		apiKey,
 		posthog.Config{
-			Endpoint: host,
+			Endpoint:               host,
+			DefaultEventProperties: posthog.Properties{"environment": environment},
 		},
 	)
 	if err != nil {

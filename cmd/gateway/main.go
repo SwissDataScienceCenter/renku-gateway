@@ -128,7 +128,7 @@ func main() {
 	loginOptions := []login.LoginServerOption{login.WithConfig(gwConfig.Login), login.WithSessionStore(sessionStore), login.WithTokenStore(tokenStore)}
 
 	if gwConfig.Posthog.Enabled {
-		metricsClient, err := metrics.NewPosthogClient(gwConfig.Posthog.ApiKey, gwConfig.Posthog.Host)
+		metricsClient, err := metrics.NewPosthogClient(gwConfig.Posthog.ApiKey, gwConfig.Posthog.Host, gwConfig.Posthog.Environment)
 		if err != nil {
 			slog.Error("posthog client initializtion failed", "error", err)
 			os.Exit(1)
