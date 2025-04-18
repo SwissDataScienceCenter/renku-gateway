@@ -8,6 +8,7 @@ type Config struct {
 	Revproxy   RevproxyConfig
 	Login      LoginConfig
 	Redis      RedisConfig
+	Posthog    PosthogConfig
 	Monitoring MonitoringConfig
 }
 

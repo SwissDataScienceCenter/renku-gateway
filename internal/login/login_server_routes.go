@@ -218,6 +218,12 @@ func (l *LoginServer) nextAuthStep(
 		slog.Info("login completed", "requestID", utils.GetRequestID(c), "appRedirectURL", url)
 		// Save the session: ensure we save the session before sending redirects
 		l.sessions.Save(c)
+		// send product metrics
+		if l.metricsClient != nil {
+			if session, err := l.sessions.Get(c); err == nil {
+				l.metricsClient.UserLoggedIn(session.UserID)
+			}
+		}
 		return c.Redirect(http.StatusFound, url)
 	}
 	providerID := session.LoginSequence[0]
