@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/posthog/posthog-go"
 )
 
@@ -24,12 +25,12 @@ func (p *PosthogMetricsClient) Close() {
 	p.posthogClient.Close()
 }
 
-func NewPosthogClient(apiKey string, host string, environment string) (*PosthogMetricsClient, error) {
+func NewPosthogClient(c config.PosthogConfig) (*PosthogMetricsClient, error) {
 	client, err := posthog.NewWithConfig(
-		apiKey,
+		string(c.ApiKey),
 		posthog.Config{
-			Endpoint:               host,
-			DefaultEventProperties: posthog.Properties{"environment": environment},
+			Endpoint:               c.Host,
+			DefaultEventProperties: posthog.Properties{"environment": c.Environment},
 		},
 	)
 	if err != nil {

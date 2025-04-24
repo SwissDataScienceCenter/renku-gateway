@@ -32,7 +32,7 @@ type RateLimits struct {
 
 type PosthogConfig struct {
 	Enabled     bool
-	ApiKey      string
+	ApiKey      RedactedString
 	Host        string
 	Environment string
 }

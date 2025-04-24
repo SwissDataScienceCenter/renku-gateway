@@ -127,15 +127,15 @@ func main() {
 	// Initialize login server
 	loginOptions := []login.LoginServerOption{login.WithConfig(gwConfig.Login), login.WithSessionStore(sessionStore), login.WithTokenStore(tokenStore)}
 
-	if gwConfig.Posthog.Enabled {
-		metricsClient, err := metrics.NewPosthogClient(gwConfig.Posthog.ApiKey, gwConfig.Posthog.Host, gwConfig.Posthog.Environment)
-		if err != nil {
-			slog.Error("posthog client initializtion failed", "error", err)
-			os.Exit(1)
-		}
-		loginOptions = append(loginOptions, login.WithMetricsClient(metricsClient))
+	metricsClient, err := metrics.NewPosthogClient(gwConfig.Posthog)
+	if err != nil {
+		slog.Error("posthog client initializtion failed", "error", err)
+		os.Exit(1)
+	}
+	if metricsClient != nil {
 		defer metricsClient.Close()
 	}
+	loginOptions = append(loginOptions, login.WithMetricsClient(metricsClient))
 	loginServer, err := login.NewLoginServer(loginOptions...)
 	if err != nil {
 		slog.Error("login handlers initialization failed", "error", err)
