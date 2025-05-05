@@ -19,6 +19,7 @@ require (
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.8.4
 	github.com/zitadel/oidc/v2 v2.12.0
+	go.uber.org/automaxprocs v1.6.0
 	golang.org/x/oauth2 v0.16.0
 	golang.org/x/time v0.5.0
 	gopkg.in/square/go-jose.v2 v2.6.0

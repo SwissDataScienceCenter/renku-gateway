@@ -24,6 +24,7 @@ import (
 	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	_ "go.uber.org/automaxprocs"
 	"golang.org/x/time/rate"
 )
 
