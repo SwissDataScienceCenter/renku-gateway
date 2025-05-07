@@ -26,6 +26,9 @@ func (p *PosthogMetricsClient) Close() {
 }
 
 func NewPosthogClient(c config.PosthogConfig) (*PosthogMetricsClient, error) {
+	if !c.Enabled {
+		return nil, nil
+	}
 	client, err := posthog.NewWithConfig(
 		string(c.ApiKey),
 		posthog.Config{
@@ -34,7 +37,7 @@ func NewPosthogClient(c config.PosthogConfig) (*PosthogMetricsClient, error) {
 		},
 	)
 	if err != nil {
-		return &PosthogMetricsClient{}, err
+		return nil, err
 	}
 
 	return &PosthogMetricsClient{posthogClient: client}, nil

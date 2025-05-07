@@ -125,8 +125,6 @@ func main() {
 	}
 	revproxy.RegisterHandlers(e, gwMiddlewares...)
 	// Initialize login server
-	loginOptions := []login.LoginServerOption{login.WithConfig(gwConfig.Login), login.WithSessionStore(sessionStore), login.WithTokenStore(tokenStore)}
-
 	metricsClient, err := metrics.NewPosthogClient(gwConfig.Posthog)
 	if err != nil {
 		slog.Error("posthog client initializtion failed", "error", err)
@@ -135,8 +133,12 @@ func main() {
 	if metricsClient != nil {
 		defer metricsClient.Close()
 	}
-	loginOptions = append(loginOptions, login.WithMetricsClient(metricsClient))
-	loginServer, err := login.NewLoginServer(loginOptions...)
+	loginServer, err := login.NewLoginServer(
+		login.WithConfig(gwConfig.Login),
+		login.WithSessionStore(sessionStore),
+		login.WithTokenStore(tokenStore),
+		login.WithMetricsClient(metricsClient),
+	)
 	if err != nil {
 		slog.Error("login handlers initialization failed", "error", err)
 		os.Exit(1)
