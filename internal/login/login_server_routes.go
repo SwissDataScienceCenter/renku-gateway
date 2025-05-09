@@ -219,7 +219,6 @@ func (l *LoginServer) nextAuthStep(
 		// Save the session: ensure we save the session before sending redirects
 		l.sessions.Save(c)
 		// send product metrics
-		slog.Error("hello", "metricsClient", l.metricsClient)
 		if l.metricsClient != nil {
 			if session, err := l.sessions.Get(c); err == nil {
 				l.metricsClient.UserLoggedIn(session.UserID)
