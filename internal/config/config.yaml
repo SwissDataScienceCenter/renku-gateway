@@ -22,6 +22,7 @@ sessions:
     - issuer: https://renkulab.io/auth/realms/Renku
       audience: renku
       authorizedParty: renku-cli
+  unsafeCookieTemplate: false
 revproxy:
   renkuBaseUrl: "https://renkulab.io"
   externalGitlabUrl:
