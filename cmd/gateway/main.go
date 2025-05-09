@@ -133,12 +133,13 @@ func main() {
 	if metricsClient != nil {
 		defer metricsClient.Close()
 	}
-	loginServer, err := login.NewLoginServer(
-		login.WithConfig(gwConfig.Login),
+	loginOptions := []login.LoginServerOption{login.WithConfig(gwConfig.Login),
 		login.WithSessionStore(sessionStore),
-		login.WithTokenStore(tokenStore),
-		login.WithMetricsClient(metricsClient),
-	)
+		login.WithTokenStore(tokenStore)}
+	if metricsClient != nil {
+		loginOptions = append(loginOptions, login.WithMetricsClient(metricsClient))
+	}
+	loginServer, err := login.NewLoginServer(loginOptions...)
 	if err != nil {
 		slog.Error("login handlers initialization failed", "error", err)
 		os.Exit(1)
