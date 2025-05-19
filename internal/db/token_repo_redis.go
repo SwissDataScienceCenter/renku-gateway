@@ -42,9 +42,13 @@ func (r RedisAdapter) SetAccessToken(ctx context.Context, token models.AuthToken
 	return r.setAuthToken(ctx, token)
 }
 
-func (r RedisAdapter) SetAccessTokenExpiry(ctx context.Context, token models.AuthToken, expiresAt time.Time) error {
+func (r RedisAdapter) SetAccessTokenExpiry(ctx context.Context, token models.AuthToken, expiresAtLimit time.Time) error {
 	if token.Type != models.AccessTokenType {
 		return fmt.Errorf("token is not of the right type")
+	}
+	expiresAt := expiresAtLimit
+	if !token.ExpiresAt.IsZero() && token.ExpiresAt.Before(expiresAtLimit) {
+		expiresAt = token.ExpiresAt
 	}
 	return r.setAuthTokenExpiry(ctx, token, expiresAt)
 }
@@ -57,9 +61,13 @@ func (r RedisAdapter) SetRefreshToken(ctx context.Context, token models.AuthToke
 	return r.setAuthToken(ctx, token)
 }
 
-func (r RedisAdapter) SetRefreshTokenExpiry(ctx context.Context, token models.AuthToken, expiresAt time.Time) error {
+func (r RedisAdapter) SetRefreshTokenExpiry(ctx context.Context, token models.AuthToken, expiresAtLimit time.Time) error {
 	if token.Type != models.RefreshTokenType {
 		return fmt.Errorf("token is not of the right type")
+	}
+	expiresAt := expiresAtLimit
+	if !token.ExpiresAt.IsZero() && token.ExpiresAt.Before(expiresAtLimit) {
+		expiresAt = token.ExpiresAt
 	}
 	return r.setAuthTokenExpiry(ctx, token, expiresAt)
 }
@@ -71,9 +79,13 @@ func (r RedisAdapter) SetIDToken(ctx context.Context, token models.AuthToken) er
 	return r.setAuthToken(ctx, token)
 }
 
-func (r RedisAdapter) SetIDTokenExpiry(ctx context.Context, token models.AuthToken, expiresAt time.Time) error {
+func (r RedisAdapter) SetIDTokenExpiry(ctx context.Context, token models.AuthToken, expiresAtLimit time.Time) error {
 	if token.Type != models.IDTokenType {
 		return fmt.Errorf("token is not of the right type")
+	}
+	expiresAt := expiresAtLimit
+	if !token.ExpiresAt.IsZero() && token.ExpiresAt.Before(expiresAtLimit) {
+		expiresAt = token.ExpiresAt
 	}
 	return r.setAuthTokenExpiry(ctx, token, expiresAt)
 }
