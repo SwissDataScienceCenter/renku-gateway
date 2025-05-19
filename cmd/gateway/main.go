@@ -15,6 +15,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/db"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/login"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/metrics"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/revproxy"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/tokenstore"
@@ -124,7 +125,21 @@ func main() {
 	}
 	revproxy.RegisterHandlers(e, gwMiddlewares...)
 	// Initialize login server
-	loginServer, err := login.NewLoginServer(login.WithConfig(gwConfig.Login), login.WithSessionStore(sessionStore), login.WithTokenStore(tokenStore))
+	metricsClient, err := metrics.NewPosthogClient(gwConfig.Posthog)
+	if err != nil {
+		slog.Error("posthog client initializtion failed", "error", err)
+		os.Exit(1)
+	}
+	if metricsClient != nil {
+		defer metricsClient.Close()
+	}
+	loginOptions := []login.LoginServerOption{login.WithConfig(gwConfig.Login),
+		login.WithSessionStore(sessionStore),
+		login.WithTokenStore(tokenStore)}
+	if metricsClient != nil {
+		loginOptions = append(loginOptions, login.WithMetricsClient(metricsClient))
+	}
+	loginServer, err := login.NewLoginServer(loginOptions...)
 	if err != nil {
 		slog.Error("login handlers initialization failed", "error", err)
 		os.Exit(1)

@@ -15,6 +15,7 @@ type LoginServer struct {
 	providerStore oidc.ClientStore
 	sessions      *sessions.SessionStore
 	tokenStore    models.TokenStoreInterface
+	metricsClient models.MetricsClientInterface
 }
 
 func (l *LoginServer) RegisterHandlers(server *echo.Echo, commonMiddlewares ...echo.MiddlewareFunc) {
@@ -54,6 +55,13 @@ func WithSessionStore(sessions *sessions.SessionStore) LoginServerOption {
 func WithTokenStore(store models.TokenStoreInterface) LoginServerOption {
 	return func(l *LoginServer) error {
 		l.tokenStore = store
+		return nil
+	}
+}
+
+func WithMetricsClient(client models.MetricsClientInterface) LoginServerOption {
+	return func(l *LoginServer) error {
+		l.metricsClient = client
 		return nil
 	}
 }
