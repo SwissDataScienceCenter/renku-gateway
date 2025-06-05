@@ -33,6 +33,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: set up environment variables
         run: |
           echo "GIT_USER=Renku Bot" >> $GITHUB_ENV
@@ -40,6 +44,7 @@ jobs:
       - name: Push chart and images
         uses: SwissDataScienceCenter/renku-actions/publish-chartpress-images@v1.16.0
         env:
+          PLATFORMS: "linux/amd64,linux/arm64"
           DOCKER_USERNAME: ${{ secrets.RENKU_DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.RENKU_DOCKER_PASSWORD }}
       - name: Get image tag
