@@ -161,26 +161,27 @@ func setupTestUpstream(ID string, requestTracker chan<- *http.Request) (*httptes
 	return srv, url
 }
 
-func setupTestAuthServer(
-	ID string,
-	responseHeaders map[string]string,
-	responseStatus int,
-	requestTracker chan<- *http.Request,
-) (*httptest.Server, *url.URL) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for k, v := range responseHeaders {
-			w.Header().Set(k, v)
-		}
-		r.Header.Set(serverIDHeader, ID)
-		requestTracker <- r
-		w.WriteHeader(responseStatus)
-	}))
-	url, err := url.Parse(srv.URL)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return srv, url
-}
+// TODO Unused code. Can it be deleted?
+// func setupTestAuthServer(
+// 	ID string,
+// 	responseHeaders map[string]string,
+// 	responseStatus int,
+// 	requestTracker chan<- *http.Request,
+// ) (*httptest.Server, *url.URL) {
+// 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		for k, v := range responseHeaders {
+// 			w.Header().Set(k, v)
+// 		}
+// 		r.Header.Set(serverIDHeader, ID)
+// 		requestTracker <- r
+// 		w.WriteHeader(responseStatus)
+// 	}))
+// 	url, err := url.Parse(srv.URL)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	return srv, url
+// }
 
 func setupTestRevproxy(rpConfig *config.RevproxyConfig, sessions *sessions.SessionStore) (*httptest.Server, *url.URL) {
 	proxy, err := NewServer(WithConfig(*rpConfig), WithSessionStore(sessions))
