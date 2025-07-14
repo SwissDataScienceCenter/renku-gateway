@@ -18,6 +18,25 @@ import (
 
 type AuthOption func(*Auth)
 
+type AuthMiddlewareProvider interface {
+	Middleware() echo.MiddlewareFunc
+}
+
+func NewAuthMiddlewareProvider(forceNoOp bool, options ...AuthOption) (AuthMiddlewareProvider, error) {
+	if forceNoOp {
+		auth, err := NewNoOpAuth()
+		if err != nil {
+			return nil, err
+		}
+		return &auth, nil
+	}
+	auth, err := NewAuth(options...)
+	if err != nil {
+		return nil, err
+	}
+	return &auth, nil
+}
+
 type TokenInjector func(c echo.Context, token models.AuthToken) error
 
 func InjectInHeader(headerKey string) AuthOption {
@@ -407,6 +426,34 @@ var dataServiceGitlabAccessTokenInjector TokenInjector = func(c echo.Context, ac
 		accessToken.ExpiresAt,
 		"requestID",
 		utils.GetRequestID(c),
+	)
+	return nil
+}
+
+type NoOpAuth struct {
+	tokenInjector TokenInjector
+}
+
+func NewNoOpAuth() (NoOpAuth, error) {
+	auth := NoOpAuth{tokenInjector: noOpTokenInjector}
+	return auth, nil
+}
+
+func (a *NoOpAuth) Middleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			return next(c)
+		}
+	}
+}
+
+// A token injector that does nothing, it is used when no token injection is needed.
+var noOpTokenInjector TokenInjector = func(_ echo.Context, _ models.AuthToken) error {
+
+	slog.Debug(
+		"PROXY AUTH MIDDLEWARE",
+		"message",
+		"no-op token injector, skipping",
 	)
 	return nil
 }

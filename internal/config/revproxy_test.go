@@ -14,10 +14,12 @@ func getValidRevproxyConfig(t *testing.T) RevproxyConfig {
 	externalGitlabURL, err := url.Parse("https://gitlab.example.org")
 	require.NoError(t, err)
 	renkuServicesConfig := getValidRenkuServicesConfig(t)
+	enableV1Services := false
 	return RevproxyConfig{
 		RenkuBaseURL:      renkuBaseURL,
 		ExternalGitlabURL: externalGitlabURL,
 		RenkuServices:     renkuServicesConfig,
+		EnableV1Services:  enableV1Services,
 	}
 }
 

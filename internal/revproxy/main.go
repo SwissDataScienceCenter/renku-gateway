@@ -21,9 +21,9 @@ type Revproxy struct {
 	// Auth instances
 
 	coreSvcIdTokenAuth             Auth
-	dataGitlabAccessTokenAuth      Auth
-	gitlabTokenAuth                Auth
-	gitlabCliTokenAuth             Auth
+	dataGitlabAccessTokenAuth      AuthMiddlewareProvider
+	gitlabTokenAuth                AuthMiddlewareProvider
+	gitlabCliTokenAuth             AuthMiddlewareProvider
 	notebooksRenkuAccessTokenAuth  Auth
 	notebooksRenkuRefreshTokenAuth Auth
 	notebooksRenkuIDTokenAuth      Auth
@@ -120,15 +120,16 @@ func (r *Revproxy) initializeAuth() error {
 	if err != nil {
 		return err
 	}
-	r.dataGitlabAccessTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), WithTokenInjector(dataServiceGitlabAccessTokenInjector))
+
+	r.dataGitlabAccessTokenAuth, err = NewAuthMiddlewareProvider(!r.config.EnableV1Services, AuthWithSessionStore(r.sessions), WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), WithTokenInjector(dataServiceGitlabAccessTokenInjector))
 	if err != nil {
 		return err
 	}
-	r.gitlabTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), InjectBearerToken())
+	r.gitlabTokenAuth, err = NewAuthMiddlewareProvider(!r.config.EnableV1Services, AuthWithSessionStore(r.sessions), WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), InjectBearerToken())
 	if err != nil {
 		return err
 	}
-	r.gitlabCliTokenAuth, err = NewAuth(AuthWithSessionStore(r.sessions), WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), WithTokenInjector(gitlabCliTokenInjector))
+	r.gitlabCliTokenAuth, err = NewAuthMiddlewareProvider(!r.config.EnableV1Services, AuthWithSessionStore(r.sessions), WithTokenType(models.AccessTokenType), WithProviderID("gitlab"), WithTokenInjector(gitlabCliTokenInjector))
 	if err != nil {
 		return err
 	}
