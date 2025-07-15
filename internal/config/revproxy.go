@@ -18,6 +18,7 @@ type RenkuServicesConfig struct {
 type RevproxyConfig struct {
 	RenkuBaseURL      *url.URL
 	ExternalGitlabURL *url.URL
+	EnableV1Services  bool
 	K8sNamespace      string
 	RenkuServices     RenkuServicesConfig
 }

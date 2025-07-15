@@ -25,6 +25,7 @@ sessions:
 revproxy:
   renkuBaseUrl: "https://renkulab.io"
   externalGitlabUrl:
+  enableV1Services: true
   k8sNamespace:
   renkuServices:
     noteboooks:

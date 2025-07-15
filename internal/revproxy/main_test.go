@@ -161,26 +161,27 @@ func setupTestUpstream(ID string, requestTracker chan<- *http.Request) (*httptes
 	return srv, url
 }
 
-func setupTestAuthServer(
-	ID string,
-	responseHeaders map[string]string,
-	responseStatus int,
-	requestTracker chan<- *http.Request,
-) (*httptest.Server, *url.URL) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for k, v := range responseHeaders {
-			w.Header().Set(k, v)
-		}
-		r.Header.Set(serverIDHeader, ID)
-		requestTracker <- r
-		w.WriteHeader(responseStatus)
-	}))
-	url, err := url.Parse(srv.URL)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return srv, url
-}
+// TODO Unused code. Can it be deleted?
+// func setupTestAuthServer(
+// 	ID string,
+// 	responseHeaders map[string]string,
+// 	responseStatus int,
+// 	requestTracker chan<- *http.Request,
+// ) (*httptest.Server, *url.URL) {
+// 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		for k, v := range responseHeaders {
+// 			w.Header().Set(k, v)
+// 		}
+// 		r.Header.Set(serverIDHeader, ID)
+// 		requestTracker <- r
+// 		w.WriteHeader(responseStatus)
+// 	}))
+// 	url, err := url.Parse(srv.URL)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	return srv, url
+// }
 
 func setupTestRevproxy(rpConfig *config.RevproxyConfig, sessions *sessions.SessionStore) (*httptest.Server, *url.URL) {
 	proxy, err := NewServer(WithConfig(*rpConfig), WithSessionStore(sessions))
@@ -217,6 +218,8 @@ type TestCase struct {
 	Expected       TestResults
 	RequestHeader  map[string]string
 	RequestCookie  *http.Cookie
+
+	DisableV1Services bool
 }
 
 func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
@@ -297,6 +300,7 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 			defer gitlab.Close()
 			rpConfig.ExternalGitlabURL = gitlabURL
 		}
+		rpConfig.EnableV1Services = !scenario.DisableV1Services
 		proxy, proxyURL := setupTestRevproxy(&rpConfig, sessionStore)
 		defer upstream.Close()
 		defer upstream2.Close()
@@ -438,6 +442,46 @@ func TestInternalSvcRoutes(t *testing.T) {
 				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"renku": "renku:myToken", "gitlab": "gitlab:otherToken"})),
 			},
 			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
+		},
+		{
+			Path: "/api/notebooks/test/acceptedAuth",
+			Expected: TestResults{
+				Path:             "/api/data/notebooks/test/acceptedAuth",
+				VisitedServerIDs: []string{"upstream"},
+				UpstreamRequestHeaders: []map[string]string{{
+					echo.HeaderAuthorization:         "Bearer accessTokenValue",
+					"Gitlab-Access-Token":            "",
+					"Gitlab-Access-Token-Expires-At": "",
+					"Renku-Auth-Refresh-Token":       "refreshTokenValue",
+					"Renku-Auth-Anon-Id":             "",
+				}},
+			},
+			Tokens: []models.AuthToken{
+				newTestToken(
+					models.AccessTokenType,
+					tokenID("renku:myToken"),
+					tokenPlainValue("accessTokenValue"),
+					tokenProviderID("renku"),
+				),
+				newTestToken(
+					models.RefreshTokenType,
+					tokenID("renku:myToken"),
+					tokenPlainValue("refreshTokenValue"),
+					tokenProviderID("renku"),
+				),
+				newTestToken(
+					models.AccessTokenType,
+					tokenID("gitlab:otherToken"),
+					tokenPlainValue("gitlabAccessTokenValue"),
+					tokenProviderID("gitlab"),
+					tokenExpiresAt(time.Unix(16746525971, 0)),
+				),
+			},
+			Sessions: []models.Session{
+				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"renku": "renku:myToken", "gitlab": "gitlab:otherToken"})),
+			},
+			RequestCookie:     &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
+			DisableV1Services: true,
 		},
 		{
 			Path:     "/api/notebooks",
