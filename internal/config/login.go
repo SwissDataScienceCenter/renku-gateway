@@ -11,6 +11,7 @@ type TokenEncryptionConfig struct {
 }
 
 type LoginConfig struct {
+	EnableV1Services            bool
 	RenkuBaseURL                *url.URL
 	LoginRoutesBasePath         string
 	TokenEncryption             TokenEncryptionConfig

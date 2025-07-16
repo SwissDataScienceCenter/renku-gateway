@@ -30,7 +30,7 @@ func (l *LoginServer) GetLogin(c echo.Context, params GetLoginParams) error {
 	if params.ProviderId != nil && len(*params.ProviderId) > 0 {
 		loginSequence = *params.ProviderId
 	} else {
-		loginSequence = defaultLoginSequence[:]
+		loginSequence = l.getLoginSequence()
 	}
 	session.LoginSequence = loginSequence
 	return l.nextAuthStep(c, session)
@@ -241,4 +241,12 @@ func (l *LoginServer) nextAuthStep(
 	// Save the session: ensure we save the session before sending redirects
 	l.sessions.Save(c)
 	return echo.WrapHandler(handler)(c)
+}
+
+func (l *LoginServer) getLoginSequence() (loginSequence []string) {
+	if l.config.EnableV1Services {
+		return defaultLoginSequence[:]
+	} else {
+		return v2OnlyLoginSequence[:]
+	}
 }
