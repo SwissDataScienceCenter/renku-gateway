@@ -62,7 +62,6 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 		gitlabToken := r.gitlabTokenAuth.Middleware()
 		gitlabCliToken := r.gitlabCliTokenAuth.Middleware()
 		notebooksRenkuRefreshToken := r.notebooksRenkuRefreshTokenAuth.Middleware()
-		// notebooksRenkuIDToken := r.notebooksRenkuIDTokenAuth.Middleware()
 		renkuAccessToken := r.renkuAccessTokenAuth.Middleware()
 
 		// Routing for Renku services
