@@ -118,6 +118,8 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 		// Notebooks is being routed to data service now
 		e.Group("/api/notebooks", append(commonMiddlewares, renkuAccessToken, notebooksRenkuRefreshToken, notebooksAnonymousID(r.sessions), regexRewrite("^/api/notebooks(.*)", "/api/data/notebooks$1"), dataServiceProxy)...)
 		e.Group("/api/data", append(commonMiddlewares, renkuAccessToken, notebooksRenkuRefreshToken, notebooksAnonymousID(r.sessions), dataServiceProxy)...)
+		// /api/kc is used only by the ui and no one else, will be removed when the gateway is in charge of user sessions
+		e.Group("/api/kc", append(commonMiddlewares, stripPrefix("/api/kc"), renkuAccessToken, keycloakProxyHost, keycloakProxy)...)
 
 		// UI server webssockets
 		e.Group("/ui-server/ws", append(commonMiddlewares, ensureSession(r.sessions), renkuAccessToken, uiServerProxy)...)
