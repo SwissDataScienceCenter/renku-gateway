@@ -45,8 +45,18 @@ func getTestConfig(loginServerPort int, authServers ...testAuthServer) (config.L
 	if err != nil {
 		return config.LoginConfig{}, err
 	}
+
+	// Toggle `EnableV1Services` on if we authenticate with GitLab
+	enableV1Services := false
+	for _, auth := range authServers {
+		if auth.ClientID == "gitlab" {
+			enableV1Services = true
+		}
+	}
+
 	testConfig := config.LoginConfig{
-		RenkuBaseURL: renkuBaseURL,
+		EnableV1Services: enableV1Services,
+		RenkuBaseURL:     renkuBaseURL,
 		TokenEncryption: config.TokenEncryptionConfig{
 			Enabled:   true,
 			SecretKey: "1b195c6329ba7df1c1adf6975c71910d",

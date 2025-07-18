@@ -11,6 +11,7 @@ type TokenEncryptionConfig struct {
 }
 
 type LoginConfig struct {
+	EnableV1Services            bool
 	RenkuBaseURL                *url.URL
 	LoginRoutesBasePath         string
 	TokenEncryption             TokenEncryptionConfig
@@ -34,6 +35,10 @@ type OIDCClient struct {
 }
 
 func (c LoginConfig) Validate(e RunningEnvironment) error {
+	// Fix the login config when EnableV1Services is false
+	if !c.EnableV1Services {
+		delete(c.Providers, "gitlab")
+	}
 	if c.TokenEncryption.Enabled && len(c.TokenEncryption.SecretKey) != 32 {
 		return fmt.Errorf(
 			"token encryption key has to be 32 bytes long, the provided one is %d long",
