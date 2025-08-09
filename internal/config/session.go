@@ -11,6 +11,8 @@ type SessionConfig struct {
 	// NOTE: UnsafeNoCookieHandler should only be used for testing, in production this has to be false/unset
 	// without this there is no CSRF protection on the oauth callback endpoint
 	UnsafeNoCookieHandler bool
+	// NOTE: Unsafe cookie template should only be used for testing. It is NOT SAFE for production.
+	UnsafeCookieTemplate bool
 }
 
 type AuthorizationVerifier struct {
@@ -28,6 +30,9 @@ func (c *SessionConfig) Validate(e RunningEnvironment) error {
 	}
 	if e != Development && c.UnsafeNoCookieHandler {
 		return fmt.Errorf("a cookie handler needs to be configured in production")
+	}
+	if e != Development && c.UnsafeCookieTemplate {
+		return fmt.Errorf("a safe cookie template needs to be configured in production")
 	}
 	return nil
 }
