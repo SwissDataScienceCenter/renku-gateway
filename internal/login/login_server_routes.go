@@ -244,7 +244,7 @@ func (l *LoginServer) nextAuthStep(
 }
 
 func (l *LoginServer) getLoginSequence() (loginSequence []string) {
-	if l.config.EnableV1Services {
+	if l.config.EnableInternalGitlab {
 		return defaultLoginSequence[:]
 	} else {
 		return v2OnlyLoginSequence[:]
