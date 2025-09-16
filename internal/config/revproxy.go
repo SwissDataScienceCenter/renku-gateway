@@ -15,11 +15,12 @@ type RenkuServicesConfig struct {
 }
 
 type RevproxyConfig struct {
-	EnableV1Services  bool
-	RenkuBaseURL      *url.URL
-	ExternalGitlabURL *url.URL
-	K8sNamespace      string
-	RenkuServices     RenkuServicesConfig
+	EnableV1Services     bool
+	EnableInternalGitlab bool
+	RenkuBaseURL         *url.URL
+	ExternalGitlabURL    *url.URL
+	K8sNamespace         string
+	RenkuServices        RenkuServicesConfig
 }
 
 type CoreSvcConfig struct {
@@ -38,6 +39,9 @@ func (r *RevproxyConfig) Validate() error {
 	}
 	if r.RenkuServices.UIServer == nil {
 		return fmt.Errorf("the proxy config is missing the url to ui-server")
+	}
+	if r.EnableV1Services && !r.EnableInternalGitlab {
+		return fmt.Errorf("enabling V1 (legacy) services but disabling the internal Gitlab is not supported in the reverse proxy config")
 	}
 
 	// Check v1 services if needed

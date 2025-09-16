@@ -11,6 +11,7 @@ type TokenEncryptionConfig struct {
 }
 
 type LoginConfig struct {
+	EnableInternalGitlab        bool
 	EnableV1Services            bool
 	RenkuBaseURL                *url.URL
 	LoginRoutesBasePath         string
@@ -36,7 +37,7 @@ type OIDCClient struct {
 
 func (c LoginConfig) Validate(e RunningEnvironment) error {
 	// Fix the login config when EnableV1Services is false
-	if !c.EnableV1Services {
+	if !c.EnableInternalGitlab {
 		delete(c.Providers, "gitlab")
 	}
 	if c.TokenEncryption.Enabled && len(c.TokenEncryption.SecretKey) != 32 {
@@ -54,6 +55,9 @@ func (c LoginConfig) Validate(e RunningEnvironment) error {
 				return fmt.Errorf("provider %s cannot be configured without a cookie handler in production", k)
 			}
 		}
+	}
+	if c.EnableV1Services && !c.EnableInternalGitlab {
+		return fmt.Errorf("enabling V1 (legacy) services but disabling the internal Gitlab is not supported in the login config")
 	}
 	return nil
 }

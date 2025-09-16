@@ -24,6 +24,7 @@ sessions:
       authorizedParty: renku-cli
 revproxy:
   enableV1Services: true
+  enableInternalGitlab: true
   renkuBaseUrl: "https://renkulab.io"
   externalGitlabUrl:
   k8sNamespace:
@@ -41,6 +42,7 @@ revproxy:
     search:
 login:
   enableV1Services: true
+  enableInternalGitlab: true
   endpointsBasePath:
   renkuBaseURL: "https://renkulab.io"
   tokenEncryption:
