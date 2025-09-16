@@ -37,7 +37,7 @@ type OIDCClient struct {
 
 func (c LoginConfig) Validate(e RunningEnvironment) error {
 	// Fix the login config when EnableV1Services is false
-	if !c.EnableV1Services {
+	if !c.EnableInternalGitlab {
 		delete(c.Providers, "gitlab")
 	}
 	if c.TokenEncryption.Enabled && len(c.TokenEncryption.SecretKey) != 32 {
