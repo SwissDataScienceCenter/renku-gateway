@@ -7,16 +7,19 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/redirects"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/labstack/echo/v4"
 )
 
 type Revproxy struct {
-	config   *config.RevproxyConfig
-	sessions *sessions.SessionStore
+	config    *config.RevproxyConfig
+	sessions  *sessions.SessionStore
+	redirects *redirects.RedirectStore
 
 	// Auth instances
 
@@ -53,6 +56,13 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	// Deny rules
 	sk := e.Group("/api/data/user/secret_key", commonMiddlewares...)
 	sk.GET("/", echo.NotFoundHandler)
+
+	// Redirects store middleware
+	if r.redirects != nil {
+		redirectMiddleware := r.redirects.Middleware()
+		redirectPath := path.Join(r.redirects.PathPrefix, ":projectPath")
+		e.Group(redirectPath, append(commonMiddlewares, renkuBaseProxyHost, redirectMiddleware, fallbackProxy)...)
+	}
 
 	// Middlewares and routing is configured depending on `EnableV1Services` and `EnableInternalGitlab`
 	if r.config.EnableV1Services {
@@ -216,6 +226,12 @@ func WithConfig(revproxyConfig config.RevproxyConfig) RevproxyOption {
 func WithSessionStore(sessions *sessions.SessionStore) RevproxyOption {
 	return func(l *Revproxy) {
 		l.sessions = sessions
+	}
+}
+
+func WithRedirectsStore(redirects *redirects.RedirectStore) RevproxyOption {
+	return func(l *Revproxy) {
+		l.redirects = redirects
 	}
 }
 

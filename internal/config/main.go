@@ -5,6 +5,7 @@ type Config struct {
 	DebugMode  bool
 	Server     ServerConfig
 	Sessions   SessionConfig
+	Redirects  RedirectsStoreConfig
 	Revproxy   RevproxyConfig
 	Login      LoginConfig
 	Redis      RedisConfig

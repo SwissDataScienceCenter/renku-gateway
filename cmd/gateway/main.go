@@ -16,6 +16,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/db"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/login"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/metrics"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/redirects"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/revproxy"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/tokenstore"
@@ -117,8 +118,18 @@ func main() {
 	}
 	// Add the session store to the common middlewares
 	gwMiddlewares := append(commonMiddlewares, sessionStore.Middleware())
+	// Create redirect store
+	redirectStore, err := redirects.NewRedirectStore(
+		redirects.WithConfig(gwConfig.Redirects),
+		// TODO: Make the TTL configurable
+		redirects.WithEntryTtl(time.Duration(5) * time.Minute),
+	)
+	if err != nil {
+		slog.Error("failed to initialize redirect store", "error", err)
+		os.Exit(1)
+	}
 	// Initialize the reverse proxy
-	revproxy, err := revproxy.NewServer(revproxy.WithConfig(gwConfig.Revproxy), revproxy.WithSessionStore(sessionStore))
+	revproxy, err := revproxy.NewServer(revproxy.WithConfig(gwConfig.Revproxy), revproxy.WithSessionStore(sessionStore), revproxy.WithRedirectsStore(redirectStore))
 	if err != nil {
 		slog.Error("revproxy handlers initialization failed", "error", err)
 		os.Exit(1)
