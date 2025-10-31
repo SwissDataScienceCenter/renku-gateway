@@ -152,6 +152,7 @@ func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 			}
 
 			urlToCheck := strings.TrimPrefix(path, rs.PathPrefix)
+			// TODO: Check for a `/-/` in the path and remove it and anything that follows (links to sub-pages of a project)
 			urlToCheck = fmt.Sprintf("https://%s/%s", rs.redirectedHost, urlToCheck)
 			// URL-encode the full URL so it can be safely used in the API path
 			urlToCheck = netUrl.QueryEscape(urlToCheck)
