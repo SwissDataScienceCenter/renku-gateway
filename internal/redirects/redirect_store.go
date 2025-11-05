@@ -22,7 +22,7 @@ type PlatformRedirectConfig struct {
 
 type RedirectStoreRedirectEntry struct {
 	SourceUrl string
-	TargetUrl *string
+	TargetUrl string
 	UpdatedAt time.Time
 }
 
@@ -126,7 +126,7 @@ func (rs *RedirectStore) GetRedirectEntry(key string) (*RedirectStoreRedirectEnt
 		}
 		entry = RedirectStoreRedirectEntry{
 			SourceUrl: updatedEntry.SourceUrl,
-			TargetUrl: &updatedEntry.TargetUrl,
+			TargetUrl: updatedEntry.TargetUrl,
 			UpdatedAt: time.Now(),
 		}
 		rs.RedirectMap[key] = entry
@@ -169,7 +169,7 @@ func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 				)
 				return c.NoContent(http.StatusNotFound)
 			}
-			if entry == nil || entry.TargetUrl == nil {
+			if entry == nil {
 				slog.Debug(
 					"REDIRECT_STORE MIDDLEWARE",
 					"message", "no redirect found for url, returning 404",
@@ -181,9 +181,9 @@ func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 				"REDIRECT_STORE MIDDLEWARE",
 				"message", "redirecting request",
 				"from", urlToCheck,
-				"to", *entry.TargetUrl,
+				"to", entry.TargetUrl,
 			)
-			return c.Redirect(http.StatusMovedPermanently, *entry.TargetUrl)
+			return c.Redirect(http.StatusMovedPermanently, entry.TargetUrl)
 		}
 	}
 }

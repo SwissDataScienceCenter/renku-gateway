@@ -83,11 +83,11 @@ func TestGetRedirectEntry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetRedirectEntry returned error: %v", err)
 	}
-	if e1 == nil || e1.TargetUrl == nil {
+	if e1 == nil {
 		t.Fatalf("expected an entry with TargetUrl, got %+v", e1)
 	}
-	if *e1.TargetUrl != "https://renku.example.org/some/path" {
-		t.Fatalf("unexpected target url: %v", *e1.TargetUrl)
+	if e1.TargetUrl != "https://renku.example.org/some/path" {
+		t.Fatalf("unexpected target url: %v", e1.TargetUrl)
 	}
 
 	// Second call (within TTL) should be served from cache -> server not called again
@@ -95,7 +95,7 @@ func TestGetRedirectEntry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetRedirectEntry (second) returned error: %v", err)
 	}
-	if e2 == nil || e2.TargetUrl == nil {
+	if e2 == nil {
 		t.Fatalf("expected a cached entry with TargetUrl, got %+v", e2)
 	}
 	if atomic.LoadInt32(&calls) != 1 {
