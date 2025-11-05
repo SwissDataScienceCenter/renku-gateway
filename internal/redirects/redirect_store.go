@@ -38,7 +38,7 @@ type RedirectStore struct {
 }
 
 type ServerCredentials struct {
-	Host string
+	Host netUrl.URL
 }
 
 type RedirectStoreOption func(*RedirectStore) error
@@ -57,49 +57,53 @@ func WithEntryTtl(ttl time.Duration) RedirectStoreOption {
 	}
 }
 
-func queryRenkuApi(renkuCredentials ServerCredentials, endpoint string) []byte {
+func queryRenkuApi(renkuCredentials ServerCredentials, endpoint string) ([]byte, error) {
 	method := "GET"
 
-	req, err := http.NewRequest(method, fmt.Sprintf("https://%s/api/data%s", renkuCredentials.Host, endpoint), nil)
+	path := fmt.Sprintf("/api/data%s", endpoint)
+	rel, err := netUrl.Parse(path)
 	if err != nil {
-		fmt.Printf("Error creating request: %v\n", err)
-		return nil
+		return nil, fmt.Errorf("error parsing endpoint: %w", err)
+	}
+	fullUrl := renkuCredentials.Host.ResolveReference(rel).String()
+	req, err := http.NewRequest(method, fullUrl, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		fmt.Printf("Error fetching migrated projects: %v\n", err)
-		return nil
+		return nil, fmt.Errorf("error fetching migrated projects: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		fmt.Printf("Unexpected status code: %d\n", resp.StatusCode)
-		return nil
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Printf("Error reading response body: %v\n", err)
-		return nil
+		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
-	return body
+	return body, nil
 }
 
-func retrieveRedirectForUrl(renkuCredentials ServerCredentials, sourceUrl string) *PlatformRedirectConfig {
+func retrieveRedirectForUrl(renkuCredentials ServerCredentials, sourceUrl string) (*PlatformRedirectConfig, error) {
 	// Query the Renku API to get the redirect for the given source URL
-	body := queryRenkuApi(renkuCredentials, fmt.Sprintf("/platform/redirects/%s", sourceUrl))
+	body, err := queryRenkuApi(renkuCredentials, fmt.Sprintf("/platform/redirects/%s", sourceUrl))
+	if err != nil {
+		return nil, fmt.Errorf("error querying Renku API: %w", err)
+	}
 	if body == nil {
-		return nil
+		return nil, fmt.Errorf("no response body received")
 	}
 
 	var redirectConfig PlatformRedirectConfig
 	if err := json.Unmarshal(body, &redirectConfig); err != nil {
-		fmt.Printf("Error parsing JSON response: %v\n", err)
-		return nil
+		return nil, fmt.Errorf("error parsing JSON response: %w", err)
 	}
 
-	return &redirectConfig
+	return &redirectConfig, nil
 }
 
 func (rs *RedirectStore) GetRedirectEntry(key string) (*RedirectStoreRedirectEntry, error) {
@@ -117,9 +121,12 @@ func (rs *RedirectStore) GetRedirectEntry(key string) (*RedirectStoreRedirectEnt
 	// Re-check after acquiring the lock, since it might have been updated meanwhile
 	entry, ok = rs.RedirectMap[key]
 	if !ok || entry.UpdatedAt.Add(rs.EntryTtl).Before(time.Now()) {
-		updatedEntry := retrieveRedirectForUrl(ServerCredentials{
-			Host: rs.Config.RenkuBaseURL.Host,
+		updatedEntry, err := retrieveRedirectForUrl(ServerCredentials{
+			Host: *rs.Config.RenkuBaseURL, // RenkuBaseURL cannot be non-nil here due to earlier validation
 		}, key)
+		if err != nil {
+			return nil, fmt.Errorf("error retrieving redirect for url %s: %w", key, err)
+		}
 		if updatedEntry == nil {
 			// No entry, this is fine
 			return nil, nil
@@ -166,6 +173,8 @@ func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 					"could not lookup redirect entry, returning 404",
 					"url",
 					url.String(),
+					"error",
+					err.Error(),
 				)
 				return c.NoContent(http.StatusNotFound)
 			}
