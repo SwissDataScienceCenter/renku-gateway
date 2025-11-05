@@ -26,6 +26,8 @@ type RedirectStoreRedirectEntry struct {
 	UpdatedAt time.Time
 }
 
+var noRedirectFound = RedirectStoreRedirectEntry{}
+
 type RedirectStore struct {
 	Config      config.RedirectsStoreConfig
 	EntryTtl    time.Duration
@@ -129,7 +131,7 @@ func (rs *RedirectStore) GetRedirectEntry(key string) (*RedirectStoreRedirectEnt
 		}
 		if updatedEntry == nil {
 			// No entry, this is fine
-			return nil, nil
+			return &noRedirectFound, nil
 		}
 		entry = RedirectStoreRedirectEntry{
 			SourceUrl: updatedEntry.SourceUrl,
@@ -179,6 +181,14 @@ func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 				return c.NoContent(http.StatusNotFound)
 			}
 			if entry == nil {
+				slog.Debug(
+					"REDIRECT_STORE MIDDLEWARE",
+					"message", "nil redirect found for url (this should not happen), returning 404",
+					"from", urlToCheck,
+				)
+				return c.NoContent(http.StatusNotFound)
+			}
+			if entry == &noRedirectFound {
 				slog.Debug(
 					"REDIRECT_STORE MIDDLEWARE",
 					"message", "no redirect found for url, returning 404",
