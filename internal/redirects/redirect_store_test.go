@@ -75,11 +75,10 @@ func TestGetRedirectEntry(t *testing.T) {
 		t.Fatalf("failed to create RedirectStore: %v", err)
 	}
 
-	full := "https://" + path.Join(rs.redirectedHost, "user/repo")
-	escapedFull := netUrl.QueryEscape(full)
+	full := path.Join(rs.PathPrefix, "user/repo")
 
 	// First call should hit the server
-	e1, err := rs.GetRedirectEntry(escapedFull)
+	e1, err := rs.GetRedirectEntry(netUrl.URL{Path: full})
 	if err != nil {
 		t.Fatalf("GetRedirectEntry returned error: %v", err)
 	}
@@ -91,7 +90,7 @@ func TestGetRedirectEntry(t *testing.T) {
 	}
 
 	// Second call (within TTL) should be served from cache -> server not called again
-	e2, err := rs.GetRedirectEntry(escapedFull)
+	e2, err := rs.GetRedirectEntry(netUrl.URL{Path: full})
 	if err != nil {
 		t.Fatalf("GetRedirectEntry (second) returned error: %v", err)
 	}

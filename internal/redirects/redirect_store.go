@@ -90,9 +90,9 @@ func queryRenkuApi(renkuCredentials ServerCredentials, endpoint string) ([]byte,
 	return body, nil
 }
 
-func retrieveRedirectForUrl(renkuCredentials ServerCredentials, sourceUrl string) (*PlatformRedirectConfig, error) {
+func retrieveRedirectTargetForSource(renkuCredentials ServerCredentials, source string) (*PlatformRedirectConfig, error) {
 	// Query the Renku API to get the redirect for the given source URL
-	body, err := queryRenkuApi(renkuCredentials, fmt.Sprintf("/platform/redirects/%s", sourceUrl))
+	body, err := queryRenkuApi(renkuCredentials, fmt.Sprintf("/platform/redirects/%s", source))
 	if err != nil {
 		return nil, fmt.Errorf("error querying Renku API: %w", err)
 	}
@@ -108,9 +108,33 @@ func retrieveRedirectForUrl(renkuCredentials ServerCredentials, sourceUrl string
 	return &redirectConfig, nil
 }
 
-func (rs *RedirectStore) GetRedirectEntry(key string) (*RedirectStoreRedirectEntry, error) {
+func (rs *RedirectStore) urlToKey(url netUrl.URL) (string, error) {
+
+	path := url.Path
+	if path == "" {
+		return "", fmt.Errorf("the path should start with PathPrefix")
+	}
+	if !strings.HasPrefix(path, rs.PathPrefix) {
+		return "", fmt.Errorf("the path should start with PathPrefix")
+	}
+
+	urlToCheck := strings.TrimPrefix(path, rs.PathPrefix)
+	// TODO: Check for a `/-/` in the path and remove it and anything that follows (links to sub-pages of a project)
+	urlToCheck = fmt.Sprintf("https://%s/%s", rs.redirectedHost, urlToCheck)
+	// URL-encode the full URL so it can be safely used in the API path
+	urlToCheck = netUrl.QueryEscape(urlToCheck)
+	// check for redirects for this URL
+	return urlToCheck, nil
+}
+
+func (rs *RedirectStore) GetRedirectEntry(url netUrl.URL) (*RedirectStoreRedirectEntry, error) {
 	if rs == nil {
 		return nil, fmt.Errorf("redirect store is not initialized")
+	}
+
+	key, err := rs.urlToKey(url)
+	if err != nil {
+		return nil, fmt.Errorf("error converting url to key: %w", err)
 	}
 
 	entry, ok := rs.RedirectMap[key]
@@ -123,7 +147,7 @@ func (rs *RedirectStore) GetRedirectEntry(key string) (*RedirectStoreRedirectEnt
 	// Re-check after acquiring the lock, since it might have been updated meanwhile
 	entry, ok = rs.RedirectMap[key]
 	if !ok || entry.UpdatedAt.Add(rs.EntryTtl).Before(time.Now()) {
-		updatedEntry, err := retrieveRedirectForUrl(ServerCredentials{
+		updatedEntry, err := retrieveRedirectTargetForSource(ServerCredentials{
 			Host: *rs.Config.RenkuBaseURL, // RenkuBaseURL cannot be non-nil here due to earlier validation
 		}, key)
 		if err != nil {
@@ -150,23 +174,8 @@ func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 			if url == nil {
 				return next(c)
 			}
-
-			path := url.Path
-			if path == "" {
-				// This should not happen because the path should start with PathPrefix
-				return next(c)
-			}
-			if !strings.HasPrefix(path, rs.PathPrefix) {
-				return next(c)
-			}
-
-			urlToCheck := strings.TrimPrefix(path, rs.PathPrefix)
-			// TODO: Check for a `/-/` in the path and remove it and anything that follows (links to sub-pages of a project)
-			urlToCheck = fmt.Sprintf("https://%s/%s", rs.redirectedHost, urlToCheck)
-			// URL-encode the full URL so it can be safely used in the API path
-			urlToCheck = netUrl.QueryEscape(urlToCheck)
 			// check for redirects for this URL
-			entry, err := rs.GetRedirectEntry(urlToCheck)
+			entry, err := rs.GetRedirectEntry(*url)
 
 			if err != nil {
 				slog.Debug(
@@ -184,7 +193,7 @@ func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 				slog.Debug(
 					"REDIRECT_STORE MIDDLEWARE",
 					"message", "nil redirect found for url (this should not happen), returning 404",
-					"from", urlToCheck,
+					"from", url.String(),
 				)
 				return c.NoContent(http.StatusNotFound)
 			}
@@ -192,14 +201,14 @@ func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 				slog.Debug(
 					"REDIRECT_STORE MIDDLEWARE",
 					"message", "no redirect found for url, returning 404",
-					"from", urlToCheck,
+					"from", url.String(),
 				)
 				return c.NoContent(http.StatusNotFound)
 			}
 			slog.Debug(
 				"REDIRECT_STORE MIDDLEWARE",
 				"message", "redirecting request",
-				"from", urlToCheck,
+				"from", url.String(),
 				"to", entry.TargetUrl,
 			)
 			return c.Redirect(http.StatusMovedPermanently, entry.TargetUrl)
