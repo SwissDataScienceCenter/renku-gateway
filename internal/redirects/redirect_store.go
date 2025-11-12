@@ -224,6 +224,11 @@ func NewRedirectStore(options ...RedirectStoreOption) (*RedirectStore, error) {
 			return &RedirectStore{}, err
 		}
 	}
+
+	if !rs.Config.Enabled {
+		return nil, nil
+	}
+
 	if rs.Config.RenkuBaseURL == nil {
 		return &RedirectStore{}, fmt.Errorf("a RenkuBaseURL must be provided")
 	}
