@@ -148,7 +148,7 @@ func (rs *RedirectStore) GetRedirectEntry(url netUrl.URL) (*RedirectStoreRedirec
 	entry, ok = rs.RedirectMap[key]
 	if !ok || entry.UpdatedAt.Add(rs.EntryTtl).Before(time.Now()) {
 		updatedEntry, err := retrieveRedirectTargetForSource(ServerCredentials{
-			Host: *rs.Config.RenkuBaseURL, // RenkuBaseURL cannot be non-nil here due to earlier validation
+			Host: *rs.Config.Gitlab.RenkuBaseURL, // RenkuBaseURL cannot be non-nil here due to earlier validation
 		}, key)
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving redirect for url %s: %w", key, err)
@@ -224,11 +224,16 @@ func NewRedirectStore(options ...RedirectStoreOption) (*RedirectStore, error) {
 			return &RedirectStore{}, err
 		}
 	}
-	if rs.Config.RenkuBaseURL == nil {
+
+	if !rs.Config.Gitlab.Enabled {
+		return nil, nil
+	}
+
+	if rs.Config.Gitlab.RenkuBaseURL == nil {
 		return &RedirectStore{}, fmt.Errorf("a RenkuBaseURL must be provided")
 	}
 
-	rs.redirectedHost = rs.Config.RedirectedHost
+	rs.redirectedHost = rs.Config.Gitlab.RedirectedHost
 	if rs.redirectedHost == "" {
 		rs.redirectedHost = "gitlab.renkulab.io"
 	}

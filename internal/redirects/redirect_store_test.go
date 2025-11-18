@@ -38,16 +38,24 @@ func newMockRenkuDataService(t *testing.T, calls *int32) *httptest.Server {
 
 func TestNewRedirectStoreConfigDefaultsAndValidation(t *testing.T) {
 	// Missing RenkuBaseURL should return an error
-	_, err := NewRedirectStore(WithConfig(config.RedirectsStoreConfig{}))
+	nilStore, err := NewRedirectStore(WithConfig(config.RedirectsStoreConfig{}))
+	if nilStore != nil && (err != nil) {
+		t.Fatal("expected nil when Enabled is false")
+	}
+
+	_, err = NewRedirectStore(WithConfig(config.RedirectsStoreConfig{Gitlab: config.GitlabRedirectsConfig{Enabled: true}}))
 	if err == nil {
 		t.Fatal("expected error when RenkuBaseURL is not provided")
 	}
 
 	// With RenkuBaseURL provided, should succeed and set default redirectedHost
 	u, _ := netUrl.Parse("https://renku.example.org")
-	rs, err := NewRedirectStore(WithConfig(config.RedirectsStoreConfig{RenkuBaseURL: u}))
+	rs, err := NewRedirectStore(WithConfig(config.RedirectsStoreConfig{Gitlab: config.GitlabRedirectsConfig{Enabled: true, RenkuBaseURL: u}}))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	if rs == nil {
+		t.Fatalf("expected non-nil RedirectStore")
 	}
 	if rs.PathPrefix != "/api/gitlab-redirect/" {
 		t.Fatalf("unexpected default PathPrefix: got %q", rs.PathPrefix)
@@ -69,7 +77,7 @@ func TestGetRedirectEntry(t *testing.T) {
 
 	// Configure RedirectStore to point to the test server host
 	u, _ := netUrl.Parse(ts.URL)
-	cfg := config.RedirectsStoreConfig{RenkuBaseURL: u}
+	cfg := config.RedirectsStoreConfig{Gitlab: config.GitlabRedirectsConfig{Enabled: true, RenkuBaseURL: u}}
 	rs, err := NewRedirectStore(WithConfig(cfg), WithEntryTtl(1*time.Minute))
 	if err != nil {
 		t.Fatalf("failed to create RedirectStore: %v", err)
@@ -112,7 +120,7 @@ func TestRedirectStoreMiddleware(t *testing.T) {
 	t.Cleanup(func() { http.DefaultClient = origDefaultClient })
 
 	u, _ := netUrl.Parse(ts.URL)
-	cfg := config.RedirectsStoreConfig{RenkuBaseURL: u}
+	cfg := config.RedirectsStoreConfig{Gitlab: config.GitlabRedirectsConfig{Enabled: true, RenkuBaseURL: u}}
 	rs, err := NewRedirectStore(WithConfig(cfg), WithEntryTtl(1*time.Minute))
 	if err != nil {
 		t.Fatalf("failed to create RedirectStore: %v", err)

@@ -12,8 +12,11 @@ func getValidRedirectsConfig(t *testing.T) RedirectsStoreConfig {
 	renkuBaseURL, err := url.Parse("https://renku.example.org")
 	require.NoError(t, err)
 	return RedirectsStoreConfig{
-		RenkuBaseURL:   renkuBaseURL,
-		RedirectedHost: "gitlab.example.org",
+		Gitlab: GitlabRedirectsConfig{
+			Enabled:        true,
+			RenkuBaseURL:   renkuBaseURL,
+			RedirectedHost: "gitlab.example.org",
+		},
 	}
 }
 
@@ -27,9 +30,9 @@ func TestValidRedirectsConfig(t *testing.T) {
 
 func TestInvalidRedirectsConfig(t *testing.T) {
 	config := getValidRedirectsConfig(t)
-	config.RenkuBaseURL = nil
+	config.Gitlab.RenkuBaseURL = nil
 
 	err := config.Validate()
 
-	assert.ErrorContains(t, err, "the redirects store config is missing the base url for Renku")
+	assert.ErrorContains(t, err, "the redirects store is enabled but the config is missing the base url for Renku")
 }
