@@ -52,13 +52,6 @@ func WithConfig(cfg config.RedirectsStoreConfig) RedirectStoreOption {
 	}
 }
 
-func WithEntryTtl(ttl time.Duration) RedirectStoreOption {
-	return func(rs *RedirectStore) error {
-		rs.EntryTtl = ttl
-		return nil
-	}
-}
-
 func queryRenkuApi(renkuCredentials ServerCredentials, endpoint string) ([]byte, error) {
 	method := "GET"
 
@@ -234,6 +227,8 @@ func NewRedirectStore(options ...RedirectStoreOption) (*RedirectStore, error) {
 	if rs.redirectedHost == "" {
 		rs.redirectedHost = "gitlab.renkulab.io"
 	}
+
+	rs.EntryTtl = time.Duration(rs.Config.Gitlab.EntryTtlSeconds) * time.Second
 
 	return &rs, nil
 }

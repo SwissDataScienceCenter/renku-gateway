@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/labstack/echo/v4"
@@ -77,8 +76,8 @@ func TestGetRedirectEntry(t *testing.T) {
 
 	// Configure RedirectStore to point to the test server host
 	u, _ := url.Parse(ts.URL)
-	cfg := config.RedirectsStoreConfig{Gitlab: config.GitlabRedirectsConfig{Enabled: true, RenkuBaseURL: u}}
-	rs, err := NewRedirectStore(WithConfig(cfg), WithEntryTtl(1*time.Minute))
+	cfg := config.RedirectsStoreConfig{Gitlab: config.GitlabRedirectsConfig{Enabled: true, RenkuBaseURL: u, EntryTtlSeconds: 60}}
+	rs, err := NewRedirectStore(WithConfig(cfg))
 	if err != nil {
 		t.Fatalf("failed to create RedirectStore: %v", err)
 	}
@@ -120,8 +119,8 @@ func TestRedirectStoreMiddleware(t *testing.T) {
 	t.Cleanup(func() { http.DefaultClient = origDefaultClient })
 
 	u, _ := url.Parse(ts.URL)
-	cfg := config.RedirectsStoreConfig{Gitlab: config.GitlabRedirectsConfig{Enabled: true, RenkuBaseURL: u}}
-	rs, err := NewRedirectStore(WithConfig(cfg), WithEntryTtl(1*time.Minute))
+	cfg := config.RedirectsStoreConfig{Gitlab: config.GitlabRedirectsConfig{Enabled: true, RenkuBaseURL: u, EntryTtlSeconds: 60}}
+	rs, err := NewRedirectStore(WithConfig(cfg))
 	if err != nil {
 		t.Fatalf("failed to create RedirectStore: %v", err)
 	}

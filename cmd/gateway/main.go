@@ -121,8 +121,6 @@ func main() {
 	// Create redirect store
 	redirectStore, err := redirects.NewRedirectStore(
 		redirects.WithConfig(gwConfig.Redirects),
-		// TODO: Make the TTL configurable
-		redirects.WithEntryTtl(time.Duration(5) * time.Minute),
 	)
 	if err != nil {
 		slog.Error("failed to initialize redirect store", "error", err)
