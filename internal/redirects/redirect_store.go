@@ -39,10 +39,6 @@ type RedirectStore struct {
 	redirectMapMutex sync.Mutex
 }
 
-type ServerCredentials struct {
-	Host url.URL
-}
-
 type RedirectStoreOption func(*RedirectStore) error
 
 func WithConfig(cfg config.RedirectsStoreConfig) RedirectStoreOption {
@@ -52,16 +48,15 @@ func WithConfig(cfg config.RedirectsStoreConfig) RedirectStoreOption {
 	}
 }
 
-func queryRenkuApi(renkuCredentials ServerCredentials, endpoint string) ([]byte, error) {
-	method := "GET"
+func queryRenkuApi(host url.URL, endpoint string) ([]byte, error) {
 
 	path := fmt.Sprintf("/api/data%s", endpoint)
 	rel, err := url.Parse(path)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing endpoint: %w", err)
 	}
-	fullUrl := renkuCredentials.Host.ResolveReference(rel).String()
-	req, err := http.NewRequest(method, fullUrl, nil)
+	fullUrl := host.ResolveReference(rel).String()
+	req, err := http.NewRequest("GET", fullUrl, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
@@ -83,9 +78,9 @@ func queryRenkuApi(renkuCredentials ServerCredentials, endpoint string) ([]byte,
 	return body, nil
 }
 
-func retrieveRedirectTargetForSource(renkuCredentials ServerCredentials, source string) (*PlatformRedirectConfig, error) {
+func retrieveRedirectTargetForSource(host url.URL, source string) (*PlatformRedirectConfig, error) {
 	// Query the Renku API to get the redirect for the given source URL
-	body, err := queryRenkuApi(renkuCredentials, fmt.Sprintf("/platform/redirects/%s", source))
+	body, err := queryRenkuApi(host, fmt.Sprintf("/platform/redirects/%s", source))
 	if err != nil {
 		return nil, fmt.Errorf("error querying Renku API: %w", err)
 	}
@@ -133,9 +128,7 @@ func (rs *RedirectStore) GetRedirectEntry(url url.URL) (*RedirectStoreRedirectEn
 	// Re-check after acquiring the lock, since it might have been updated meanwhile
 	entry, ok = rs.RedirectMap[key]
 	if !ok || entry.UpdatedAt.Add(rs.EntryTtl).Before(time.Now()) {
-		updatedEntry, err := retrieveRedirectTargetForSource(ServerCredentials{
-			Host: *rs.Config.Gitlab.RenkuBaseURL,
-		}, key)
+		updatedEntry, err := retrieveRedirectTargetForSource(*rs.Config.Gitlab.RenkuBaseURL, key)
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving redirect for url %s: %w", key, err)
 		}
