@@ -111,10 +111,7 @@ func retrieveRedirectTargetForSource(renkuCredentials ServerCredentials, source 
 func (rs *RedirectStore) urlToKey(redirectUrl url.URL) (string, error) {
 
 	path := redirectUrl.Path
-	if path == "" {
-		return "", fmt.Errorf("the path should start with PathPrefix")
-	}
-	if !strings.HasPrefix(path, rs.PathPrefix) {
+	if path == "" || !strings.HasPrefix(path, rs.PathPrefix) {
 		return "", fmt.Errorf("the path should start with PathPrefix")
 	}
 
@@ -148,7 +145,7 @@ func (rs *RedirectStore) GetRedirectEntry(url url.URL) (*RedirectStoreRedirectEn
 	entry, ok = rs.RedirectMap[key]
 	if !ok || entry.UpdatedAt.Add(rs.EntryTtl).Before(time.Now()) {
 		updatedEntry, err := retrieveRedirectTargetForSource(ServerCredentials{
-			Host: *rs.Config.Gitlab.RenkuBaseURL, // RenkuBaseURL cannot be non-nil here due to earlier validation
+			Host: *rs.Config.Gitlab.RenkuBaseURL,
 		}, key)
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving redirect for url %s: %w", key, err)
