@@ -118,10 +118,6 @@ func (rs *RedirectStore) urlToKey(redirectUrl url.URL) (string, error) {
 }
 
 func (rs *RedirectStore) GetRedirectEntry(url url.URL) (*RedirectStoreRedirectEntry, error) {
-	if rs == nil {
-		return nil, fmt.Errorf("redirect store is not initialized")
-	}
-
 	key, err := rs.urlToKey(url)
 	if err != nil {
 		return nil, fmt.Errorf("error converting url to key: %w", err)
