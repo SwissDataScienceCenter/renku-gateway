@@ -1,6 +1,7 @@
 package redirects
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -85,7 +86,7 @@ func TestGetRedirectEntry(t *testing.T) {
 	full := path.Join(rs.PathPrefix, "user/repo")
 
 	// First call should hit the server
-	e1, err := rs.GetRedirectEntry(url.URL{Path: full})
+	e1, err := rs.GetRedirectEntry(context.TODO(), url.URL{Path: full})
 	if err != nil {
 		t.Fatalf("GetRedirectEntry returned error: %v", err)
 	}
@@ -97,7 +98,7 @@ func TestGetRedirectEntry(t *testing.T) {
 	}
 
 	// Second call (within TTL) should be served from cache -> server not called again
-	e2, err := rs.GetRedirectEntry(url.URL{Path: full})
+	e2, err := rs.GetRedirectEntry(context.TODO(), url.URL{Path: full})
 	if err != nil {
 		t.Fatalf("GetRedirectEntry (second) returned error: %v", err)
 	}

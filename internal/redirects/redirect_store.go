@@ -1,6 +1,7 @@
 package redirects
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -48,7 +49,7 @@ func WithConfig(cfg config.RedirectsStoreConfig) RedirectStoreOption {
 	}
 }
 
-func queryRenkuApi(host url.URL, endpoint string) ([]byte, error) {
+func queryRenkuApi(ctx context.Context, host url.URL, endpoint string) ([]byte, error) {
 
 	rel, err := url.Parse("/api/data")
 	if err != nil {
@@ -56,7 +57,7 @@ func queryRenkuApi(host url.URL, endpoint string) ([]byte, error) {
 	}
 	rel = rel.JoinPath(endpoint)
 	fullUrl := host.ResolveReference(rel).String()
-	req, err := http.NewRequest("GET", fullUrl, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fullUrl, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
@@ -78,9 +79,9 @@ func queryRenkuApi(host url.URL, endpoint string) ([]byte, error) {
 	return body, nil
 }
 
-func retrieveRedirectTargetForSource(host url.URL, source string) (*PlatformRedirectConfig, error) {
+func retrieveRedirectTargetForSource(ctx context.Context, host url.URL, source string) (*PlatformRedirectConfig, error) {
 	// Query the Renku API to get the redirect for the given source URL
-	body, err := queryRenkuApi(host, fmt.Sprintf("/platform/redirects/%s", source))
+	body, err := queryRenkuApi(ctx, host, fmt.Sprintf("/platform/redirects/%s", source))
 	if err != nil {
 		return nil, fmt.Errorf("error querying Renku API: %w", err)
 	}
@@ -112,7 +113,7 @@ func (rs *RedirectStore) urlToKey(redirectUrl url.URL) (string, error) {
 	return urlToCheck, nil
 }
 
-func (rs *RedirectStore) GetRedirectEntry(url url.URL) (*RedirectStoreRedirectEntry, error) {
+func (rs *RedirectStore) GetRedirectEntry(ctx context.Context, url url.URL) (*RedirectStoreRedirectEntry, error) {
 	key, err := rs.urlToKey(url)
 	if err != nil {
 		return nil, fmt.Errorf("error converting url to key: %w", err)
@@ -128,7 +129,7 @@ func (rs *RedirectStore) GetRedirectEntry(url url.URL) (*RedirectStoreRedirectEn
 	// Re-check after acquiring the lock, since it might have been updated meanwhile
 	entry, ok = rs.RedirectMap[key]
 	if !ok || entry.UpdatedAt.Add(rs.EntryTtl).Before(time.Now()) {
-		updatedEntry, err := retrieveRedirectTargetForSource(*rs.Config.Gitlab.RenkuBaseURL, key)
+		updatedEntry, err := retrieveRedirectTargetForSource(ctx, *rs.Config.Gitlab.RenkuBaseURL, key)
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving redirect for url %s: %w", key, err)
 		}
@@ -153,8 +154,9 @@ func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 			if redirectUrl == nil {
 				return next(c)
 			}
+			ctx := c.Request().Context()
 			// check for redirects for this URL
-			entry, err := rs.GetRedirectEntry(*redirectUrl)
+			entry, err := rs.GetRedirectEntry(ctx, *redirectUrl)
 
 			if err != nil {
 				slog.Debug(
