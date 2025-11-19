@@ -6,7 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	netUrl "net/url"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -40,7 +40,7 @@ type RedirectStore struct {
 }
 
 type ServerCredentials struct {
-	Host netUrl.URL
+	Host url.URL
 }
 
 type RedirectStoreOption func(*RedirectStore) error
@@ -63,7 +63,7 @@ func queryRenkuApi(renkuCredentials ServerCredentials, endpoint string) ([]byte,
 	method := "GET"
 
 	path := fmt.Sprintf("/api/data%s", endpoint)
-	rel, err := netUrl.Parse(path)
+	rel, err := url.Parse(path)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing endpoint: %w", err)
 	}
@@ -108,9 +108,9 @@ func retrieveRedirectTargetForSource(renkuCredentials ServerCredentials, source 
 	return &redirectConfig, nil
 }
 
-func (rs *RedirectStore) urlToKey(url netUrl.URL) (string, error) {
+func (rs *RedirectStore) urlToKey(redirectUrl url.URL) (string, error) {
 
-	path := url.Path
+	path := redirectUrl.Path
 	if path == "" {
 		return "", fmt.Errorf("the path should start with PathPrefix")
 	}
@@ -122,12 +122,12 @@ func (rs *RedirectStore) urlToKey(url netUrl.URL) (string, error) {
 	// TODO: Check for a `/-/` in the path and remove it and anything that follows (links to sub-pages of a project)
 	urlToCheck = fmt.Sprintf("https://%s/%s", rs.redirectedHost, urlToCheck)
 	// URL-encode the full URL so it can be safely used in the API path
-	urlToCheck = netUrl.QueryEscape(urlToCheck)
+	urlToCheck = url.QueryEscape(urlToCheck)
 	// check for redirects for this URL
 	return urlToCheck, nil
 }
 
-func (rs *RedirectStore) GetRedirectEntry(url netUrl.URL) (*RedirectStoreRedirectEntry, error) {
+func (rs *RedirectStore) GetRedirectEntry(url url.URL) (*RedirectStoreRedirectEntry, error) {
 	if rs == nil {
 		return nil, fmt.Errorf("redirect store is not initialized")
 	}
@@ -170,12 +170,12 @@ func (rs *RedirectStore) GetRedirectEntry(url netUrl.URL) (*RedirectStoreRedirec
 func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			url := c.Request().URL
-			if url == nil {
+			redirectUrl := c.Request().URL
+			if redirectUrl == nil {
 				return next(c)
 			}
 			// check for redirects for this URL
-			entry, err := rs.GetRedirectEntry(*url)
+			entry, err := rs.GetRedirectEntry(*redirectUrl)
 
 			if err != nil {
 				slog.Debug(
@@ -183,7 +183,7 @@ func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 					"message",
 					"could not lookup redirect entry, returning 404",
 					"url",
-					url.String(),
+					redirectUrl.String(),
 					"error",
 					err.Error(),
 				)
@@ -193,7 +193,7 @@ func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 				slog.Debug(
 					"REDIRECT_STORE MIDDLEWARE",
 					"message", "nil redirect found for url (this should not happen), returning 404",
-					"from", url.String(),
+					"from", redirectUrl.String(),
 				)
 				return c.NoContent(http.StatusNotFound)
 			}
@@ -201,14 +201,14 @@ func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 				slog.Debug(
 					"REDIRECT_STORE MIDDLEWARE",
 					"message", "no redirect found for url, returning 404",
-					"from", url.String(),
+					"from", redirectUrl.String(),
 				)
 				return c.NoContent(http.StatusNotFound)
 			}
 			slog.Debug(
 				"REDIRECT_STORE MIDDLEWARE",
 				"message", "redirecting request",
-				"from", url.String(),
+				"from", redirectUrl.String(),
 				"to", entry.TargetUrl,
 			)
 			return c.Redirect(http.StatusMovedPermanently, entry.TargetUrl)

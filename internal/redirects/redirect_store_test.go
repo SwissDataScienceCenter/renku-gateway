@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	netUrl "net/url"
+	"net/url"
 	"path"
 	"strings"
 	"sync/atomic"
@@ -26,7 +26,7 @@ func newMockRenkuDataService(t *testing.T, calls *int32) *httptest.Server {
 			return
 		}
 		escaped := strings.TrimPrefix(r.URL.Path, prefix)
-		src, _ := netUrl.QueryUnescape(escaped)
+		src, _ := url.QueryUnescape(escaped)
 		resp := PlatformRedirectConfig{
 			SourceUrl: src,
 			TargetUrl: "https://renku.example.org/some/path",
@@ -49,7 +49,7 @@ func TestNewRedirectStoreConfigDefaultsAndValidation(t *testing.T) {
 	}
 
 	// With RenkuBaseURL provided, should succeed and set default redirectedHost
-	u, _ := netUrl.Parse("https://renku.example.org")
+	u, _ := url.Parse("https://renku.example.org")
 	rs, err := NewRedirectStore(WithConfig(config.RedirectsStoreConfig{Gitlab: config.GitlabRedirectsConfig{Enabled: true, RenkuBaseURL: u}}))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -76,7 +76,7 @@ func TestGetRedirectEntry(t *testing.T) {
 	t.Cleanup(func() { http.DefaultClient = origDefaultClient })
 
 	// Configure RedirectStore to point to the test server host
-	u, _ := netUrl.Parse(ts.URL)
+	u, _ := url.Parse(ts.URL)
 	cfg := config.RedirectsStoreConfig{Gitlab: config.GitlabRedirectsConfig{Enabled: true, RenkuBaseURL: u}}
 	rs, err := NewRedirectStore(WithConfig(cfg), WithEntryTtl(1*time.Minute))
 	if err != nil {
@@ -86,7 +86,7 @@ func TestGetRedirectEntry(t *testing.T) {
 	full := path.Join(rs.PathPrefix, "user/repo")
 
 	// First call should hit the server
-	e1, err := rs.GetRedirectEntry(netUrl.URL{Path: full})
+	e1, err := rs.GetRedirectEntry(url.URL{Path: full})
 	if err != nil {
 		t.Fatalf("GetRedirectEntry returned error: %v", err)
 	}
@@ -98,7 +98,7 @@ func TestGetRedirectEntry(t *testing.T) {
 	}
 
 	// Second call (within TTL) should be served from cache -> server not called again
-	e2, err := rs.GetRedirectEntry(netUrl.URL{Path: full})
+	e2, err := rs.GetRedirectEntry(url.URL{Path: full})
 	if err != nil {
 		t.Fatalf("GetRedirectEntry (second) returned error: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestRedirectStoreMiddleware(t *testing.T) {
 	http.DefaultClient = ts.Client()
 	t.Cleanup(func() { http.DefaultClient = origDefaultClient })
 
-	u, _ := netUrl.Parse(ts.URL)
+	u, _ := url.Parse(ts.URL)
 	cfg := config.RedirectsStoreConfig{Gitlab: config.GitlabRedirectsConfig{Enabled: true, RenkuBaseURL: u}}
 	rs, err := NewRedirectStore(WithConfig(cfg), WithEntryTtl(1*time.Minute))
 	if err != nil {
