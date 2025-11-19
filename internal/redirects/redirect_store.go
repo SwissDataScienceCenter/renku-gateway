@@ -50,11 +50,11 @@ func WithConfig(cfg config.RedirectsStoreConfig) RedirectStoreOption {
 
 func queryRenkuApi(host url.URL, endpoint string) ([]byte, error) {
 
-	path := fmt.Sprintf("/api/data%s", endpoint)
-	rel, err := url.Parse(path)
+	rel, err := url.Parse("/api/data")
 	if err != nil {
 		return nil, fmt.Errorf("error parsing endpoint: %w", err)
 	}
+	rel = rel.JoinPath(endpoint)
 	fullUrl := host.ResolveReference(rel).String()
 	req, err := http.NewRequest("GET", fullUrl, nil)
 	if err != nil {
