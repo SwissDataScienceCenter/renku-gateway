@@ -30,12 +30,11 @@ type RedirectStoreRedirectEntry struct {
 var noRedirectFound = RedirectStoreRedirectEntry{}
 
 type RedirectStore struct {
-	Config      config.RedirectsStoreConfig
-	EntryTtl    time.Duration
-	RedirectMap map[string]RedirectStoreRedirectEntry
-
+	Config     config.RedirectsStoreConfig
 	PathPrefix string
 
+	entryTtl         time.Duration
+	redirectMap      map[string]RedirectStoreRedirectEntry
 	redirectedHost   string
 	redirectMapMutex sync.Mutex
 }
@@ -101,7 +100,7 @@ func (rs *RedirectStore) urlToKey(redirectUrl url.URL) (string, error) {
 
 	path := redirectUrl.Path
 	if path == "" || !strings.HasPrefix(path, rs.PathPrefix) {
-		return "", fmt.Errorf("the path should start with PathPrefix")
+		return "", fmt.Errorf("the path should start with the prefix %s", rs.PathPrefix)
 	}
 
 	urlToCheck := strings.TrimPrefix(path, rs.PathPrefix)
@@ -119,16 +118,16 @@ func (rs *RedirectStore) GetRedirectEntry(ctx context.Context, url url.URL) (*Re
 		return nil, fmt.Errorf("error converting url to key: %w", err)
 	}
 
-	entry, ok := rs.RedirectMap[key]
-	if ok && entry.UpdatedAt.Add(rs.EntryTtl).After(time.Now()) {
+	entry, ok := rs.redirectMap[key]
+	if ok && entry.UpdatedAt.Add(rs.entryTtl).After(time.Now()) {
 		return &entry, nil
 	}
 
 	rs.redirectMapMutex.Lock()
 	defer rs.redirectMapMutex.Unlock()
 	// Re-check after acquiring the lock, since it might have been updated meanwhile
-	entry, ok = rs.RedirectMap[key]
-	if !ok || entry.UpdatedAt.Add(rs.EntryTtl).Before(time.Now()) {
+	entry, ok = rs.redirectMap[key]
+	if !ok || entry.UpdatedAt.Add(rs.entryTtl).Before(time.Now()) {
 		updatedEntry, err := retrieveRedirectTargetForSource(ctx, *rs.Config.Gitlab.RenkuBaseURL, key)
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving redirect for url %s: %w", key, err)
@@ -142,7 +141,7 @@ func (rs *RedirectStore) GetRedirectEntry(ctx context.Context, url url.URL) (*Re
 			TargetUrl: updatedEntry.TargetUrl,
 			UpdatedAt: time.Now(),
 		}
-		rs.RedirectMap[key] = entry
+		rs.redirectMap[key] = entry
 	}
 	return &entry, nil
 }
@@ -198,7 +197,7 @@ func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 }
 
 func NewRedirectStore(options ...RedirectStoreOption) (*RedirectStore, error) {
-	rs := RedirectStore{RedirectMap: make(map[string]RedirectStoreRedirectEntry), PathPrefix: "/api/gitlab-redirect/", redirectMapMutex: sync.Mutex{}}
+	rs := RedirectStore{redirectMap: make(map[string]RedirectStoreRedirectEntry), PathPrefix: "/api/gitlab-redirect/", redirectMapMutex: sync.Mutex{}}
 	for _, opt := range options {
 		err := opt(&rs)
 		if err != nil {
@@ -219,7 +218,7 @@ func NewRedirectStore(options ...RedirectStoreOption) (*RedirectStore, error) {
 		rs.redirectedHost = "gitlab.renkulab.io"
 	}
 
-	rs.EntryTtl = time.Duration(rs.Config.Gitlab.EntryTtlSeconds) * time.Second
+	rs.entryTtl = time.Duration(rs.Config.Gitlab.EntryTtlSeconds) * time.Second
 
 	return &rs, nil
 }
