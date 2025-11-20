@@ -36,7 +36,7 @@ type RedirectStore struct {
 	entryTtl         time.Duration
 	redirectMap      map[string]RedirectStoreRedirectEntry
 	redirectedHost   string
-	redirectMapMutex sync.Mutex
+	redirectMapMutex sync.RWMutex
 }
 
 type RedirectStoreOption func(*RedirectStore) error
@@ -118,7 +118,9 @@ func (rs *RedirectStore) GetRedirectEntry(ctx context.Context, url url.URL) (*Re
 		return nil, fmt.Errorf("error converting url to key: %w", err)
 	}
 
+	rs.redirectMapMutex.RLock()
 	entry, ok := rs.redirectMap[key]
+	rs.redirectMapMutex.RUnlock()
 	if ok && entry.UpdatedAt.Add(rs.entryTtl).After(time.Now()) {
 		return &entry, nil
 	}
@@ -197,7 +199,7 @@ func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 }
 
 func NewRedirectStore(options ...RedirectStoreOption) (*RedirectStore, error) {
-	rs := RedirectStore{redirectMap: make(map[string]RedirectStoreRedirectEntry), PathPrefix: "/api/gitlab-redirect/", redirectMapMutex: sync.Mutex{}}
+	rs := RedirectStore{redirectMap: make(map[string]RedirectStoreRedirectEntry), PathPrefix: "/api/gitlab-redirect/", redirectMapMutex: sync.RWMutex{}}
 	for _, opt := range options {
 		err := opt(&rs)
 		if err != nil {
