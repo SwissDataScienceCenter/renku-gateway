@@ -175,7 +175,8 @@ func parseStringAsURL() mapstructure.DecodeHookFuncType {
 			return nil, fmt.Errorf("cannot cast URL value to string")
 		}
 		if dataStr == "" {
-			return nil, fmt.Errorf("empty values are not allowed for URLs")
+			// NOTE: In some cases a url is optional and in this case the field is just ""
+			return nil, nil
 		}
 		url, err := url.Parse(dataStr)
 		if err != nil {
