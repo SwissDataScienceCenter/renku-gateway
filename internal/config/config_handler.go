@@ -80,21 +80,21 @@ func (c *ConfigHandler) getConfig() (Config, error) {
 	// contain sensitive data from the config file or data that is being read in
 	err := c.mainViper.MergeInConfig()
 	if err != nil {
-		return Config{}, fmt.Errorf("could not read the main configuration file")
+		return Config{}, fmt.Errorf("could not read the main configuration file: %w", err)
 	}
 	// read secret config
 	err = c.secretViper.ReadInConfig()
 	if err != nil {
 		switch err.(type) {
 		default:
-			return Config{}, fmt.Errorf("reading in the secret config failed")
+			return Config{}, fmt.Errorf("reading in the secret config failed: %w", err)
 		case viper.ConfigFileNotFoundError:
 			slog.Info("could not find any secret config files - only the public file and environment variables will be used")
 		}
 	}
 	err = c.mainViper.MergeConfigMap(c.secretViper.AllSettings())
 	if err != nil {
-		return Config{}, fmt.Errorf("could not merge the secret file config")
+		return Config{}, fmt.Errorf("could not merge the secret file config: %w", err)
 	}
 	// read environment variables
 	envVarsFiltered := []string{}
@@ -109,7 +109,7 @@ func (c *ConfigHandler) getConfig() (Config, error) {
 	envViper.SetConfigType("env")
 	err = envViper.ReadConfig(envBuf)
 	if err != nil {
-		return Config{}, fmt.Errorf("could not read the environment variables into a config")
+		return Config{}, fmt.Errorf("could not read the environment variables into a config: %w", err)
 	}
 	envData := envViper.AllSettings()
 	prefix := strings.ToLower(c.envPrefix)
@@ -127,7 +127,7 @@ func (c *ConfigHandler) getConfig() (Config, error) {
 	)
 	err = c.mainViper.Unmarshal(&output, dh)
 	if err != nil {
-		return Config{}, fmt.Errorf("cannot unmarshal the combined config into a struct")
+		return Config{}, fmt.Errorf("cannot unmarshal the combined config into a struct: %w", err)
 	}
 	// NOTE: set PRODUCTION as the default running environment
 	runningEnvironment := Production
@@ -175,7 +175,8 @@ func parseStringAsURL() mapstructure.DecodeHookFuncType {
 			return nil, fmt.Errorf("cannot cast URL value to string")
 		}
 		if dataStr == "" {
-			return nil, fmt.Errorf("empty values are not allowed for URLs")
+			// NOTE: In some cases a url is optional and in this case the field is just ""
+			return nil, nil
 		}
 		url, err := url.Parse(dataStr)
 		if err != nil {
