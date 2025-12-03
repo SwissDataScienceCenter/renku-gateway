@@ -1,6 +1,6 @@
 module github.com/SwissDataScienceCenter/renku-gateway
 
-go 1.21
+go 1.25
 
 require (
 	github.com/deepmap/oapi-codegen v1.16.2
@@ -83,7 +83,7 @@ require (
 	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.20.0 // indirect
-	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/term v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.17.0 // indirect
