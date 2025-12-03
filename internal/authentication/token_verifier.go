@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/zitadel/oidc/v2/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v2/pkg/http"
 	"github.com/zitadel/oidc/v2/pkg/oidc"
@@ -53,8 +54,13 @@ func (tv tokenVerifier) verifyAccessToken(ctx context.Context, accessToken strin
 type tokenVerifierOption func(*tokenVerifier) error
 
 func withConfig(config config.AuthorizationVerifier) tokenVerifierOption {
+	retryingClient := retryablehttp.NewClient()
+	retryingClient.RetryMax = 10
+	retryingClient.RetryWaitMax = time.Second * 10
+	retryingClient.RetryWaitMin = time.Second * 2
+	retryingClient.Backoff = retryablehttp.RateLimitLinearJitterBackoff
 	discover := func(issuer string) (rp.Endpoints, error) {
-		return rp.Discover(issuer, httphelper.DefaultHTTPClient)
+		return rp.Discover(issuer, retryingClient.StandardClient())
 	}
 	return func(tv *tokenVerifier) error {
 		tv.id = config.AuthorizedParty
