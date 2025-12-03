@@ -59,5 +59,8 @@ func (c LoginConfig) Validate(e RunningEnvironment) error {
 	if c.EnableV1Services && !c.EnableInternalGitlab {
 		return fmt.Errorf("enabling V1 (legacy) services but disabling the internal Gitlab is not supported in the login config")
 	}
+	if c.RenkuBaseURL == nil {
+		return fmt.Errorf("the renkuBaseURL cannot be null or ''")
+	}
 	return nil
 }

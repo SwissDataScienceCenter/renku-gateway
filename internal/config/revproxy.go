@@ -43,6 +43,9 @@ func (r *RevproxyConfig) Validate() error {
 	if r.EnableV1Services && !r.EnableInternalGitlab {
 		return fmt.Errorf("enabling V1 (legacy) services but disabling the internal Gitlab is not supported in the reverse proxy config")
 	}
+	if r.RenkuBaseURL == nil {
+		return fmt.Errorf("the renkuBaseURL cannot be null or ''")
+	}
 
 	// Check v1 services if needed
 	if r.EnableV1Services {
