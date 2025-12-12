@@ -1,7 +1,13 @@
+# Reference:
+# https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+
 version: 2
 updates:
-  - package-ecosystem: "pip"
+  - package-ecosystem: "gomod"
     directory: "/"
     schedule:
-      interval: "daily"
-    target-branch: "dependabot-updates"
+      interval: "weekly"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
