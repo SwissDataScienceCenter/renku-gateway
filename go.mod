@@ -23,7 +23,7 @@ require (
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
 	github.com/zitadel/oidc/v2 v2.12.0
-	golang.org/x/oauth2 v0.30.0
+	golang.org/x/oauth2 v0.34.0
 	golang.org/x/time v0.9.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	k8s.io/api v0.35.0
