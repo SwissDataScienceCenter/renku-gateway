@@ -1,6 +1,6 @@
 module github.com/SwissDataScienceCenter/renku-gateway
 
-go 1.25
+go 1.25.5
 
 tool github.com/deepmap/oapi-codegen/cmd/oapi-codegen
 
