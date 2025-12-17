@@ -22,14 +22,6 @@ func noCookies(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-// kgProjectsGraphStatusPathRewrite middleware
-var kgProjectsGraphRewrites echo.MiddlewareFunc = middleware.RewriteWithConfig(middleware.RewriteConfig{
-	RegexRules: map[*regexp.Regexp]string{
-		regexp.MustCompile("^/api/projects/(.*?)/graph/webhooks(.*)"): "/projects/$1/webhooks$2",
-		regexp.MustCompile("^/api/projects/(.*?)/graph/status(.*)"):   "/projects/$1/events/status$2",
-	},
-})
-
 // regexRewrite is a small helper function to produce a path rewrite middleware
 func regexRewrite(match, replace string) echo.MiddlewareFunc {
 	config := middleware.RewriteConfig{
@@ -74,30 +66,6 @@ func ensureSession(sessions *sessions.SessionStore) echo.MiddlewareFunc {
 				return err
 			}
 			return next(c)
-		}
-	}
-}
-
-// checkCoreServiceMetadataVersion checks if the requested path contains a valid
-// and available metadata version and if not returns a 404, if the metadata version is
-// available the request is let through
-func checkCoreServiceMetadataVersion(coreSvcPaths []string) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			requestedPath := c.Request().URL.Path
-			match, err := regexp.MatchString(`^/api/renku/[0-9]+/.*$|^/api/renku/[0-9]+$`, requestedPath)
-			if err != nil {
-				return err
-			}
-			if !match {
-				return next(c)
-			}
-			for _, path := range coreSvcPaths {
-				if strings.HasPrefix(requestedPath, path) && path != "/api/renku" {
-					return next(c)
-				}
-			}
-			return echo.ErrNotFound
 		}
 	}
 }
@@ -150,42 +118,6 @@ func uiServerUpstreamExternalGitlabLocation(host string) echo.MiddlewareFunc {
 	}
 }
 
-// uiServerUpstreamCoreLocation sets headers used by the UI server to determine where to route a specific Core service
-// request. Allows us to position the UI server behind the gateway and still have the gateway "tell" the UI server
-// where to route this Core service request. Used for only 1 specific endpoint that the UI server needs to cache so
-// skipping the UI server on this endpoint is not possible.
-func uiServerUpstreamCoreLocation(host string) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			upstreamPath := *c.Request().URL
-			upstreamPath.Host = ""
-			upstreamPath.Scheme = ""
-			upstreamPathStr := strings.TrimPrefix(upstreamPath.String(), "/ui-server")
-			c.Request().Header.Set("Renku-Gateway-Upstream-Path", upstreamPathStr)
-			c.Request().Header.Set("Renku-Gateway-Upstream-Host", host)
-			return next(c)
-		}
-	}
-}
-
-// uiServerUpstreamKgLocation sets headers used by the UI server to determine where to route a specific KG request.
-// Allows us to position the UI server behind the gateway and still have the gateway "tell" the UI server
-// where to route this KG request. Used for only 1 specific endpoint on the KG that the UI server needs to cache
-// so skipping the UI server on this endpoint is not possible.
-func uiServerUpstreamKgLocation(host string) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			upstreamPath := *c.Request().URL
-			upstreamPath.Host = ""
-			upstreamPath.Scheme = ""
-			upstreamPathStr := strings.TrimPrefix(upstreamPath.String(), "/ui-server/api/kg")
-			c.Request().Header.Set("Renku-Gateway-Upstream-Path", "/knowledge-graph"+upstreamPathStr)
-			c.Request().Header.Set("Renku-Gateway-Upstream-Host", host)
-			return next(c)
-		}
-	}
-}
-
 // uiServerPathRewrite changes the incoming requests so that the UI server is used (as a second proxy) only for very
 // specific endpoints (when absolutely necessary). For all other cases the gateway routes directly to the required
 // Renku component and injects the proper credentials required by the specific component.
@@ -197,7 +129,6 @@ func UiServerPathRewrite() echo.MiddlewareFunc {
 			if strings.HasPrefix(path, "/ui-server/api/allows-iframe") ||
 				strings.HasPrefix(path, "/ui-server/api/projects") ||
 				strings.HasPrefix(path, "/ui-server/api/renku/cache.files_upload") ||
-				strings.HasPrefix(path, "/ui-server/api/kg/entities") ||
 				strings.HasPrefix(path, "/ui-server/api/last-projects") ||
 				strings.HasPrefix(path, "/ui-server/api/last-searches") {
 				return next(c)
