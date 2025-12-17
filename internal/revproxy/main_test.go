@@ -2,7 +2,6 @@ package revproxy
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"log"
@@ -184,7 +183,6 @@ type TestResults struct {
 type TestCase struct {
 	Path                 string
 	QueryParams          map[string]string
-	EnableV1Services     bool
 	EnableInternalGitlab bool
 	Tokens               []models.AuthToken
 	Sessions             []models.Session
@@ -199,24 +197,15 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 		// Setup and start
 		requestTracker := make(testRequestTracker, 20)
 		upstream, upstreamURL := setupTestUpstream("upstream", requestTracker)
-		upstream2, upstreamURL2 := setupTestUpstream("upstream2", requestTracker)
 		var (
 			gitlab    *httptest.Server
 			gitlabURL *url.URL
 			err       error
 		)
 		rpConfig := config.RevproxyConfig{
-			EnableV1Services:     scenario.EnableV1Services,
 			EnableInternalGitlab: scenario.EnableInternalGitlab,
 			RenkuBaseURL:         upstreamURL,
 			RenkuServices: config.RenkuServicesConfig{
-				Core: config.CoreSvcConfig{
-					ServiceNames: []string{upstreamURL.String(), upstreamURL.String(), upstreamURL2.String()},
-					ServicePaths: []string{"/api/renku", "/api/renku/10", "/api/renku/9"},
-					Sticky:       false,
-				},
-				KG:          upstreamURL,
-				Webhook:     upstreamURL,
 				DataService: upstreamURL,
 				Keycloak:    upstreamURL,
 				UIServer:    upstreamURL,
@@ -246,7 +235,6 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 		tokenStore, err := tokenstore.NewTokenStore(
 			tokenstore.WithExpiryMargin(time.Duration(3)*time.Minute),
 			tokenstore.WithConfig(config.LoginConfig{
-				EnableV1Services:     scenario.EnableV1Services,
 				EnableInternalGitlab: scenario.EnableInternalGitlab,
 			}),
 			tokenstore.WithTokenRepository(dbAdapter),
@@ -278,7 +266,6 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 		}
 		proxy, proxyURL := setupTestRevproxy(&rpConfig, sessionStore)
 		defer upstream.Close()
-		defer upstream2.Close()
 		defer proxy.Close()
 
 		// Make request through proxy
@@ -361,600 +348,6 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 func TestInternalSvcRoutes(t *testing.T) {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})))
 
-	// Test cases when v1 services are enabled
-	v1TestCases := []TestCase{
-		{
-			Path: "/api/notebooks/test/rejectedAuth",
-			Expected: TestResults{
-				VisitedServerIDs: []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization:         "",
-					"Gitlab-Access-Token":            "",
-					"Gitlab-Access-Token-Expires-At": "",
-					"Renku-Auth-Refresh-Token":       "",
-					"Renku-Auth-Anon-Id":             "anon-sessionID",
-				}},
-			},
-			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID")),
-			},
-			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
-		},
-		{
-			Path: "/api/notebooks/test/acceptedAuth",
-			Expected: TestResults{
-				Path:             "/api/data/notebooks/test/acceptedAuth",
-				VisitedServerIDs: []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization:         "Bearer accessTokenValue",
-					"Gitlab-Access-Token":            "gitlabAccessTokenValue",
-					"Gitlab-Access-Token-Expires-At": "16746525971",
-					"Renku-Auth-Refresh-Token":       "refreshTokenValue",
-					"Renku-Auth-Anon-Id":             "",
-				}},
-			},
-			Tokens: []models.AuthToken{
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("renku:myToken"),
-					tokenPlainValue("accessTokenValue"),
-					tokenProviderID("renku"),
-				),
-				newTestToken(
-					models.RefreshTokenType,
-					tokenID("renku:myToken"),
-					tokenPlainValue("refreshTokenValue"),
-					tokenProviderID("renku"),
-				),
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("gitlab:otherToken"),
-					tokenPlainValue("gitlabAccessTokenValue"),
-					tokenProviderID("gitlab"),
-					tokenExpiresAt(time.Unix(16746525971, 0)),
-				),
-			},
-			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"renku": "renku:myToken", "gitlab": "gitlab:otherToken"})),
-			},
-			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
-		},
-		{
-			Path:     "/api/notebooks",
-			Expected: TestResults{Path: "/api/data/notebooks", VisitedServerIDs: []string{"upstream"}},
-		},
-		{
-			Path: "/api/projects/123456/graph/status/something/else",
-			Expected: TestResults{
-				Path:             "/projects/123456/events/status/something/else",
-				VisitedServerIDs: []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization: "",
-				}},
-			},
-		},
-		{
-			Path: "/api/projects/123456/graph/status/something/else",
-			Expected: TestResults{
-				Path:             "/projects/123456/events/status/something/else",
-				VisitedServerIDs: []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
-				}},
-			},
-			Tokens: []models.AuthToken{
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("renku:myToken"),
-					tokenPlainValue("accessTokenValue"),
-					tokenProviderID("renku"),
-				),
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("gitlab:otherToken"),
-					tokenPlainValue("gitlabAccessTokenValue"),
-					tokenProviderID("gitlab"),
-				),
-			},
-			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"renku": "renku:myToken", "gitlab": "gitlab:otherToken"})),
-			},
-			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
-		},
-		{
-			Path:        "/api/projects/123456/graph/status",
-			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
-			Expected: TestResults{
-				Path:                   "/projects/123456/events/status",
-				VisitedServerIDs:       []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}},
-			},
-		},
-		{
-			Path: "/api/projects/123456/graph/webhooks/something/else",
-			Expected: TestResults{
-				Path:                   "/projects/123456/webhooks/something/else",
-				VisitedServerIDs:       []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}},
-			},
-		},
-		{
-			Path:        "/api/projects/123456/graph/webhooks",
-			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
-			Expected: TestResults{
-				Path:                   "/projects/123456/webhooks",
-				VisitedServerIDs:       []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}},
-			},
-		},
-		{
-			Path: "/api/datasets/test",
-			Expected: TestResults{
-				Path:                   "/knowledge-graph/datasets/test",
-				VisitedServerIDs:       []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}},
-			},
-		},
-		{
-			Path:        "/api/datasets",
-			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
-			Expected: TestResults{
-				Path:                   "/knowledge-graph/datasets",
-				VisitedServerIDs:       []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}},
-			},
-		},
-		{
-			Path: "/api/kg/test",
-			Expected: TestResults{
-				Path:             "/knowledge-graph/test",
-				VisitedServerIDs: []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
-				}},
-			},
-			Tokens: []models.AuthToken{
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("gitlab:myToken"),
-					tokenPlainValue("gitlabAccessTokenValue"),
-					tokenProviderID("gitlab"),
-				),
-			},
-			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"gitlab": "gitlab:myToken"})),
-			},
-			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
-		},
-		{
-			Path:        "/api/kg",
-			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
-			Expected: TestResults{
-				Path:                   "/knowledge-graph",
-				VisitedServerIDs:       []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}},
-			},
-		},
-		{
-			Path: "/api/data/user/secret_key",
-			Expected: TestResults{
-				Path:                     "/api/data/user/secret_key",
-				Non200ResponseStatusCode: 404,
-			},
-		},
-		{
-			Path: "/api/data/user",
-			Tokens: []models.AuthToken{
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("renku:myToken"),
-					tokenPlainValue("accessTokenValue"),
-					tokenProviderID("renku"),
-				),
-				newTestToken(
-					models.RefreshTokenType,
-					tokenID("renku:myToken"),
-					tokenPlainValue("refreshTokenValue"),
-					tokenProviderID("renku"),
-				),
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("gitlab:otherToken"),
-					tokenPlainValue("gitlabAccessTokenValue"),
-					tokenProviderID("gitlab"),
-					tokenExpiresAt(time.Unix(16746525971, 0)),
-				),
-			},
-			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"renku": "renku:myToken", "gitlab": "gitlab:otherToken"})),
-			},
-			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
-			Expected: TestResults{
-				Path:             "/api/data/user",
-				VisitedServerIDs: []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization:         "Bearer accessTokenValue",
-					"Gitlab-Access-Token":            "gitlabAccessTokenValue",
-					"Gitlab-Access-Token-Expires-At": "16746525971",
-					"Renku-Auth-Refresh-Token":       "refreshTokenValue",
-					"Renku-Auth-Anon-Id":             "",
-				}},
-			},
-		},
-		{
-			Path:          "/api/data/sessions",
-			Sessions:      []models.Session{newTestSesssion(sessionID("sessionID"))},
-			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
-			Expected: TestResults{
-				Path:             "/api/data/sessions",
-				VisitedServerIDs: []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization:         "",
-					"Gitlab-Access-Token":            "",
-					"Gitlab-Access-Token-Expires-At": "",
-					"Renku-Auth-Refresh-Token":       "",
-					"Renku-Auth-Anon-Id":             "anon-sessionID",
-				}},
-			},
-		},
-		{
-			Path: "/api/renku/test",
-			Expected: TestResults{
-				Path:             "/renku/test",
-				VisitedServerIDs: []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization: "",
-					"Renku-user-id":          "",
-					"Renku-user-fullname":    "",
-					"renku-user-email":       "",
-				}},
-			},
-		},
-		{
-			Path:        "/api/renku",
-			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
-			Expected: TestResults{
-				Path:             "/renku",
-				VisitedServerIDs: []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
-					"Renku-User": newTestToken(
-						models.IDTokenType,
-						tokenID("renku:myToken"),
-						tokenJWTValue(customClaims{
-							Name:             "Jane Doe",
-							Email:            "jane.doe@example.org",
-							RegisteredClaims: jwt.RegisteredClaims{Subject: "user-jane-doe"},
-						}),
-						tokenProviderID("renku"),
-					).Value,
-					"Renku-user-id":       "user-jane-doe",
-					"Renku-user-fullname": base64.StdEncoding.EncodeToString([]byte("Jane Doe")),
-					"renku-user-email":    base64.StdEncoding.EncodeToString([]byte("jane.doe@example.org")),
-				}},
-			},
-			Tokens: []models.AuthToken{
-				newTestToken(
-					models.IDTokenType,
-					tokenID("renku:myToken"),
-					tokenJWTValue(customClaims{
-						Name:             "Jane Doe",
-						Email:            "jane.doe@example.org",
-						RegisteredClaims: jwt.RegisteredClaims{Subject: "user-jane-doe"},
-					}),
-					tokenProviderID("renku"),
-				),
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("gitlab:otherToken"),
-					tokenPlainValue("gitlabAccessTokenValue"),
-					tokenProviderID("gitlab"),
-				),
-			},
-			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"renku": "renku:myToken", "gitlab": "gitlab:otherToken"})),
-			},
-			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
-		},
-		{
-			Path:        "/api/renku/10",
-			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
-			Expected:    TestResults{Path: "/renku", VisitedServerIDs: []string{"upstream"}},
-		},
-		{
-			Path:        "/api/renku/8",
-			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
-			Expected:    TestResults{Path: "/api/renku/8", Non200ResponseStatusCode: 404},
-		},
-		{
-			Path:        "/api/renku/7/10/something/else",
-			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
-			Expected:    TestResults{Path: "/api/renku/7/10/something/else", Non200ResponseStatusCode: 404},
-		},
-		{
-			Path:        "/api/renku/10/1.1/test",
-			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
-			Expected:    TestResults{Path: "/renku/1.1/test", VisitedServerIDs: []string{"upstream"}},
-		},
-		{
-			Path:        "/api/renku/1.1/test",
-			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
-			Expected:    TestResults{Path: "/renku/1.1/test", VisitedServerIDs: []string{"upstream"}},
-		},
-		{
-			Path:        "/api/renku/9",
-			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
-			Expected:    TestResults{Path: "/renku", VisitedServerIDs: []string{"upstream2"}},
-		},
-		{
-			Path:        "/api/renku/9/endpoint.action",
-			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
-			Expected:    TestResults{Path: "/renku/endpoint.action", VisitedServerIDs: []string{"upstream2"}},
-		},
-		{
-			Path:           "/gitlab/test/something",
-			ExternalGitlab: true,
-			Expected:       TestResults{Path: "/test/something", VisitedServerIDs: []string{"gitlab"}, UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}}},
-		},
-		{
-			Path:           "/gitlab",
-			ExternalGitlab: true,
-			Expected:       TestResults{Path: "/", VisitedServerIDs: []string{"gitlab"}, UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}}},
-		},
-		{
-			Path:           "/api/user/test/something",
-			ExternalGitlab: true,
-			Expected: TestResults{
-				Path:             "/api/v4/user/test/something",
-				VisitedServerIDs: []string{"gitlab"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
-				}},
-			},
-			Tokens: []models.AuthToken{
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("gitlab:myToken"),
-					tokenPlainValue("gitlabAccessTokenValue"),
-					tokenProviderID("gitlab"),
-				),
-			},
-			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"gitlab": "gitlab:myToken"})),
-			},
-			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
-		},
-		{
-			Path:           "/api/user/test/something",
-			ExternalGitlab: false,
-			Expected: TestResults{
-				Path:             "/gitlab/api/v4/user/test/something",
-				VisitedServerIDs: []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
-				}},
-			},
-			Tokens: []models.AuthToken{
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("gitlab:myToken"),
-					tokenPlainValue("gitlabAccessTokenValue"),
-					tokenProviderID("gitlab"),
-				),
-			},
-			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"gitlab": "gitlab:myToken"})),
-			},
-			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
-		},
-		{
-			Path:           "/api",
-			ExternalGitlab: false,
-			Expected:       TestResults{Path: "/gitlab/api/v4", VisitedServerIDs: []string{"upstream"}, UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}}},
-		},
-		{
-			Path:           "/api",
-			ExternalGitlab: true,
-			Expected:       TestResults{Path: "/api/v4", VisitedServerIDs: []string{"gitlab"}, UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}}},
-		},
-		{
-			Path:           "/api/direct/test",
-			ExternalGitlab: true,
-			Expected:       TestResults{Path: "/test", VisitedServerIDs: []string{"gitlab"}, UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}}},
-		},
-		{
-			Path:           "/api/direct",
-			ExternalGitlab: true,
-			Expected:       TestResults{Path: "/", VisitedServerIDs: []string{"gitlab"}, UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}}},
-		},
-		{
-			Path:           "/api/direct/test",
-			ExternalGitlab: false,
-			Expected:       TestResults{Path: "/gitlab/test", VisitedServerIDs: []string{"upstream"}, UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}}},
-		},
-		{
-			Path:           "/api/direct",
-			ExternalGitlab: false,
-			Expected:       TestResults{Path: "/gitlab", VisitedServerIDs: []string{"upstream"}, UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}}},
-		},
-		{
-			Path:           "/api/graphql/test",
-			ExternalGitlab: true,
-			Expected: TestResults{
-				Path:             "/api/graphql/test",
-				VisitedServerIDs: []string{"gitlab"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
-				}},
-			},
-			Tokens: []models.AuthToken{
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("gitlab:myToken"),
-					tokenPlainValue("gitlabAccessTokenValue"),
-					tokenProviderID("gitlab"),
-				),
-			},
-			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"gitlab": "gitlab:myToken"})),
-			},
-			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
-		},
-		{
-			Path:           "/api/graphql",
-			ExternalGitlab: true,
-			Expected:       TestResults{Path: "/api/graphql", VisitedServerIDs: []string{"gitlab"}, UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}}},
-		},
-		{
-			Path:           "/api/graphql/test",
-			ExternalGitlab: false,
-			Expected: TestResults{
-				Path:             "/gitlab/api/graphql/test",
-				VisitedServerIDs: []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
-				}},
-			},
-			Tokens: []models.AuthToken{
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("gitlab:myToken"),
-					tokenPlainValue("gitlabAccessTokenValue"),
-					tokenProviderID("gitlab"),
-				),
-			},
-			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"gitlab": "gitlab:myToken"})),
-			},
-			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
-		},
-		{
-			Path:           "/api/graphql",
-			ExternalGitlab: false,
-			Expected:       TestResults{Path: "/gitlab/api/graphql", VisitedServerIDs: []string{"upstream"}, UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}}},
-		},
-		{
-			Path:           "/repos/test",
-			ExternalGitlab: true,
-			Expected: TestResults{
-				Path:             "/test",
-				VisitedServerIDs: []string{"gitlab"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization: "Basic b2F1dGgyOmdpdGxhYkFjY2Vzc1Rva2VuVmFsdWU=", // the content of the header is base64 encoding of oauth2:gitlabAccessTokenValue
-				}},
-			},
-			Tokens: []models.AuthToken{
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("gitlab:myToken"),
-					tokenPlainValue("gitlabAccessTokenValue"),
-					tokenProviderID("gitlab"),
-				),
-			},
-			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"gitlab": "gitlab:myToken"})),
-			},
-			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
-		},
-		{
-			Path:           "/repos",
-			ExternalGitlab: true,
-			Expected:       TestResults{Path: "/", VisitedServerIDs: []string{"gitlab"}, UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}}},
-		},
-		{
-			Path:           "/repos/test",
-			ExternalGitlab: false,
-			Expected: TestResults{
-				Path:             "/gitlab/test",
-				VisitedServerIDs: []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization: "Basic b2F1dGgyOmdpdGxhYkFjY2Vzc1Rva2VuVmFsdWU=", // the content of the header is base64 encoding of oauth2:gitlabAccessTokenValue
-				}},
-			},
-			Tokens: []models.AuthToken{
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("gitlab:myToken"),
-					tokenPlainValue("gitlabAccessTokenValue"),
-					tokenProviderID("gitlab"),
-				),
-			},
-			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"gitlab": "gitlab:myToken"})),
-			},
-			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
-		},
-		{
-			Path:           "/repos",
-			ExternalGitlab: false,
-			Expected:       TestResults{Path: "/gitlab", VisitedServerIDs: []string{"upstream"}, UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}}},
-		},
-		{
-			Path:           "/api/projects/some.username%2Ftest-project",
-			QueryParams:    map[string]string{"statistics": "false", "doNotTrack": "true"},
-			ExternalGitlab: true,
-			Expected:       TestResults{Path: "/api/v4/projects/some.username%2Ftest-project", VisitedServerIDs: []string{"gitlab"}},
-		},
-		{
-			Path:           "/api/projects/some.username%2Ftest-project",
-			QueryParams:    map[string]string{"statistics": "false", "doNotTrack": "true"},
-			ExternalGitlab: false,
-			Expected:       TestResults{Path: "/gitlab/api/v4/projects/some.username%2Ftest-project", VisitedServerIDs: []string{"upstream"}},
-		},
-		{
-			Path: "/api/kg/webhooks/projects/123456/events/status/something/else",
-			Expected: TestResults{
-				Path:             "/projects/123456/events/status/something/else",
-				VisitedServerIDs: []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization: "Bearer gitlabAccessTokenValue",
-				}},
-			},
-			Tokens: []models.AuthToken{
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("gitlab:myToken"),
-					tokenPlainValue("gitlabAccessTokenValue"),
-					tokenProviderID("gitlab"),
-				),
-			},
-			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"gitlab": "gitlab:myToken"})),
-			},
-			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
-		},
-		{
-			Path:        "/api/kg/webhooks/projects/123456/events/status",
-			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
-			Expected:    TestResults{Path: "/projects/123456/events/status", VisitedServerIDs: []string{"upstream"}, UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}}},
-		},
-		{
-			Path:     "/api/kg/webhooks/projects/123456/webhooks/something/else",
-			Expected: TestResults{Path: "/projects/123456/webhooks/something/else", VisitedServerIDs: []string{"upstream"}, UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}}},
-		},
-		{
-			Path:        "/api/kg/webhooks/projects/123456/webhooks",
-			QueryParams: map[string]string{"test1": "value1", "test2": "value2"},
-			Expected:    TestResults{Path: "/projects/123456/webhooks", VisitedServerIDs: []string{"upstream"}, UpstreamRequestHeaders: []map[string]string{{echo.HeaderAuthorization: ""}}},
-		},
-		{
-			Path:     "/api/kc/auth/realms/Renku/protocol/openid-connect/userinfo",
-			Expected: TestResults{Path: "/auth/realms/Renku/protocol/openid-connect/userinfo", VisitedServerIDs: []string{"upstream"}},
-		},
-		{
-			Path: "/ui-server/api/data/repositories/https%3A%2F%2Fexample.org%2Fgroup%2Frepo",
-			Expected: TestResults{
-				Path:             "/api/data/repositories/https%3A%2F%2Fexample.org%2Fgroup%2Frepo",
-				VisitedServerIDs: []string{"upstream"},
-			},
-		},
-	}
-	for idx := range v1TestCases {
-		v1TestCases[idx].EnableV1Services = true
-		v1TestCases[idx].EnableInternalGitlab = true
-	}
-
-	// Test cases when v1 services are disabled
 	v2TestCases := []TestCase{
 		{
 			Path: "/api/notebooks/test/rejectedAuth",
@@ -1116,7 +509,6 @@ func TestInternalSvcRoutes(t *testing.T) {
 		},
 	}
 	for idx := range v2TestCases {
-		v2TestCases[idx].EnableV1Services = false
 		v2TestCases[idx].EnableInternalGitlab = false
 	}
 
@@ -1281,13 +673,11 @@ func TestInternalSvcRoutes(t *testing.T) {
 		},
 	}
 	for idx := range v2TestCasesWithInternalGitlab {
-		v2TestCasesWithInternalGitlab[idx].EnableV1Services = false
 		v2TestCasesWithInternalGitlab[idx].EnableInternalGitlab = true
 	}
 
 	// Combine all test cases
-	testCases := append(v1TestCases, v2TestCases...)
-	testCases = append(testCases, v2TestCasesWithInternalGitlab...)
+	testCases := append(v2TestCases, v2TestCasesWithInternalGitlab...)
 
 	for _, testCase := range testCases {
 		// Test names show up poorly in vscode if the name contains "/"

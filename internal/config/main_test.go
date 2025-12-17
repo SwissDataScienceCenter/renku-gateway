@@ -48,7 +48,7 @@ func TestInvalidLoginConfig(t *testing.T) {
 
 func TestInvalidRevproxyConfig(t *testing.T) {
 	config := getValidConfig(t)
-	config.Revproxy.RenkuServices.KG = nil
+	config.Revproxy.RenkuServices.DataService = nil
 
 	err := config.Validate()
 
