@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 )
@@ -21,17 +20,6 @@ type ConfigHandler struct {
 	secretViper *viper.Viper
 	envPrefix   string
 	lock        *sync.Mutex
-}
-
-func (c *ConfigHandler) HandleChanges(callback func(Config, error)) {
-	c.mainViper.OnConfigChange(func(e fsnotify.Event) {
-		slog.Info("main config file changed", "path", e.Name)
-		callback(c.Config())
-	})
-	c.secretViper.OnConfigChange(func(e fsnotify.Event) {
-		slog.Info("secret config file changed", "path", e.Name)
-		callback(c.Config())
-	})
 }
 
 // Creates a configuration handler that reads the configuration files, merges them and can watch
@@ -150,11 +138,6 @@ func (c *ConfigHandler) Config() (Config, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	return c.getConfig()
-}
-
-func (c *ConfigHandler) Watch() {
-	c.mainViper.WatchConfig()
-	c.secretViper.WatchConfig()
 }
 
 func parseStringAsURL() mapstructure.DecodeHookFuncType {
