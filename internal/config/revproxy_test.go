@@ -36,30 +36,6 @@ func getValidRenkuServicesConfig(t *testing.T) RenkuServicesConfig {
 	}
 }
 
-func getValidV2OnlyRevproxyConfig(t *testing.T) RevproxyConfig {
-	renkuBaseURL, err := url.Parse("https://renku.example.org")
-	require.NoError(t, err)
-	renkuServicesConfig := getValidV2OnlyRenkuServicesConfig(t)
-	return RevproxyConfig{
-		RenkuBaseURL:     renkuBaseURL,
-		RenkuServices:    renkuServicesConfig,
-	}
-}
-
-func getValidV2OnlyRenkuServicesConfig(t *testing.T) RenkuServicesConfig {
-	dataServiceURL, err := url.Parse("http://data-service")
-	require.NoError(t, err)
-	keycloakURL, err := url.Parse("http://keycloak")
-	require.NoError(t, err)
-	uiServerURL, err := url.Parse("http://ui")
-	require.NoError(t, err)
-	return RenkuServicesConfig{
-		DataService: dataServiceURL,
-		Keycloak:    keycloakURL,
-		UIServer:    uiServerURL,
-	}
-}
-
 func TestValidRevproxyConfig(t *testing.T) {
 	config := getValidRevproxyConfig(t)
 
