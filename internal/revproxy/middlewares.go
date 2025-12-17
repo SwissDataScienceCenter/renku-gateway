@@ -3,7 +3,6 @@ package revproxy
 import (
 	"fmt"
 	"log/slog"
-	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
@@ -13,14 +12,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
-
-// noCookies middleware removes all cookies from a request
-func noCookies(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		c.Request().Header.Set("cookie", "")
-		return next(c)
-	}
-}
 
 // regexRewrite is a small helper function to produce a path rewrite middleware
 func regexRewrite(match, replace string) echo.MiddlewareFunc {
@@ -65,54 +56,6 @@ func ensureSession(sessions *sessions.SessionStore) echo.MiddlewareFunc {
 			if err != nil {
 				return err
 			}
-			return next(c)
-		}
-	}
-}
-
-// gitlabRedirect redirects from the old-style internal gitlab url to an external Gitlab instance
-func gitlabRedirect(newGitlabHost string) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			oldURL := c.Request().URL
-			newURL := *oldURL
-			newURL.Host = newGitlabHost
-			newURL.Path = strings.TrimPrefix(newURL.Path, "/gitlab")
-			newURL.RawPath = strings.TrimPrefix(newURL.RawPath, "/gitlab")
-			return c.Redirect(http.StatusMovedPermanently, newURL.String())
-		}
-	}
-}
-
-// uiServerUpstreamInternalGitlabLocation is used to set headers used by the UI server to route 1 specific request for
-// Gitlab, when a Renku-bundled Gitlab is used. The UI server needs to cache or further process the results from
-// this reqest, therefore it is not possible to fully skip the UI server.
-func uiServerUpstreamInternalGitlabLocation(host string) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			upstreamPath := *c.Request().URL
-			upstreamPath.Host = ""
-			upstreamPath.Scheme = ""
-			upstreamPathStr := strings.TrimPrefix(upstreamPath.String(), "/ui-server/api")
-			c.Request().Header.Set("Renku-Gateway-Upstream-Path", "/gitlab/api/v4"+upstreamPathStr)
-			c.Request().Header.Set("Renku-Gateway-Upstream-Host", host)
-			return next(c)
-		}
-	}
-}
-
-// uiServerUpstreamExternalGitlabLocation is used to set headers used by the UI server to route 1 specific request for
-// Gitlab, when an external Gitlab is used with Renku. The UI server needs to cache or further process the results from
-// this reqest, therefore it is not possible to fully skip the UI server.
-func uiServerUpstreamExternalGitlabLocation(host string) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			upstreamPath := *c.Request().URL
-			upstreamPath.Host = ""
-			upstreamPath.Scheme = ""
-			upstreamPathStr := strings.TrimPrefix(upstreamPath.String(), "/ui-server/api")
-			c.Request().Header.Set("Renku-Gateway-Upstream-Path", "/api/v4"+upstreamPathStr)
-			c.Request().Header.Set("Renku-Gateway-Upstream-Host", host)
 			return next(c)
 		}
 	}
