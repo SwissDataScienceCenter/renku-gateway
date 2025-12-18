@@ -17,10 +17,10 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/oklog/ulid/v2 v2.1.0
-	github.com/posthog/posthog-go v1.3.3
+	github.com/posthog/posthog-go v1.6.13
 	github.com/redis/go-redis/v9 v9.4.0
 	github.com/spf13/viper v1.18.2
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/zitadel/oidc/v2 v2.12.0
 	golang.org/x/oauth2 v0.27.0
 	golang.org/x/time v0.5.0
@@ -50,6 +50,7 @@ require (
 	github.com/google/uuid v1.5.0 // indirect
 	github.com/gorilla/schema v1.4.1 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
+	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
