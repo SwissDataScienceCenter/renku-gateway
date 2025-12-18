@@ -7,7 +7,8 @@ tool github.com/deepmap/oapi-codegen/cmd/oapi-codegen
 require (
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/getkin/kin-openapi v0.133.0
-	github.com/getsentry/sentry-go v0.26.0
+	github.com/getsentry/sentry-go v0.40.0
+	github.com/getsentry/sentry-go/echo v0.40.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/go-cmp v0.6.0
 	github.com/gorilla/securecookie v1.1.2
