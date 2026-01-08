@@ -9,9 +9,9 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/stretchr/testify/assert"
-	"github.com/zitadel/oidc/v2/pkg/client/rp"
-	httphelper "github.com/zitadel/oidc/v2/pkg/http"
-	"github.com/zitadel/oidc/v2/pkg/oidc"
+	"github.com/zitadel/oidc/v3/pkg/client/rp"
+	httphelper "github.com/zitadel/oidc/v3/pkg/http"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2"
 )

@@ -7,9 +7,10 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/zitadel/oidc/v2/pkg/client/rp"
-	httphelper "github.com/zitadel/oidc/v2/pkg/http"
-	"github.com/zitadel/oidc/v2/pkg/oidc"
+	"github.com/zitadel/oidc/v3/pkg/client"
+	"github.com/zitadel/oidc/v3/pkg/client/rp"
+	httphelper "github.com/zitadel/oidc/v3/pkg/http"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 const verifierOffset = time.Second
@@ -59,8 +60,10 @@ func withConfig(config config.AuthorizationVerifier) tokenVerifierOption {
 	retryingClient.RetryWaitMax = time.Second * 10
 	retryingClient.RetryWaitMin = time.Second * 2
 	retryingClient.Backoff = retryablehttp.RateLimitLinearJitterBackoff
-	discover := func(issuer string) (rp.Endpoints, error) {
-		return rp.Discover(issuer, retryingClient.StandardClient())
+	// discover := func(issuer string) (rp.Endpoints, error) {
+	discover := func(ctx context.Context, issuer string) (*oidc.DiscoveryConfiguration, error) {
+		return client.Discover(ctx, issuer, httphelper.DefaultHTTPClient)
+		// return rp.Discover(issuer, retryingClient.StandardClient())
 	}
 	return func(tv *tokenVerifier) error {
 		tv.id = config.AuthorizedParty
@@ -68,11 +71,11 @@ func withConfig(config config.AuthorizationVerifier) tokenVerifierOption {
 		tv.audience = config.Audience
 		tv.authorizedParty = config.AuthorizedParty
 
-		endpoints, err := discover(tv.issuer)
+		discoveryConfig, err := discover(context.TODO(), tv.issuer)
 		if err != nil {
 			return err
 		}
-		tv.keyset = rp.NewRemoteKeySet(httphelper.DefaultHTTPClient, endpoints.JKWsURL)
+		tv.keyset = rp.NewRemoteKeySet(httphelper.DefaultHTTPClient, discoveryConfig.JwksURI)
 
 		return nil
 	}
