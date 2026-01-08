@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
-	"github.com/zitadel/oidc/v2/pkg/oidc"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 type Authenticator map[string]tokenVerifier

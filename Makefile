@@ -16,7 +16,7 @@ tests:
 	go test -count=1 -covermode atomic -coverprofile=covprofile -vet=all -race ./...
 
 internal/login/spec.gen.go: apispec.yaml
-	go tool github.com/deepmap/oapi-codegen/cmd/oapi-codegen -generate types,server,spec -package login $< > $@
+	go tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen -generate types,server,spec -package login $< > $@
 
 format:
 	gofmt -l -w cmd internal tools

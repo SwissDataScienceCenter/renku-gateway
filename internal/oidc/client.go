@@ -10,9 +10,9 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/labstack/echo/v4"
-	"github.com/zitadel/oidc/v2/pkg/client/rp"
-	httphelper "github.com/zitadel/oidc/v2/pkg/http"
-	"github.com/zitadel/oidc/v2/pkg/oidc"
+	"github.com/zitadel/oidc/v3/pkg/client/rp"
+	httphelper "github.com/zitadel/oidc/v3/pkg/http"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 type oidcClient struct {
@@ -99,7 +99,7 @@ func (c *oidcClient) getID() string {
 }
 
 func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models.AuthToken) (models.AuthTokenSet, error) {
-	oAuth2Token, err := rp.RefreshAccessToken(c.client, refreshToken.Value, "", "")
+	oAuth2Token, err := rp.RefreshTokens[*oidc.IDTokenClaims](ctx, c.client, refreshToken.Value, "", "")
 	if err != nil {
 		return models.AuthTokenSet{}, err
 	}
@@ -198,6 +198,7 @@ func withOIDCConfig(clientConfig config.OIDCClient) clientOption {
 			}
 		}
 		return rp.NewRelyingPartyOIDC(
+			context.TODO(),
 			clientConfig.Issuer,
 			clientConfig.ClientID,
 			string(clientConfig.ClientSecret),
