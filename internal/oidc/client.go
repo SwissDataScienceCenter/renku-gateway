@@ -99,8 +99,7 @@ func (c *oidcClient) getID() string {
 }
 
 func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models.AuthToken) (models.AuthTokenSet, error) {
-	// oAuth2Token, err := rp.RefreshAccessToken(c.client, refreshToken.Value, "", "")
-	oAuth2Token, err := rp.RefreshTokens[oidc.IDClaims](ctx, c.client, refreshToken.Value, "", "")
+	oAuth2Token, err := rp.RefreshTokens[*oidc.IDTokenClaims](ctx, c.client, refreshToken.Value, "", "")
 	if err != nil {
 		return models.AuthTokenSet{}, err
 	}

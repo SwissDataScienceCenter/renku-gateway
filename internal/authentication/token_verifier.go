@@ -60,10 +60,8 @@ func withConfig(config config.AuthorizationVerifier) tokenVerifierOption {
 	retryingClient.RetryWaitMax = time.Second * 10
 	retryingClient.RetryWaitMin = time.Second * 2
 	retryingClient.Backoff = retryablehttp.RateLimitLinearJitterBackoff
-	// discover := func(issuer string) (rp.Endpoints, error) {
 	discover := func(ctx context.Context, issuer string) (*oidc.DiscoveryConfiguration, error) {
 		return client.Discover(ctx, issuer, httphelper.DefaultHTTPClient)
-		// return rp.Discover(issuer, retryingClient.StandardClient())
 	}
 	return func(tv *tokenVerifier) error {
 		tv.id = config.AuthorizedParty
