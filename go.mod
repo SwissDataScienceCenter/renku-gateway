@@ -9,6 +9,7 @@ require (
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/getsentry/sentry-go v0.40.0
 	github.com/getsentry/sentry-go/echo v0.40.0
+	github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/securecookie v1.1.2
@@ -25,7 +26,6 @@ require (
 	github.com/zitadel/oidc/v3 v3.45.1
 	golang.org/x/oauth2 v0.34.0
 	golang.org/x/time v0.9.0
-	gopkg.in/square/go-jose.v2 v2.6.0
 	k8s.io/api v0.35.0
 	k8s.io/apimachinery v0.35.0
 	k8s.io/client-go v0.35.0
@@ -40,7 +40,6 @@ require (
 	github.com/dprotaso/go-yit v0.0.0-20220510233725-9ba8df137936 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
