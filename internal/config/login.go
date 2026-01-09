@@ -35,6 +35,7 @@ type OIDCClient struct {
 }
 
 func (c LoginConfig) Validate(e RunningEnvironment) error {
+	// Fix the login config when EnableInternalGitlab is false
 	if !c.EnableInternalGitlab {
 		delete(c.Providers, "gitlab")
 	}
