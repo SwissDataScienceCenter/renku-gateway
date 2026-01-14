@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-var randomStateGenerator IDGenerator = RandomGenerator{Length: 24}
+var randomStateGenerator IDGenerator = NewRandomGenerator(24)
 
 // Session represents a persistent session between a client and the gateway
 type Session struct {

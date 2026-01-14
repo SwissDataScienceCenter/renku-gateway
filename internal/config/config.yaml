@@ -23,25 +23,17 @@ sessions:
       audience: renku
       authorizedParty: renku-cli
 revproxy:
-  enableV1Services: true
   enableInternalGitlab: true
   renkuBaseUrl: "https://renkulab.io"
   externalGitlabUrl:
   k8sNamespace:
   renkuServices:
     noteboooks:
-    kg:
-    webhoook:
-    core:
-      serviceNames: []
-      servicePaths: []
-      sticky:
     auth:
     dataService:
     keycloak:
     search:
 login:
-  enableV1Services: true
   enableInternalGitlab: true
   endpointsBasePath:
   renkuBaseURL: "https://renkulab.io"

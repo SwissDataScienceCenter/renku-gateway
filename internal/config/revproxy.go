@@ -6,16 +6,12 @@ import (
 )
 
 type RenkuServicesConfig struct {
-	KG          *url.URL
-	Webhook     *url.URL
-	Core        CoreSvcConfig
 	DataService *url.URL
 	Keycloak    *url.URL
 	UIServer    *url.URL
 }
 
 type RevproxyConfig struct {
-	EnableV1Services     bool
 	EnableInternalGitlab bool
 	RenkuBaseURL         *url.URL
 	ExternalGitlabURL    *url.URL
@@ -23,14 +19,7 @@ type RevproxyConfig struct {
 	RenkuServices        RenkuServicesConfig
 }
 
-type CoreSvcConfig struct {
-	ServiceNames []string
-	ServicePaths []string
-	Sticky       bool
-}
-
 func (r *RevproxyConfig) Validate() error {
-	// Check v2 services first
 	if r.RenkuServices.DataService == nil {
 		return fmt.Errorf("the proxy config is missing the url to the data service")
 	}
@@ -40,24 +29,8 @@ func (r *RevproxyConfig) Validate() error {
 	if r.RenkuServices.UIServer == nil {
 		return fmt.Errorf("the proxy config is missing the url to ui-server")
 	}
-	if r.EnableV1Services && !r.EnableInternalGitlab {
-		return fmt.Errorf("enabling V1 (legacy) services but disabling the internal Gitlab is not supported in the reverse proxy config")
-	}
 	if r.RenkuBaseURL == nil {
 		return fmt.Errorf("the renkuBaseURL cannot be null or ''")
-	}
-
-	// Check v1 services if needed
-	if r.EnableV1Services {
-		if r.RenkuServices.KG == nil {
-			return fmt.Errorf("the proxy config is missing the url to the knowledge graph service")
-		}
-		if r.RenkuServices.Webhook == nil {
-			return fmt.Errorf("the proxy config is missing the url to the webhook service")
-		}
-		if len(r.RenkuServices.Core.ServiceNames) != len(r.RenkuServices.Core.ServicePaths) {
-			return fmt.Errorf("the number of core service names and paths do not match")
-		}
 	}
 
 	return nil
