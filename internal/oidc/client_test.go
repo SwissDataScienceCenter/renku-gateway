@@ -1,19 +1,21 @@
 package oidc
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/go-jose/go-jose/v4"
 	"github.com/stretchr/testify/assert"
-	"github.com/zitadel/oidc/v2/pkg/client/rp"
-	httphelper "github.com/zitadel/oidc/v2/pkg/http"
-	"github.com/zitadel/oidc/v2/pkg/oidc"
+	"github.com/zitadel/oidc/v3/pkg/client/rp"
+	httphelper "github.com/zitadel/oidc/v3/pkg/http"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"golang.org/x/oauth2"
-	"gopkg.in/go-jose/go-jose.v2"
 )
 
 type mockRelyingParty struct {
@@ -67,12 +69,16 @@ func (mockRelyingParty) GetDeviceAuthorizationEndpoint() string {
 	return ""
 }
 
-func (mockRelyingParty) IDTokenVerifier() rp.IDTokenVerifier {
+func (mockRelyingParty) IDTokenVerifier() *rp.IDTokenVerifier {
 	return nil
 }
 
 func (mockRelyingParty) ErrorHandler() func(http.ResponseWriter, *http.Request, string, string, string) {
 	return func(http.ResponseWriter, *http.Request, string, string, string) {}
+}
+
+func (mockRelyingParty) Logger(ctx context.Context) (logger *slog.Logger, ok bool) {
+	return nil, false
 }
 
 func newMockRelyingParty(tokenURL string) rp.RelyingParty {
