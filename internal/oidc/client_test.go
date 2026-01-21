@@ -25,12 +25,13 @@ type mockRelyingParty struct {
 
 func (m mockRelyingParty) OAuthConfig() *oauth2.Config {
 	return &oauth2.Config{
+		ClientID: "mock-client",
 		Endpoint: oauth2.Endpoint{TokenURL: m.tokenURL},
 	}
 }
 
 func (m mockRelyingParty) Issuer() string {
-	return ""
+	return "https://token.url"
 }
 
 func (m mockRelyingParty) IsPKCE() bool {
