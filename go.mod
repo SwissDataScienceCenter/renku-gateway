@@ -13,7 +13,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/securecookie v1.1.2
 	github.com/hashicorp/go-retryablehttp v0.7.8
-	github.com/labstack/echo-contrib v0.17.4
+	github.com/labstack/echo-contrib v0.50.0
 	github.com/labstack/echo/v4 v4.15.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oapi-codegen/runtime v1.1.2
@@ -45,6 +45,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
+	github.com/labstack/echo/v5 v5.0.0-20260118161441-9500f2745481 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/mailru/easyjson v0.9.1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
@@ -84,9 +85,9 @@ require (
 	go.opentelemetry.io/otel/trace v1.39.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.46.0 // indirect
+	golang.org/x/crypto v0.47.0 // indirect
 	golang.org/x/mod v0.31.0 // indirect
-	golang.org/x/net v0.48.0 // indirect
+	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
