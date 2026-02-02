@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -22,14 +23,14 @@ var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middl
 	HandleError:  true, // forwards error to the global error handler, so it can decide appropriate status code
 	LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
 		if v.Error == nil {
-			jsonLogger.LogAttrs(context.Background(), slog.LevelInfo, "REQUEST",
-				slog.String("uri", v.URI),
-				slog.Int("status", v.Status),
-				slog.String("requestID", v.RequestID),
-				slog.String("method", v.Method),
-				slog.String("handler", v.RoutePath),
-				slog.String("userAgent", v.UserAgent),
-			)
+			// jsonLogger.LogAttrs(context.Background(), slog.LevelInfo, "REQUEST",
+			// 	slog.String("uri", v.URI),
+			// 	slog.Int("status", v.Status),
+			// 	slog.String("requestID", v.RequestID),
+			// 	slog.String("method", v.Method),
+			// 	slog.String("handler", v.RoutePath),
+			// 	slog.String("userAgent", v.UserAgent),
+			// )
 		} else {
 			jsonLogger.LogAttrs(context.Background(), slog.LevelError, "REQUEST_ERROR",
 				slog.String("uri", v.URI),
@@ -44,5 +45,20 @@ var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middl
 		return nil
 	},
 })
+
+// TODO: A test middleware that extracts and logs the Sentry trace ID for each request
+var sentryTraceLogger echo.MiddlewareFunc = func(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if hub := sentry.GetHubFromContext(c.Request().Context()); hub != nil {
+			traceID := "MISSING"
+			if span := sentry.SpanFromContext(c.Request().Context()); span != nil {
+				traceID = span.TraceID.String()
+			}
+			slog.Info("SENTRY_TRACE", "method", c.Request().Method, "trace_id", "'"+traceID+"'", "requestID",
+				c.Response().Header().Get(echo.HeaderXRequestID))
+		}
+		return next(c)
+	}
+}
 
 var commonMiddlewares []echo.MiddlewareFunc = []echo.MiddlewareFunc{requestLogger}

@@ -136,7 +136,7 @@ func main() {
 	// Initialize login server
 	metricsClient, err := metrics.NewPosthogClient(gwConfig.Posthog)
 	if err != nil {
-		slog.Error("posthog client initializtion failed", "error", err)
+		slog.Error("posthog client initialization failed", "error", err)
 		os.Exit(1)
 	}
 	if metricsClient != nil {
@@ -172,6 +172,8 @@ func main() {
 	}
 	// Sentry
 	if gwConfig.Monitoring.Sentry.Enabled {
+		slog.Info("initializing sentry ...")
+
 		err := sentry.Init(sentry.ClientOptions{
 			Dsn:              string(gwConfig.Monitoring.Sentry.Dsn),
 			TracesSampleRate: gwConfig.Monitoring.Sentry.SampleRate,
@@ -179,9 +181,14 @@ func main() {
 		})
 		if err != nil {
 			slog.Error("sentry initialization failed", "error", err)
+		} else {
+			slog.Info("sentry initialized", "sampleRate", gwConfig.Monitoring.Sentry.SampleRate)
 		}
 		e.Use(sentryecho.New(sentryecho.Options{}))
+	} else {
+		slog.Info("sentry is not enabled")
 	}
+	e.Use(sentryTraceLogger)
 	// Prometheus
 	if gwConfig.Monitoring.Prometheus.Enabled {
 		e.Use(echoprometheus.NewMiddleware("gateway"))
@@ -202,12 +209,12 @@ func main() {
 	slog.Info("starting the server on address " + address)
 	go func() {
 		err := e.Start(address)
-		if err != nil && err != http.ErrServerClosed {
-			slog.Error("shutting down the server gracefuly failed", "error", err)
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("shutting down the server gracefully failed", "error", err)
 			os.Exit(1)
 		}
 	}()
-	// Wait for interrupt signal to gracefully shutdown the server with a timeout of 10 seconds.
+	// Wait for interrupt signal to gracefully shut down the server with a timeout of 10 seconds.
 	// Use a buffered channel to avoid missing signals as recommended for signal.Notify
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
