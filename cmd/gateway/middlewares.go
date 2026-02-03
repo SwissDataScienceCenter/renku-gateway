@@ -10,6 +10,8 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
+const sentryTraceIDKey = "sentry_trace_id"
+
 var logLevel *slog.LevelVar = new(slog.LevelVar)
 var jsonLogger *slog.Logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
@@ -32,7 +34,13 @@ var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middl
 			// 	slog.String("userAgent", v.UserAgent),
 			// )
 		} else {
-			jsonLogger.LogAttrs(context.Background(), slog.LevelError, "REQUEST_ERROR",
+			// Extract trace_id from context if available
+			traceID := "MISSING"
+			if tid, ok := c.Get(sentryTraceIDKey).(string); ok {
+				traceID = tid
+			}
+
+			attrs := []slog.Attr{
 				slog.String("uri", v.URI),
 				slog.Int("status", v.Status),
 				slog.String("error", v.Error.Error()),
@@ -40,22 +48,22 @@ var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middl
 				slog.String("method", v.Method),
 				slog.String("handler", v.RoutePath),
 				slog.String("userAgent", v.UserAgent),
-			)
+			}
+			if traceID != "" {
+				attrs = append(attrs, slog.String("sentryTraceID", traceID))
+			}
+			jsonLogger.LogAttrs(context.Background(), slog.LevelError, "REQUEST_ERROR", attrs...)
 		}
 		return nil
 	},
 })
 
-// TODO: A test middleware that extracts and logs the Sentry trace ID for each request
-var sentryTraceLogger echo.MiddlewareFunc = func(next echo.HandlerFunc) echo.HandlerFunc {
+// sentryTraceIDExtractor extracts the Sentry trace ID and stores it on the context for later use
+var sentryTraceIDExtractor echo.MiddlewareFunc = func(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		if hub := sentryecho.GetHubFromContext(c); hub != nil {
-			traceID := "MISSING"
-			if span := sentryecho.GetSpanFromContext(c); span != nil {
-				traceID = span.TraceID.String()
-			}
-			slog.Info("SENTRY_TRACE", "method", c.Request().Method, "trace_id", "'"+traceID+"'", "requestID",
-				c.Response().Header().Get(echo.HeaderXRequestID))
+		if span := sentryecho.GetSpanFromContext(c); span != nil {
+			traceID := span.TraceID.String()
+			c.Set(sentryTraceIDKey, traceID)
 		}
 		return next(c)
 	}

@@ -185,10 +185,10 @@ func main() {
 			slog.Info("sentry initialized", "sampleRate", gwConfig.Monitoring.Sentry.SampleRate)
 		}
 		e.Use(sentryecho.New(sentryecho.Options{}))
+		e.Use(sentryTraceIDExtractor)
 	} else {
 		slog.Info("sentry is not enabled")
 	}
-	e.Use(sentryTraceLogger)
 	// Prometheus
 	if gwConfig.Monitoring.Prometheus.Enabled {
 		e.Use(echoprometheus.NewMiddleware("gateway"))
