@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/getsentry/sentry-go"
+	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -49,9 +49,9 @@ var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middl
 // TODO: A test middleware that extracts and logs the Sentry trace ID for each request
 var sentryTraceLogger echo.MiddlewareFunc = func(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		if hub := sentry.GetHubFromContext(c.Request().Context()); hub != nil {
+		if hub := sentryecho.GetHubFromContext(c); hub != nil {
 			traceID := "MISSING"
-			if span := sentry.SpanFromContext(c.Request().Context()); span != nil {
+			if span := sentryecho.GetSpanFromContext(c); span != nil {
 				traceID = span.TraceID.String()
 			}
 			slog.Info("SENTRY_TRACE", "method", c.Request().Method, "trace_id", "'"+traceID+"'", "requestID",
