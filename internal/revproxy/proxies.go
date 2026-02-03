@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
+	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -19,7 +20,15 @@ func proxyFromURL(url *url.URL) echo.MiddlewareFunc {
 	mwconfig := middleware.ProxyConfig{
 		// the skipper is used to log only
 		Skipper: func(c echo.Context) bool {
-			slog.Info("PROXY", "requestID", utils.GetRequestID(c), "destination", url.String())
+			traceID := ""
+			if span := sentryecho.GetSpanFromContext(c); span != nil {
+				traceID = span.TraceID.String()
+			}
+			if traceID != "" {
+				slog.Info("PROXY", "requestID", utils.GetRequestID(c), "destination", url.String(), "sentryTraceID", traceID)
+			} else {
+				slog.Info("PROXY", "requestID", utils.GetRequestID(c), "destination", url.String())
+			}
 			return false
 		},
 		Balancer: middleware.NewRoundRobinBalancer([]*middleware.ProxyTarget{
