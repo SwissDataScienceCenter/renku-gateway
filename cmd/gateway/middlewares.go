@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 
+	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -21,17 +22,27 @@ var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middl
 	LogUserAgent: true,
 	HandleError:  true, // forwards error to the global error handler, so it can decide appropriate status code
 	LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+		// Extract trace_id from context if available
+		traceID := ""
+		if span := sentryecho.GetSpanFromContext(c); span != nil {
+			traceID = span.TraceID.String()
+		}
+
 		if v.Error == nil {
-			// jsonLogger.LogAttrs(context.Background(), slog.LevelInfo, "REQUEST",
-			// 	slog.String("uri", v.URI),
-			// 	slog.Int("status", v.Status),
-			// 	slog.String("requestID", v.RequestID),
-			// 	slog.String("method", v.Method),
-			// 	slog.String("handler", v.RoutePath),
-			// 	slog.String("userAgent", v.UserAgent),
-			// )
+			attrs := []slog.Attr{
+				slog.String("uri", v.URI),
+				slog.Int("status", v.Status),
+				slog.String("requestID", v.RequestID),
+				slog.String("method", v.Method),
+				slog.String("handler", v.RoutePath),
+				slog.String("userAgent", v.UserAgent),
+			}
+			if traceID != "" {
+				attrs = append(attrs, slog.String("sentryTraceID", traceID))
+			}
+			jsonLogger.LogAttrs(context.Background(), slog.LevelInfo, "REQUEST", attrs...)
 		} else {
-			jsonLogger.LogAttrs(context.Background(), slog.LevelError, "REQUEST_ERROR",
+			attrs := []slog.Attr{
 				slog.String("uri", v.URI),
 				slog.Int("status", v.Status),
 				slog.String("error", v.Error.Error()),
@@ -39,7 +50,11 @@ var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middl
 				slog.String("method", v.Method),
 				slog.String("handler", v.RoutePath),
 				slog.String("userAgent", v.UserAgent),
-			)
+			}
+			if traceID != "" {
+				attrs = append(attrs, slog.String("sentryTraceID", traceID))
+			}
+			jsonLogger.LogAttrs(context.Background(), slog.LevelError, "REQUEST_ERROR", attrs...)
 		}
 		return nil
 	},
