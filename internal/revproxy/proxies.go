@@ -2,14 +2,49 @@ package revproxy
 
 import (
 	"log/slog"
+	"net/http"
 	"net/url"
 	"os"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
+	"github.com/getsentry/sentry-go"
 	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
+
+// A custom RoundTripper that adds Sentry trace headers to outgoing requests
+type sentryPropagationTransport struct {
+	next http.RoundTripper
+}
+
+func (t *sentryPropagationTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	// TODO: Do we need to get the hub?
+	if hub := sentry.GetHubFromContext(request.Context()); hub != nil {
+		if span := sentry.TransactionFromContext(request.Context()); span != nil {
+			sentryTraceHeader := span.ToSentryTrace()
+			baggageHeader := span.ToBaggage()
+
+			// TODO: Log headers to see if they already contain Sentry headers
+			slog.Debug("Adding Sentry headers to outgoing request",
+				"sentry-trace", sentryTraceHeader,
+				"baggage", baggageHeader,
+				"url", request.URL.String())
+
+			request.Header.Set("sentry-trace", sentryTraceHeader)
+			if baggageHeader != "" {
+				request.Header.Set("baggage", baggageHeader)
+			}
+		} else {
+			slog.Debug("No Sentry span in request context", "url", request.URL.String())
+		}
+	} else {
+		slog.Debug("No Sentry hub in request context", "url", request.URL.String())
+	}
+
+	// TODO: Is it correct to call the next transport in the chain
+	return t.next.RoundTrip(request)
+}
 
 // proxyFromURL middleware creates a proxy that forwards requests to the specified URL
 func proxyFromURL(url *url.URL) echo.MiddlewareFunc {
@@ -17,7 +52,7 @@ func proxyFromURL(url *url.URL) echo.MiddlewareFunc {
 		slog.Error("cannot create a proxy from a nil URL")
 		os.Exit(1)
 	}
-	mwconfig := middleware.ProxyConfig{
+	config := middleware.ProxyConfig{
 		// the skipper is used to log only
 		Skipper: func(c echo.Context) bool {
 			traceID := ""
@@ -36,6 +71,10 @@ func proxyFromURL(url *url.URL) echo.MiddlewareFunc {
 				Name: url.String(),
 				URL:  url,
 			}}),
+		// Use custom transport to add Sentry headers to outgoing requests
+		Transport: &sentryPropagationTransport{
+			next: http.DefaultTransport,
+		},
 	}
-	return middleware.ProxyWithConfig(mwconfig)
+	return middleware.ProxyWithConfig(config)
 }

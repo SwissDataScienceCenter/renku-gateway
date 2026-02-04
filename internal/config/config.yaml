@@ -1,6 +1,6 @@
 # Example values for configuration
 runningEnvironment: production
-debugMode: false
+debugMode: true
 server:
   port: 8080
   allowOrigin: []
