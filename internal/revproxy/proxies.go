@@ -19,6 +19,11 @@ type sentryPropagationTransport struct {
 }
 
 func (t *sentryPropagationTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	slog.Info("ROUND-TRIP ========================= BEFORE adding headers to outgoing request",
+		"url", request.URL.String(),
+		"all_headers", request.Header,
+		"has_context", request.Context() != nil)
+
 	// TODO: Do we need to get the hub?
 	if hub := sentry.GetHubFromContext(request.Context()); hub != nil {
 		if span := sentry.TransactionFromContext(request.Context()); span != nil {
@@ -26,7 +31,7 @@ func (t *sentryPropagationTransport) RoundTrip(request *http.Request) (*http.Res
 			baggageHeader := span.ToBaggage()
 
 			// TODO: Log headers to see if they already contain Sentry headers
-			slog.Debug("Adding Sentry headers to outgoing request",
+			slog.Info("ROUND-TRIP ========================= adding headers to outgoing request",
 				"sentry-trace", sentryTraceHeader,
 				"baggage", baggageHeader,
 				"url", request.URL.String())
@@ -35,11 +40,13 @@ func (t *sentryPropagationTransport) RoundTrip(request *http.Request) (*http.Res
 			if baggageHeader != "" {
 				request.Header.Set("baggage", baggageHeader)
 			}
+
+			slog.Info("ROUND-TRIP ========================= AFTER adding headers to outgoing request", "all_headers", request.Header)
 		} else {
-			slog.Debug("No Sentry span in request context", "url", request.URL.String())
+			slog.Info("No Sentry span in request context", "url", request.URL.String())
 		}
 	} else {
-		slog.Debug("No Sentry hub in request context", "url", request.URL.String())
+		slog.Info("No Sentry hub in request context", "url", request.URL.String())
 	}
 
 	// TODO: Is it correct to call the next transport in the chain
@@ -55,7 +62,9 @@ func proxyFromURL(url *url.URL) echo.MiddlewareFunc {
 	config := middleware.ProxyConfig{
 		// the skipper is used to log only
 		Skipper: func(c echo.Context) bool {
-			traceID := ""
+			slog.Info("PROXY ========================= incoming request headers", "all_headers", c.Request().Header)
+
+			traceID := "MISSING"
 			if span := sentryecho.GetSpanFromContext(c); span != nil {
 				traceID = span.TraceID.String()
 			}
