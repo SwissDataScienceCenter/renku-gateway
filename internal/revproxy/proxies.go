@@ -59,15 +59,32 @@ func proxyFromURL(url *url.URL) echo.MiddlewareFunc {
 		slog.Error("cannot create a proxy from a nil URL")
 		os.Exit(1)
 	}
+
 	config := middleware.ProxyConfig{
-		// the skipper is used to log only
+		// the skipper is used to log only AND to inject Sentry headers
 		Skipper: func(c echo.Context) bool {
 			slog.Info("PROXY ========================= incoming request headers", "all_headers", c.Request().Header)
 
 			traceID := "MISSING"
-			if span := sentryecho.GetSpanFromContext(c); span != nil {
+			span := sentryecho.GetSpanFromContext(c)
+			if span != nil {
 				traceID = span.TraceID.String()
+
+				sentryTraceHeader := span.ToSentryTrace()
+				baggageHeader := span.ToBaggage()
+
+				c.Request().Header.Set("sentry-trace", sentryTraceHeader)
+				if baggageHeader != "" {
+					c.Request().Header.Set("baggage", baggageHeader)
+				}
+
+				slog.Info("PROXY-SKIPPER ========================= replaced Sentry headers with gateway span",
+					"sentry-trace", sentryTraceHeader,
+					"baggage", baggageHeader)
+			} else {
+				slog.Info("PROXY-SKIPPER ========================= no Sentry span found in Echo context")
 			}
+
 			if traceID != "" {
 				slog.Info("PROXY", "requestID", utils.GetRequestID(c), "destination", url.String(), "sentryTraceID", traceID)
 			} else {
@@ -80,7 +97,6 @@ func proxyFromURL(url *url.URL) echo.MiddlewareFunc {
 				Name: url.String(),
 				URL:  url,
 			}}),
-		// Use custom transport to add Sentry headers to outgoing requests
 		Transport: &sentryPropagationTransport{
 			next: http.DefaultTransport,
 		},
