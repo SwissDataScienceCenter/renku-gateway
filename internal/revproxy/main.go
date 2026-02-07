@@ -31,7 +31,7 @@ type Revproxy struct {
 }
 
 func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.MiddlewareFunc) {
-	// Intialize common reverse proxy middlewares
+	// Initialize common reverse proxy middlewares
 	fallbackProxy := proxyFromURL(r.config.RenkuBaseURL)
 	renkuBaseProxyHost := setHost(r.config.RenkuBaseURL.Host)
 	keycloakProxy := proxyFromURL(r.config.RenkuServices.Keycloak)
@@ -64,7 +64,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 		// /api/kc is used only by the ui and no one else, will be removed when the gateway is in charge of user sessions
 		e.Group("/api/kc", append(commonMiddlewares, stripPrefix("/api/kc"), renkuAccessToken, keycloakProxyHost, keycloakProxy)...)
 
-		// UI server webssockets
+		// UI server websockets
 		e.Group("/ui-server/ws", append(commonMiddlewares, ensureSession(r.sessions), renkuAccessToken, uiServerProxy)...)
 		// Some routes need to go to the UI server before they go to the specific Renku service
 		e.Group("/ui-server/api/allows-iframe", append(commonMiddlewares, uiServerProxy)...)
@@ -81,7 +81,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 		// /api/kc is used only by the ui and no one else, will be removed when the gateway is in charge of user sessions
 		e.Group("/api/kc", append(commonMiddlewares, stripPrefix("/api/kc"), renkuAccessToken, keycloakProxyHost, keycloakProxy)...)
 
-		// UI server webssockets
+		// UI server websockets
 		e.Group("/ui-server/ws", append(commonMiddlewares, ensureSession(r.sessions), renkuAccessToken, uiServerProxy)...)
 		// Some routes need to go to the UI server before they go to the specific Renku service
 		e.Group("/ui-server/api/allows-iframe", append(commonMiddlewares, uiServerProxy)...)

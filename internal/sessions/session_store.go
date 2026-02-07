@@ -2,6 +2,7 @@ package sessions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -35,7 +36,7 @@ func (sessions *SessionStore) Middleware() echo.MiddlewareFunc {
 			session, loadErr := sessions.Get(c)
 			if loadErr == nil {
 				c.Set(SessionCtxKey, session)
-			} else if loadErr != gwerrors.ErrSessionNotFound && loadErr != gwerrors.ErrSessionExpired {
+			} else if !errors.Is(loadErr, gwerrors.ErrSessionNotFound) && !errors.Is(loadErr, gwerrors.ErrSessionExpired) {
 				slog.Info(
 					"SESSION MIDDLEWARE",
 					"message",
@@ -48,7 +49,7 @@ func (sessions *SessionStore) Middleware() echo.MiddlewareFunc {
 			}
 			err := next(c)
 			saveErr := sessions.Save(c)
-			if saveErr != nil && saveErr != gwerrors.ErrSessionNotFound && saveErr != gwerrors.ErrSessionExpired {
+			if saveErr != nil && !errors.Is(saveErr, gwerrors.ErrSessionNotFound) && !errors.Is(saveErr, gwerrors.ErrSessionExpired) {
 				sessionID := ""
 				if session != nil {
 					sessionID = session.ID
@@ -100,7 +101,7 @@ func (sessions *SessionStore) Get(c echo.Context) (*models.Session, error) {
 	// load the session from the store
 	sessionFromStore, err := sessions.sessionRepo.GetSession(c.Request().Context(), sessionID)
 	if err != nil {
-		if err == redis.Nil {
+		if errors.Is(err, redis.Nil) {
 			return &models.Session{}, gwerrors.ErrSessionNotFound
 		} else {
 			return &models.Session{}, err
@@ -181,7 +182,7 @@ func (sessions *SessionStore) getSessionIDFromCookie(c echo.Context) (string, er
 	sessionID := ""
 	cookie, err := c.Cookie(SessionCookieName)
 	if err != nil {
-		if err != http.ErrNoCookie {
+		if !errors.Is(err, http.ErrNoCookie) {
 			return "", err
 		}
 	} else {
