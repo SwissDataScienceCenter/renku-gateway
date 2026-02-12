@@ -58,6 +58,7 @@ func main() {
 	if gwConfig.Monitoring.Sentry.Enabled {
 		err := sentry.Init(sentry.ClientOptions{
 			Dsn:              string(gwConfig.Monitoring.Sentry.Dsn),
+			EnableTracing:    gwConfig.Monitoring.Sentry.SampleRate > 0,
 			TracesSampleRate: gwConfig.Monitoring.Sentry.SampleRate,
 			Environment:      gwConfig.Monitoring.Sentry.Environment,
 		})
