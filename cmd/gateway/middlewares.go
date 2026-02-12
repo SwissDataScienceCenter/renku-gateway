@@ -5,12 +5,36 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/getsentry/sentry-go"
+	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
 var logLevel *slog.LevelVar = new(slog.LevelVar)
 var jsonLogger *slog.Logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
+
+// sentryHeaderInjector ensures that the Trace ID is attached to the outgoing request.
+func sentryHeaderInjector(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		hub := sentryecho.GetHubFromContext(c)
+		if hub != nil {
+			c.Request().Header.Set(sentry.SentryTraceHeader, hub.GetTraceparent())
+			c.Request().Header.Set(sentry.SentryBaggageHeader, hub.GetBaggage())
+		}
+
+		// if span := sentryecho.GetSpanFromContext(c); span != nil {
+		// 	sentryTraceHeader := span.ToSentryTrace()
+		// 	baggageHeader := span.ToBaggage()
+		// 	c.Request().Header.Set(sentry.SentryTraceHeader, sentryTraceHeader)
+		// 	if baggageHeader != "" {
+		// 		c.Request().Header.Set(sentry.SentryBaggageHeader, baggageHeader)
+		// 	}
+		// }
+		return next(c)
+	}
+}
+
 var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 	LogStatus:    true,
 	LogURI:       true,
@@ -45,4 +69,4 @@ var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middl
 	},
 })
 
-var commonMiddlewares []echo.MiddlewareFunc = []echo.MiddlewareFunc{requestLogger}
+var commonMiddlewares []echo.MiddlewareFunc = []echo.MiddlewareFunc{sentryHeaderInjector, requestLogger}
