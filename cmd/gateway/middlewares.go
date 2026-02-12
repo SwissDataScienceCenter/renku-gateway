@@ -15,7 +15,7 @@ var logLevel *slog.LevelVar = new(slog.LevelVar)
 var jsonLogger *slog.Logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 
 // sentryHeaderInjector ensures that the Trace ID is attached to the outgoing request.
-func sentryHeaderInjector(next echo.HandlerFunc) echo.HandlerFunc {
+func SentryHeaderInjector(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		hub := sentryecho.GetHubFromContext(c)
 		if hub != nil {
@@ -69,4 +69,4 @@ var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middl
 	},
 })
 
-var commonMiddlewares []echo.MiddlewareFunc = []echo.MiddlewareFunc{sentryHeaderInjector, requestLogger}
+var commonMiddlewares []echo.MiddlewareFunc = []echo.MiddlewareFunc{requestLogger}
