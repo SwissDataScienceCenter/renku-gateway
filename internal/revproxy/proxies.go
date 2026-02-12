@@ -16,7 +16,7 @@ func proxyFromURL(url *url.URL) echo.MiddlewareFunc {
 		slog.Error("cannot create a proxy from a nil URL")
 		os.Exit(1)
 	}
-	mwconfig := middleware.ProxyConfig{
+	mwConfig := middleware.ProxyConfig{
 		// the skipper is used to log only
 		Skipper: func(c echo.Context) bool {
 			slog.Info("PROXY", "requestID", utils.GetRequestID(c), "destination", url.String())
@@ -28,5 +28,5 @@ func proxyFromURL(url *url.URL) echo.MiddlewareFunc {
 				URL:  url,
 			}}),
 	}
-	return middleware.ProxyWithConfig(mwconfig)
+	return middleware.ProxyWithConfig(mwConfig)
 }
