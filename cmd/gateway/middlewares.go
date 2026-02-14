@@ -6,10 +6,10 @@ import (
 	"os"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
-	"github.com/getsentry/sentry-go"
-	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 var logLevel *slog.LevelVar = new(slog.LevelVar)
@@ -51,17 +51,11 @@ var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middl
 	},
 })
 
-// sentryHeaderInjector ensures that the Trace ID is attached to the outgoing request.
+// sentryHeaderInjector ensures that OpenTelemetry and Sentry trace headers are attached to the outgoing request.
 func sentryHeaderInjector(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		if span := sentryecho.GetSpanFromContext(c); span != nil {
-			sentryTraceHeader := span.ToSentryTrace()
-			baggageHeader := span.ToBaggage()
-			c.Request().Header.Set(sentry.SentryTraceHeader, sentryTraceHeader)
-			if baggageHeader != "" {
-				c.Request().Header.Set(sentry.SentryBaggageHeader, baggageHeader)
-			}
-		}
+		propagator := otel.GetTextMapPropagator()
+		propagator.Inject(c.Request().Context(), propagation.HeaderCarrier(c.Request().Header))
 		return next(c)
 	}
 }

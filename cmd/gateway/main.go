@@ -26,6 +26,7 @@ import (
 	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	"golang.org/x/time/rate"
 )
 
@@ -170,16 +171,41 @@ func main() {
 	if len(gwConfig.Server.AllowOrigin) > 0 {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{AllowOrigins: gwConfig.Server.AllowOrigin}))
 	}
-	// Sentry
+	// Sentry and OpenTelemetry
 	if gwConfig.Monitoring.Sentry.Enabled {
 		err := sentry.Init(sentry.ClientOptions{
 			Dsn:              string(gwConfig.Monitoring.Sentry.Dsn),
-			TracesSampleRate: gwConfig.Monitoring.Sentry.SampleRate,
+			TracesSampleRate: 1, // Sample rate is dictated by OTel
 			Environment:      gwConfig.Monitoring.Sentry.Environment,
+			EnableTracing:    true,
 		})
 		if err != nil {
 			slog.Error("sentry initialization failed", "error", err)
 		}
+
+		tracerProvider, err := initOpenTelemetry(gwConfig.Monitoring.Sentry.Environment,
+			gwConfig.Monitoring.Sentry.SampleRate)
+		if err != nil {
+			slog.Error("OpenTelemetry initialization failed", "error", err)
+			os.Exit(1) // TODO: Should we exit here? If not, then move the following lines to the `else` block
+		} else {
+			slog.Info("OpenTelemetry initialized for renku-gateway", // TODO: Delete me
+				"environment",
+				gwConfig.Monitoring.Sentry.Environment,
+				"sampleRate",
+				gwConfig.Monitoring.Sentry.SampleRate)
+		}
+		// TODO: Should we use signal.Notify since K8s SIGTERM won't call defers
+		defer func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := shutdownOpenTelemetry(ctx, tracerProvider); err != nil {
+				slog.Error("OpenTelemetry shutdown failed", "error", err)
+			}
+		}()
+
+		// NOTE: OpenTelemetry middleware must come before Sentry's
+		e.Use(otelecho.Middleware("renku-gateway"))
 		e.Use(sentryecho.New(sentryecho.Options{}))
 	}
 	// Prometheus
