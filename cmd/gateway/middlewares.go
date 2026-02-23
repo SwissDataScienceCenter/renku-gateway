@@ -54,10 +54,10 @@ var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middl
 // sentryHeaderInjector ensures that the Trace ID is attached to the outgoing request.
 func sentryHeaderInjector(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		if span := sentryecho.GetSpanFromContext(c); span != nil {
-			sentryTraceHeader := span.ToSentryTrace()
-			baggageHeader := span.ToBaggage()
+		if hub := sentryecho.GetHubFromContext(c); hub != nil {
+			sentryTraceHeader := hub.GetTraceparent()
 			c.Request().Header.Set(sentry.SentryTraceHeader, sentryTraceHeader)
+			baggageHeader := hub.GetBaggage()
 			if baggageHeader != "" {
 				c.Request().Header.Set(sentry.SentryBaggageHeader, baggageHeader)
 			}
