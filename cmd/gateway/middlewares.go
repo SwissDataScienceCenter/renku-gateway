@@ -5,6 +5,9 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
+	"github.com/getsentry/sentry-go"
+	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -21,6 +24,7 @@ var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middl
 	LogUserAgent: true,
 	HandleError:  true, // forwards error to the global error handler, so it can decide appropriate status code
 	LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+		traceID := utils.GetTraceID(c)
 		if v.Error == nil {
 			jsonLogger.LogAttrs(context.Background(), slog.LevelInfo, "REQUEST",
 				slog.String("uri", v.URI),
@@ -29,6 +33,7 @@ var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middl
 				slog.String("method", v.Method),
 				slog.String("handler", v.RoutePath),
 				slog.String("userAgent", v.UserAgent),
+				slog.String("traceID", traceID),
 			)
 		} else {
 			jsonLogger.LogAttrs(context.Background(), slog.LevelError, "REQUEST_ERROR",
@@ -39,10 +44,26 @@ var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middl
 				slog.String("method", v.Method),
 				slog.String("handler", v.RoutePath),
 				slog.String("userAgent", v.UserAgent),
+				slog.String("traceID", traceID),
 			)
 		}
 		return nil
 	},
 })
 
-var commonMiddlewares []echo.MiddlewareFunc = []echo.MiddlewareFunc{requestLogger}
+// sentryHeaderInjector ensures that the Trace ID is attached to the outgoing request.
+func sentryHeaderInjector(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if hub := sentryecho.GetHubFromContext(c); hub != nil {
+			sentryTraceHeader := hub.GetTraceparent()
+			c.Request().Header.Set(sentry.SentryTraceHeader, sentryTraceHeader)
+			baggageHeader := hub.GetBaggage()
+			if baggageHeader != "" {
+				c.Request().Header.Set(sentry.SentryBaggageHeader, baggageHeader)
+			}
+		}
+		return next(c)
+	}
+}
+
+var commonMiddlewares []echo.MiddlewareFunc = []echo.MiddlewareFunc{sentryHeaderInjector, requestLogger}
