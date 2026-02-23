@@ -59,7 +59,10 @@ func main() {
 			Dsn:              string(gwConfig.Monitoring.Sentry.Dsn),
 			TracesSampleRate: gwConfig.Monitoring.Sentry.SampleRate,
 			Environment:      gwConfig.Monitoring.Sentry.Environment,
-			EnableTracing: 	  true,
+			// NOTE: We want a trace ID generated for each request, even if it's not sampled. We set this field to
+			// true regardless of TraceSampleRate's value to avoid corner cases where a trace ID isn't generated or
+			// isn't correctly linked to other events in the request's trace.
+			EnableTracing: true,
 		})
 		if err != nil {
 			slog.Error("sentry initialization failed", "error", err)
