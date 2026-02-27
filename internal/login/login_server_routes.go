@@ -85,7 +85,7 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 	// Exchange the authorization code for credentials
 	err = echo.WrapHandler(handler(tokenCallback))(c)
 	if err != nil {
-		slog.Error("code exchange handler failed", "error", err, "requestID", utils.GetRequestID(c))
+		slog.Error("code exchange handler failed", "error", err, "requestID", utils.GetRequestID(c), "traceID", utils.GetTraceID(c))
 		return err
 	}
 	// Continue to the next authentication step
@@ -215,7 +215,7 @@ func (l *LoginServer) nextAuthStep(
 		if url == "" {
 			url = l.config.RenkuBaseURL.String()
 		}
-		slog.Info("login completed", "requestID", utils.GetRequestID(c), "appRedirectURL", url)
+		slog.Info("login completed", "requestID", utils.GetRequestID(c), "traceID", utils.GetTraceID(c), "appRedirectURL", url)
 		// Save the session: ensure we save the session before sending redirects
 		l.sessions.Save(c)
 		// send product metrics
@@ -235,7 +235,7 @@ func (l *LoginServer) nextAuthStep(
 	// Handle the login
 	handler, err := l.providerStore.AuthHandler(providerID, session.LoginState)
 	if err != nil {
-		slog.Error("auth handler failed", "error", err, "requestID", utils.GetRequestID(c))
+		slog.Error("auth handler failed", "error", err, "requestID", utils.GetRequestID(c), "traceID", utils.GetTraceID(c))
 		return err
 	}
 	// Save the session: ensure we save the session before sending redirects

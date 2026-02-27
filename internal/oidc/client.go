@@ -9,6 +9,7 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/labstack/echo/v4"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v3/pkg/http"
@@ -36,7 +37,7 @@ func (c *oidcClient) getCodeExchangeCallback(callback TokenSetCallback) func(
 	) {
 		id, err := models.ULIDGenerator{}.ID()
 		if err != nil {
-			slog.Error("generating token ID failed in token exchange", "error", err, "requestID", r.Header.Get(echo.HeaderXRequestID))
+			slog.Error("generating token ID failed in token exchange", "error", err, "requestID", r.Header.Get(echo.HeaderXRequestID), "traceID", utils.GetTraceIDFromHTTPRequest(r))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -70,7 +71,7 @@ func (c *oidcClient) getCodeExchangeCallback(callback TokenSetCallback) func(
 		}
 		err = callback(tokenSet)
 		if err != nil {
-			slog.Error("error when running tokens callback", "error", err, "requestID", r.Header.Get(echo.HeaderXRequestID))
+			slog.Error("error when running tokens callback", "error", err, "requestID", r.Header.Get(echo.HeaderXRequestID), "traceID", utils.GetTraceIDFromHTTPRequest(r))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
