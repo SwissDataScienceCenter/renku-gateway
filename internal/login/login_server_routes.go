@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/labstack/echo/v4"
@@ -194,6 +195,26 @@ func (l *LoginServer) GetUserProfile(c echo.Context) error {
 		return err
 	}
 	return c.Redirect(http.StatusFound, redirectURL.String())
+}
+
+func (l *LoginServer) GetRefreshToken(c echo.Context) error {
+	session, err := l.sessions.Get(c)
+	if err != nil {
+		return err
+	}
+	token, err := l.sessions.GetRefreshToken(c, *session, "renku")
+	if err == gwerrors.ErrTokenNotFound {
+		return c.String(404, "Not Found")
+	}
+	if err == gwerrors.ErrTokenExpired {
+		return c.String(401, "Unauthenticated")
+	}
+	if err != nil {
+		return err
+	}
+	return c.JSON(200, map[string]string{
+		"refresh_token": token.Value,
+	})
 }
 
 func (*LoginServer) GetHealth(c echo.Context) error {

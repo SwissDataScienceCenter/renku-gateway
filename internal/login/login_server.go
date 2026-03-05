@@ -29,6 +29,8 @@ func (l *LoginServer) RegisterHandlers(server *echo.Echo, commonMiddlewares ...e
 	e.GET("/user-profile", wrapper.GetUserProfile)
 	e.GET("/gitlab/exchange", l.GetGitLabToken, NoCaching)
 	e.GET("/gitlab/logout", l.GetGitLabLogout)
+
+	e.GET("/exp/refresh", l.GetRefreshToken)
 }
 
 type LoginServerOption func(*LoginServer) error
