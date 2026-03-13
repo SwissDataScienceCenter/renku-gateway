@@ -1,0 +1,11 @@
+{
+	"name": "Data services devcontainer",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "gateway",
+	"containerUser": "root",
+	"workspaceFolder": "/workspace",
+	"shutdownAction": "stopCompose",
+	"features": {
+	},
+	"postCreateCommand": "go mod download"
+}
