@@ -18,7 +18,7 @@ func upExample(ctx context.Context, tx *sql.Tx) error {
 		return err
 	}
 	_, err = tx.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS gateway.users (
-		id TEXT PRIMARY KEY DEFAULT generate_ulid() NOT NULL,
+		id TEXT PRIMARY KEY NOT NULL,
 		refresh_token TEXT DEFAULT NULL,
 		refresh_expires_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
 		last_activity TIMESTAMP WITH TIME ZONE DEFAULT NULL
