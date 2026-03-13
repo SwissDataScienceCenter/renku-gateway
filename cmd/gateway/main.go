@@ -30,6 +30,7 @@ import (
 )
 
 func main() {
+	// FAKE CHANGE
 	// Logging setup
 	slog.SetDefault(jsonLogger)
 	// Load configuration
