@@ -26,6 +26,10 @@ func main() {
 		log.Fatalf("loading the configuration failed: %v", err)
 	}
 	log.Printf("loaded postgres config: %+v\n", gwConfig.Postgres)
+	err = gwConfig.Postgres.Validate()
+	if err != nil {
+		log.Fatalf("the config validation failed: %v", err)
+	}
 
 	if err := flags.Parse(os.Args[1:]); err != nil {
 		log.Fatalf("goose: failed to parse flags: %v", err)

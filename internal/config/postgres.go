@@ -6,3 +6,10 @@ type PostgresConfig struct {
 	Username string
 	Password RedactedString
 }
+
+func (c PostgresConfig) Validate() error {
+	if c.Database == "" {
+		c.Database = "renku_gateway"
+	}
+	return nil
+}

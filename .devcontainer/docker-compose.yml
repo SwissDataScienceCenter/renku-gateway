@@ -11,11 +11,6 @@ services:
       GATEWAY_POSTGRES_DATABASE: renku_gateway
       GATEWAY_POSTGRES_USERNAME: renku_gateway
       GATEWAY_POSTGRES_PASSWORD: renku_gateway
-
-      DB_USER: renku_gateway
-      DB_NAME: renku_gateway
-      DB_PASSWORD: renku_gateway
-      DB_HOST: 127.0.0.1
     network_mode: service:db
     depends_on:
       - db

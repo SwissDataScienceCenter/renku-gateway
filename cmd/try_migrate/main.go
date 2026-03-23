@@ -25,6 +25,11 @@ func main() {
 		os.Exit(1)
 	}
 	slog.Info("loaded config", "config", gwConfig)
+	err = gwConfig.Postgres.Validate()
+	if err != nil {
+		slog.Error("the config validation failed", "error", err)
+		os.Exit(1)
+	}
 
 	dbURL, err := getPostgresURL(gwConfig.Postgres)
 	if err != nil {
