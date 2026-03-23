@@ -7,7 +7,6 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	pginit "github.com/SwissDataScienceCenter/renku-gateway/internal/pg/init"
-	_ "github.com/SwissDataScienceCenter/renku-gateway/internal/pg/migrations"
 )
 
 // Try: we can do something like this at the start of the gateway process to run migrations

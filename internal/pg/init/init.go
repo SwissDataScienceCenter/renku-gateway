@@ -40,5 +40,5 @@ func RunPostgresMigrations(ctx context.Context, config config.PostgresConfig, lo
 			os.Exit(1)
 		}
 	}()
-	return goose.UpContext(ctx, db, "internal/pg/migrations")
+	return goose.UpContext(ctx, db, ".")
 }
