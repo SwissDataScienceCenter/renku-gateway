@@ -16,6 +16,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/db"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/login"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/metrics"
+	pginit "github.com/SwissDataScienceCenter/renku-gateway/internal/pg/init"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/redirects"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/revproxy"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
@@ -49,6 +50,12 @@ func main() {
 	// Set log level to "debug" if activated
 	if gwConfig.DebugMode {
 		logLevel.Set(slog.LevelDebug)
+	}
+	// Run postgres migrations
+	err = pginit.RunPostgresMigrationsWithTimeout(context.Background(), gwConfig.Postgres, logLevel.Level(), 5*time.Minute)
+	if err != nil {
+		slog.Error("running postgres migrations failed", "error", err)
+		os.Exit(1)
 	}
 	// Setup
 	e := echo.New()
