@@ -9,6 +9,8 @@ import (
 )
 
 // GetTraceLogger returns a pgx tracer which logs database operations via log/slog
+//
+// Note that "INFO" level will log SQL queries
 func GetTraceLogger(level slog.Level) pgx.QueryTracer {
 	return &tracelog.TraceLog{
 		Logger:   &traceLogger{},
@@ -20,7 +22,7 @@ type traceLogger struct {
 }
 
 func (tl *traceLogger) Log(ctx context.Context, level tracelog.LogLevel, msg string, data map[string]any) {
-	attrs := []slog.Attr{{Key: "Lvl", Value: slog.StringValue(level.String())}}
+	attrs := []slog.Attr{}
 	for key, value := range data {
 		attrs = append(attrs, slog.Attr{Key: key, Value: slog.AnyValue(value)})
 	}
@@ -52,6 +54,3 @@ func toTracelogLevel(level slog.Level) tracelog.LogLevel {
 		return tracelog.LogLevelError
 	}
 }
-
-// Check that TraceLogger satisfies the tracelog.Logger interface
-var _ tracelog.Logger = (*traceLogger)(nil)

@@ -10,12 +10,9 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-var compareOptions []cmp.Option = []cmp.Option{cmpopts.IgnoreUnexported(models.AuthToken{})}
 
 // Check that RedisAdapter implements TokenRepository.
 // This test would fail to compile otherwise.
@@ -40,9 +37,9 @@ func TestSetGetRemoveAccessToken(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Truef(
 		t,
-		cmp.Equal(myAccessToken, accessToken, compareOptions...),
+		cmp.Equal(myAccessToken, accessToken),
 		"The two values are not equal, diff is: %s\n",
-		cmp.Diff(myAccessToken, accessToken, compareOptions...),
+		cmp.Diff(myAccessToken, accessToken),
 	)
 }
 
@@ -65,8 +62,8 @@ func TestSetGetAccessTokenWithEncryption(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Truef(
 		t,
-		cmp.Equal(myAccessToken, accessToken, compareOptions...),
+		cmp.Equal(myAccessToken, accessToken),
 		"The two values are not equal, diff is: %s\n",
-		cmp.Diff(myAccessToken, accessToken, compareOptions...),
+		cmp.Diff(myAccessToken, accessToken),
 	)
 }

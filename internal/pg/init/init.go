@@ -39,6 +39,7 @@ func RunPostgresMigrations(ctx context.Context, config config.PostgresConfig, lo
 			slog.Error("goose: failed to close DB", "error", err)
 			os.Exit(1)
 		}
+		slog.Info("goose: closed DB connection for migrations")
 	}()
 	return goose.UpContext(ctx, db, ".")
 }
