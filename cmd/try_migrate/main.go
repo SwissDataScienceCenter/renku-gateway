@@ -19,11 +19,6 @@ func main() {
 		os.Exit(1)
 	}
 	slog.Info("loaded config", "config", gwConfig.Postgres)
-	err = gwConfig.Postgres.Validate()
-	if err != nil {
-		slog.Error("the config validation failed", "error", err)
-		os.Exit(1)
-	}
 
 	err = pginit.RunPostgresMigrations(context.Background(), gwConfig.Postgres, logLevel.Level())
 	if err != nil {
