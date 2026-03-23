@@ -11,6 +11,7 @@ type Config struct {
 	Redis      RedisConfig
 	Posthog    PosthogConfig
 	Monitoring MonitoringConfig
+	Postgres   PostgresConfig
 }
 
 type RunningEnvironment string

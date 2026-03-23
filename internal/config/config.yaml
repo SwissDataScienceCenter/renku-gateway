@@ -67,3 +67,8 @@ monitoring:
   prometheus:
     enabled: true
     port: 8005
+postgres:
+  host:
+  database:
+  username:
+  password:

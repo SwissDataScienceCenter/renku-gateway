@@ -6,6 +6,12 @@ services:
     # Overrides default command so things don't shut down after the process ends.
     entrypoint: sleep infinity
     environment:
+      CONFIG_LOCATION: /workspace/internal/config
+      GATEWAY_POSTGRES_HOST: 127.0.0.1
+      GATEWAY_POSTGRES_DATABASE: renku_gateway
+      GATEWAY_POSTGRES_USERNAME: renku_gateway
+      GATEWAY_POSTGRES_PASSWORD: renku_gateway
+
       DB_USER: renku_gateway
       DB_NAME: renku_gateway
       DB_PASSWORD: renku_gateway

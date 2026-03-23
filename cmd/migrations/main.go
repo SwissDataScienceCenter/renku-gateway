@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	_ "github.com/SwissDataScienceCenter/renku-gateway/internal/pg/migrations"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -19,6 +20,13 @@ var (
 )
 
 func main() {
+	ch := config.NewConfigHandler()
+	gwConfig, err := ch.Config()
+	if err != nil {
+		log.Fatalf("loading the configuration failed: %v", err)
+	}
+	log.Printf("loaded postgres config: %+v\n", gwConfig.Postgres)
+
 	if err := flags.Parse(os.Args[1:]); err != nil {
 		log.Fatalf("goose: failed to parse flags: %v", err)
 	}
@@ -29,9 +37,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	dbURL, err := getPostgresURL()
+	dbURL, err := getPostgresURL(gwConfig.Postgres)
 	if err != nil {
-		log.Fatalf("goose: could not form postgres database URL: %v\n", err)
+		log.Fatalf("goose: could not form postgres database URL: %v", err)
 	}
 
 	db, err := goose.OpenDBWithDriver("pgx", dbURL)
@@ -57,13 +65,8 @@ func main() {
 	}
 }
 
-func getPostgresURL() (postgresURL string, err error) {
-	// TODO: use gateway config
-	dbName := os.Getenv(("DB_NAME"))
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	host := os.Getenv("DB_HOST")
-	url, err := url.Parse(fmt.Sprintf("postgres://%s:%s@%s:5432/%s", user, password, host, dbName))
+func getPostgresURL(c config.PostgresConfig) (postgresURL string, err error) {
+	url, err := url.Parse(fmt.Sprintf("postgres://%s:%s@%s:5432/%s", c.Username, string(c.Password), c.Host, c.Database))
 	if err != nil {
 		return postgresURL, err
 	}
