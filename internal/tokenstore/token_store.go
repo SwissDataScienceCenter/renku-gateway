@@ -129,12 +129,12 @@ func (ts *TokenStore) refreshAccessToken(ctx context.Context, token models.AuthT
 	}
 	// Update the access, refresh and ID tokens in place
 	freshTokens.AccessToken.ID = token.ID
-	freshTokens.AccessToken.SessionID = token.SessionID
+	// freshTokens.AccessToken.SessionID = token.SessionID
 	freshTokens.RefreshToken.ID = token.ID
-	freshTokens.RefreshToken.SessionID = token.SessionID
+	// freshTokens.RefreshToken.SessionID = token.SessionID
 	if freshTokens.IDToken.ID != "" {
 		freshTokens.IDToken.ID = token.ID
-		freshTokens.IDToken.SessionID = token.SessionID
+		// freshTokens.IDToken.SessionID = token.SessionID
 	}
 	err = ts.tokenRepo.SetAccessToken(childCtx, freshTokens.AccessToken)
 	if err != nil {

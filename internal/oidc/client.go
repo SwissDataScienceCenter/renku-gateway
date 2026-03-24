@@ -56,11 +56,11 @@ func (c *oidcClient) getCodeExchangeCallback(callback TokenSetCallback) func(
 			ProviderID: c.getID(),
 		}
 		idToken := models.AuthToken{
-			ID:         id,
-			Type:       models.IDTokenType,
-			Value:      tokens.IDToken,
-			ExpiresAt:  tokens.IDTokenClaims.GetExpiration(),
-			Subject:    tokens.IDTokenClaims.Subject,
+			ID:        id,
+			Type:      models.IDTokenType,
+			Value:     tokens.IDToken,
+			ExpiresAt: tokens.IDTokenClaims.GetExpiration(),
+			// Subject:    tokens.IDTokenClaims.Subject,
 			ProviderID: c.getID(),
 		}
 		tokenSet := models.AuthTokenSet{
@@ -135,11 +135,11 @@ func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models
 			return models.AuthTokenSet{}, err
 		}
 		newIDToken = models.AuthToken{
-			ID:         id,
-			Type:       models.IDTokenType,
-			Value:      idTokenString,
-			ExpiresAt:  claims.GetExpiration(),
-			Subject:    claims.Subject,
+			ID:        id,
+			Type:      models.IDTokenType,
+			Value:     idTokenString,
+			ExpiresAt: claims.GetExpiration(),
+			// Subject:    claims.Subject,
 			ProviderID: c.getID(),
 		}
 	}

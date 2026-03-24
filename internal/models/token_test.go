@@ -29,8 +29,8 @@ func TestEncrypt(t *testing.T) {
 		Value:      "secretValue",
 		ExpiresAt:  time.Now().Add(time.Hour * 4),
 		ProviderID: "providerId",
-		SessionID:  "sessionId",
-		Type:       AccessTokenType,
+		// SessionID:  "sessionId",
+		Type: AccessTokenType,
 	}
 	encToken, err := token.Encrypt(&encryptor)
 	require.NoError(t, err)
@@ -47,8 +47,8 @@ func TestDecrypt(t *testing.T) {
 		Value:      "secretValue",
 		ExpiresAt:  time.Now().Add(time.Hour * 4),
 		ProviderID: "providerId",
-		SessionID:  "sessionId",
-		Type:       AccessTokenType,
+		// SessionID:  "sessionId",
+		Type: AccessTokenType,
 	}
 	encToken, err := token.Encrypt(&encryptor)
 	require.NoError(t, err)
@@ -64,8 +64,8 @@ func TestNoEncryptor(t *testing.T) {
 		Value:      "secretValue",
 		ExpiresAt:  time.Now().Add(time.Hour * 4),
 		ProviderID: "providerId",
-		SessionID:  "sessionId",
-		Type:       AccessTokenType,
+		// SessionID:  "sessionId",
+		Type: AccessTokenType,
 	}
 	encToken, err := token.Encrypt(nil)
 	require.NoError(t, err)
@@ -80,15 +80,15 @@ func TestTokenString(t *testing.T) {
 		ID:         "123456",
 		Value:      "secretValue",
 		ProviderID: "providerId",
-		SessionID:  "sessionId",
-		Type:       AccessTokenType,
+		// SessionID:  "sessionId",
+		Type: AccessTokenType,
 	}
 	tokenString := token.String()
-	assert.Contains(t, tokenString, "ID: 123456")
-	assert.Contains(t, tokenString, "Value: redacted")
+	assert.Contains(t, tokenString, "ID:123456")
+	assert.Contains(t, tokenString, "Value:redacted")
 	assert.NotContains(t, tokenString, "secretValue")
-	assert.Contains(t, tokenString, "ProviderID: providerId")
-	assert.Contains(t, tokenString, "SessionID: sessionId")
+	assert.Contains(t, tokenString, "ProviderID:providerId")
+	// assert.Contains(t, tokenString, "SessionID:sessionId")
 	assert.Contains(t, tokenString, AccessTokenType)
 }
 

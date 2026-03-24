@@ -7,14 +7,14 @@ import (
 
 // AuthToken is a struct used to store and work with OAuth 2.0 access tokens, OAuth 2.0 refresh tokens and OIDC ID tokens
 type AuthToken struct {
-	ID         string
-	Value      string
-	ExpiresAt  time.Time
-	Subject    string
+	ID        string
+	Value     string
+	ExpiresAt time.Time
+	// Subject    string
 	TokenURL   string
 	ProviderID string
 	Type       OauthTokenType
-	SessionID  string
+	// SessionID  string
 }
 
 // Encrypt encrypts the value of the token if an encryptor is set
@@ -47,15 +47,8 @@ func (o AuthToken) Decrypt(e Encryptor) (AuthToken, error) {
 
 // String immplements the Stringer interface for printing the token in logs
 func (o AuthToken) String() string {
-	return fmt.Sprintf(
-		"%s<ID: %s, Value: redacted, ExpiresAt: %s, Subject: %s, TokenURL: %s, ProviderID: %s, SessionID: %s>",
-		o.Type,
-		o.ID,
-		o.ExpiresAt,
-		o.Subject,
-		o.TokenURL,
-		o.ProviderID,
-		o.SessionID,
+	return fmt.Sprintf("{Type:%s ID:%s Value:redacted ExpiresAt:%s TokenURL:%s ProviderID:%s}",
+		o.Type, o.ID, o.ExpiresAt, o.TokenURL, o.ProviderID,
 	)
 }
 
