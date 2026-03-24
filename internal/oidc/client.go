@@ -34,6 +34,8 @@ func (c *oidcClient) getCodeExchangeCallback(callback TokenSetCallback) func(
 		state string,
 		client rp.RelyingParty,
 	) {
+		slog.Debug("OIDC", "message", "code exchange callback", "tokens", tokens)
+
 		id, err := models.ULIDGenerator{}.ID()
 		if err != nil {
 			slog.Error("generating token ID failed in token exchange", "error", err, "requestID", r.Header.Get(echo.HeaderXRequestID))

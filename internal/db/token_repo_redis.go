@@ -134,12 +134,10 @@ func (r RedisAdapter) setAuthToken(ctx context.Context, token models.AuthToken) 
 	if err != nil {
 		return err
 	}
-
 	encToken, err := token.Encrypt(r.encryptor)
 	if err != nil {
 		return err
 	}
-
 	slog.Debug(
 		"TOKEN STORE",
 		"message",
