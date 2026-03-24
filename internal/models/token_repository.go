@@ -2,7 +2,6 @@ package models
 
 import (
 	"context"
-	"time"
 )
 
 // TokenRepository represents the interface used to persist tokens
@@ -24,7 +23,7 @@ type AccessTokenGetter interface {
 
 type AccessTokenSetter interface {
 	SetAccessToken(ctx context.Context, token AuthToken) error
-	SetAccessTokenExpiry(ctx context.Context, token AuthToken, expiresAt time.Time) error
+	// SetAccessTokenExpiry(ctx context.Context, token AuthToken, expiresAt time.Time) error
 }
 
 type AccessTokenRemover interface {
@@ -37,7 +36,7 @@ type RefreshTokenGetter interface {
 
 type RefreshTokenSetter interface {
 	SetRefreshToken(ctx context.Context, token AuthToken) error
-	SetRefreshTokenExpiry(ctx context.Context, token AuthToken, expiresAt time.Time) error
+	// SetRefreshTokenExpiry(ctx context.Context, token AuthToken, expiresAt time.Time) error
 }
 
 type RefreshTokenRemover interface {
@@ -50,7 +49,7 @@ type IDTokenGetter interface {
 
 type IDTokenSetter interface {
 	SetIDToken(ctx context.Context, token AuthToken) error
-	SetIDTokenExpiry(ctx context.Context, token AuthToken, expiresAt time.Time) error
+	// SetIDTokenExpiry(ctx context.Context, token AuthToken, expiresAt time.Time) error
 }
 
 type IDTokenRemover interface {

@@ -160,9 +160,9 @@ func (ts *TokenStore) SetAccessToken(ctx context.Context, token models.AuthToken
 	return ts.tokenRepo.SetAccessToken(ctx, token)
 }
 
-func (ts *TokenStore) SetAccessTokenExpiry(ctx context.Context, token models.AuthToken, expiresAt time.Time) error {
-	return ts.tokenRepo.SetAccessTokenExpiry(ctx, token, expiresAt)
-}
+// func (ts *TokenStore) SetAccessTokenExpiry(ctx context.Context, token models.AuthToken, expiresAt time.Time) error {
+// 	return ts.tokenRepo.SetAccessTokenExpiry(ctx, token, expiresAt)
+// }
 
 func (ts *TokenStore) GetRefreshToken(ctx context.Context, tokenID string) (models.AuthToken, error) {
 	return ts.tokenRepo.GetRefreshToken(ctx, tokenID)
@@ -172,17 +172,17 @@ func (ts *TokenStore) SetRefreshToken(ctx context.Context, token models.AuthToke
 	return ts.tokenRepo.SetRefreshToken(ctx, token)
 }
 
-func (ts *TokenStore) SetRefreshTokenExpiry(ctx context.Context, token models.AuthToken, expiresAt time.Time) error {
-	return ts.tokenRepo.SetRefreshTokenExpiry(ctx, token, expiresAt)
-}
+// func (ts *TokenStore) SetRefreshTokenExpiry(ctx context.Context, token models.AuthToken, expiresAt time.Time) error {
+// 	return ts.tokenRepo.SetRefreshTokenExpiry(ctx, token, expiresAt)
+// }
 
 func (ts *TokenStore) SetIDToken(ctx context.Context, token models.AuthToken) error {
 	return ts.tokenRepo.SetIDToken(ctx, token)
 }
 
-func (ts *TokenStore) SetIDTokenExpiry(ctx context.Context, token models.AuthToken, expiresAt time.Time) error {
-	return ts.tokenRepo.SetIDTokenExpiry(ctx, token, expiresAt)
-}
+// func (ts *TokenStore) SetIDTokenExpiry(ctx context.Context, token models.AuthToken, expiresAt time.Time) error {
+// 	return ts.tokenRepo.SetIDTokenExpiry(ctx, token, expiresAt)
+// }
 
 type TokenRefresherOption func(*TokenStore) error
 
