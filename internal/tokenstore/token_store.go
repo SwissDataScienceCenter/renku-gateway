@@ -2,6 +2,7 @@ package tokenstore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -10,7 +11,6 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/oidc"
-	"github.com/redis/go-redis/v9"
 )
 
 type TokenStore struct {
@@ -23,7 +23,7 @@ type TokenStore struct {
 func (ts *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (models.AuthToken, error) {
 	token, err := ts.tokenRepo.GetAccessToken(ctx, tokenID)
 	if err != nil {
-		if err == redis.Nil {
+		if errors.Is(err, gwerrors.ErrTokenNotFound) {
 			// return models.AuthToken{}, gwerrors.ErrTokenNotFound
 			// The token is missing from Redis, so it may have expired
 			token.ExpiresAt = (time.Time{}).Add(time.Second)
@@ -67,7 +67,7 @@ func (ts *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (
 func (ts *TokenStore) GetFreshIDToken(ctx context.Context, tokenID string) (models.AuthToken, error) {
 	token, err := ts.tokenRepo.GetIDToken(ctx, tokenID)
 	if err != nil {
-		if err == redis.Nil {
+		if errors.Is(err, gwerrors.ErrTokenNotFound) {
 			// return models.AuthToken{}, gwerrors.ErrTokenNotFound
 			// The token is missing from Redis, so it may have expired
 			token.ExpiresAt = (time.Time{}).Add(time.Second)
