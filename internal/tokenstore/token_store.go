@@ -24,7 +24,9 @@ func (ts *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (
 	token, err := ts.tokenRepo.GetAccessToken(ctx, tokenID)
 	if err != nil {
 		if err == redis.Nil {
-			return models.AuthToken{}, gwerrors.ErrTokenNotFound
+			// return models.AuthToken{}, gwerrors.ErrTokenNotFound
+			// The token is missing from Redis, so it may have expired
+			token.ExpiresAt = (time.Time{}).Add(time.Second)
 		} else {
 			return models.AuthToken{}, err
 		}
@@ -38,7 +40,7 @@ func (ts *TokenStore) GetFreshAccessToken(ctx context.Context, tokenID string) (
 			"token",
 			token.String(),
 		)
-		newTokenSet, err := ts.refreshAccessToken(ctx, token)
+		newTokenSet, err := ts.refreshAccessToken(ctx, tokenID)
 		if err != nil {
 			slog.Info(
 				"TOKEN STORE",
@@ -66,7 +68,9 @@ func (ts *TokenStore) GetFreshIDToken(ctx context.Context, tokenID string) (mode
 	token, err := ts.tokenRepo.GetIDToken(ctx, tokenID)
 	if err != nil {
 		if err == redis.Nil {
-			return models.AuthToken{}, gwerrors.ErrTokenNotFound
+			// return models.AuthToken{}, gwerrors.ErrTokenNotFound
+			// The token is missing from Redis, so it may have expired
+			token.ExpiresAt = (time.Time{}).Add(time.Second)
 		} else {
 			return models.AuthToken{}, err
 		}
@@ -80,7 +84,7 @@ func (ts *TokenStore) GetFreshIDToken(ctx context.Context, tokenID string) (mode
 			"token",
 			token.String(),
 		)
-		newTokenSet, err := ts.refreshAccessToken(ctx, token)
+		newTokenSet, err := ts.refreshAccessToken(ctx, tokenID)
 		if err != nil {
 			slog.Info(
 				"TOKEN STORE",
@@ -114,8 +118,9 @@ func (ts *TokenStore) GetFreshIDToken(ctx context.Context, tokenID string) (mode
 	return token, nil
 }
 
-func (ts *TokenStore) refreshAccessToken(ctx context.Context, token models.AuthToken) (models.AuthTokenSet, error) {
-	refreshToken, err := ts.tokenRepo.GetRefreshToken(ctx, token.ID)
+// func (ts *TokenStore) refreshAccessToken(ctx context.Context, token models.AuthToken) (models.AuthTokenSet, error) {
+func (ts *TokenStore) refreshAccessToken(ctx context.Context, tokenID string) (models.AuthTokenSet, error) {
+	refreshToken, err := ts.tokenRepo.GetRefreshToken(ctx, tokenID)
 	if err != nil {
 		slog.Error("TOKEN STORE", "message", "GetRefreshToken failed", "error", err)
 		return models.AuthTokenSet{}, err
@@ -128,12 +133,12 @@ func (ts *TokenStore) refreshAccessToken(ctx context.Context, token models.AuthT
 		return models.AuthTokenSet{}, err
 	}
 	// Update the access, refresh and ID tokens in place
-	freshTokens.AccessToken.ID = token.ID
+	freshTokens.AccessToken.ID = tokenID
 	// freshTokens.AccessToken.SessionID = token.SessionID
-	freshTokens.RefreshToken.ID = token.ID
+	freshTokens.RefreshToken.ID = tokenID
 	// freshTokens.RefreshToken.SessionID = token.SessionID
 	if freshTokens.IDToken.ID != "" {
-		freshTokens.IDToken.ID = token.ID
+		freshTokens.IDToken.ID = tokenID
 		// freshTokens.IDToken.SessionID = token.SessionID
 	}
 	err = ts.tokenRepo.SetAccessToken(childCtx, freshTokens.AccessToken)

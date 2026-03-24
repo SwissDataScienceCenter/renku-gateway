@@ -34,23 +34,17 @@ func (c *oidcClient) getCodeExchangeCallback(callback TokenSetCallback) func(
 		state string,
 		client rp.RelyingParty,
 	) {
-		// slog.Debug("OIDC", "message", "code exchange callback", "tokens", tokens)
-
 		id, err := models.ULIDGenerator{}.ID()
 		if err != nil {
 			slog.Error("generating token ID failed in token exchange", "error", err, "requestID", r.Header.Get(echo.HeaderXRequestID))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
 		refreshTokenClaims := oidc.TokenClaims{}
 		_, err = oidc.ParseToken(tokens.RefreshToken, &refreshTokenClaims)
 		if err != nil {
 			slog.Error("could not parse refresh token", "error", err, "requestID", r.Header.Get(echo.HeaderXRequestID))
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
 		}
-
 		subject := tokens.IDTokenClaims.Subject
 		accessToken := models.AuthToken{
 			ID:         id,
@@ -132,14 +126,20 @@ func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models
 	}
 	var newRefreshToken models.AuthToken = refreshToken
 	if oAuth2Token.RefreshToken != "" {
+		refreshTokenClaims := oidc.TokenClaims{}
+		_, err = oidc.ParseToken(oAuth2Token.RefreshToken, &refreshTokenClaims)
+		if err != nil {
+			slog.Error("could not parse refresh token", "error", err)
+		}
 		newRefreshToken = models.AuthToken{
-			ID:       id,
-			Type:     models.RefreshTokenType,
-			Value:    oAuth2Token.RefreshToken,
-			TokenURL: c.client.OAuthConfig().Endpoint.TokenURL,
-			// TODO: ExpiresAt
+			ID:         id,
+			Type:       models.RefreshTokenType,
+			Value:      oAuth2Token.RefreshToken,
+			TokenURL:   c.client.OAuthConfig().Endpoint.TokenURL,
+			ExpiresAt:  refreshTokenClaims.Expiration.AsTime(),
 			ProviderID: c.getID(),
 		}
+
 	}
 	// Handle getting a new ID token
 	newIDToken := models.AuthToken{}
@@ -152,12 +152,11 @@ func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models
 		}
 		subject := claims.Subject
 		newIDToken = models.AuthToken{
-			ID:        id,
-			Type:      models.IDTokenType,
-			Value:     idTokenString,
-			ExpiresAt: claims.GetExpiration(),
-			Subject:   subject,
-			// Subject:    claims.Subject,
+			ID:         id,
+			Type:       models.IDTokenType,
+			Value:      idTokenString,
+			ExpiresAt:  claims.GetExpiration(),
+			Subject:    subject,
 			ProviderID: c.getID(),
 		}
 		newAccessToken.Subject = subject
