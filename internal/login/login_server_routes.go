@@ -62,10 +62,6 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 	tokenCallback := func(tokenSet models.AuthTokenSet) error {
 		// Clear the state value before saving the tokens
 		session.LoginState = ""
-		// Make the token set and set the tokens' session ID
-		// tokenSet.AccessToken.SessionID = session.ID
-		// tokenSet.RefreshToken.SessionID = session.ID
-		// tokenSet.IDToken.SessionID = session.ID
 		if providerID == "renku" {
 			session.UserID = tokenSet.IDToken.Subject
 			if session.UserID != "" {

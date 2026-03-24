@@ -14,7 +14,6 @@ type AuthToken struct {
 	TokenURL   string
 	ProviderID string
 	Type       OauthTokenType
-	// SessionID  string
 }
 
 // Encrypt encrypts the value of the token if an encryptor is set
