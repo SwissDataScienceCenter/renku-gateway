@@ -34,7 +34,7 @@ func (c *oidcClient) getCodeExchangeCallback(callback TokenSetCallback) func(
 		state string,
 		client rp.RelyingParty,
 	) {
-		slog.Debug("OIDC", "message", "code exchange callback", "tokens", tokens)
+		// slog.Debug("OIDC", "message", "code exchange callback", "tokens", tokens)
 
 		id, err := models.ULIDGenerator{}.ID()
 		if err != nil {
@@ -42,11 +42,22 @@ func (c *oidcClient) getCodeExchangeCallback(callback TokenSetCallback) func(
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		refreshTokenClaims := oidc.TokenClaims{}
+		_, err = oidc.ParseToken(tokens.RefreshToken, &refreshTokenClaims)
+		if err != nil {
+			slog.Error("could not parse refresh token", "error", err, "requestID", r.Header.Get(echo.HeaderXRequestID))
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		subject := tokens.IDTokenClaims.Subject
 		accessToken := models.AuthToken{
 			ID:         id,
 			Type:       models.AccessTokenType,
 			Value:      tokens.AccessToken,
 			TokenURL:   client.OAuthConfig().Endpoint.TokenURL,
+			Subject:    subject,
 			ExpiresAt:  tokens.Expiry,
 			ProviderID: c.getID(),
 		}
@@ -55,14 +66,16 @@ func (c *oidcClient) getCodeExchangeCallback(callback TokenSetCallback) func(
 			Type:       models.RefreshTokenType,
 			Value:      tokens.RefreshToken,
 			TokenURL:   client.OAuthConfig().Endpoint.TokenURL,
+			Subject:    subject,
+			ExpiresAt:  refreshTokenClaims.Expiration.AsTime(),
 			ProviderID: c.getID(),
 		}
 		idToken := models.AuthToken{
-			ID:        id,
-			Type:      models.IDTokenType,
-			Value:     tokens.IDToken,
-			ExpiresAt: tokens.IDTokenClaims.GetExpiration(),
-			// Subject:    tokens.IDTokenClaims.Subject,
+			ID:         id,
+			Type:       models.IDTokenType,
+			Value:      tokens.IDToken,
+			ExpiresAt:  tokens.IDTokenClaims.GetExpiration(),
+			Subject:    subject,
 			ProviderID: c.getID(),
 		}
 		tokenSet := models.AuthTokenSet{
@@ -120,10 +133,11 @@ func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models
 	var newRefreshToken models.AuthToken = refreshToken
 	if oAuth2Token.RefreshToken != "" {
 		newRefreshToken = models.AuthToken{
-			ID:         id,
-			Type:       models.RefreshTokenType,
-			Value:      oAuth2Token.RefreshToken,
-			TokenURL:   c.client.OAuthConfig().Endpoint.TokenURL,
+			ID:       id,
+			Type:     models.RefreshTokenType,
+			Value:    oAuth2Token.RefreshToken,
+			TokenURL: c.client.OAuthConfig().Endpoint.TokenURL,
+			// TODO: ExpiresAt
 			ProviderID: c.getID(),
 		}
 	}
@@ -136,14 +150,18 @@ func (c *oidcClient) refreshAccessToken(ctx context.Context, refreshToken models
 		if err != nil {
 			return models.AuthTokenSet{}, err
 		}
+		subject := claims.Subject
 		newIDToken = models.AuthToken{
 			ID:        id,
 			Type:      models.IDTokenType,
 			Value:     idTokenString,
 			ExpiresAt: claims.GetExpiration(),
+			Subject:   subject,
 			// Subject:    claims.Subject,
 			ProviderID: c.getID(),
 		}
+		newAccessToken.Subject = subject
+		newRefreshToken.Subject = subject
 	}
 	tokenSet := models.AuthTokenSet{
 		AccessToken:  newAccessToken,

@@ -67,7 +67,7 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 		// tokenSet.RefreshToken.SessionID = session.ID
 		// tokenSet.IDToken.SessionID = session.ID
 		if providerID == "renku" {
-			// session.UserID = tokenSet.IDToken.Subject
+			session.UserID = tokenSet.IDToken.Subject
 			if session.UserID != "" {
 				tokenID := "renku:" + session.UserID
 				tokenSet.AccessToken.ID = tokenID
