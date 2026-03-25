@@ -73,14 +73,15 @@ func main() {
 		e.Use(sentryecho.New(sentryecho.Options{
 			Repanic: true,
 		}))
+		// We need to manually send errors to Sentry
 		e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 			return func(c echo.Context) error {
 				err = next(c)
 				if err != nil {
-					slog.Error("REPORT ERROR TO SENTRY", "error", err)
 					hub := sentryecho.GetHubFromContext(c)
-					slog.Info("REPORT ERROR TO SENTRY", "has hub", (hub != nil))
-					if hub != nil {
+					if hub == nil {
+						slog.Error("SENTRY", "message", "Cannot get Sentry Hub from echo context!")
+					} else {
 						hub.CaptureException(err)
 					}
 				}
