@@ -73,6 +73,19 @@ func main() {
 		e.Use(sentryecho.New(sentryecho.Options{
 			Repanic: true,
 		}))
+		e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+			return func(c echo.Context) error {
+				if err_ := c.Get("error"); err_ != nil {
+					if err, ok := err_.(*echo.HTTPError); ok {
+						hub := sentryecho.GetHubFromContext(c)
+						if hub != nil {
+							hub.CaptureException(err)
+						}
+					}
+				}
+				return nil
+			}
+		})
 	}
 	// The banner and the port do not respect the logger formatting we set below so we remove them
 	// the port will be logged further down when the server starts.
