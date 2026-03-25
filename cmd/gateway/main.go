@@ -75,15 +75,16 @@ func main() {
 		}))
 		e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 			return func(c echo.Context) error {
-				if err_ := c.Get("error"); err_ != nil {
-					if err, ok := err_.(*echo.HTTPError); ok {
-						hub := sentryecho.GetHubFromContext(c)
-						if hub != nil {
-							hub.CaptureException(err)
-						}
+				err = next(c)
+				if err != nil {
+					slog.Error("REPORT ERROR TO SENTRY", "error", err)
+					hub := sentryecho.GetHubFromContext(c)
+					slog.Info("REPORT ERROR TO SENTRY", "has hub", (hub != nil))
+					if hub != nil {
+						hub.CaptureException(err)
 					}
 				}
-				return nil
+				return err
 			}
 		})
 	}
