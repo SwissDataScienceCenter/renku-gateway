@@ -49,10 +49,6 @@ func main() {
 	if gwConfig.DebugMode {
 		logLevel.Set(slog.LevelDebug)
 	}
-	// Setup
-	e := echo.New()
-	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
-	e.Use(middleware.Recover())
 	// Sentry
 	if gwConfig.Monitoring.Sentry.Enabled {
 		err := sentry.Init(sentry.ClientOptions{
@@ -67,7 +63,16 @@ func main() {
 		if err != nil {
 			slog.Error("sentry initialization failed", "error", err)
 		}
-		e.Use(sentryecho.New(sentryecho.Options{}))
+	}
+	// Setup
+	e := echo.New()
+	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
+	e.Use(middleware.Recover())
+	// Sentry middleware
+	if gwConfig.Monitoring.Sentry.Enabled {
+		e.Use(sentryecho.New(sentryecho.Options{
+			Repanic: true,
+		}))
 	}
 	// The banner and the port do not respect the logger formatting we set below so we remove them
 	// the port will be logged further down when the server starts.
