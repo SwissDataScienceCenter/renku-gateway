@@ -27,6 +27,8 @@ type SessionStore struct {
 	sessionMaker   SessionMaker
 	sessionRepo    models.SessionRepository
 	tokenStore     models.TokenStoreInterface
+
+	ulaRepo models.UserLastActivityRepository
 }
 
 // Middleware returns the session middleware which injects the current session in the request context
@@ -135,12 +137,19 @@ func (sessions *SessionStore) Save(c echo.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Do not cancel persisting the session
+	childCtx := context.WithoutCancel(c.Request().Context())
+	// If this session has a corresponding user, update the last activity
+	if session.UserID != "" {
+		userLastActivity := models.UserLastActivity{UserID: session.UserID}
+		sessions.ulaRepo.SetUserLastActivity(childCtx, userLastActivity)
+	}
+
 	// NOTE: ephemeral session, do not save
 	if session.ID == "" {
 		return nil
 	}
-	// Do not cancel persisting the session
-	childCtx := context.WithoutCancel(c.Request().Context())
 	return sessions.sessionRepo.SetSession(childCtx, *session)
 }
 
@@ -288,6 +297,13 @@ func WithTokenStore(store models.TokenStoreInterface) SessionStoreOption {
 	}
 }
 
+func WithUserLastActivityRepository(repo models.UserLastActivityRepository) SessionStoreOption {
+	return func(sessions *SessionStore) error {
+		sessions.ulaRepo = repo
+		return nil
+	}
+}
+
 func WithConfig(c config.SessionConfig) SessionStoreOption {
 	return func(sessions *SessionStore) error {
 		if len(c.CookieEncodingKey) > 0 && !(len(c.CookieEncodingKey) == 16 || len(c.CookieEncodingKey) == 32) {
@@ -366,5 +382,10 @@ func NewSessionStore(options ...SessionStoreOption) (*SessionStore, error) {
 	if sessions.tokenStore == nil {
 		return &SessionStore{}, fmt.Errorf("token store is not initialized")
 	}
+
+	if sessions.ulaRepo == nil {
+		return &SessionStore{}, fmt.Errorf("user last activity repository is not initialized")
+	}
+
 	return &sessions, nil
 }

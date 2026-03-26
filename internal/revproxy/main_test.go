@@ -246,6 +246,7 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 			sessions.WithAuthenticator(authenticator),
 			sessions.WithSessionRepository(dbAdapter),
 			sessions.WithTokenStore(tokenStore),
+			sessions.WithUserLastActivityRepository(dbAdapter),
 			sessions.WithConfig(config.SessionConfig{
 				UnsafeNoCookieHandler: true,
 			}),

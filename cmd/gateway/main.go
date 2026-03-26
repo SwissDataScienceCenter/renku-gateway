@@ -126,6 +126,9 @@ func main() {
 		sessions.WithAuthenticator(authenticator),
 		sessions.WithSessionRepository(dbAdapter),
 		sessions.WithTokenStore(tokenStore),
+
+		sessions.WithUserLastActivityRepository(dbAdapter),
+
 		sessions.WithConfig(gwConfig.Sessions),
 	)
 	if err != nil {
