@@ -21,7 +21,7 @@ func (u *UserLastActivity) Expired() bool {
 
 // Touch updates the LastActivity and ExpiresAt fields
 func (u *UserLastActivity) Touch() {
-	u.LastActivity = time.Now()
+	u.LastActivity = time.Now().UTC()
 	// TODO: configure user last activity idle time
 	u.ExpiresAt = u.LastActivity.Add(190 * 24 * time.Hour)
 }
