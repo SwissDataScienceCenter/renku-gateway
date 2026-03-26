@@ -143,7 +143,21 @@ func (sessions *SessionStore) Save(c echo.Context) error {
 	// If this session has a corresponding user, update the last activity
 	if session.UserID != "" {
 		userLastActivity := models.UserLastActivity{UserID: session.UserID}
-		sessions.ulaRepo.SetUserLastActivity(childCtx, userLastActivity)
+		userLastActivity.Touch()
+		err := sessions.ulaRepo.SetUserLastActivity(childCtx, userLastActivity)
+		if err != nil {
+			slog.Info(
+				"SESSION MIDDLEWARE",
+				"message",
+				"could not save user last activity",
+				"error",
+				err,
+				"sessionID",
+				session.ID,
+				"requestID",
+				utils.GetRequestID(c),
+			)
+		}
 	}
 
 	// NOTE: ephemeral session, do not save
