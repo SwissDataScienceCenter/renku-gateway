@@ -8,12 +8,14 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
+	"github.com/redis/go-redis/v9"
 )
 
 const (
-	accessTokenPrefix  string = "accessToken"
-	refreshTokenPrefix string = "refreshToken"
-	idTokenPrefix      string = "idToken"
+	accessTokenPrefix              string = "accessToken"
+	refreshTokenPrefix             string = "refreshToken"
+	idTokenPrefix                  string = "idToken"
+	refreshTokenExpirySortedSetKey string = "refreshTokensExpiry"
 )
 
 const tokenExpiresAtLeeway time.Duration = 10 * time.Second
@@ -137,7 +139,17 @@ func (r RedisAdapter) setAuthToken(ctx context.Context, token models.AuthToken) 
 		slog.Warn("TOKEN STORE", "message", "saving token forever", "token", token.String())
 		return r.rdb.Persist(ctx, key).Err()
 	}
-	return r.rdb.ExpireAt(ctx, key, token.ExpiresAt.Add(tokenExpiresAtLeeway)).Err()
+	err = r.rdb.ExpireAt(ctx, key, token.ExpiresAt.Add(tokenExpiresAtLeeway)).Err()
+	if err != nil {
+		return err
+	}
+	if token.Type == models.RefreshTokenType {
+		return r.rdb.ZAdd(ctx, refreshTokenExpirySortedSetKey, redis.Z{
+			Score:  float64(token.ExpiresAt.Unix()),
+			Member: token.ID,
+		}).Err()
+	}
+	return nil
 }
 
 func validateTokenType(tokenType models.OauthTokenType) error {
