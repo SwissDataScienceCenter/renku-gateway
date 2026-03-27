@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"syscall"
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/authentication"
@@ -19,6 +20,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/redirects"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/revproxy"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/tokenrefresher"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/tokenstore"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/views"
 	"github.com/getsentry/sentry-go"
@@ -189,6 +191,12 @@ func main() {
 	if len(gwConfig.Server.AllowOrigin) > 0 {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{AllowOrigins: gwConfig.Server.AllowOrigin}))
 	}
+	// Token refresher
+	tokenRefresher, err := tokenrefresher.NewTokenRefresher(tokenrefresher.WithTokenRefreshRepository(dbAdapter))
+	if err != nil {
+		slog.Error("failed to initialize token refresher", "error", err)
+		os.Exit(1)
+	}
 	// Prometheus
 	if gwConfig.Monitoring.Prometheus.Enabled {
 		e.Use(echoprometheus.NewMiddleware("gateway"))
@@ -214,16 +222,23 @@ func main() {
 			os.Exit(1)
 		}
 	}()
+	// Start token refresher
+	tokenRefresher.Start()
 	// Wait for interrupt signal to gracefully shut down the server with a timeout of 10 seconds.
 	// Use a buffered channel to avoid missing signals as recommended for signal.Notify
 	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
 	slog.Info("received signal to shut down the server")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := e.Shutdown(ctx); err != nil {
-		slog.Error("shutting down the server gracefully failed", "error", err)
-		os.Exit(1)
-	}
+	go func() {
+		if err := e.Shutdown(ctx); err != nil {
+			slog.Error("shutting down the server gracefully failed", "error", err)
+			os.Exit(1)
+		}
+	}()
+	go func() {
+		tokenRefresher.Stop()
+	}()
 }
