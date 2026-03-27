@@ -128,9 +128,7 @@ func main() {
 		sessions.WithAuthenticator(authenticator),
 		sessions.WithSessionRepository(dbAdapter),
 		sessions.WithTokenStore(tokenStore),
-
 		sessions.WithUserLastActivityRepository(dbAdapter),
-
 		sessions.WithConfig(gwConfig.Sessions),
 	)
 	if err != nil {
@@ -192,7 +190,12 @@ func main() {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{AllowOrigins: gwConfig.Server.AllowOrigin}))
 	}
 	// Token refresher
-	tokenRefresher, err := tokenrefresher.NewTokenRefresher(tokenrefresher.WithTokenRefreshRepository(dbAdapter))
+	tokenRefresher, err := tokenrefresher.NewTokenRefresher(
+		// tokenrefresher.WithConfig(gwConfig.Login),
+		// tokenrefresher.WithTokenRepository(dbAdapter),
+		tokenrefresher.WithTokenStore(tokenStore),
+		tokenrefresher.WithTokenRefreshRepository(dbAdapter),
+	)
 	if err != nil {
 		slog.Error("failed to initialize token refresher", "error", err)
 		os.Exit(1)

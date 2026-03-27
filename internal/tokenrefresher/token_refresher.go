@@ -11,6 +11,7 @@ import (
 
 // TokenRefresher handles keeping refresh tokens alive in the background
 type TokenRefresher struct {
+	tokenStore             models.TokenStoreInterface
 	tokenRefreshRepository models.TokenRefreshRepository
 	// ticker for periodically refreshing tokens
 	ticker *time.Ticker
@@ -24,7 +25,7 @@ func (tr *TokenRefresher) Start() {
 	}
 	stop := make(chan bool, 1)
 	go tr.periodicTokensRefresh(stop)
-	tr.ticker = time.NewTicker(time.Minute)
+	tr.ticker = time.NewTicker(30 * time.Second)
 	tr.stop = stop
 }
 
@@ -55,11 +56,27 @@ func (tr *TokenRefresher) periodicTokensRefresh(stop <-chan bool) {
 				continue
 			}
 			slog.Info("TOKEN REFRESHER", "tokenIDs", tokenIDs)
+			for _, tokenID := range tokenIDs {
+				refreshCtx, cancelRefreshCtx := context.WithTimeout(ctx, 10*time.Second)
+				defer cancelRefreshCtx()
+				_, err := tr.tokenStore.GetFreshAccessToken(refreshCtx, tokenID)
+				if err != nil {
+					slog.Error("TOKEN REFRESHER", "message", "error keeping refresh token alive", "error", err, "tokenID", tokenID)
+					continue
+				}
+			}
 		}
 	}
 }
 
 type TokenRefresherOption func(*TokenRefresher) error
+
+func WithTokenStore(store models.TokenStoreInterface) TokenRefresherOption {
+	return func(tr *TokenRefresher) error {
+		tr.tokenStore = store
+		return nil
+	}
+}
 
 func WithTokenRefreshRepository(tokenRefreshRepository models.TokenRefreshRepository) TokenRefresherOption {
 	return func(tr *TokenRefresher) error {
@@ -75,6 +92,9 @@ func NewTokenRefresher(options ...TokenRefresherOption) (*TokenRefresher, error)
 		if err != nil {
 			return &TokenRefresher{}, err
 		}
+	}
+	if tokenRefresher.tokenStore == nil {
+		return &TokenRefresher{}, fmt.Errorf("token store is not initialized")
 	}
 	if tokenRefresher.tokenRefreshRepository == nil {
 		return &TokenRefresher{}, fmt.Errorf("token refresh repository is not initialized")
