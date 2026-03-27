@@ -1,7 +1,6 @@
 package db
 
 import (
-	"context"
 	"crypto/rand"
 	"testing"
 	"time"
@@ -25,7 +24,7 @@ func TestRedisAdapterIsTokenRepository(t *testing.T) {
 }
 
 func TestSetGetRemoveAccessToken(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	adapter := NewMockRedisAdapter()
 	myAccessToken := models.AuthToken{
 		ID:        "12345",
@@ -47,7 +46,7 @@ func TestSetGetRemoveAccessToken(t *testing.T) {
 }
 
 func TestSetGetAccessTokenWithEncryption(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	secretKey := make([]byte, 32)
 	_, err := io.ReadFull(rand.Reader, secretKey)
 	require.NoError(t, err)

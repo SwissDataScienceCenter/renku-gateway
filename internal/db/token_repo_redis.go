@@ -12,10 +12,9 @@ import (
 )
 
 const (
-	accessTokenPrefix              string = "accessToken"
-	refreshTokenPrefix             string = "refreshToken"
-	idTokenPrefix                  string = "idToken"
-	refreshTokenExpirySortedSetKey string = "refreshTokensExpiry"
+	accessTokenPrefix  string = "accessToken"
+	refreshTokenPrefix string = "refreshToken"
+	idTokenPrefix      string = "idToken"
 )
 
 const tokenExpiresAtLeeway time.Duration = 10 * time.Second
@@ -143,6 +142,7 @@ func (r RedisAdapter) setAuthToken(ctx context.Context, token models.AuthToken) 
 	if err != nil {
 		return err
 	}
+	// We keep track of refresh token expiry so that we can keep refresh tokens valid in a background process
 	if token.Type == models.RefreshTokenType {
 		return r.rdb.ZAdd(ctx, refreshTokenExpirySortedSetKey, redis.Z{
 			Score:  float64(token.ExpiresAt.Unix()),
