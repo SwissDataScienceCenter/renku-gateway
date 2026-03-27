@@ -1,6 +1,7 @@
 package tokenrefresher
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"time"
@@ -44,7 +45,16 @@ func (tr *TokenRefresher) periodicTokensRefresh(stop <-chan bool) {
 			return
 		case <-tr.ticker.C:
 			slog.Info("TOKEN REFRESHER", "message", "tick")
-			return
+			ctx := context.Background()
+			getCtx, cancelGetCtx := context.WithTimeout(ctx, 10*time.Second)
+			defer cancelGetCtx()
+			now := time.Now()
+			tokenIDs, err := tr.tokenRefreshRepository.GetExpiringRefreshTokenIDs(getCtx, now, now.Add(time.Hour))
+			if err != nil {
+				slog.Error("TOKEN REFRESHER", "message", "error getting expiring refresh tokens", "error", err)
+				continue
+			}
+			slog.Info("TOKEN REFRESHER", "tokenIDs", tokenIDs)
 		}
 	}
 }
