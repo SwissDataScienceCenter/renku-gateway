@@ -5,6 +5,10 @@ import (
 	"encoding"
 	"fmt"
 	"log"
+	"math"
+	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -111,4 +115,133 @@ func (m *MockRedisClient) Persist(ctx context.Context, key string) *redis.BoolCm
 	output := redis.BoolCmd{}
 	output.SetVal(true)
 	return &output
+}
+
+func (m *MockRedisClient) ZAdd(ctx context.Context, key string, members ...redis.Z) *redis.IntCmd {
+	res := redis.IntCmd{}
+	// Create a new slice at "key" if there is none
+	var zset []any
+	zsetRaw, found := m.store[key]
+	if found {
+		zset_, ok := zsetRaw.([]any)
+		if !ok {
+			res.SetErr(fmt.Errorf("type error"))
+			return &res
+		}
+		zset = zset_
+	} else {
+		zset = []any{}
+	}
+	var newMembers int64 = 0
+	for _, z := range members {
+		idx := slices.IndexFunc(zset, func(otherZ any) bool {
+			asZ, ok := otherZ.(redis.Z)
+			if !ok {
+				return false
+			}
+			return z.Member == asZ.Member
+		})
+		if idx < 0 {
+			newMembers = newMembers + 1
+			zset = append(zset, z)
+		} else {
+			zset[idx] = z
+		}
+	}
+	slices.SortFunc(zset, func(a, b any) int {
+		aa, aOk := a.(redis.Z)
+		bb, bOk := b.(redis.Z)
+		if !aOk || !bOk {
+			return 0
+		}
+		return int(aa.Score - bb.Score)
+	})
+	m.store[key] = zset
+	res.SetVal(newMembers)
+	return &res
+}
+
+func (m *MockRedisClient) ZRangeArgs(ctx context.Context, z redis.ZRangeArgs) *redis.StringSliceCmd {
+	res := redis.StringSliceCmd{}
+
+	if z.ByLex {
+		res.SetErr(fmt.Errorf("ByLex support not implemented"))
+		return &res
+	} else if z.Offset != 0 || z.Count != 0 {
+		res.SetErr(fmt.Errorf("Offset and Count support not implemented"))
+		return &res
+	}
+
+	// By index
+	if !z.ByScore {
+		res.SetErr(fmt.Errorf("ZRange by index support not implemented"))
+		return &res
+	}
+
+	lower, includeLower, err := parseZStartStop(z.Start)
+	if err != nil {
+		res.SetErr(fmt.Errorf("could not parse Start: %w", err))
+		return &res
+	}
+	upper, includeUpper, err := parseZStartStop(z.Stop)
+	if err != nil {
+		res.SetErr(fmt.Errorf("could not parse Stop: %w", err))
+		return &res
+	}
+
+	zsetRaw, found := m.store[z.Key]
+	if !found {
+		res.SetVal([]string{})
+		return &res
+	}
+	zset, ok := zsetRaw.([]any)
+	if !ok {
+		res.SetErr(fmt.Errorf("type error"))
+		return &res
+	}
+
+	slice := []string{}
+	for _, zz := range zset {
+		asZ, ok := zz.(redis.Z)
+		if !ok {
+			res.SetErr(fmt.Errorf("member type error"))
+			return &res
+		}
+		if (!includeUpper && asZ.Score >= upper) || asZ.Score > upper {
+			break
+		}
+		if (includeLower && asZ.Score >= lower) || asZ.Score > lower {
+			slice = append(slice, fmt.Sprintf("%v", asZ.Member))
+		}
+	}
+
+	res.SetVal(slice)
+	return &res
+}
+
+func parseZStartStop(x any) (value float64, include bool, err error) {
+	value = math.Inf(-1)
+	include = true
+
+	valueStr, ok := x.(string)
+	if !ok {
+		valueStr = fmt.Sprintf("%v", x)
+	}
+
+	if strings.HasPrefix(valueStr, "(") {
+		include = false
+		value_, err := strconv.ParseFloat(strings.TrimPrefix(valueStr, "("), 64)
+		if err != nil {
+			return value, include, err
+		}
+		value = value_
+	} else {
+		value_, err := strconv.ParseFloat(valueStr, 64)
+		if err != nil {
+			return value, include, err
+		}
+		value = value_
+	}
+
+	return value, include, nil
 }

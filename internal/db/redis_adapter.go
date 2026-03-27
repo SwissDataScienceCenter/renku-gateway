@@ -87,7 +87,7 @@ func WithRedisConfig(redisConfig config.RedisConfig) RedisAdapterOption {
 			r.rdb = rdb
 			return nil
 		case config.DBTypeRedisMock:
-			r.rdb = &MockRedisClient{map[string]any{}}
+			r.rdb = &MockRedisClient{store: map[string]any{}}
 			return nil
 		default:
 			return fmt.Errorf("unrecognized persistence type %v", redisConfig.Type)

@@ -25,4 +25,11 @@ type LimitedRedisClient interface {
 	HGetAll(ctx context.Context, key string) *redis.MapStringStringCmd
 	// HSET key field value [field value ...]
 	HSet(ctx context.Context, key string, values ...any) *redis.IntCmd
+
+	// Sorted set commands
+
+	// ZADD key score member [score member...]
+	ZAdd(ctx context.Context, key string, members ...redis.Z) *redis.IntCmd
+	// ZRANGE key start stop [BYSCORE | BYLEX] [REV] [LIMIT offset count]
+	ZRangeArgs(ctx context.Context, z redis.ZRangeArgs) *redis.StringSliceCmd
 }
