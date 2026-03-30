@@ -188,7 +188,7 @@ jobs:
           chmod 400 "${{ github.workspace }}/renkubot-kube.config"
       
       - name: Install kubectl
-        uses: azure/setup-kubectl@v4
+        uses: azure/setup-kubectl@v5
         with:
           version: "latest"
       
