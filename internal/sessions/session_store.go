@@ -49,6 +49,9 @@ func (sessions *SessionStore) Middleware() echo.MiddlewareFunc {
 					utils.GetRequestID(c),
 				)
 			}
+
+			sessions.setSentryData(c, session)
+
 			err := next(c)
 			saveErr := sessions.Save(c)
 			if saveErr != nil && !errors.Is(saveErr, gwerrors.ErrSessionNotFound) && !errors.Is(saveErr, gwerrors.ErrSessionExpired) {
@@ -110,18 +113,6 @@ func (sessions *SessionStore) Get(c echo.Context) (*models.Session, error) {
 		}
 	}
 	session = &sessionFromStore
-	hub := sentryecho.GetHubFromContext(c)
-	if hub != nil {
-		hub.ConfigureScope(func(scope *sentry.Scope) {
-			user := sentry.User{}
-			if session.UserID != "" {
-				user.ID = session.UserID
-			} else {
-				user.Data = map[string]string{"anonymous": "true"}
-			}
-			scope.SetUser(user)
-		})
-	}
 	if session.Expired() {
 		return &models.Session{}, gwerrors.ErrSessionExpired
 	}
@@ -277,6 +268,29 @@ func (sessions *SessionStore) getFromBasicAuth(c echo.Context) (*models.Session,
 		}
 	}
 	return &models.Session{}, gwerrors.ErrSessionNotFound
+}
+
+// setSentryData adds request and session metadata for Sentry
+func (sessions *SessionStore) setSentryData(c echo.Context, session *models.Session) {
+	hub := sentryecho.GetHubFromContext(c)
+	if hub != nil {
+		hub.ConfigureScope(func(scope *sentry.Scope) {
+			requestID := c.Response().Header().Get(echo.HeaderXRequestID)
+			if requestID != "" {
+				scope.SetTag("request_id", requestID)
+			}
+			user := sentry.User{}
+			if session.UserID != "" {
+				user.ID = session.UserID
+				user.Data = map[string]string{"anonymous": "false"}
+			} else {
+				user.ID = "__anonymous__"
+				user.Data = map[string]string{"anonymous": "true"}
+			}
+			user.IPAddress = c.RealIP() // NOTE: this is filtered by Sentry
+			scope.SetUser(user)
+		})
+	}
 }
 
 type SessionStoreOption func(*SessionStore) error
