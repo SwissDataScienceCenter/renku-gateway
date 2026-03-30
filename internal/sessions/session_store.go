@@ -15,6 +15,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/getsentry/sentry-go"
+	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/gorilla/securecookie"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
@@ -109,15 +110,18 @@ func (sessions *SessionStore) Get(c echo.Context) (*models.Session, error) {
 		}
 	}
 	session = &sessionFromStore
-	sentry.ConfigureScope(func(scope *sentry.Scope) {
-		user := sentry.User{}
-		if session.UserID != "" {
-			user.ID = session.UserID
-		} else {
-			user.Data = map[string]string{"anonymous": "true"}
-		}
-		scope.SetUser(user)
-	})
+	hub := sentryecho.GetHubFromContext(c)
+	if hub != nil {
+		hub.ConfigureScope(func(scope *sentry.Scope) {
+			user := sentry.User{}
+			if session.UserID != "" {
+				user.ID = session.UserID
+			} else {
+				user.Data = map[string]string{"anonymous": "true"}
+			}
+			scope.SetUser(user)
+		})
+	}
 	if session.Expired() {
 		return &models.Session{}, gwerrors.ErrSessionExpired
 	}
