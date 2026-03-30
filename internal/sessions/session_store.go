@@ -114,7 +114,7 @@ func (sessions *SessionStore) Get(c echo.Context) (*models.Session, error) {
 		if session.UserID != "" {
 			user.ID = session.UserID
 		} else {
-			user.Data["anonymous"] = "true"
+			user.Data = map[string]string{"anonymous": "true"}
 		}
 		scope.SetUser(user)
 	})
