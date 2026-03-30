@@ -57,6 +57,8 @@ func (tr *TokenRefresher) periodicTokensRefresh(stop <-chan bool) {
 			}
 			slog.Info("TOKEN REFRESHER", "tokenIDs", tokenIDs)
 			for _, tokenID := range tokenIDs {
+				// TODO: ignore if user is not active
+
 				refreshCtx, cancelRefreshCtx := context.WithTimeout(ctx, 10*time.Second)
 				defer cancelRefreshCtx()
 				_, err := tr.tokenStore.GetFreshAccessToken(refreshCtx, tokenID)
