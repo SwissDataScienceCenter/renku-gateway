@@ -313,6 +313,24 @@ func WithConfig(c config.SessionConfig) SessionStoreOption {
 			}
 			sessions.cookieHandler = securecookie.New(cookieHashKey, cookieEncKey)
 		}
+		if c.UnsafeCookieTemplate {
+			unsafeCookieTmpl := func() http.Cookie {
+				defaultTmpl := defaultSessionCookieTemplate()
+				return http.Cookie{
+					Name:    defaultTmpl.Name,
+					Path:    defaultTmpl.Path,
+					Domain:  defaultTmpl.Domain,
+					Expires: defaultTmpl.Expires,
+					MaxAge:  defaultTmpl.MaxAge,
+					// NOTE: Secure needs to be true so that the SameSite = None works
+					// Enables calling a deployed backend from a local ui client version running on localhost
+					Secure:   true,
+					HttpOnly: false,
+					SameSite: http.SameSiteNoneMode,
+				}
+			}
+			sessions.cookieTemplate = unsafeCookieTmpl
+		}
 
 		sessions.sessionMaker = NewSessionMaker(WithIdleSessionTTLSeconds(c.IdleSessionTTLSeconds), WithMaxSessionTTLSeconds(c.MaxSessionTTLSeconds))
 
@@ -334,16 +352,18 @@ func WithCookieHandler(h models.CookieHandler) SessionStoreOption {
 	}
 }
 
+func defaultSessionCookieTemplate() http.Cookie {
+	return http.Cookie{
+		Name:     SessionCookieName,
+		Path:     "/",
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode}
+}
+
 func NewSessionStore(options ...SessionStoreOption) (*SessionStore, error) {
 	sessions := SessionStore{
-		cookieTemplate: func() http.Cookie {
-			return http.Cookie{
-				Name:     SessionCookieName,
-				Path:     "/",
-				Secure:   true,
-				HttpOnly: true,
-				SameSite: http.SameSiteLaxMode}
-		},
+		cookieTemplate: defaultSessionCookieTemplate,
 	}
 	for _, opt := range options {
 		err := opt(&sessions)
