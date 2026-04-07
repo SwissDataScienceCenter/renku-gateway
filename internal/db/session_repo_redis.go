@@ -40,7 +40,7 @@ func (r RedisAdapter) SetSession(ctx context.Context, session models.Session) er
 		r.serializeStruct(session)...,
 	).Err()
 	if err != nil {
-		return nil
+		return err
 	}
 	return r.rdb.ExpireAt(ctx, key, session.ExpiresAt.Add(tokenExpiresAtLeeway)).Err()
 }
