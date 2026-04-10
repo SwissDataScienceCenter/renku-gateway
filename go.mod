@@ -14,9 +14,9 @@ require (
 	github.com/gorilla/securecookie v1.1.2
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/labstack/echo-contrib v0.17.4
-	github.com/labstack/echo/v4 v4.15.0
+	github.com/labstack/echo/v4 v4.15.1
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/oapi-codegen/runtime v1.1.2
+	github.com/oapi-codegen/runtime v1.4.0
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/posthog/posthog-go v1.11.2
 	github.com/redis/go-redis/v9 v9.18.0
@@ -71,7 +71,6 @@ require (
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
