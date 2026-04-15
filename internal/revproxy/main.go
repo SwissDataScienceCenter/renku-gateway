@@ -41,7 +41,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 
 	// Deny rules
 	sk := e.Group("/api/data/user/secret_key", commonMiddlewares...)
-	sk.GET("/", echo.NotFoundHandler)
+	sk.RouteNotFound("/*", func(c *echo.Context) error { return echo.ErrNotFound })
 
 	// Redirects store middleware
 	if r.redirects != nil {

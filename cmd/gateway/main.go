@@ -26,7 +26,6 @@ import (
 	"github.com/labstack/echo-contrib/v5/echoprometheus"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
-	"golang.org/x/time/rate"
 )
 
 func main() {
@@ -75,7 +74,7 @@ func main() {
 		}))
 		// We need to manually send errors to Sentry
 		e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-			return func(c echo.Context) error {
+			return func(c *echo.Context) error {
 				err = next(c)
 				if err != nil {
 					hub := sentryecho.GetHubFromContext(c)
@@ -89,10 +88,10 @@ func main() {
 			}
 		})
 	}
-	// The banner and the port do not respect the logger formatting we set below so we remove them
-	// the port will be logged further down when the server starts.
-	e.HideBanner = true
-	e.HidePort = true
+	// // The banner and the port do not respect the logger formatting we set below so we remove them
+	// // the port will be logged further down when the server starts.
+	// e.HideBanner = true
+	// e.HidePort = true
 	// Setup template renderer
 	tr, err := views.NewTemplateRenderer()
 	if err != nil {
@@ -195,7 +194,7 @@ func main() {
 		e.Use(middleware.RateLimiter(
 			middleware.NewRateLimiterMemoryStoreWithConfig(
 				middleware.RateLimiterMemoryStoreConfig{
-					Rate:      rate.Limit(gwConfig.Server.RateLimits.Rate),
+					Rate:      gwConfig.Server.RateLimits.Rate,
 					Burst:     gwConfig.Server.RateLimits.Burst,
 					ExpiresIn: 3 * time.Minute,
 				}),
@@ -211,8 +210,8 @@ func main() {
 		e.Use(echoprometheus.NewMiddleware("gateway"))
 		go func() {
 			metrics := echo.New()
-			metrics.HideBanner = true
-			metrics.HidePort = true
+			// metrics.HideBanner = true
+			// metrics.HidePort = true
 			metrics.GET("/metrics", echoprometheus.NewHandler())
 			err := metrics.Start(fmt.Sprintf(":%d", gwConfig.Monitoring.Prometheus.Port))
 			if err != nil && !errors.Is(err, http.ErrServerClosed) {
