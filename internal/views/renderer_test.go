@@ -10,6 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Check that TemplateRenderer implements the echo.Renderer interface.
+// This test would fail to compile otherwise.
+func TestTemplateRendererImplementsEchoRenderer(t *testing.T) {
+	tr := TemplateRenderer{}
+	_ = echo.Renderer(&tr)
+}
+
 type testHandler struct{}
 
 func (h *testHandler) getLogout(c *echo.Context) error {

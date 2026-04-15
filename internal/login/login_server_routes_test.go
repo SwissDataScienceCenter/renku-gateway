@@ -68,7 +68,8 @@ func getTestConfig(loginServerPort int, authServers ...testAuthServer) (config.L
 func startTestServer(loginServer *LoginServer, listener net.Listener) (*httptest.Server, error) {
 	e := echo.New()
 	e.Pre(middleware.RequestID())
-	e.Use(middleware.Recover(), middleware.Logger())
+	// e.Use(middleware.Recover(), middleware.Logger())
+	e.Use(middleware.Recover(), middleware.RequestLogger())
 	tr, err := views.NewTemplateRenderer()
 	if err != nil {
 		return nil, err

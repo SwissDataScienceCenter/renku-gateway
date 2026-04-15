@@ -192,7 +192,8 @@ func (t *testAuthServer) Server() *httptest.Server {
 func (t *testAuthServer) Start() {
 	e := echo.New()
 	e.Pre(middleware.RequestID())
-	e.Use(middleware.Recover(), middleware.Logger())
+	// e.Use(middleware.Recover(), middleware.Logger())
+	e.Use(middleware.Recover(), middleware.RequestLogger())
 	e.GET("/authorize", t.authorizeEndpoint)
 	e.GET("/jwks", t.jwksEndpoint)
 	e.POST("/token", t.tokenEndpoint)
