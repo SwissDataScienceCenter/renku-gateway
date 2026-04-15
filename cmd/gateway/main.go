@@ -223,13 +223,6 @@ func main() {
 	// Start server
 	address := fmt.Sprintf("%s:%d", gwConfig.Server.Host, gwConfig.Server.Port)
 	slog.Info("starting the server on address " + address)
-
-	// // Advanced with graceful shutdown
-	// ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	// defer cancel()
-	// sc := echo.StartConfig{Address: ":8080"}
-	// sc.Start(ctx, e)
-
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 	go func() {

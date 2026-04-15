@@ -161,7 +161,6 @@ func setupTestRevproxy(rpConfig *config.RevproxyConfig, sessions *sessions.Sessi
 	}
 	e := echo.New()
 	e.Pre(middleware.RemoveTrailingSlash(), UiServerPathRewrite())
-	// e.Use(middleware.Recover(), middleware.Logger())
 	e.Use(middleware.Recover(), middleware.RequestLogger())
 	proxy.RegisterHandlers(e, sessions.Middleware())
 	srv := httptest.NewServer(e)

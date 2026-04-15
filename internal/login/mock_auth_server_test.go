@@ -198,7 +198,7 @@ func (t *testAuthServer) Start() {
 	e.GET("/jwks", t.jwksEndpoint)
 	e.POST("/token", t.tokenEndpoint)
 	e.GET("/.well-known/openid-configuration", t.wktEndpoint)
-	t.server = httptest.NewServer(e.Server.Handler)
+	t.server = httptest.NewServer(e)
 }
 
 func (t *testAuthServer) ProviderConfig() config.OIDCClient {
