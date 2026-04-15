@@ -223,23 +223,31 @@ func main() {
 	// Start server
 	address := fmt.Sprintf("%s:%d", gwConfig.Server.Host, gwConfig.Server.Port)
 	slog.Info("starting the server on address " + address)
+
+	// // Advanced with graceful shutdown
+	// ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	// defer cancel()
+	// sc := echo.StartConfig{Address: ":8080"}
+	// sc.Start(ctx, e)
+
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
 	go func() {
-		err := e.Start(address)
+		sc := echo.StartConfig{
+			Address:         address,
+			GracefulTimeout: 10 * time.Second,
+			OnShutdownError: func(err error) {
+				slog.Error("shutting down the server gracefully failed", "error", err)
+				os.Exit(1)
+			},
+		}
+		err := sc.Start(ctx, e)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("shutting down the server gracefully failed", "error", err)
 			os.Exit(1)
 		}
 	}()
-	// Wait for interrupt signal to gracefully shut down the server with a timeout of 10 seconds.
-	// Use a buffered channel to avoid missing signals as recommended for signal.Notify
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt)
-	<-quit
+
+	<-ctx.Done()
 	slog.Info("received signal to shut down the server")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if err := e.Shutdown(ctx); err != nil {
-		slog.Error("shutting down the server gracefully failed", "error", err)
-		os.Exit(1)
-	}
 }

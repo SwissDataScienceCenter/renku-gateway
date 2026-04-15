@@ -19,4 +19,4 @@ internal/login/spec.gen.go: apispec.yaml
 	go tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen -generate types,server,spec -package login $< > $@
 
 format:
-	gofmt -l -w cmd internal tools
+	gofmt -l -w cmd internal
