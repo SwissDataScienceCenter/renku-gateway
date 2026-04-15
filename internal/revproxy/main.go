@@ -10,7 +10,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/redirects"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 type Revproxy struct {

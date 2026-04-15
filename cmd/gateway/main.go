@@ -23,9 +23,9 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/views"
 	"github.com/getsentry/sentry-go"
 	sentryecho "github.com/getsentry/sentry-go/echo"
-	"github.com/labstack/echo-contrib/echoprometheus"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo-contrib/v5/echoprometheus"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 	"golang.org/x/time/rate"
 )
 
@@ -101,7 +101,7 @@ func main() {
 	}
 	tr.Register(e)
 	// Health check
-	e.GET("/health", func(c echo.Context) error {
+	e.GET("/health", func(c *echo.Context) error {
 		// TODO: maybe implement a real health check
 		return c.NoContent(http.StatusOK)
 	})
@@ -111,7 +111,7 @@ func main() {
 	if ok && buildInfo != nil {
 		version = buildInfo.Main.Version
 	}
-	e.GET("/version", func(c echo.Context) error {
+	e.GET("/version", func(c *echo.Context) error {
 		return c.String(http.StatusOK, version)
 	})
 	// Initialize the db adapters

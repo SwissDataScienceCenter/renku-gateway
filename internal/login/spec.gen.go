@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/oapi-codegen/runtime"
 )
 
@@ -41,19 +41,19 @@ type GetLogoutParams struct {
 type ServerInterface interface {
 
 	// (GET /callback)
-	GetCallback(ctx echo.Context, params GetCallbackParams) error
+	GetCallback(ctx *echo.Context, params GetCallbackParams) error
 
 	// (GET /health)
-	GetHealth(ctx echo.Context) error
+	GetHealth(ctx *echo.Context) error
 
 	// (GET /login)
-	GetLogin(ctx echo.Context, params GetLoginParams) error
+	GetLogin(ctx *echo.Context, params GetLoginParams) error
 
 	// (GET /logout)
-	GetLogout(ctx echo.Context, params GetLogoutParams) error
+	GetLogout(ctx *echo.Context, params GetLogoutParams) error
 
 	// (GET /user-profile)
-	GetUserProfile(ctx echo.Context) error
+	GetUserProfile(ctx *echo.Context) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -62,7 +62,7 @@ type ServerInterfaceWrapper struct {
 }
 
 // GetCallback converts echo context to params.
-func (w *ServerInterfaceWrapper) GetCallback(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) GetCallback(ctx *echo.Context) error {
 	var err error
 
 	// Parameter object where we will unmarshal all parameters from the context
@@ -87,7 +87,7 @@ func (w *ServerInterfaceWrapper) GetCallback(ctx echo.Context) error {
 }
 
 // GetHealth converts echo context to params.
-func (w *ServerInterfaceWrapper) GetHealth(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) GetHealth(ctx *echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
@@ -96,7 +96,7 @@ func (w *ServerInterfaceWrapper) GetHealth(ctx echo.Context) error {
 }
 
 // GetLogin converts echo context to params.
-func (w *ServerInterfaceWrapper) GetLogin(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) GetLogin(ctx *echo.Context) error {
 	var err error
 
 	// Parameter object where we will unmarshal all parameters from the context
@@ -121,7 +121,7 @@ func (w *ServerInterfaceWrapper) GetLogin(ctx echo.Context) error {
 }
 
 // GetLogout converts echo context to params.
-func (w *ServerInterfaceWrapper) GetLogout(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) GetLogout(ctx *echo.Context) error {
 	var err error
 
 	// Parameter object where we will unmarshal all parameters from the context
@@ -139,7 +139,7 @@ func (w *ServerInterfaceWrapper) GetLogout(ctx echo.Context) error {
 }
 
 // GetUserProfile converts echo context to params.
-func (w *ServerInterfaceWrapper) GetUserProfile(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) GetUserProfile(ctx *echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments

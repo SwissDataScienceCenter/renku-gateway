@@ -13,8 +13,8 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/securecookie v1.1.2
 	github.com/hashicorp/go-retryablehttp v0.7.8
-	github.com/labstack/echo-contrib v0.17.4
-	github.com/labstack/echo/v4 v4.15.1
+	github.com/labstack/echo-contrib/v5 v5.0.1
+	github.com/labstack/echo/v5 v5.1.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oapi-codegen/runtime v1.4.0
 	github.com/oklog/ulid/v2 v2.1.1
@@ -45,6 +45,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
+	github.com/labstack/echo/v4 v4.15.1 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/mailru/easyjson v0.9.1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect

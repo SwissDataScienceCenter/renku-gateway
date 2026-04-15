@@ -11,7 +11,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/db"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/tokenstore"
 	"github.com/gorilla/securecookie"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -50,7 +50,7 @@ func setupSessionStore(t *testing.T, options ...SessionStoreOption) *SessionStor
 	return sessionStore
 }
 
-func setupEchoContext() echo.Context {
+func setupEchoContext() *echo.Context {
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
