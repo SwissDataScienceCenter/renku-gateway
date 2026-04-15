@@ -41,7 +41,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 
 	noOpHandler := func(c *echo.Context) error { return nil }
 
-	// // Deny rules
+	// Deny rules
 	sk := e.Group("/api/data/user/secret_key", commonMiddlewares...)
 	sk.RouteNotFound("*", func(c *echo.Context) error { return echo.ErrNotFound })
 
@@ -89,8 +89,11 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 		e.Group("/ui-server/api/allows-iframe", append(commonMiddlewares, uiServerProxy)...).Any("*", noOpHandler)
 	}
 
+	// Reject un-matched /api routes
+	e.Group("/api", commonMiddlewares...).RouteNotFound("*", func(c *echo.Context) error { return echo.ErrNotFound })
+
 	// If nothing is matched from any of the routes above then fall back to the UI
-	e.Group("/", append(commonMiddlewares, renkuBaseProxyHost, fallbackProxy)...)
+	e.Group("/", append(commonMiddlewares, renkuBaseProxyHost, fallbackProxy)...).Any("*", noOpHandler)
 }
 
 func (r *Revproxy) initializeAuth() error {
