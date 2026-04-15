@@ -234,6 +234,8 @@ func (sessions *SessionStore) getFromHeaders(c echo.Context) (*models.Session, e
 				TokenIDs:  tokenIDs,
 			}
 			c.Set(SessionCtxKey, &session)
+			// Re-set the authorization header
+			c.Request().Header.Set(echo.HeaderAuthorization, accessToken)
 			return &session, nil
 		}
 	}
@@ -255,6 +257,8 @@ func (sessions *SessionStore) getFromBasicAuth(c echo.Context) (*models.Session,
 				TokenIDs:  tokenIDs,
 			}
 			c.Set(SessionCtxKey, &session)
+			// Re-set the authorization header
+			c.Request().Header.Set(echo.HeaderAuthorization, basicAuthPwd)
 			return &session, nil
 		}
 	}
