@@ -12,17 +12,17 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 type AuthOption func(*Auth)
 
-type TokenInjector func(c echo.Context, token models.AuthToken) error
+type TokenInjector func(c *echo.Context, token models.AuthToken) error
 
 func InjectInHeader(headerKey string) AuthOption {
 	return func(a *Auth) {
-		a.tokenInjector = func(c echo.Context, token models.AuthToken) error {
+		a.tokenInjector = func(c *echo.Context, token models.AuthToken) error {
 			existingToken := c.Request().Header.Get(headerKey)
 			if existingToken != "" {
 				slog.Debug(
@@ -57,7 +57,7 @@ func InjectInHeader(headerKey string) AuthOption {
 
 func InjectBearerToken() AuthOption {
 	return func(a *Auth) {
-		a.tokenInjector = func(c echo.Context, token models.AuthToken) error {
+		a.tokenInjector = func(c *echo.Context, token models.AuthToken) error {
 			existingToken := c.Request().Header.Get(echo.HeaderAuthorization)
 			if existingToken != "" {
 				slog.Debug(
@@ -143,7 +143,7 @@ func NewAuth(options ...AuthOption) (Auth, error) {
 
 func (a *Auth) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			session, err := a.sessions.Get(c)
 			if err != nil {
 				slog.Debug(
@@ -230,7 +230,7 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 	}
 }
 
-var notebooksGitlabAccessTokenInjector TokenInjector = func(c echo.Context, accessToken models.AuthToken) error {
+var notebooksGitlabAccessTokenInjector TokenInjector = func(c *echo.Context, accessToken models.AuthToken) error {
 	headerKey := "Renku-Auth-Git-Credentials"
 	existingToken := c.Request().Header.Get(headerKey)
 	if existingToken != "" {
@@ -296,7 +296,7 @@ var notebooksGitlabAccessTokenInjector TokenInjector = func(c echo.Context, acce
 	return nil
 }
 
-var coreSvcRenkuIdTokenInjector TokenInjector = func(c echo.Context, idToken models.AuthToken) error {
+var coreSvcRenkuIdTokenInjector TokenInjector = func(c *echo.Context, idToken models.AuthToken) error {
 	headerKey := "Renku-User"
 	existingToken := c.Request().Header.Get(headerKey)
 	if existingToken != "" {
@@ -351,7 +351,7 @@ var coreSvcRenkuIdTokenInjector TokenInjector = func(c echo.Context, idToken mod
 }
 
 // Sets up Basic Auth for Gitlab
-var gitlabCliTokenInjector TokenInjector = func(c echo.Context, accessToken models.AuthToken) error {
+var gitlabCliTokenInjector TokenInjector = func(c *echo.Context, accessToken models.AuthToken) error {
 	if accessToken.Value == "" {
 		return nil
 	}
@@ -361,7 +361,7 @@ var gitlabCliTokenInjector TokenInjector = func(c echo.Context, accessToken mode
 
 // Sets the Gitlab-Access-Token and Gitlab-Access-Token-Expires-At values in the header, the expiry part
 // is needed because Gitlab access tokens are opaque and the holder cannot easily tell when they expire.
-var dataServiceGitlabAccessTokenInjector TokenInjector = func(c echo.Context, accessToken models.AuthToken) error {
+var dataServiceGitlabAccessTokenInjector TokenInjector = func(c *echo.Context, accessToken models.AuthToken) error {
 	headerKey := "Gitlab-Access-Token"
 	existingToken := c.Request().Header.Get(headerKey)
 	if existingToken != "" {

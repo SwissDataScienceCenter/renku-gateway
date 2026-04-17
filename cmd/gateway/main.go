@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"syscall"
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/authentication"
@@ -23,10 +25,9 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/views"
 	"github.com/getsentry/sentry-go"
 	sentryecho "github.com/getsentry/sentry-go/echo"
-	"github.com/labstack/echo-contrib/echoprometheus"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-	"golang.org/x/time/rate"
+	"github.com/labstack/echo-contrib/v5/echoprometheus"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 )
 
 func main() {
@@ -66,8 +67,34 @@ func main() {
 	}
 	// Setup
 	e := echo.New()
+	if gwConfig.Server.TrustRealIPHeader {
+		// NOTE: we need to manually allow all IP addresses
+		trustOptions := []echo.TrustOption{}
+		_, ipNet, err := net.ParseCIDR("0.0.0.0/0")
+		if err != nil {
+			slog.Error("failed to parse CIDR '0.0.0.0/0'", "error", err)
+			os.Exit(1)
+		}
+		trustOptions = append(trustOptions, echo.TrustIPRange(ipNet))
+		_, ipNet, err = net.ParseCIDR("::/0")
+		if err != nil {
+			slog.Error("failed to parse CIDR '::/0'", "error", err)
+			os.Exit(1)
+		}
+		trustOptions = append(trustOptions, echo.TrustIPRange(ipNet))
+		e.IPExtractor = echo.ExtractIPFromRealIPHeader(trustOptions...)
+	}
 	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
 	e.Use(middleware.Recover())
+	// DEBUG
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c *echo.Context) error {
+			req := c.Request()
+			ip := c.RealIP()
+			slog.Info("IP", "ip", ip, "X-Forwarded-For", req.Header.Get("X-Forwarded-For"), "X-Real-Ip", req.Header.Get("X-Real-Ip"))
+			return next(c)
+		}
+	})
 	// Sentry middleware
 	if gwConfig.Monitoring.Sentry.Enabled {
 		e.Use(sentryecho.New(sentryecho.Options{
@@ -75,7 +102,7 @@ func main() {
 		}))
 		// We need to manually send errors to Sentry
 		e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-			return func(c echo.Context) error {
+			return func(c *echo.Context) error {
 				err = next(c)
 				if err != nil {
 					hub := sentryecho.GetHubFromContext(c)
@@ -89,10 +116,6 @@ func main() {
 			}
 		})
 	}
-	// The banner and the port do not respect the logger formatting we set below so we remove them
-	// the port will be logged further down when the server starts.
-	e.HideBanner = true
-	e.HidePort = true
 	// Setup template renderer
 	tr, err := views.NewTemplateRenderer()
 	if err != nil {
@@ -101,7 +124,7 @@ func main() {
 	}
 	tr.Register(e)
 	// Health check
-	e.GET("/health", func(c echo.Context) error {
+	e.GET("/health", func(c *echo.Context) error {
 		// TODO: maybe implement a real health check
 		return c.NoContent(http.StatusOK)
 	})
@@ -111,7 +134,7 @@ func main() {
 	if ok && buildInfo != nil {
 		version = buildInfo.Main.Version
 	}
-	e.GET("/version", func(c echo.Context) error {
+	e.GET("/version", func(c *echo.Context) error {
 		return c.String(http.StatusOK, version)
 	})
 	// Initialize the db adapters
@@ -195,7 +218,7 @@ func main() {
 		e.Use(middleware.RateLimiter(
 			middleware.NewRateLimiterMemoryStoreWithConfig(
 				middleware.RateLimiterMemoryStoreConfig{
-					Rate:      rate.Limit(gwConfig.Server.RateLimits.Rate),
+					Rate:      gwConfig.Server.RateLimits.Rate,
 					Burst:     gwConfig.Server.RateLimits.Burst,
 					ExpiresIn: 3 * time.Minute,
 				}),
@@ -207,40 +230,51 @@ func main() {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{AllowOrigins: gwConfig.Server.AllowOrigin}))
 	}
 	// Prometheus
+	var metrics *echo.Echo = nil
 	if gwConfig.Monitoring.Prometheus.Enabled {
 		e.Use(echoprometheus.NewMiddleware("gateway"))
-		go func() {
-			metrics := echo.New()
-			metrics.HideBanner = true
-			metrics.HidePort = true
-			metrics.GET("/metrics", echoprometheus.NewHandler())
-			err := metrics.Start(fmt.Sprintf(":%d", gwConfig.Monitoring.Prometheus.Port))
-			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				slog.Error("prometheus server failed to start", "error", err)
-				os.Exit(1)
-			}
-		}()
+		metrics = echo.New()
+		metrics.GET("/metrics", echoprometheus.NewHandler())
 	}
 	// Start server
 	address := fmt.Sprintf("%s:%d", gwConfig.Server.Host, gwConfig.Server.Port)
 	slog.Info("starting the server on address " + address)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
 	go func() {
-		err := e.Start(address)
+		sc := echo.StartConfig{
+			Address:         address,
+			GracefulTimeout: 10 * time.Second,
+			OnShutdownError: func(err error) {
+				slog.Error("shutting down the server gracefully failed", "error", err)
+				os.Exit(1)
+			},
+		}
+		err := sc.Start(ctx, e)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("shutting down the server gracefully failed", "error", err)
 			os.Exit(1)
 		}
 	}()
-	// Wait for interrupt signal to gracefully shut down the server with a timeout of 10 seconds.
-	// Use a buffered channel to avoid missing signals as recommended for signal.Notify
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt)
-	<-quit
-	slog.Info("received signal to shut down the server")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if err := e.Shutdown(ctx); err != nil {
-		slog.Error("shutting down the server gracefully failed", "error", err)
-		os.Exit(1)
+	if metrics != nil {
+		go func() {
+			metricsAddress := fmt.Sprintf(":%d", gwConfig.Monitoring.Prometheus.Port)
+			sc := echo.StartConfig{
+				Address:         metricsAddress,
+				GracefulTimeout: 10 * time.Second,
+				OnShutdownError: func(err error) {
+					slog.Error("shutting down the metrics server gracefully failed", "error", err)
+					os.Exit(1)
+				},
+			}
+			err := sc.Start(ctx, metrics)
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				slog.Error("shutting down the metrics server gracefully failed", "error", err)
+				os.Exit(1)
+			}
+		}()
 	}
+
+	<-ctx.Done()
+	slog.Info("received signal to shut down the server")
 }

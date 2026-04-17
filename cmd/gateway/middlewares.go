@@ -8,22 +8,22 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/getsentry/sentry-go"
 	sentryecho "github.com/getsentry/sentry-go/echo"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 )
 
 var logLevel *slog.LevelVar = new(slog.LevelVar)
 var jsonLogger *slog.Logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
-	LogStatus:    true,
-	LogURI:       true,
-	LogError:     true,
+	LogStatus: true,
+	LogURI:    true,
+	// LogError:     true,
 	LogRequestID: true,
 	LogRoutePath: true, // logs the handler path in the server that matched the request path
 	LogMethod:    true,
 	LogUserAgent: true,
 	HandleError:  true, // forwards error to the global error handler, so it can decide appropriate status code
-	LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+	LogValuesFunc: func(c *echo.Context, v middleware.RequestLoggerValues) error {
 		traceID := utils.GetTraceID(c)
 		if v.Error == nil {
 			jsonLogger.LogAttrs(context.Background(), slog.LevelInfo, "REQUEST",
@@ -53,7 +53,7 @@ var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middl
 
 // sentryHeaderInjector ensures that the Trace ID is attached to the outgoing request.
 func sentryHeaderInjector(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		if hub := sentryecho.GetHubFromContext(c); hub != nil {
 			sentryTraceHeader := hub.GetTraceparent()
 			c.Request().Header.Set(sentry.SentryTraceHeader, sentryTraceHeader)

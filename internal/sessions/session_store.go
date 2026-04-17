@@ -15,7 +15,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/gorilla/securecookie"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -32,7 +32,7 @@ type SessionStore struct {
 // Middleware returns the session middleware which injects the current session in the request context
 func (sessions *SessionStore) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			session, loadErr := sessions.Get(c)
 			if loadErr == nil {
 				c.Set(SessionCtxKey, session)
@@ -72,7 +72,7 @@ func (sessions *SessionStore) Middleware() echo.MiddlewareFunc {
 }
 
 // Get returns the current session
-func (sessions *SessionStore) Get(c echo.Context) (*models.Session, error) {
+func (sessions *SessionStore) Get(c *echo.Context) (*models.Session, error) {
 	// check if the session is already in the request context
 	session, err := sessions.getFromContext(c)
 	if err == nil {
@@ -116,7 +116,7 @@ func (sessions *SessionStore) Get(c echo.Context) (*models.Session, error) {
 }
 
 // Create will create a new session.
-func (sessions *SessionStore) Create(c echo.Context) (*models.Session, error) {
+func (sessions *SessionStore) Create(c *echo.Context) (*models.Session, error) {
 	session, err := sessions.sessionMaker.NewSession()
 	if err != nil {
 		return &models.Session{}, err
@@ -130,7 +130,7 @@ func (sessions *SessionStore) Create(c echo.Context) (*models.Session, error) {
 	return &session, nil
 }
 
-func (sessions *SessionStore) Save(c echo.Context) error {
+func (sessions *SessionStore) Save(c *echo.Context) error {
 	session, err := sessions.Get(c)
 	if err != nil {
 		return err
@@ -145,7 +145,7 @@ func (sessions *SessionStore) Save(c echo.Context) error {
 }
 
 // Delete removes the current session from storage and unsets the session cookie
-func (sessions *SessionStore) Delete(c echo.Context) error {
+func (sessions *SessionStore) Delete(c *echo.Context) error {
 	sessionID, err := sessions.getSessionIDFromCookie(c)
 	if err != nil {
 		return err
@@ -178,7 +178,7 @@ func (sessions *SessionStore) cookie(session models.Session) (http.Cookie, error
 }
 
 // getSessionIDFromCookie returns the session ID from the cookie if present
-func (sessions *SessionStore) getSessionIDFromCookie(c echo.Context) (string, error) {
+func (sessions *SessionStore) getSessionIDFromCookie(c *echo.Context) (string, error) {
 	sessionID := ""
 	cookie, err := c.Cookie(SessionCookieName)
 	if err != nil {
@@ -199,7 +199,7 @@ func (sessions *SessionStore) getSessionIDFromCookie(c echo.Context) (string, er
 }
 
 // getFromContext retrieves a session from the current context
-func (sessions *SessionStore) getFromContext(c echo.Context) (*models.Session, error) {
+func (sessions *SessionStore) getFromContext(c *echo.Context) (*models.Session, error) {
 	sessionRaw := c.Get(SessionCtxKey)
 	if sessionRaw != nil {
 		session, ok := sessionRaw.(*models.Session)
@@ -218,7 +218,7 @@ func (sessions *SessionStore) getFromContext(c echo.Context) (*models.Session, e
 }
 
 // getFromHeaders creates a session from the Authorization header if present
-func (sessions *SessionStore) getFromHeaders(c echo.Context) (*models.Session, error) {
+func (sessions *SessionStore) getFromHeaders(c *echo.Context) (*models.Session, error) {
 	accessToken := c.Request().Header.Get(echo.HeaderAuthorization)
 	accessToken = strings.TrimPrefix(accessToken, "Bearer ")
 	accessToken = strings.TrimPrefix(accessToken, "bearer ")
@@ -243,7 +243,7 @@ func (sessions *SessionStore) getFromHeaders(c echo.Context) (*models.Session, e
 }
 
 // getFromBasicAuth creates a session from basic authorization
-func (sessions *SessionStore) getFromBasicAuth(c echo.Context) (*models.Session, error) {
+func (sessions *SessionStore) getFromBasicAuth(c *echo.Context) (*models.Session, error) {
 	_, basicAuthPwd, ok := c.Request().BasicAuth()
 	if ok {
 		claims, err := sessions.authenticator.VerifyAccessToken(c.Request().Context(), basicAuthPwd)

@@ -49,6 +49,9 @@ func NewConfigHandler() *ConfigHandler {
 	// Set the defaults to the main config
 	var def map[string]any
 	err := mapstructure.Decode(Config{
+		Server: ServerConfig{
+			TrustRealIPHeader: true,
+		},
 		Sessions: SessionConfig{
 			IdleSessionTTLSeconds: int((4 * time.Hour).Seconds()),
 			MaxSessionTTLSeconds:  int((24 * time.Hour).Seconds()),

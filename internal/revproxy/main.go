@@ -10,7 +10,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/redirects"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 type Revproxy struct {
@@ -39,15 +39,17 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	dataServiceProxy := proxyFromURL(r.config.RenkuServices.DataService)
 	uiServerProxy := proxyFromURL(r.config.RenkuServices.UIServer)
 
+	noOpHandler := func(c *echo.Context) error { return nil }
+
 	// Deny rules
 	sk := e.Group("/api/data/user/secret_key", commonMiddlewares...)
-	sk.GET("/", echo.NotFoundHandler)
+	sk.RouteNotFound("*", func(c *echo.Context) error { return echo.ErrNotFound })
 
 	// Redirects store middleware
 	if r.redirects != nil {
 		redirectMiddleware := r.redirects.Middleware()
 		redirectPath := path.Join(r.redirects.PathPrefix, ":projectPath")
-		e.Group(redirectPath, append(commonMiddlewares, renkuBaseProxyHost, redirectMiddleware, fallbackProxy)...)
+		e.Group(redirectPath, append(commonMiddlewares, renkuBaseProxyHost, redirectMiddleware, fallbackProxy)...).Any("*", noOpHandler)
 	}
 
 	if r.config.EnableInternalGitlab {
@@ -59,15 +61,15 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 
 		// Routing for Renku services
 		// Notebooks is being routed to data service now
-		e.Group("/api/notebooks", append(commonMiddlewares, renkuAccessToken, dataGitlabAccessToken, notebooksRenkuRefreshToken, notebooksAnonymousID(r.sessions), regexRewrite("^/api/notebooks(.*)", "/api/data/notebooks$1"), dataServiceProxy)...)
-		e.Group("/api/data", append(commonMiddlewares, renkuAccessToken, dataGitlabAccessToken, notebooksRenkuRefreshToken, notebooksAnonymousID(r.sessions), dataServiceProxy)...)
+		e.Group("/api/notebooks", append(commonMiddlewares, renkuAccessToken, dataGitlabAccessToken, notebooksRenkuRefreshToken, notebooksAnonymousID(r.sessions), regexRewrite("^/api/notebooks(.*)", "/api/data/notebooks$1"), dataServiceProxy)...).Any("*", noOpHandler)
+		e.Group("/api/data", append(commonMiddlewares, renkuAccessToken, dataGitlabAccessToken, notebooksRenkuRefreshToken, notebooksAnonymousID(r.sessions), dataServiceProxy)...).Any("*", noOpHandler)
 		// /api/kc is used only by the ui and no one else, will be removed when the gateway is in charge of user sessions
-		e.Group("/api/kc", append(commonMiddlewares, stripPrefix("/api/kc"), renkuAccessToken, keycloakProxyHost, keycloakProxy)...)
+		e.Group("/api/kc", append(commonMiddlewares, stripPrefix("/api/kc"), renkuAccessToken, keycloakProxyHost, keycloakProxy)...).Any("*", noOpHandler)
 
 		// UI server websockets
-		e.Group("/ui-server/ws", append(commonMiddlewares, ensureSession(r.sessions), renkuAccessToken, uiServerProxy)...)
+		e.Group("/ui-server/ws", append(commonMiddlewares, ensureSession(r.sessions), renkuAccessToken, uiServerProxy)...).Any("*", noOpHandler)
 		// Some routes need to go to the UI server before they go to the specific Renku service
-		e.Group("/ui-server/api/allows-iframe", append(commonMiddlewares, uiServerProxy)...)
+		e.Group("/ui-server/api/allows-iframe", append(commonMiddlewares, uiServerProxy)...).Any("*", noOpHandler)
 	} else {
 		// Both the v1 services and internal gitlab are disabled
 		// Initialize common authentication middleware
@@ -76,19 +78,22 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 
 		// Routing for Renku services
 		// Notebooks is being routed to data service now
-		e.Group("/api/notebooks", append(commonMiddlewares, renkuAccessToken, notebooksRenkuRefreshToken, notebooksAnonymousID(r.sessions), regexRewrite("^/api/notebooks(.*)", "/api/data/notebooks$1"), dataServiceProxy)...)
-		e.Group("/api/data", append(commonMiddlewares, renkuAccessToken, notebooksRenkuRefreshToken, notebooksAnonymousID(r.sessions), dataServiceProxy)...)
+		e.Group("/api/notebooks", append(commonMiddlewares, renkuAccessToken, notebooksRenkuRefreshToken, notebooksAnonymousID(r.sessions), regexRewrite("^/api/notebooks(.*)", "/api/data/notebooks$1"), dataServiceProxy)...).Any("*", noOpHandler)
+		e.Group("/api/data", append(commonMiddlewares, renkuAccessToken, notebooksRenkuRefreshToken, notebooksAnonymousID(r.sessions), dataServiceProxy)...).Any("*", noOpHandler)
 		// /api/kc is used only by the ui and no one else, will be removed when the gateway is in charge of user sessions
-		e.Group("/api/kc", append(commonMiddlewares, stripPrefix("/api/kc"), renkuAccessToken, keycloakProxyHost, keycloakProxy)...)
+		e.Group("/api/kc", append(commonMiddlewares, stripPrefix("/api/kc"), renkuAccessToken, keycloakProxyHost, keycloakProxy)...).Any("*", noOpHandler)
 
 		// UI server websockets
-		e.Group("/ui-server/ws", append(commonMiddlewares, ensureSession(r.sessions), renkuAccessToken, uiServerProxy)...)
+		e.Group("/ui-server/ws", append(commonMiddlewares, ensureSession(r.sessions), renkuAccessToken, uiServerProxy)...).Any("*", noOpHandler)
 		// Some routes need to go to the UI server before they go to the specific Renku service
-		e.Group("/ui-server/api/allows-iframe", append(commonMiddlewares, uiServerProxy)...)
+		e.Group("/ui-server/api/allows-iframe", append(commonMiddlewares, uiServerProxy)...).Any("*", noOpHandler)
 	}
 
+	// Reject un-matched /api routes
+	e.Group("/api", commonMiddlewares...).RouteNotFound("*", func(c *echo.Context) error { return echo.ErrNotFound })
+
 	// If nothing is matched from any of the routes above then fall back to the UI
-	e.Group("/", append(commonMiddlewares, renkuBaseProxyHost, fallbackProxy)...)
+	e.Group("/", append(commonMiddlewares, renkuBaseProxyHost, fallbackProxy)...).Any("*", noOpHandler)
 }
 
 func (r *Revproxy) initializeAuth() error {
