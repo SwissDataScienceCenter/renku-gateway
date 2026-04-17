@@ -66,6 +66,20 @@ func main() {
 	}
 	// Setup
 	e := echo.New()
+
+	// DEBUG: proxy headers
+	e.Pre(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c *echo.Context) error {
+			req := c.Request()
+			headers := []string{}
+			for header := range req.Header {
+				headers = append(headers, header)
+			}
+			slog.Info("HEADERS", "headers", headers)
+			return next(c)
+		}
+	})
+
 	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
 	e.Use(middleware.Recover())
 	// Sentry middleware
