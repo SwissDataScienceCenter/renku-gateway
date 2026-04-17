@@ -210,19 +210,11 @@ func main() {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{AllowOrigins: gwConfig.Server.AllowOrigin}))
 	}
 	// Prometheus
+	var metrics *echo.Echo = nil
 	if gwConfig.Monitoring.Prometheus.Enabled {
 		e.Use(echoprometheus.NewMiddleware("gateway"))
-		go func() {
-			metrics := echo.New()
-			// metrics.HideBanner = true
-			// metrics.HidePort = true
-			metrics.GET("/metrics", echoprometheus.NewHandler())
-			err := metrics.Start(fmt.Sprintf(":%d", gwConfig.Monitoring.Prometheus.Port))
-			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				slog.Error("prometheus server failed to start", "error", err)
-				os.Exit(1)
-			}
-		}()
+		metrics = echo.New()
+		metrics.GET("/metrics", echoprometheus.NewHandler())
 	}
 	// Start server
 	address := fmt.Sprintf("%s:%d", gwConfig.Server.Host, gwConfig.Server.Port)
@@ -244,6 +236,24 @@ func main() {
 			os.Exit(1)
 		}
 	}()
+	if metrics != nil {
+		go func() {
+			metricsAddress := fmt.Sprintf(":%d", gwConfig.Monitoring.Prometheus.Port)
+			sc := echo.StartConfig{
+				Address:         metricsAddress,
+				GracefulTimeout: 10 * time.Second,
+				OnShutdownError: func(err error) {
+					slog.Error("shutting down the metrics server gracefully failed", "error", err)
+					os.Exit(1)
+				},
+			}
+			err := sc.Start(ctx, metrics)
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				slog.Error("shutting down the metrics server gracefully failed", "error", err)
+				os.Exit(1)
+			}
+		}()
+	}
 
 	<-ctx.Done()
 	slog.Info("received signal to shut down the server")
