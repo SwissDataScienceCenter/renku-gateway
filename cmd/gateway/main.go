@@ -71,6 +71,14 @@ func main() {
 	}
 	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
 	e.Use(middleware.Recover())
+	// DEBUG
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c *echo.Context) error {
+			ip := c.RealIP()
+			slog.Info("IP", "ip", ip)
+			return next(c)
+		}
+	})
 	// Sentry middleware
 	if gwConfig.Monitoring.Sentry.Enabled {
 		e.Use(sentryecho.New(sentryecho.Options{
