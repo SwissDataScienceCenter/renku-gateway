@@ -74,8 +74,9 @@ func main() {
 	// DEBUG
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c *echo.Context) error {
+			req := c.Request()
 			ip := c.RealIP()
-			slog.Info("IP", "ip", ip)
+			slog.Info("IP", "ip", ip, "X-Forwarded-For", req.Header.Get("X-Forwarded-For"), "X-Real-Ip", req.Header.Get("X-Real-Ip"))
 			return next(c)
 		}
 	})
@@ -100,10 +101,6 @@ func main() {
 			}
 		})
 	}
-	// // The banner and the port do not respect the logger formatting we set below so we remove them
-	// // the port will be logged further down when the server starts.
-	// e.HideBanner = true
-	// e.HidePort = true
 	// Setup template renderer
 	tr, err := views.NewTemplateRenderer()
 	if err != nil {
