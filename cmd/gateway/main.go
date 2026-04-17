@@ -72,11 +72,13 @@ func main() {
 		trustOptions := []echo.TrustOption{}
 		_, ipNet, err := net.ParseCIDR("0.0.0.0/0")
 		if err != nil {
+			slog.Error("failed to parse CIDR '0.0.0.0/0'", "error", err)
 			os.Exit(1)
 		}
 		trustOptions = append(trustOptions, echo.TrustIPRange(ipNet))
 		_, ipNet, err = net.ParseCIDR("::/0")
 		if err != nil {
+			slog.Error("failed to parse CIDR '::/0'", "error", err)
 			os.Exit(1)
 		}
 		trustOptions = append(trustOptions, echo.TrustIPRange(ipNet))
