@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -67,7 +68,19 @@ func main() {
 	// Setup
 	e := echo.New()
 	if gwConfig.Server.TrustRealIPHeader {
-		e.IPExtractor = echo.ExtractIPFromRealIPHeader()
+		// NOTE: we need to manually allow all IP addresses
+		trustOptions := []echo.TrustOption{}
+		_, ipNet, err := net.ParseCIDR("0.0.0.0/0")
+		if err != nil {
+			os.Exit(1)
+		}
+		trustOptions = append(trustOptions, echo.TrustIPRange(ipNet))
+		_, ipNet, err = net.ParseCIDR("::/0")
+		if err != nil {
+			os.Exit(1)
+		}
+		trustOptions = append(trustOptions, echo.TrustIPRange(ipNet))
+		e.IPExtractor = echo.ExtractIPFromRealIPHeader(trustOptions...)
 	}
 	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
 	e.Use(middleware.Recover())
