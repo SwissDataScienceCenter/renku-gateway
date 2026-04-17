@@ -76,6 +76,13 @@ func main() {
 				headers = append(headers, header)
 			}
 			slog.Info("HEADERS", "headers", headers)
+			slog.Info("HEADERS MORE",
+				"X-Forwarded-Scheme", req.Header.Get("X-Forwarded-Scheme"),
+				"X-Forwarded-Proto", req.Header.Get("X-Forwarded-Proto"),
+				"X-Forwarded-For", req.Header.Get("X-Forwarded-For"),
+				"X-Forwarded-Host", req.Header.Get("X-Forwarded-Host"),
+				"X-Real-Ip", req.Header.Get("X-Real-Ip"),
+			)
 			return next(c)
 		}
 	})
