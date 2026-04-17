@@ -1,10 +1,11 @@
 package config
 
 type ServerConfig struct {
-	Host        string
-	Port        int
-	RateLimits  RateLimits
-	AllowOrigin []string
+	Host              string
+	Port              int
+	RateLimits        RateLimits
+	AllowOrigin       []string
+	TrustRealIPHeader bool
 }
 
 type SentryConfig struct {

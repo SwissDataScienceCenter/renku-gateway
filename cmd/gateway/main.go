@@ -66,27 +66,9 @@ func main() {
 	}
 	// Setup
 	e := echo.New()
-
-	// DEBUG: proxy headers
-	e.Pre(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c *echo.Context) error {
-			req := c.Request()
-			headers := []string{}
-			for header := range req.Header {
-				headers = append(headers, header)
-			}
-			slog.Info("HEADERS", "headers", headers)
-			slog.Info("HEADERS MORE",
-				"X-Forwarded-Scheme", req.Header.Get("X-Forwarded-Scheme"),
-				"X-Forwarded-Proto", req.Header.Get("X-Forwarded-Proto"),
-				"X-Forwarded-For", req.Header.Get("X-Forwarded-For"),
-				"X-Forwarded-Host", req.Header.Get("X-Forwarded-Host"),
-				"X-Real-Ip", req.Header.Get("X-Real-Ip"),
-			)
-			return next(c)
-		}
-	})
-
+	if gwConfig.Server.TrustRealIPHeader {
+		e.IPExtractor = echo.ExtractIPFromRealIPHeader()
+	}
 	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
 	e.Use(middleware.Recover())
 	// Sentry middleware
