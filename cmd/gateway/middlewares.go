@@ -17,7 +17,6 @@ var jsonLogger *slog.Logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.Hand
 var requestLogger echo.MiddlewareFunc = middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 	LogStatus: true,
 	LogURI:    true,
-	// LogError:     true,
 	LogRequestID: true,
 	LogRoutePath: true, // logs the handler path in the server that matched the request path
 	LogMethod:    true,
