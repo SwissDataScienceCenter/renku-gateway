@@ -18,7 +18,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oapi-codegen/runtime v1.4.0
 	github.com/oklog/ulid/v2 v2.1.1
-	github.com/posthog/posthog-go v1.11.2
+	github.com/posthog/posthog-go v1.11.3
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
