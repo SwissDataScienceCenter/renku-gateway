@@ -277,7 +277,7 @@ func (sessions *SessionStore) setSentryData(c echo.Context, session *models.Sess
 		hub.ConfigureScope(func(scope *sentry.Scope) {
 			requestID := c.Response().Header().Get(echo.HeaderXRequestID)
 			if requestID != "" {
-				scope.SetTag("request_id", requestID)
+				scope.GetSpan().SetData("request_id", requestID)
 			}
 			user := sentry.User{}
 			if session.UserID != "" {
