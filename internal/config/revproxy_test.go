@@ -15,10 +15,9 @@ func getValidRevproxyConfig(t *testing.T) RevproxyConfig {
 	require.NoError(t, err)
 	renkuServicesConfig := getValidRenkuServicesConfig(t)
 	return RevproxyConfig{
-		EnableInternalGitlab: true,
-		RenkuBaseURL:         renkuBaseURL,
-		ExternalGitlabURL:    externalGitlabURL,
-		RenkuServices:        renkuServicesConfig,
+		RenkuBaseURL:      renkuBaseURL,
+		ExternalGitlabURL: externalGitlabURL,
+		RenkuServices:     renkuServicesConfig,
 	}
 }
 
