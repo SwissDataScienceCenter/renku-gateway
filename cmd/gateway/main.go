@@ -66,6 +66,7 @@ func main() {
 	}
 	// Setup
 	e := echo.New()
+	e.HTTPErrorHandler = revproxy.ErrorHandler
 	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
 	e.Use(middleware.Recover())
 	// Sentry middleware
