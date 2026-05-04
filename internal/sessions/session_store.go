@@ -14,6 +14,8 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
+	"github.com/getsentry/sentry-go"
+	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/gorilla/securecookie"
 	"github.com/labstack/echo/v5"
 	"github.com/redis/go-redis/v9"
@@ -47,6 +49,9 @@ func (sessions *SessionStore) Middleware() echo.MiddlewareFunc {
 					utils.GetRequestID(c),
 				)
 			}
+
+			sessions.setSentryData(c, session)
+
 			err := next(c)
 			saveErr := sessions.Save(c)
 			if saveErr != nil && !errors.Is(saveErr, gwerrors.ErrSessionNotFound) && !errors.Is(saveErr, gwerrors.ErrSessionExpired) {
@@ -234,8 +239,8 @@ func (sessions *SessionStore) getFromHeaders(c *echo.Context) (*models.Session, 
 				TokenIDs:  tokenIDs,
 			}
 			c.Set(SessionCtxKey, &session)
-			// remove the authorization header, it will be re-populated if needed
-			c.Request().Header.Del(echo.HeaderAuthorization)
+			// Re-set the authorization header
+			c.Request().Header.Set(echo.HeaderAuthorization, accessToken)
 			return &session, nil
 		}
 	}
@@ -257,12 +262,35 @@ func (sessions *SessionStore) getFromBasicAuth(c *echo.Context) (*models.Session
 				TokenIDs:  tokenIDs,
 			}
 			c.Set(SessionCtxKey, &session)
-			// remove the authorization header, it will be re-populated if needed
-			c.Request().Header.Del(echo.HeaderAuthorization)
+			// Re-set the authorization header
+			c.Request().Header.Set(echo.HeaderAuthorization, basicAuthPwd)
 			return &session, nil
 		}
 	}
 	return &models.Session{}, gwerrors.ErrSessionNotFound
+}
+
+// setSentryData adds request and session metadata for Sentry
+func (sessions *SessionStore) setSentryData(c echo.Context, session *models.Session) {
+	hub := sentryecho.GetHubFromContext(c)
+	if hub != nil {
+		hub.ConfigureScope(func(scope *sentry.Scope) {
+			requestID := c.Response().Header().Get(echo.HeaderXRequestID)
+			if requestID != "" {
+				scope.GetSpan().SetData("request_id", requestID)
+			}
+			user := sentry.User{}
+			if session.UserID != "" {
+				user.ID = session.UserID
+				user.Data = map[string]string{"anonymous": "false"}
+			} else {
+				user.ID = "__anonymous__"
+				user.Data = map[string]string{"anonymous": "true"}
+			}
+			user.IPAddress = c.RealIP() // NOTE: this is filtered by Sentry
+			scope.SetUser(user)
+		})
+	}
 }
 
 type SessionStoreOption func(*SessionStore) error
