@@ -24,6 +24,25 @@ jobs:
           format: golang
         continue-on-error: true
 
+  test-generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.25
+      - name: Build gateway
+        run: |
+          make build
+      - name: Test code generation
+        run: |
+          make clean
+          make cleanup-generate
+          make generate
+          make rdu
+
   publish-images:
     runs-on: ubuntu-latest
     needs:
