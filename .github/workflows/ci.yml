@@ -40,8 +40,8 @@ jobs:
         run: |
           make clean
           make cleanup-generate
-          make generate
-          make rdu
+          make internal/login/spec.gen.go
+          make build
 
   publish-images:
     runs-on: ubuntu-latest
