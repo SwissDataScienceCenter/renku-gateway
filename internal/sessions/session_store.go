@@ -271,7 +271,7 @@ func (sessions *SessionStore) getFromBasicAuth(c *echo.Context) (*models.Session
 }
 
 // setSentryData adds request and session metadata for Sentry
-func (sessions *SessionStore) setSentryData(c echo.Context, session *models.Session) {
+func (sessions *SessionStore) setSentryData(c *echo.Context, session *models.Session) {
 	hub := sentryecho.GetHubFromContext(c)
 	if hub != nil {
 		hub.ConfigureScope(func(scope *sentry.Scope) {
