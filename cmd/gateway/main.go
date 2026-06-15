@@ -83,18 +83,13 @@ func main() {
 					if hub == nil {
 						slog.Error("SENTRY", "message", "Cannot get Sentry Hub from echo context!")
 					} else {
-						// Testing here
-						// hub.CaptureException(err)
-						client := hub.Client()
-						event := client.EventFromException(err, sentry.LevelError)
-						slog.Error("UNHANDLED ERROR", "error", err, "event", event)
+						hub.CaptureException(err)
 					}
 				}
 				return err
 			}
 		})
 	}
-
 	// The banner and the port do not respect the logger formatting we set below so we remove them
 	// the port will be logged further down when the server starts.
 	e.HideBanner = true

@@ -27,9 +27,6 @@ func proxyFromURL(url *url.URL) echo.MiddlewareFunc {
 				Name: url.String(),
 				URL:  url,
 			}}),
-		// ErrorHandler: func(c echo.Context, err error) error {
-		// 	return eris.Wrap(err, "proxy error")
-		// },
 	}
 	return middleware.ProxyWithConfig(mwConfig)
 }
