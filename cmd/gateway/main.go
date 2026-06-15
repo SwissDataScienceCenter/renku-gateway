@@ -20,11 +20,10 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/revproxy"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/tokenstore"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/views"
 	"github.com/getsentry/sentry-go"
 	sentryecho "github.com/getsentry/sentry-go/echo"
-	"github.com/go-extras/errx"
-	"github.com/go-extras/errx/stacktrace"
 	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -68,13 +67,6 @@ func main() {
 	}
 	// Setup
 	e := echo.New()
-
-	// Test
-	e.HTTPErrorHandler = func(err error, c echo.Context) {
-		wrappedErr := errx.Wrap("Unhandled error", err, stacktrace.Here())
-		e.DefaultHTTPErrorHandler(wrappedErr, c)
-	}
-
 	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
 	e.Use(middleware.Recover())
 	// Sentry middleware
@@ -86,7 +78,7 @@ func main() {
 		e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 			return func(c echo.Context) error {
 				err = next(c)
-				if err != nil {
+				if err != nil && utils.SendErrorToSentry(err) {
 					hub := sentryecho.GetHubFromContext(c)
 					if hub == nil {
 						slog.Error("SENTRY", "message", "Cannot get Sentry Hub from echo context!")

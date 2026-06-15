@@ -8,7 +8,6 @@ require (
 	github.com/getkin/kin-openapi v0.134.0
 	github.com/getsentry/sentry-go v0.44.1
 	github.com/getsentry/sentry-go/echo v0.44.1
-	github.com/go-extras/errx v1.3.0
 	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/go-cmp v0.7.0
@@ -21,6 +20,7 @@ require (
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/posthog/posthog-go v1.11.3
 	github.com/redis/go-redis/v9 v9.18.0
+	github.com/rotisserie/eris v0.5.4
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
 	github.com/zitadel/oidc/v3 v3.47.5
