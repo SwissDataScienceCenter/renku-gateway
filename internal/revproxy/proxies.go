@@ -8,10 +8,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/rotisserie/eris"
 )
-
-// var ErrProxy = errx.NewSentinel("proxy error")
 
 // proxyFromURL middleware creates a proxy that forwards requests to the specified URL
 func proxyFromURL(url *url.URL) echo.MiddlewareFunc {
@@ -30,11 +27,9 @@ func proxyFromURL(url *url.URL) echo.MiddlewareFunc {
 				Name: url.String(),
 				URL:  url,
 			}}),
-		ErrorHandler: func(c echo.Context, err error) error {
-			return eris.Wrap(err, "proxy error")
-			// return err
-			// return errx.Wrap("Unhandled error", err, errx.Attrs("proxy_url", url, "echo_context", c), ErrProxy, stacktrace.Here())
-		},
+		// ErrorHandler: func(c echo.Context, err error) error {
+		// 	return eris.Wrap(err, "proxy error")
+		// },
 	}
 	return middleware.ProxyWithConfig(mwConfig)
 }
