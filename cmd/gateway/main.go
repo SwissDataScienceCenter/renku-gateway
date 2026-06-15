@@ -78,7 +78,7 @@ func main() {
 		e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 			return func(c echo.Context) error {
 				err = next(c)
-				if err != nil && utils.SendErrorToSentry(err) {
+				if utils.SendErrorToSentry(err) {
 					hub := sentryecho.GetHubFromContext(c)
 					if hub == nil {
 						slog.Error("SENTRY", "message", "Cannot get Sentry Hub from echo context!")
