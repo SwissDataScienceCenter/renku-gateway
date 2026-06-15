@@ -23,6 +23,8 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/views"
 	"github.com/getsentry/sentry-go"
 	sentryecho "github.com/getsentry/sentry-go/echo"
+	"github.com/go-extras/errx"
+	"github.com/go-extras/errx/stacktrace"
 	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -66,6 +68,13 @@ func main() {
 	}
 	// Setup
 	e := echo.New()
+
+	// Test
+	e.HTTPErrorHandler = func(err error, c echo.Context) {
+		wrappedErr := errx.Wrap("Unhandled error", err, stacktrace.Here())
+		e.DefaultHTTPErrorHandler(wrappedErr, c)
+	}
+
 	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
 	e.Use(middleware.Recover())
 	// Sentry middleware
