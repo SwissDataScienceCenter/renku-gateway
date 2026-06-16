@@ -20,6 +20,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/revproxy"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/tokenstore"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/views"
 	"github.com/getsentry/sentry-go"
 	sentryecho "github.com/getsentry/sentry-go/echo"
@@ -77,7 +78,7 @@ func main() {
 		e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 			return func(c echo.Context) error {
 				err = next(c)
-				if err != nil {
+				if utils.SendErrorToSentry(err) {
 					hub := sentryecho.GetHubFromContext(c)
 					if hub == nil {
 						slog.Error("SENTRY", "message", "Cannot get Sentry Hub from echo context!")
