@@ -47,6 +47,8 @@ func (sessions *SessionStore) Middleware() echo.MiddlewareFunc {
 					loadErr,
 					"requestID",
 					utils.GetRequestID(c),
+					"traceID",
+					utils.GetTraceID(c),
 				)
 			}
 
@@ -69,6 +71,8 @@ func (sessions *SessionStore) Middleware() echo.MiddlewareFunc {
 					sessionID,
 					"requestID",
 					utils.GetRequestID(c),
+					"traceID",
+					utils.GetTraceID(c),
 				)
 			}
 			return err

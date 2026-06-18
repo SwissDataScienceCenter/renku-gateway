@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
+	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
 	"github.com/labstack/echo/v4"
 )
 
@@ -168,6 +169,10 @@ func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 					redirectUrl.String(),
 					"error",
 					err.Error(),
+					"requestID",
+					utils.GetRequestID(c),
+					"traceID",
+					utils.GetTraceID(c),
 				)
 				return c.NoContent(http.StatusNotFound)
 			}
@@ -176,6 +181,10 @@ func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 					"REDIRECT_STORE MIDDLEWARE",
 					"message", "nil redirect found for url (this should not happen), returning 404",
 					"from", redirectUrl.String(),
+					"requestID",
+					utils.GetRequestID(c),
+					"traceID",
+					utils.GetTraceID(c),
 				)
 				return c.NoContent(http.StatusNotFound)
 			}
@@ -184,6 +193,10 @@ func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 					"REDIRECT_STORE MIDDLEWARE",
 					"message", "no redirect found for url, returning 404",
 					"from", redirectUrl.String(),
+					"requestID",
+					utils.GetRequestID(c),
+					"traceID",
+					utils.GetTraceID(c),
 				)
 				return c.NoContent(http.StatusNotFound)
 			}
@@ -192,6 +205,10 @@ func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 				"message", "redirecting request",
 				"from", redirectUrl.String(),
 				"to", entry.TargetUrl,
+				"requestID",
+				utils.GetRequestID(c),
+				"traceID",
+				utils.GetTraceID(c),
 			)
 			return c.Redirect(http.StatusMovedPermanently, entry.TargetUrl)
 		}

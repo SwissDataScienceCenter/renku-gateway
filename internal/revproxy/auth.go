@@ -35,6 +35,8 @@ func InjectInHeader(headerKey string) AuthOption {
 					token.String(),
 					"requestID",
 					utils.GetRequestID(c),
+					"traceID",
+					utils.GetTraceID(c),
 				)
 				return nil
 			}
@@ -48,6 +50,8 @@ func InjectInHeader(headerKey string) AuthOption {
 				token.String(),
 				"requestID",
 				utils.GetRequestID(c),
+				"traceID",
+				utils.GetTraceID(c),
 			)
 			c.Request().Header.Set(headerKey, token.Value)
 			return nil
@@ -70,6 +74,8 @@ func InjectBearerToken() AuthOption {
 					token.String(),
 					"requestID",
 					utils.GetRequestID(c),
+					"traceID",
+					utils.GetTraceID(c),
 				)
 				return nil
 			}
@@ -85,6 +91,8 @@ func InjectBearerToken() AuthOption {
 				token.String(),
 				"requestID",
 				utils.GetRequestID(c),
+				"traceID",
+				utils.GetTraceID(c),
 			)
 			c.Request().Header.Set(echo.HeaderAuthorization, fmt.Sprintf("Bearer %s", token.Value))
 			return nil
@@ -156,6 +164,8 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 					a.tokenType,
 					"requestID",
 					utils.GetRequestID(c),
+					"traceID",
+					utils.GetTraceID(c),
 				)
 				return next(c)
 			}
@@ -185,6 +195,8 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 						a.tokenType,
 						"requestID",
 						utils.GetRequestID(c),
+						"traceID",
+						utils.GetTraceID(c),
 					)
 					return next(c)
 				case gwerrors.ErrTokenExpired:
@@ -200,6 +212,8 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 						a.tokenType,
 						"requestID",
 						utils.GetRequestID(c),
+						"traceID",
+						utils.GetTraceID(c),
 					)
 					return next(c)
 				default:
@@ -217,6 +231,8 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 						a.tokenType,
 						"requestID",
 						utils.GetRequestID(c),
+						"traceID",
+						utils.GetTraceID(c),
 					)
 					return next(c)
 				}
@@ -244,6 +260,8 @@ var notebooksGitlabAccessTokenInjector TokenInjector = func(c echo.Context, acce
 			accessToken.String(),
 			"requestID",
 			utils.GetRequestID(c),
+			"traceID",
+			utils.GetTraceID(c),
 		)
 		return nil
 	}
@@ -291,6 +309,8 @@ var notebooksGitlabAccessTokenInjector TokenInjector = func(c echo.Context, acce
 		accessToken.String(),
 		"requestID",
 		utils.GetRequestID(c),
+		"traceID",
+		utils.GetTraceID(c),
 	)
 	c.Request().Header.Set(headerKey, headerVal)
 	return nil
@@ -310,6 +330,8 @@ var coreSvcRenkuIdTokenInjector TokenInjector = func(c echo.Context, idToken mod
 			idToken.String(),
 			"requestID",
 			utils.GetRequestID(c),
+			"traceID",
+			utils.GetTraceID(c),
 		)
 		return nil
 	}
@@ -333,6 +355,8 @@ var coreSvcRenkuIdTokenInjector TokenInjector = func(c echo.Context, idToken mod
 		idToken.String(),
 		"requestID",
 		utils.GetRequestID(c),
+		"traceID",
+		utils.GetTraceID(c),
 	)
 	c.Request().Header.Set(headerKey, idToken.Value)
 	slog.Debug(
@@ -343,6 +367,8 @@ var coreSvcRenkuIdTokenInjector TokenInjector = func(c echo.Context, idToken mod
 		userId,
 		"requestID",
 		utils.GetRequestID(c),
+		"traceID",
+		utils.GetTraceID(c),
 	)
 	c.Request().Header.Set("Renku-user-id", userId)
 	c.Request().Header.Set("Renku-user-email", base64.StdEncoding.EncodeToString([]byte(email)))
@@ -375,6 +401,8 @@ var dataServiceGitlabAccessTokenInjector TokenInjector = func(c echo.Context, ac
 			accessToken.String(),
 			"requestID",
 			utils.GetRequestID(c),
+			"traceID",
+			utils.GetTraceID(c),
 		)
 		return nil
 	}
@@ -391,6 +419,8 @@ var dataServiceGitlabAccessTokenInjector TokenInjector = func(c echo.Context, ac
 		accessToken.String(),
 		"requestID",
 		utils.GetRequestID(c),
+		"traceID",
+		utils.GetTraceID(c),
 	)
 	c.Request().Header.Set(headerKey, accessToken.Value)
 	if accessToken.ExpiresAt.IsZero() {
@@ -407,6 +437,8 @@ var dataServiceGitlabAccessTokenInjector TokenInjector = func(c echo.Context, ac
 		accessToken.ExpiresAt,
 		"requestID",
 		utils.GetRequestID(c),
+		"traceID",
+		utils.GetTraceID(c),
 	)
 	return nil
 }
