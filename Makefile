@@ -1,6 +1,6 @@
 PKG_NAME=github.com/SwissDataScienceCenter/renku-gateway
 
-.PHONY: build clean tests format
+.PHONY: build clean tests format check_format tidy
 
 build: internal/login/spec.gen.go
 	go mod download
@@ -20,3 +20,9 @@ internal/login/spec.gen.go: apispec.yaml
 
 format:
 	gofmt -l -w cmd internal tools
+
+check_format:
+	gofmt -l cmd internal tools
+
+tidy:
+	go mod tidy -e
