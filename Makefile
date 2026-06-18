@@ -20,3 +20,7 @@ internal/login/spec.gen.go: apispec.yaml
 
 format:
 	gofmt -l -w cmd internal tools
+
+.PHONY: cleanup-generate
+cleanup-generate:  ## Remove generated files
+	rm internal/login/spec.gen.go || true
