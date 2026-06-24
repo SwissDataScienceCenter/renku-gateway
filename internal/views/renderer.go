@@ -4,15 +4,15 @@ import (
 	"html/template"
 	"io"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 type TemplateRenderer struct {
 	templates *template.Template
 }
 
-func (tr *TemplateRenderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
-	return tr.templates.ExecuteTemplate(w, name, data)
+func (tr *TemplateRenderer) Render(c *echo.Context, w io.Writer, templateName string, data any) error {
+	return tr.templates.ExecuteTemplate(w, templateName, data)
 }
 
 func (tr *TemplateRenderer) Register(e *echo.Echo) {

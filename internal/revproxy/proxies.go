@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 )
 
 // proxyFromURL middleware creates a proxy that forwards requests to the specified URL
@@ -18,7 +18,7 @@ func proxyFromURL(url *url.URL) echo.MiddlewareFunc {
 	}
 	mwConfig := middleware.ProxyConfig{
 		// the skipper is used to log only
-		Skipper: func(c echo.Context) bool {
+		Skipper: func(c *echo.Context) bool {
 			slog.Info("PROXY", "requestID", utils.GetRequestID(c), "destination", url.String())
 			return false
 		},

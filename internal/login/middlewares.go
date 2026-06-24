@@ -3,7 +3,7 @@ package login
 import (
 	"time"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 // NoCaching sets headers in responses that prevent caching by the browser.
@@ -14,7 +14,7 @@ func NoCaching(next echo.HandlerFunc) echo.HandlerFunc {
 		"Cache-Control":   "no-cache, no-store, must-revalidate, max-age=0",
 		"X-Accel-Expires": "0",
 	}
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		for k, v := range noCacheHeaders {
 			c.Response().Header().Set(k, v)
 		}

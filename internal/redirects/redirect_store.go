@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 type PlatformRedirectConfig struct {
@@ -150,7 +150,7 @@ func (rs *RedirectStore) GetRedirectEntry(ctx context.Context, url url.URL) (*Re
 
 func (rs *RedirectStore) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			redirectUrl := c.Request().URL
 			if redirectUrl == nil {
 				return next(c)

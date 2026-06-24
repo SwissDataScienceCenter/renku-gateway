@@ -9,8 +9,8 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 )
 
 // regexRewrite is a small helper function to produce a path rewrite middleware
@@ -38,7 +38,7 @@ func stripPrefix(prefix string) echo.MiddlewareFunc {
 // anything outside of the cluster fails.
 func setHost(host string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			c.Request().Host = host
 			return next(c)
 		}
@@ -48,7 +48,7 @@ func setHost(host string) echo.MiddlewareFunc {
 // ensureSession middleware makes sure a session exists by creating a new one if none is found.
 func ensureSession(sessions *sessions.SessionStore) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			session, err := sessions.Get(c)
 			if err != nil || session.ID == "" {
 				_, err = sessions.Create(c)
@@ -66,7 +66,7 @@ func ensureSession(sessions *sessions.SessionStore) echo.MiddlewareFunc {
 // Renku component and injects the proper credentials required by the specific component.
 func UiServerPathRewrite() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			path := c.Request().URL.Path
 			// For several endpoints below the gateway still cannot skip the UI server.
 			if strings.HasPrefix(path, "/ui-server/api/allows-iframe") ||
@@ -128,7 +128,7 @@ func UiServerPathRewrite() echo.MiddlewareFunc {
 // chain after all other token injection middelwares have run.
 func notebooksAnonymousID(sessions *sessions.SessionStore) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			// The request is not anonymous, continue
 			if c.Request().Header.Get("Renku-Auth-Access-Token") != "" || c.Request().Header.Get("Renku-Auth-Id-Token") != "" || c.Request().Header.Get("Renku-Auth-Refresh-Token") != "" {
 				return next(c)

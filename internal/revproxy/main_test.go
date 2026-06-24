@@ -23,8 +23,8 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/tokenstore"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -161,7 +161,7 @@ func setupTestRevproxy(rpConfig *config.RevproxyConfig, sessions *sessions.Sessi
 	}
 	e := echo.New()
 	e.Pre(middleware.RemoveTrailingSlash(), UiServerPathRewrite())
-	e.Use(middleware.Recover(), middleware.Logger())
+	e.Use(middleware.Recover(), middleware.RequestLogger())
 	proxy.RegisterHandlers(e, sessions.Middleware())
 	srv := httptest.NewServer(e)
 	url, err := url.Parse(srv.URL)

@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 func newMockRenkuDataService(t *testing.T, calls *int32) *httptest.Server {
@@ -136,7 +136,7 @@ func TestRedirectStoreMiddleware(t *testing.T) {
 	// Create middleware and execute it; next should not be called because a redirect exists
 	mw := rs.Middleware()
 	nextCalled := false
-	next := func(c echo.Context) error {
+	next := func(c *echo.Context) error {
 		nextCalled = true
 		return c.String(200, "next")
 	}
