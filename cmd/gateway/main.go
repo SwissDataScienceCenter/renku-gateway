@@ -71,6 +71,19 @@ func main() {
 	e.Use(middleware.Recover())
 	// Sentry middleware
 	if gwConfig.Monitoring.Sentry.Enabled {
+		// NEW: Handle repeated requests
+		e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+			return func(c echo.Context) error {
+				req := c.Request()
+				isRepeatedRequest := req.Header.Get("Renku-Repeated-Request")
+				if isRepeatedRequest == "true" {
+					req.Header.Del(sentry.SentryTraceHeader)
+					req.Header.Del(sentry.SentryBaggageHeader)
+				}
+				return next(c)
+			}
+		})
+
 		e.Use(sentryecho.New(sentryecho.Options{
 			Repanic: true,
 		}))
