@@ -77,6 +77,7 @@ func main() {
 				req := c.Request()
 				isRepeatedRequest := req.Header.Get("Renku-Repeated-Request")
 				if isRepeatedRequest == "true" {
+					slog.Info("Breaking Sentry distributed trace because request is repeated", "path", req.URL.Path)
 					req.Header.Del(sentry.SentryTraceHeader)
 					req.Header.Del(sentry.SentryBaggageHeader)
 				}
