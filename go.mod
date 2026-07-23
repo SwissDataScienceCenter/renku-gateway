@@ -5,7 +5,7 @@ go 1.25.5
 tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
 
 require (
-	github.com/getkin/kin-openapi v0.134.0
+	github.com/getkin/kin-openapi v0.135.0
 	github.com/getsentry/sentry-go v0.44.1
 	github.com/getsentry/sentry-go/echo v0.44.1
 	github.com/go-jose/go-jose/v4 v4.1.4
@@ -52,9 +52,9 @@ require (
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/muhlemmer/gu v0.3.1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/oapi-codegen/oapi-codegen/v2 v2.5.1 // indirect
-	github.com/oasdiff/yaml v0.0.0-20260313112342-a3ea61cb4d4c // indirect
-	github.com/oasdiff/yaml3 v0.0.0-20260224194419-61cd415a242b // indirect
+	github.com/oapi-codegen/oapi-codegen/v2 v2.7.1 // indirect
+	github.com/oasdiff/yaml v0.0.9 // indirect
+	github.com/oasdiff/yaml3 v0.0.9 // indirect
 	github.com/onsi/gomega v1.38.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
@@ -65,8 +65,8 @@ require (
 	github.com/prometheus/procfs v0.19.2 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
-	github.com/speakeasy-api/jsonpath v0.6.0 // indirect
-	github.com/speakeasy-api/openapi-overlay v0.10.2 // indirect
+	github.com/speakeasy-api/jsonpath v0.6.3 // indirect
+	github.com/speakeasy-api/openapi v1.19.2 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
@@ -92,6 +92,5 @@ require (
 	golang.org/x/text v0.37.0 // indirect
 	golang.org/x/tools v0.44.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
