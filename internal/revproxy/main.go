@@ -39,8 +39,6 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 	dataServiceProxy := proxyFromURL(r.config.RenkuServices.DataService)
 	uiServerProxy := proxyFromURL(r.config.RenkuServices.UIServer)
 
-	noOpHandler := func(c *echo.Context) error { return nil }
-
 	// Deny rules
 	sk := e.Group("/api/data/user/secret_key", commonMiddlewares...)
 	sk.RouteNotFound("*", func(c *echo.Context) error { return echo.ErrNotFound })
