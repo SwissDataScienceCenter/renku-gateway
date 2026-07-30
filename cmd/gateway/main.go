@@ -92,7 +92,7 @@ func main() {
 		// Handle repeated requests: strip the Sentry headers and break distributed tracing
 		// for repeated requests
 		e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-			return func(c echo.Context) error {
+			return func(c *echo.Context) error {
 				req := c.Request()
 				isRepeatedRequest := req.Header.Get("Renku-Repeated-Request")
 				if isRepeatedRequest == "true" {
