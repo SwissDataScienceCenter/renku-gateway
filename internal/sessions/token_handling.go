@@ -3,12 +3,12 @@ package sessions
 import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/gwerrors"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/redis/go-redis/v9"
 )
 
 // getAuthTokenFromContext retrieves an access token from the current context
-func (sessions *SessionStore) getAuthTokenFromContext(c echo.Context, key string) (models.AuthToken, error) {
+func (sessions *SessionStore) getAuthTokenFromContext(c *echo.Context, key string) (models.AuthToken, error) {
 	tokenRaw := c.Get(key)
 	if tokenRaw != nil {
 		token, ok := tokenRaw.(models.AuthToken)
@@ -26,19 +26,19 @@ func (sessions *SessionStore) getAuthTokenFromContext(c echo.Context, key string
 	return models.AuthToken{}, gwerrors.ErrTokenNotFound
 }
 
-func (sessions *SessionStore) getAccessTokenFromContext(c echo.Context, tokenID string) (models.AuthToken, error) {
+func (sessions *SessionStore) getAccessTokenFromContext(c *echo.Context, tokenID string) (models.AuthToken, error) {
 	return sessions.getAuthTokenFromContext(c, sessions.accessTokenKey(tokenID))
 }
 
-func (sessions *SessionStore) getRefreshTokenFromContext(c echo.Context, tokenID string) (models.AuthToken, error) {
+func (sessions *SessionStore) getRefreshTokenFromContext(c *echo.Context, tokenID string) (models.AuthToken, error) {
 	return sessions.getAuthTokenFromContext(c, sessions.refreshTokenKey(tokenID))
 }
 
-func (sessions *SessionStore) getIDTokenFromContext(c echo.Context, tokenID string) (models.AuthToken, error) {
+func (sessions *SessionStore) getIDTokenFromContext(c *echo.Context, tokenID string) (models.AuthToken, error) {
 	return sessions.getAuthTokenFromContext(c, sessions.idTokenKey(tokenID))
 }
 
-func (sessions *SessionStore) GetAccessToken(c echo.Context, session models.Session, providerID string) (models.AuthToken, error) {
+func (sessions *SessionStore) GetAccessToken(c *echo.Context, session models.Session, providerID string) (models.AuthToken, error) {
 	if session.TokenIDs == nil {
 		session.TokenIDs = models.SerializableMap{}
 	}
@@ -66,7 +66,7 @@ func (sessions *SessionStore) GetAccessToken(c echo.Context, session models.Sess
 	return token, nil
 }
 
-func (sessions *SessionStore) GetRefreshToken(c echo.Context, session models.Session, providerID string) (models.AuthToken, error) {
+func (sessions *SessionStore) GetRefreshToken(c *echo.Context, session models.Session, providerID string) (models.AuthToken, error) {
 	if session.TokenIDs == nil {
 		session.TokenIDs = models.SerializableMap{}
 	}
@@ -94,7 +94,7 @@ func (sessions *SessionStore) GetRefreshToken(c echo.Context, session models.Ses
 	return token, nil
 }
 
-func (sessions *SessionStore) GetIDToken(c echo.Context, session models.Session, providerID string) (models.AuthToken, error) {
+func (sessions *SessionStore) GetIDToken(c *echo.Context, session models.Session, providerID string) (models.AuthToken, error) {
 	if session.TokenIDs == nil {
 		session.TokenIDs = models.SerializableMap{}
 	}
@@ -122,7 +122,7 @@ func (sessions *SessionStore) GetIDToken(c echo.Context, session models.Session,
 	return token, nil
 }
 
-func (sessions *SessionStore) SaveTokens(c echo.Context, session *models.Session, tokens models.AuthTokenSet) error {
+func (sessions *SessionStore) SaveTokens(c *echo.Context, session *models.Session, tokens models.AuthTokenSet) error {
 	err := tokens.ValidateTokensType()
 	if err != nil {
 		return err

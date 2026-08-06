@@ -10,7 +10,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/redirects"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/sessions"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 type Revproxy struct {
@@ -41,7 +41,7 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 
 	// Deny rules
 	sk := e.Group("/api/data/user/secret_key", commonMiddlewares...)
-	sk.GET("/", echo.NotFoundHandler)
+	sk.RouteNotFound("*", func(c *echo.Context) error { return echo.ErrNotFound })
 
 	// Redirects store middleware
 	if r.redirects != nil {
@@ -86,6 +86,9 @@ func (r *Revproxy) RegisterHandlers(e *echo.Echo, commonMiddlewares ...echo.Midd
 		// Some routes need to go to the UI server before they go to the specific Renku service
 		e.Group("/ui-server/api/allows-iframe", append(commonMiddlewares, uiServerProxy)...)
 	}
+
+	// Reject un-matched /api routes
+	e.Group("/api", commonMiddlewares...).RouteNotFound("*", func(c *echo.Context) error { return echo.ErrNotFound })
 
 	// If nothing is matched from any of the routes above then fall back to the UI
 	e.Group("/", append(commonMiddlewares, renkuBaseProxyHost, fallbackProxy)...)
