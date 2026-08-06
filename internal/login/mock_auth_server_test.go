@@ -8,8 +8,8 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/config"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 )
 
 var testJWKSContent = map[string][]map[string]string{
@@ -105,11 +105,11 @@ type testAuthServer struct {
 	server          *httptest.Server
 }
 
-func (*testAuthServer) jwksEndpoint(c echo.Context) error {
+func (*testAuthServer) jwksEndpoint(c *echo.Context) error {
 	return c.JSON(http.StatusOK, testJWKSContent)
 }
 
-func (t *testAuthServer) wktEndpoint(c echo.Context) error {
+func (t *testAuthServer) wktEndpoint(c *echo.Context) error {
 	type wkt struct {
 		Issuer                      string   `json:"issuer,omitempty"`
 		AuthorizationEndpoint       string   `json:"authorization_endpoint,omitempty"`
@@ -154,7 +154,7 @@ func (t *testAuthServer) getJWT() (string, error) {
 	return tokenString, nil
 }
 
-func (t *testAuthServer) authorizeEndpoint(c echo.Context) error {
+func (t *testAuthServer) authorizeEndpoint(c *echo.Context) error {
 	if t.Authorized {
 		state := c.QueryParam("state")
 		redirectURL := c.QueryParam("redirect_uri")
@@ -166,7 +166,7 @@ func (t *testAuthServer) authorizeEndpoint(c echo.Context) error {
 	return c.String(http.StatusUnauthorized, "not authorized by test auth server")
 }
 
-func (t *testAuthServer) tokenEndpoint(c echo.Context) error {
+func (t *testAuthServer) tokenEndpoint(c *echo.Context) error {
 	if t.Authorized {
 		jwtToken, err := t.getJWT()
 		if err != nil {
@@ -192,12 +192,13 @@ func (t *testAuthServer) Server() *httptest.Server {
 func (t *testAuthServer) Start() {
 	e := echo.New()
 	e.Pre(middleware.RequestID())
-	e.Use(middleware.Recover(), middleware.Logger())
+	// e.Use(middleware.Recover(), middleware.Logger())
+	e.Use(middleware.Recover(), middleware.RequestLogger())
 	e.GET("/authorize", t.authorizeEndpoint)
 	e.GET("/jwks", t.jwksEndpoint)
 	e.POST("/token", t.tokenEndpoint)
 	e.GET("/.well-known/openid-configuration", t.wktEndpoint)
-	t.server = httptest.NewServer(e.Server.Handler)
+	t.server = httptest.NewServer(e)
 }
 
 func (t *testAuthServer) ProviderConfig() config.OIDCClient {

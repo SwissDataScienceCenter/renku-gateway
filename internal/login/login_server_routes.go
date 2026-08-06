@@ -8,11 +8,11 @@ import (
 
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/models"
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/utils"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 // GetLogin is a handler for the initiation of a authorization code flow login for Renku
-func (l *LoginServer) GetLogin(c echo.Context, params GetLoginParams) error {
+func (l *LoginServer) GetLogin(c *echo.Context, params GetLoginParams) error {
 	session, err := l.sessions.Create(c)
 	if err != nil {
 		return err
@@ -36,7 +36,7 @@ func (l *LoginServer) GetLogin(c echo.Context, params GetLoginParams) error {
 	return l.nextAuthStep(c, session)
 }
 
-func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) error {
+func (l *LoginServer) GetCallback(c *echo.Context, params GetCallbackParams) error {
 	state := c.Request().URL.Query().Get("state")
 	if state == "" {
 		return fmt.Errorf("a state parameter is required")
@@ -88,7 +88,7 @@ func (l *LoginServer) GetCallback(c echo.Context, params GetCallbackParams) erro
 	return l.nextAuthStep(c, session)
 }
 
-func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
+func (l *LoginServer) GetLogout(c *echo.Context, params GetLogoutParams) error {
 	// Check redirect parameters
 	var redirectURL string
 	if params.RedirectUrl != nil && *params.RedirectUrl != "" {
@@ -149,7 +149,7 @@ func (l *LoginServer) GetLogout(c echo.Context, params GetLogoutParams) error {
 	return c.Render(http.StatusOK, "logout", templateData)
 }
 
-func (l *LoginServer) GetGitLabToken(c echo.Context) error {
+func (l *LoginServer) GetGitLabToken(c *echo.Context) error {
 	userID := ""
 	// Get the user id from the current session
 	if userID == "" {
@@ -172,7 +172,7 @@ func (l *LoginServer) GetGitLabToken(c echo.Context) error {
 	})
 }
 
-func (l *LoginServer) GetGitLabLogout(c echo.Context) error {
+func (l *LoginServer) GetGitLabLogout(c *echo.Context) error {
 	provider, ok := l.config.Providers["gitlab"]
 	if !ok {
 		return c.NoContent(404)
@@ -184,7 +184,7 @@ func (l *LoginServer) GetGitLabLogout(c echo.Context) error {
 	return c.Render(http.StatusOK, "gitlab_logout", templateData)
 }
 
-func (l *LoginServer) GetUserProfile(c echo.Context) error {
+func (l *LoginServer) GetUserProfile(c *echo.Context) error {
 	redirectURL, err := l.providerStore.UserProfileURL("renku")
 	if err != nil {
 		return err
@@ -192,7 +192,7 @@ func (l *LoginServer) GetUserProfile(c echo.Context) error {
 	return c.Redirect(http.StatusFound, redirectURL.String())
 }
 
-func (*LoginServer) GetHealth(c echo.Context) error {
+func (*LoginServer) GetHealth(c *echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
@@ -200,7 +200,7 @@ func (*LoginServer) GetHealth(c echo.Context) error {
 // the redirect of the user to the Provider's login and authorization page.
 // Adapted from oauth2-proxy code.
 func (l *LoginServer) nextAuthStep(
-	c echo.Context,
+	c *echo.Context,
 	session *models.Session,
 ) error {
 	// Get the next provider to authenticate with

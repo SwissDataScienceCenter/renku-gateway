@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 // SendErrorToSentry returns true if the given error should be sent to Sentry
