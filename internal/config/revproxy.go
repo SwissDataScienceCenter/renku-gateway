@@ -12,11 +12,10 @@ type RenkuServicesConfig struct {
 }
 
 type RevproxyConfig struct {
-	EnableInternalGitlab bool
-	RenkuBaseURL         *url.URL
-	ExternalGitlabURL    *url.URL
-	K8sNamespace         string
-	RenkuServices        RenkuServicesConfig
+	RenkuBaseURL      *url.URL
+	ExternalGitlabURL *url.URL
+	K8sNamespace      string
+	RenkuServices     RenkuServicesConfig
 }
 
 func (r *RevproxyConfig) Validate() error {

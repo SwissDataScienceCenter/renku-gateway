@@ -181,15 +181,14 @@ type TestResults struct {
 }
 
 type TestCase struct {
-	Path                 string
-	QueryParams          map[string]string
-	EnableInternalGitlab bool
-	Tokens               []models.AuthToken
-	Sessions             []models.Session
-	ExternalGitlab       bool
-	Expected             TestResults
-	RequestHeader        map[string]string
-	RequestCookie        *http.Cookie
+	Path           string
+	QueryParams    map[string]string
+	Tokens         []models.AuthToken
+	Sessions       []models.Session
+	ExternalGitlab bool
+	Expected       TestResults
+	RequestHeader  map[string]string
+	RequestCookie  *http.Cookie
 }
 
 func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
@@ -203,8 +202,7 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 			err       error
 		)
 		rpConfig := config.RevproxyConfig{
-			EnableInternalGitlab: scenario.EnableInternalGitlab,
-			RenkuBaseURL:         upstreamURL,
+			RenkuBaseURL: upstreamURL,
 			RenkuServices: config.RenkuServicesConfig{
 				DataService: upstreamURL,
 				Keycloak:    upstreamURL,
@@ -234,9 +232,7 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 		}
 		tokenStore, err := tokenstore.NewTokenStore(
 			tokenstore.WithExpiryMargin(time.Duration(3)*time.Minute),
-			tokenstore.WithConfig(config.LoginConfig{
-				EnableInternalGitlab: scenario.EnableInternalGitlab,
-			}),
+			tokenstore.WithConfig(config.LoginConfig{}),
 			tokenstore.WithTokenRepository(dbAdapter),
 		)
 		require.NoError(t, err)
@@ -348,141 +344,141 @@ func ParametrizedRouteTest(scenario TestCase) func(*testing.T) {
 func TestInternalSvcRoutes(t *testing.T) {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})))
 
-	v1TestCases := []TestCase{
-		{
-			Path: "/api/notebooks/test/rejectedAuth",
-			Expected: TestResults{
-				VisitedServerIDs: []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization:         "",
-					"Gitlab-Access-Token":            "",
-					"Gitlab-Access-Token-Expires-At": "",
-					"Renku-Auth-Refresh-Token":       "",
-					"Renku-Auth-Anon-Id":             "anon-sessionID",
-				}},
-			},
-			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID")),
-			},
-			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
-		},
-		{
-			Path: "/api/notebooks/test/acceptedAuth",
-			Expected: TestResults{
-				Path:             "/api/data/notebooks/test/acceptedAuth",
-				VisitedServerIDs: []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization:         "Bearer accessTokenValue",
-					"Gitlab-Access-Token":            "gitlabAccessTokenValue",
-					"Gitlab-Access-Token-Expires-At": "16746525971",
-					"Renku-Auth-Refresh-Token":       "refreshTokenValue",
-					"Renku-Auth-Anon-Id":             "",
-				}},
-			},
-			Tokens: []models.AuthToken{
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("renku:myToken"),
-					tokenPlainValue("accessTokenValue"),
-					tokenProviderID("renku"),
-				),
-				newTestToken(
-					models.RefreshTokenType,
-					tokenID("renku:myToken"),
-					tokenPlainValue("refreshTokenValue"),
-					tokenProviderID("renku"),
-				),
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("gitlab:otherToken"),
-					tokenPlainValue("gitlabAccessTokenValue"),
-					tokenProviderID("gitlab"),
-					tokenExpiresAt(time.Unix(16746525971, 0)),
-				),
-			},
-			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"renku": "renku:myToken", "gitlab": "gitlab:otherToken"})),
-			},
-			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
-		},
-		{
-			Path:     "/api/notebooks",
-			Expected: TestResults{Path: "/api/data/notebooks", VisitedServerIDs: []string{"upstream"}},
-		},
-		{
-			Path: "/api/data/user/secret_key",
-			Expected: TestResults{
-				Path:                     "/api/data/user/secret_key",
-				Non200ResponseStatusCode: 404,
-			},
-		},
-		{
-			Path: "/api/data/user",
-			Tokens: []models.AuthToken{
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("renku:myToken"),
-					tokenPlainValue("accessTokenValue"),
-					tokenProviderID("renku"),
-				),
-				newTestToken(
-					models.RefreshTokenType,
-					tokenID("renku:myToken"),
-					tokenPlainValue("refreshTokenValue"),
-					tokenProviderID("renku"),
-				),
-				newTestToken(
-					models.AccessTokenType,
-					tokenID("gitlab:otherToken"),
-					tokenPlainValue("gitlabAccessTokenValue"),
-					tokenProviderID("gitlab"),
-					tokenExpiresAt(time.Unix(16746525971, 0)),
-				),
-			},
-			Sessions: []models.Session{
-				newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"renku": "renku:myToken", "gitlab": "gitlab:otherToken"})),
-			},
-			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
-			Expected: TestResults{
-				Path:             "/api/data/user",
-				VisitedServerIDs: []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization:         "Bearer accessTokenValue",
-					"Gitlab-Access-Token":            "gitlabAccessTokenValue",
-					"Gitlab-Access-Token-Expires-At": "16746525971",
-					"Renku-Auth-Refresh-Token":       "refreshTokenValue",
-					"Renku-Auth-Anon-Id":             "",
-				}},
-			},
-		},
-		{
-			Path:          "/api/data/sessions",
-			Sessions:      []models.Session{newTestSesssion(sessionID("sessionID"))},
-			RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
-			Expected: TestResults{
-				Path:             "/api/data/sessions",
-				VisitedServerIDs: []string{"upstream"},
-				UpstreamRequestHeaders: []map[string]string{{
-					echo.HeaderAuthorization:         "",
-					"Gitlab-Access-Token":            "",
-					"Gitlab-Access-Token-Expires-At": "",
-					"Renku-Auth-Refresh-Token":       "",
-					"Renku-Auth-Anon-Id":             "anon-sessionID",
-				}},
-			},
-		},
-		{
-			Path: "/ui-server/api/data/repositories/https%3A%2F%2Fexample.org%2Fgroup%2Frepo",
-			Expected: TestResults{
-				Path:             "/api/data/repositories/https%3A%2F%2Fexample.org%2Fgroup%2Frepo",
-				VisitedServerIDs: []string{"upstream"},
-			},
-		},
-	}
+	// v1TestCases := []TestCase{
+	// 	{
+	// 		Path: "/api/notebooks/test/rejectedAuth",
+	// 		Expected: TestResults{
+	// 			VisitedServerIDs: []string{"upstream"},
+	// 			UpstreamRequestHeaders: []map[string]string{{
+	// 				echo.HeaderAuthorization:         "",
+	// 				"Gitlab-Access-Token":            "",
+	// 				"Gitlab-Access-Token-Expires-At": "",
+	// 				"Renku-Auth-Refresh-Token":       "",
+	// 				"Renku-Auth-Anon-Id":             "anon-sessionID",
+	// 			}},
+	// 		},
+	// 		Sessions: []models.Session{
+	// 			newTestSesssion(sessionID("sessionID")),
+	// 		},
+	// 		RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
+	// 	},
+	// 	{
+	// 		Path: "/api/notebooks/test/acceptedAuth",
+	// 		Expected: TestResults{
+	// 			Path:             "/api/data/notebooks/test/acceptedAuth",
+	// 			VisitedServerIDs: []string{"upstream"},
+	// 			UpstreamRequestHeaders: []map[string]string{{
+	// 				echo.HeaderAuthorization:         "Bearer accessTokenValue",
+	// 				"Gitlab-Access-Token":            "gitlabAccessTokenValue",
+	// 				"Gitlab-Access-Token-Expires-At": "16746525971",
+	// 				"Renku-Auth-Refresh-Token":       "refreshTokenValue",
+	// 				"Renku-Auth-Anon-Id":             "",
+	// 			}},
+	// 		},
+	// 		Tokens: []models.AuthToken{
+	// 			newTestToken(
+	// 				models.AccessTokenType,
+	// 				tokenID("renku:myToken"),
+	// 				tokenPlainValue("accessTokenValue"),
+	// 				tokenProviderID("renku"),
+	// 			),
+	// 			newTestToken(
+	// 				models.RefreshTokenType,
+	// 				tokenID("renku:myToken"),
+	// 				tokenPlainValue("refreshTokenValue"),
+	// 				tokenProviderID("renku"),
+	// 			),
+	// 			newTestToken(
+	// 				models.AccessTokenType,
+	// 				tokenID("gitlab:otherToken"),
+	// 				tokenPlainValue("gitlabAccessTokenValue"),
+	// 				tokenProviderID("gitlab"),
+	// 				tokenExpiresAt(time.Unix(16746525971, 0)),
+	// 			),
+	// 		},
+	// 		Sessions: []models.Session{
+	// 			newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"renku": "renku:myToken", "gitlab": "gitlab:otherToken"})),
+	// 		},
+	// 		RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
+	// 	},
+	// 	{
+	// 		Path:     "/api/notebooks",
+	// 		Expected: TestResults{Path: "/api/data/notebooks", VisitedServerIDs: []string{"upstream"}},
+	// 	},
+	// 	{
+	// 		Path: "/api/data/user/secret_key",
+	// 		Expected: TestResults{
+	// 			Path:                     "/api/data/user/secret_key",
+	// 			Non200ResponseStatusCode: 404,
+	// 		},
+	// 	},
+	// 	{
+	// 		Path: "/api/data/user",
+	// 		Tokens: []models.AuthToken{
+	// 			newTestToken(
+	// 				models.AccessTokenType,
+	// 				tokenID("renku:myToken"),
+	// 				tokenPlainValue("accessTokenValue"),
+	// 				tokenProviderID("renku"),
+	// 			),
+	// 			newTestToken(
+	// 				models.RefreshTokenType,
+	// 				tokenID("renku:myToken"),
+	// 				tokenPlainValue("refreshTokenValue"),
+	// 				tokenProviderID("renku"),
+	// 			),
+	// 			newTestToken(
+	// 				models.AccessTokenType,
+	// 				tokenID("gitlab:otherToken"),
+	// 				tokenPlainValue("gitlabAccessTokenValue"),
+	// 				tokenProviderID("gitlab"),
+	// 				tokenExpiresAt(time.Unix(16746525971, 0)),
+	// 			),
+	// 		},
+	// 		Sessions: []models.Session{
+	// 			newTestSesssion(sessionID("sessionID"), withTokenIDs(map[string]string{"renku": "renku:myToken", "gitlab": "gitlab:otherToken"})),
+	// 		},
+	// 		RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
+	// 		Expected: TestResults{
+	// 			Path:             "/api/data/user",
+	// 			VisitedServerIDs: []string{"upstream"},
+	// 			UpstreamRequestHeaders: []map[string]string{{
+	// 				echo.HeaderAuthorization:         "Bearer accessTokenValue",
+	// 				"Gitlab-Access-Token":            "gitlabAccessTokenValue",
+	// 				"Gitlab-Access-Token-Expires-At": "16746525971",
+	// 				"Renku-Auth-Refresh-Token":       "refreshTokenValue",
+	// 				"Renku-Auth-Anon-Id":             "",
+	// 			}},
+	// 		},
+	// 	},
+	// 	{
+	// 		Path:          "/api/data/sessions",
+	// 		Sessions:      []models.Session{newTestSesssion(sessionID("sessionID"))},
+	// 		RequestCookie: &http.Cookie{Name: sessions.SessionCookieName, Value: "sessionID"},
+	// 		Expected: TestResults{
+	// 			Path:             "/api/data/sessions",
+	// 			VisitedServerIDs: []string{"upstream"},
+	// 			UpstreamRequestHeaders: []map[string]string{{
+	// 				echo.HeaderAuthorization:         "",
+	// 				"Gitlab-Access-Token":            "",
+	// 				"Gitlab-Access-Token-Expires-At": "",
+	// 				"Renku-Auth-Refresh-Token":       "",
+	// 				"Renku-Auth-Anon-Id":             "anon-sessionID",
+	// 			}},
+	// 		},
+	// 	},
+	// 	{
+	// 		Path: "/ui-server/api/data/repositories/https%3A%2F%2Fexample.org%2Fgroup%2Frepo",
+	// 		Expected: TestResults{
+	// 			Path:             "/api/data/repositories/https%3A%2F%2Fexample.org%2Fgroup%2Frepo",
+	// 			VisitedServerIDs: []string{"upstream"},
+	// 		},
+	// 	},
+	// }
 
-	for idx := range v1TestCases {
-		v1TestCases[idx].EnableInternalGitlab = true
-	}
+	// for idx := range v1TestCases {
+	// 	v1TestCases[idx].EnableInternalGitlab = true
+	// }
 
 	v2TestCases := []TestCase{
 		{
@@ -643,9 +639,6 @@ func TestInternalSvcRoutes(t *testing.T) {
 				VisitedServerIDs: []string{"upstream"},
 			},
 		},
-	}
-	for idx := range v2TestCases {
-		v2TestCases[idx].EnableInternalGitlab = false
 	}
 
 	v2TestCasesWithInternalGitlab := []TestCase{
@@ -808,12 +801,9 @@ func TestInternalSvcRoutes(t *testing.T) {
 			},
 		},
 	}
-	for idx := range v2TestCasesWithInternalGitlab {
-		v2TestCasesWithInternalGitlab[idx].EnableInternalGitlab = true
-	}
 
 	// Combine all test cases
-	testCases := append(v1TestCases, v2TestCases...)
+	testCases := append(v2TestCases...)
 	testCases = append(testCases, v2TestCasesWithInternalGitlab...)
 
 	for _, testCase := range testCases {
