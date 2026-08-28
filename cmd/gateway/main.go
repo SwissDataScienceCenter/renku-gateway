@@ -232,7 +232,16 @@ func main() {
 	}
 	// CORS
 	if len(gwConfig.Server.AllowOrigin) > 0 {
-		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{AllowOrigins: gwConfig.Server.AllowOrigin}))
+		e.Use(
+			middleware.CORSWithConfig(
+				middleware.CORSConfig{
+					AllowOrigins:     gwConfig.Server.AllowOrigin,
+					AllowCredentials: gwConfig.Sessions.UnsafeCookieTemplate,
+				},
+			),
+		)
+	} else if gwConfig.Sessions.UnsafeCookieTemplate {
+		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{AllowCredentials: true}))
 	}
 	// Prometheus
 	var metrics *echo.Echo = nil
