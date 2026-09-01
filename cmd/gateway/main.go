@@ -26,7 +26,7 @@ import (
 	"github.com/SwissDataScienceCenter/renku-gateway/internal/views"
 	"github.com/getsentry/sentry-go"
 	sentryecho "github.com/getsentry/sentry-go/echo"
-	"github.com/labstack/echo-contrib/v5/echoprometheus"
+	echoprometheus "github.com/labstack/echo-prometheus"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 )
