@@ -61,6 +61,8 @@ func main() {
 			// true regardless of TraceSampleRate's value to avoid corner cases where a trace ID isn't generated or
 			// isn't correctly linked to other events in the request's trace.
 			EnableTracing: true,
+			// We want to filter out some transactions
+			BeforeSendTransaction: utils.FilterTransactions,
 		})
 		if err != nil {
 			slog.Error("sentry initialization failed", "error", err)

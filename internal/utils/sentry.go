@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/labstack/echo/v5"
 )
 
@@ -21,4 +22,8 @@ func SendErrorToSentry(err error) bool {
 		return false
 	}
 	return true
+}
+
+func FilterTransactions(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
+	return nil
 }
