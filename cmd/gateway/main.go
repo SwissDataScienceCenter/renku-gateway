@@ -68,7 +68,7 @@ func main() {
 			log = append(log, "response.status", res.Status)
 		}
 		log = append(log, "error", err)
-		slog.Info("emudhra 1", log...)
+		slog.Info("emudhra 2", log...)
 	}
 	testEmudhra()
 
