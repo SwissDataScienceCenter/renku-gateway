@@ -34,23 +34,6 @@ import (
 func main() {
 	// Logging setup
 	slog.SetDefault(jsonLogger)
-	// Load configuration
-	ch := config.NewConfigHandler()
-	gwConfig, err := ch.Config()
-	if err != nil {
-		slog.Error("loading the configuration failed", "error", err)
-		os.Exit(1)
-	}
-	slog.Info("loaded config", "config", gwConfig)
-	err = gwConfig.Validate()
-	if err != nil {
-		slog.Error("the config validation failed", "error", err)
-		os.Exit(1)
-	}
-	// Set log level to "debug" if activated
-	if gwConfig.DebugMode {
-		logLevel.Set(slog.LevelDebug)
-	}
 
 	// Check emudhra issue
 	testEmudhra := func() {
@@ -71,6 +54,24 @@ func main() {
 		slog.Info("emudhra 2", log...)
 	}
 	testEmudhra()
+
+	// Load configuration
+	ch := config.NewConfigHandler()
+	gwConfig, err := ch.Config()
+	if err != nil {
+		slog.Error("loading the configuration failed", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("loaded config", "config", gwConfig)
+	err = gwConfig.Validate()
+	if err != nil {
+		slog.Error("the config validation failed", "error", err)
+		os.Exit(1)
+	}
+	// Set log level to "debug" if activated
+	if gwConfig.DebugMode {
+		logLevel.Set(slog.LevelDebug)
+	}
 
 	// Sentry
 	if gwConfig.Monitoring.Sentry.Enabled {
