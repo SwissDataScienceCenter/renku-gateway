@@ -51,6 +51,27 @@ func main() {
 	if gwConfig.DebugMode {
 		logLevel.Set(slog.LevelDebug)
 	}
+
+	// Check emudhra issue
+	testEmudhra := func() {
+		res, err := http.Get("https://dv-g3b-emudhra.we-have-a-problem.com/")
+		log := []any{}
+		if res != nil {
+			log = append(log, "response.status", res.Status)
+		}
+		log = append(log, "error", err)
+		slog.Info("emudhra 1", log...)
+
+		res, err = http.Get("https://dv-g3b-aaa-emudhra.we-have-a-problem.com/")
+		log = []any{}
+		if res != nil {
+			log = append(log, "response.status", res.Status)
+		}
+		log = append(log, "error", err)
+		slog.Info("emudhra 1", log...)
+	}
+	testEmudhra()
+
 	// Sentry
 	if gwConfig.Monitoring.Sentry.Enabled {
 		err := sentry.Init(sentry.ClientOptions{
