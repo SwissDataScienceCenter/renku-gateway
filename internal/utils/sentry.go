@@ -37,8 +37,8 @@ func FilterTransactions(event *sentry.Event, hint *sentry.EventHint) *sentry.Eve
 	slog.Info("filter tx: renkuServiceHeaderValue", "renkuServiceHeaderValue", renkuServiceHeaderValue)
 	if strings.EqualFold(renkuServiceHeaderValue, "renku-ui-server") {
 		// This request is coming from renku-ui-server, reduce sample rate
-		trace := event.Contexts["trace"]
-		slog.Info("filter tx: trace", "trace", trace)
+		dsc := event.GetDynamicSamplingContext()
+		slog.Info("filter tx: dsc", "dsc", dsc)
 	}
 
 	return nil
