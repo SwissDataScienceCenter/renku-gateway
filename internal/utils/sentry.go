@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"log/slog"
 	"strings"
 
 	"github.com/getsentry/sentry-go"
@@ -25,5 +26,18 @@ func SendErrorToSentry(err error) bool {
 }
 
 func FilterTransactions(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
+	if event == nil {
+		return nil
+	}
+
+	slog.Info("filter tx", "event", event)
+
+	renkuServiceHeaderValue := event.Request.Headers["renku-service"]
+	if renkuServiceHeaderValue == "renku-ui-server" {
+		// This request is coming from renku-ui-server, reduce sample rate
+		trace := event.Contexts["trace"]
+		slog.Info("filter tx", "trace", trace)
+	}
+
 	return nil
 }
