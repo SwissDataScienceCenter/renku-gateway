@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"log/slog"
+	"net/textproto"
 	"strings"
 
 	"github.com/getsentry/sentry-go"
@@ -30,13 +31,14 @@ func FilterTransactions(event *sentry.Event, hint *sentry.EventHint) *sentry.Eve
 		return nil
 	}
 
-	slog.Info("filter tx", "event", event)
+	slog.Info("filter tx", "event", event, "hint", hint)
 
-	renkuServiceHeaderValue := event.Request.Headers["renku-service"]
-	if renkuServiceHeaderValue == "renku-ui-server" {
+	renkuServiceHeaderValue := event.Request.Headers[textproto.CanonicalMIMEHeaderKey("renku-service")]
+	slog.Info("filter tx: renkuServiceHeaderValue", "renkuServiceHeaderValue", renkuServiceHeaderValue)
+	if strings.EqualFold(renkuServiceHeaderValue, "renku-ui-server") {
 		// This request is coming from renku-ui-server, reduce sample rate
 		trace := event.Contexts["trace"]
-		slog.Info("filter tx", "trace", trace)
+		slog.Info("filter tx: trace", "trace", trace)
 	}
 
 	return nil
