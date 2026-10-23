@@ -69,7 +69,7 @@ func TracesSampler(sampleRate float64) sentry.TracesSampler {
 				if strings.EqualFold(val, "renku-ui-server") {
 					// This request is coming from renku-ui-server, reduce sample rate
 					slog.Info("TracesSampler: changing sample rate", "sampleRate", sampleRate, "reducedSampleRate", reducedSampleRate,
-						"Parent.Sampled", ctx.Parent.Sampled,
+						"Parent", ctx.Parent,
 						"ParentSampled", ctx.ParentSampled,
 					)
 					return reducedSampleRate
