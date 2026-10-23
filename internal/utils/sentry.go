@@ -3,7 +3,6 @@ package utils
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"strings"
 
 	"github.com/getsentry/sentry-go"
@@ -38,7 +37,7 @@ func SendErrorToSentry(err error) bool {
 	return true
 }
 
-// func(next HandlerFunc) HandlerFunc
+// Saves the echo context for use by TracesSampler
 func SamplerMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c *echo.Context) error {
 		r := c.Request()
@@ -52,36 +51,22 @@ func SamplerMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 
 func TracesSampler(sampleRate float64) sentry.TracesSampler {
 	reducedSampleRate := sampleRate / 1_000
-
 	return func(ctx sentry.SamplingContext) float64 {
 		span := ctx.Span
 		if span == nil {
 			return sampleRate
 		}
-
+		// Get echo context from SamplerMiddleware
 		data, ok := span.Context().Value(samplerContextKey{}).(*samplerContextData)
-		slog.Info("TracesSampler: DEBUG", "ok", ok, "data", data, "data.c", (data.c != nil))
 		if ok && data != nil && data.c != nil && data.c.Request() != nil {
 			r := data.c.Request()
-			slog.Info("TracesSampler: DEBUG", "r.URL", r.URL.String(), "r.Header", r.Header, "test", r.Header.Values("renku-service"))
 			for _, val := range r.Header.Values("renku-service") {
-				slog.Info("TracesSampler: DEBUG2", "val", val, "=", val == "renku-ui-server", "=fold", strings.EqualFold(val, "renku-ui-server"))
 				if strings.EqualFold(val, "renku-ui-server") {
 					// This request is coming from renku-ui-server, reduce sample rate
-					slog.Info("TracesSampler: changing sample rate", "sampleRate", sampleRate, "reducedSampleRate", reducedSampleRate,
-						"Parent", ctx.Parent,
-						"ParentSampled", ctx.ParentSampled,
-					)
 					return reducedSampleRate
 				}
 			}
 		}
-
-		slog.Info("TracesSampler: INFO",
-			"Parent", ctx.Parent,
-			"ParentSampled", ctx.ParentSampled,
-		)
-
 		// Inherit decision from a local parent span (same process).
 		if ctx.Parent != nil {
 			if ctx.Parent.Sampled == sentry.SampledTrue {
@@ -96,7 +81,6 @@ func TracesSampler(sampleRate float64) sentry.TracesSampler {
 			}
 			return 0.0
 		}
-
 		return sampleRate
 	}
 }
