@@ -65,6 +65,7 @@ func TracesSampler(sampleRate float64) sentry.TracesSampler {
 			r := data.c.Request()
 			slog.Info("TracesSampler: DEBUG", "r.URL", r.URL.String(), "r.Header", r.Header, "test", r.Header.Values("renku-service"))
 			for _, val := range r.Header.Values("renku-service") {
+				slog.Info("TracesSampler: DEBUG2", "val", val, "=", val == "renku-ui-server", "=fold", strings.EqualFold(val, "renku-ui-server"))
 				if strings.EqualFold(val, "renku-ui-server") {
 					// This request is coming from renku-ui-server, reduce sample rate
 					slog.Info("TracesSampler: changing sample rate", "sampleRate", sampleRate, "reducedSampleRate", reducedSampleRate,
