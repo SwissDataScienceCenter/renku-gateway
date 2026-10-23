@@ -75,7 +75,7 @@ func TracesSampler(sampleRate float64) sentry.TracesSampler {
 		}
 
 		slog.Info("TracesSampler: INFO",
-			"Parent.Sampled", ctx.Parent.Sampled,
+			"Parent", ctx.Parent,
 			"ParentSampled", ctx.ParentSampled,
 		)
 
