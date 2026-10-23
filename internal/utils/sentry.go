@@ -54,7 +54,6 @@ func TracesSampler(sampleRate float64) sentry.TracesSampler {
 	reducedSampleRate := sampleRate / 1_000
 
 	return func(ctx sentry.SamplingContext) float64 {
-		// slog.Info("TracesSampler", "ctx", ctx)
 		span := ctx.Span
 		if span == nil {
 			return sampleRate
@@ -66,11 +65,19 @@ func TracesSampler(sampleRate float64) sentry.TracesSampler {
 			for _, val := range r.Header.Values("renku-service") {
 				if strings.EqualFold(val, "renku-ui-server") {
 					// This request is coming from renku-ui-server, reduce sample rate
-					slog.Info("TracesSampler: changing sample rate", "sampleRate", sampleRate, "reducedSampleRate", reducedSampleRate)
+					slog.Info("TracesSampler: changing sample rate", "sampleRate", sampleRate, "reducedSampleRate", reducedSampleRate,
+						"Parent.Sampled", ctx.Parent.Sampled,
+						"ParentSampled", ctx.ParentSampled,
+					)
 					return reducedSampleRate
 				}
 			}
 		}
+
+		slog.Info("TracesSampler: INFO",
+			"Parent.Sampled", ctx.Parent.Sampled,
+			"ParentSampled", ctx.ParentSampled,
+		)
 
 		// Inherit decision from a local parent span (same process).
 		if ctx.Parent != nil {
@@ -90,27 +97,3 @@ func TracesSampler(sampleRate float64) sentry.TracesSampler {
 		return sampleRate
 	}
 }
-
-// func FilterTransactions(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
-// 	if event == nil {
-// 		return nil
-// 	}
-
-// 	slog.Info("filter tx", "event", event, "hint", hint)
-
-// 	renkuServiceHeaderValue := event.Request.Headers[textproto.CanonicalMIMEHeaderKey("renku-service")]
-// 	slog.Info("filter tx: renkuServiceHeaderValue", "renkuServiceHeaderValue", renkuServiceHeaderValue)
-// 	if strings.EqualFold(renkuServiceHeaderValue, "renku-ui-server") {
-// 		// This request is coming from renku-ui-server, reduce sample rate
-// 		dsc := event.GetDynamicSamplingContext()
-// 		slog.Info("filter tx: dsc", "dsc", dsc)
-// 		oldSampleRate, err := strconv.ParseFloat(dsc["sample_rate"], 64)
-// 		if err != nil {
-// 			return nil // TODO: return event
-// 		}
-// 		sampleRate := oldSampleRate / 1_000
-
-// 	}
-
-// 	return nil
-// }
