@@ -9,14 +9,10 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
-// type myContextKey struct{}
-// type myContextData struct {
-// 	// Store information for custom TracesSampler.
-// 	request *http.Request
-// 	// ...
-// }
-
+// Context key for context.Context
 type samplerContextKey struct{}
+
+// Context data for context.Context
 type samplerContextData struct {
 	c *echo.Context
 }
