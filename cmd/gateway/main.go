@@ -105,6 +105,10 @@ func main() {
 				return next(c)
 			}
 		})
+
+		// wah
+		e.Use(utils.SamplerMiddleware)
+
 		e.Use(sentryecho.New(sentryecho.Options{
 			Repanic: true,
 		}))

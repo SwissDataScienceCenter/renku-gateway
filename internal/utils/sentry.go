@@ -1,13 +1,27 @@
 package utils
 
 import (
+	"context"
 	"errors"
 	"log/slog"
+	"net/http"
 	"strings"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/labstack/echo/v5"
 )
+
+// type myContextKey struct{}
+// type myContextData struct {
+// 	// Store information for custom TracesSampler.
+// 	request *http.Request
+// 	// ...
+// }
+
+type samplerContextKey struct{}
+type samplerContextData struct {
+	c *echo.Context
+}
 
 // SendErrorToSentry returns true if the given error should be sent to Sentry
 func SendErrorToSentry(err error) bool {
@@ -25,9 +39,37 @@ func SendErrorToSentry(err error) bool {
 	return true
 }
 
+// func(next HandlerFunc) HandlerFunc
+func SamplerMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c *echo.Context) error {
+		r := c.Request()
+		data := &samplerContextData{c}
+		ctx := context.WithValue(r.Context(), samplerContextKey{}, data)
+		r = r.WithContext(ctx)
+		c.SetRequest(r)
+		return next(c)
+	}
+}
+
 func TracesSampler(sampleRate float64) sentry.TracesSampler {
 	return func(ctx sentry.SamplingContext) float64 {
-		slog.Info("TracesSampler", "ctx", ctx)
+		// slog.Info("TracesSampler", "ctx", ctx)
+		span := ctx.Span
+		if span == nil {
+			return sampleRate
+		}
+
+		data, ok := span.Context().Value(samplerContextKey{}).(*samplerContextData)
+		var r *http.Request = nil
+		if ok {
+			r = data.c.Request()
+		}
+		slog.Info("TracesSampler", "data", data, "ok", ok, "r", r)
+
+		// // spanCtx := span.Context()
+		// hub := sentry.GetHubFromContext(span.Context())
+		// // sentry.CurrentHub().GetBaggage()
+		// slog.Info("TracesSampler", "ctx", ctx, "spanCtx", span.Context(), "hub", hub)
 
 		return sampleRate
 	}
