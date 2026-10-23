@@ -60,6 +60,7 @@ func TracesSampler(sampleRate float64) sentry.TracesSampler {
 		}
 
 		data, ok := span.Context().Value(samplerContextKey{}).(*samplerContextData)
+		slog.Info("TracesSampler: DEBU", "ok", ok, "data", data, "data.c", (data.c != nil))
 		if ok && data != nil && data.c != nil && data.c.Request() != nil {
 			r := data.c.Request()
 			for _, val := range r.Header.Values("renku-service") {
