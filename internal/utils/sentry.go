@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"net/http"
 	"strings"
 
 	"github.com/getsentry/sentry-go"
@@ -52,6 +51,8 @@ func SamplerMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 }
 
 func TracesSampler(sampleRate float64) sentry.TracesSampler {
+	reducedSampleRate := sampleRate / 1_000
+
 	return func(ctx sentry.SamplingContext) float64 {
 		// slog.Info("TracesSampler", "ctx", ctx)
 		span := ctx.Span
@@ -60,16 +61,31 @@ func TracesSampler(sampleRate float64) sentry.TracesSampler {
 		}
 
 		data, ok := span.Context().Value(samplerContextKey{}).(*samplerContextData)
-		var r *http.Request = nil
-		if ok {
-			r = data.c.Request()
+		if ok && data != nil && data.c != nil && data.c.Request() != nil {
+			r := data.c.Request()
+			for _, val := range r.Header.Values("renku-service") {
+				if strings.EqualFold(val, "renku-ui-server") {
+					// This request is coming from renku-ui-server, reduce sample rate
+					slog.Info("TracesSampler: changing sample rate", "sampleRate", sampleRate, "reducedSampleRate", reducedSampleRate)
+					return reducedSampleRate
+				}
+			}
 		}
-		slog.Info("TracesSampler", "data", data, "ok", ok, "r", r)
 
-		// // spanCtx := span.Context()
-		// hub := sentry.GetHubFromContext(span.Context())
-		// // sentry.CurrentHub().GetBaggage()
-		// slog.Info("TracesSampler", "ctx", ctx, "spanCtx", span.Context(), "hub", hub)
+		// Inherit decision from a local parent span (same process).
+		if ctx.Parent != nil {
+			if ctx.Parent.Sampled == sentry.SampledTrue {
+				return 1.0
+			}
+			return 0.0
+		}
+		// Inherit decision from a remote parent span (upstream service).
+		if ctx.ParentSampled != sentry.SampledUndefined {
+			if ctx.ParentSampled == sentry.SampledTrue {
+				return 1.0
+			}
+			return 0.0
+		}
 
 		return sampleRate
 	}
