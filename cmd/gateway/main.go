@@ -54,9 +54,9 @@ func main() {
 	// Sentry
 	if gwConfig.Monitoring.Sentry.Enabled {
 		err := sentry.Init(sentry.ClientOptions{
-			Dsn:              string(gwConfig.Monitoring.Sentry.Dsn),
-			TracesSampleRate: gwConfig.Monitoring.Sentry.SampleRate,
-			Environment:      gwConfig.Monitoring.Sentry.Environment,
+			Dsn:           string(gwConfig.Monitoring.Sentry.Dsn),
+			TracesSampler: utils.TracesSampler(gwConfig.Monitoring.Sentry.SampleRate),
+			Environment:   gwConfig.Monitoring.Sentry.Environment,
 			// NOTE: We want a trace ID generated for each request, even if it's not sampled. We set this field to
 			// true regardless of TraceSampleRate's value to avoid corner cases where a trace ID isn't generated or
 			// isn't correctly linked to other events in the request's trace.
@@ -102,6 +102,7 @@ func main() {
 				return next(c)
 			}
 		})
+		e.Use(utils.SamplerMiddleware)
 		e.Use(sentryecho.New(sentryecho.Options{
 			Repanic: true,
 		}))
