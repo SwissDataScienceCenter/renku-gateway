@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"strings"
 	"syscall"
 	"time"
 
@@ -83,7 +84,41 @@ func main() {
 			os.Exit(1)
 		}
 		trustOptions = append(trustOptions, echo.TrustIPRange(ipNet))
-		e.IPExtractor = echo.ExtractIPFromRealIPHeader(trustOptions...)
+		// e.IPExtractor = echo.ExtractIPFromRealIPHeader(trustOptions...)
+
+		e.IPExtractor = func(req *http.Request) string {
+			extractIP := func(req *http.Request) string {
+				host, _, err := net.SplitHostPort(req.RemoteAddr)
+				if err != nil {
+					if net.ParseIP(req.RemoteAddr) != nil {
+						return req.RemoteAddr
+					}
+					return ""
+				}
+				return host
+			}
+			directIP := extractIP(req)
+			peerIP := net.ParseIP(directIP)
+			if peerIP == nil {
+				return directIP
+			}
+
+			realIP := req.Header.Get(echo.HeaderXRealIP)
+			slog.Info("IP Extractor", "directIP", directIP, "peerIP", peerIP,
+				"peerIP.IsLoopback", peerIP.IsLoopback(),
+				"peerIP.IsLinkLocalUnicast", peerIP.IsLinkLocalUnicast(),
+				"peerIP.IsPrivate", peerIP.IsPrivate(),
+				"realIP", realIP)
+			if realIP != "" {
+				realIP = strings.TrimPrefix(realIP, "[")
+				realIP = strings.TrimSuffix(realIP, "]")
+				if ip := net.ParseIP(realIP); ip != nil {
+					return realIP
+				}
+			}
+			return directIP
+
+		}
 	}
 	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
 	e.Use(middleware.Recover())
