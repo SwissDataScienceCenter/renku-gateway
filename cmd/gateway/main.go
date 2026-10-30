@@ -5,12 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"runtime/debug"
-	"strings"
 	"syscall"
 	"time"
 
@@ -70,58 +68,25 @@ func main() {
 	// Setup
 	e := echo.New()
 	if gwConfig.Server.TrustRealIPHeader {
-		// NOTE: we need to manually allow all IP addresses
-		trustOptions := []echo.TrustOption{}
-		_, ipNet, err := net.ParseCIDR("0.0.0.0/0")
-		if err != nil {
-			slog.Error("failed to parse CIDR '0.0.0.0/0'", "error", err)
-			os.Exit(1)
-		}
-		trustOptions = append(trustOptions, echo.TrustIPRange(ipNet))
-		_, ipNet, err = net.ParseCIDR("::/0")
-		if err != nil {
-			slog.Error("failed to parse CIDR '::/0'", "error", err)
-			os.Exit(1)
-		}
-		trustOptions = append(trustOptions, echo.TrustIPRange(ipNet))
-		// e.IPExtractor = echo.ExtractIPFromRealIPHeader(trustOptions...)
-
-		e.IPExtractor = func(req *http.Request) string {
-			extractIP := func(req *http.Request) string {
-				host, _, err := net.SplitHostPort(req.RemoteAddr)
-				if err != nil {
-					if net.ParseIP(req.RemoteAddr) != nil {
-						return req.RemoteAddr
-					}
-					return ""
-				}
-				return host
-			}
-			directIP := extractIP(req)
-			peerIP := net.ParseIP(directIP)
-			if peerIP == nil {
-				return directIP
-			}
-
-			realIP := req.Header.Get(echo.HeaderXRealIP)
-			slog.Info("IP Extractor", "directIP", directIP, "peerIP", peerIP,
-				"peerIP.IsLoopback", peerIP.IsLoopback(),
-				"peerIP.IsLinkLocalUnicast", peerIP.IsLinkLocalUnicast(),
-				"peerIP.IsPrivate", peerIP.IsPrivate(),
-				"realIP", realIP)
-			if realIP != "" {
-				realIP = strings.TrimPrefix(realIP, "[")
-				realIP = strings.TrimSuffix(realIP, "]")
-				if ip := net.ParseIP(realIP); ip != nil {
-					return realIP
-				}
-			}
-			return directIP
-
-		}
+		e.IPExtractor = echo.ExtractIPFromRealIPHeader()
 	}
 	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
 	e.Use(middleware.Recover())
+
+	// Test
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c *echo.Context) error {
+			realIP := c.RealIP()
+			var urlStr *string = nil
+			if c.Request().URL != nil {
+				s := c.Request().URL.String()
+				urlStr = &s
+			}
+			slog.Info("REALIP", "realIP", realIP, "url", urlStr, "host", c.Request().Host)
+			return next(c)
+		}
+	})
+
 	// Sentry middleware
 	if gwConfig.Monitoring.Sentry.Enabled {
 		// Handle repeated requests: strip the Sentry headers and break distributed tracing
