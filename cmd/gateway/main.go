@@ -72,21 +72,6 @@ func main() {
 	}
 	e.Pre(middleware.RequestID(), middleware.RemoveTrailingSlash(), revproxy.UiServerPathRewrite())
 	e.Use(middleware.Recover())
-
-	// Test
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c *echo.Context) error {
-			realIP := c.RealIP()
-			var urlStr *string = nil
-			if c.Request().URL != nil {
-				s := c.Request().URL.String()
-				urlStr = &s
-			}
-			slog.Info("REALIP", "realIP", realIP, "url", urlStr, "host", c.Request().Host)
-			return next(c)
-		}
-	})
-
 	// Sentry middleware
 	if gwConfig.Monitoring.Sentry.Enabled {
 		// Handle repeated requests: strip the Sentry headers and break distributed tracing
