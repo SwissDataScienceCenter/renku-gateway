@@ -5,7 +5,7 @@ go 1.27.3
 tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
 
 require (
-	github.com/getkin/kin-openapi v0.149.0
+	github.com/getkin/kin-openapi v0.152.0
 	github.com/getsentry/sentry-go v0.50.0
 	github.com/getsentry/sentry-go/echo v0.50.0
 	github.com/go-jose/go-jose/v4 v4.1.6
