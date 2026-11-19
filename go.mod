@@ -22,8 +22,8 @@ require (
 	github.com/redis/go-redis/v9 v9.23.0
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
-	github.com/zitadel/oidc/v3 v3.51.17
-	golang.org/x/oauth2 v0.37.0
+	github.com/zitadel/oidc/v3 v3.52.0
+	golang.org/x/oauth2 v0.38.0
 )
 
 require (
